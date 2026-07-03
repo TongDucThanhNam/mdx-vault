@@ -89,7 +89,7 @@ export function MdxPreview({
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full min-h-0 overflow-y-auto">
       <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b bg-background/95 px-4 text-xs text-muted-foreground backdrop-blur">
         <span className="truncate">{selectedPath}</span>
         <span>{isCompiling ? 'Compiling' : 'Live'}</span>

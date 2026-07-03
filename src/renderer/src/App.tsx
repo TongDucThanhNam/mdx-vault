@@ -359,7 +359,7 @@ function App(): React.JSX.Element {
             : 'grid-cols-[280px_minmax(0,1fr)]'
         )}
       >
-        <aside className="min-w-0 border-r bg-muted/20">
+        <aside className="min-h-0 min-w-0 border-r bg-muted/20">
           <div className="flex h-10 items-center justify-between border-b px-3">
             <div className="text-xs font-medium uppercase text-muted-foreground">Files</div>
             <div className="text-xs tabular-nums text-muted-foreground">
@@ -388,14 +388,14 @@ function App(): React.JSX.Element {
           </div>
         </aside>
 
-        <section className="min-w-0 border-r">
+        <section className="min-h-0 min-w-0 border-r">
           <div className="flex h-10 items-center justify-between border-b px-4">
             <div className="truncate text-sm font-medium">{selectedPath ?? 'Editor'}</div>
             <div className="text-xs text-muted-foreground">
               {isLoadingFile ? 'Loading' : saveLabel}
             </div>
           </div>
-          <div className="h-[calc(100%-2.5rem)]">
+          <div className="h-[calc(100%-2.5rem)] min-h-0">
             {selectedPath ? (
               isLoadingFile ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -419,13 +419,13 @@ function App(): React.JSX.Element {
         </section>
 
         {showPreview ? (
-          <aside className="min-w-0 bg-background">
+          <aside className="min-h-0 min-w-0 bg-background">
             <div className="flex h-10 items-center gap-2 border-b px-4 text-sm font-medium">
               <PanelRight className="size-4" aria-hidden="true" />
               Preview
             </div>
-            <div className="grid h-[calc(100%-2.5rem)] grid-rows-[minmax(0,1fr)_180px]">
-              <div className="min-h-0">
+            <div className="grid h-[calc(100%-2.5rem)] min-h-0 grid-rows-[minmax(0,1fr)_180px]">
+              <div className="min-h-0 overflow-hidden">
                 <MdxPreview
                   source={content}
                   selectedPath={selectedPath}
@@ -434,7 +434,7 @@ function App(): React.JSX.Element {
                   onRevealLine={revealEditorLine}
                 />
               </div>
-              <div className="min-h-0 border-t bg-muted/10">
+              <div className="min-h-0 overflow-hidden border-t bg-muted/10">
                 <BacklinksPanel
                   backlinks={backlinks}
                   selectedPath={selectedPath}
