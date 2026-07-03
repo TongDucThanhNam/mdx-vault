@@ -1,22 +1,67 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+interface VaultFile {
+  relativePath: string
+  name: string
+  directory: string
+  extension: '.md' | '.mdx'
+}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+interface VaultInfo {
+  name: string
+  files: VaultFile[]
+}
+
+interface IpcSuccess<T> {
+  ok: true
+  data: T
+}
+
+interface IpcFailure {
+  ok: false
+  error: {
+    code: string
+    message: string
+  }
+}
+
+type IpcResult<T> = IpcSuccess<T> | IpcFailure
+
+class VaultApiError extends Error {
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'VaultApiError'
+    this.code = code
+  }
+}
+
+const vaultApi = {
+  openVault: (): Promise<VaultInfo | null> => invokeVault('vault:open'),
+  listFiles: (): Promise<VaultFile[]> => invokeVault('vault:list-files'),
+  readFile: (relativePath: string): Promise<string> =>
+    invokeVault('vault:read-file', { relativePath }),
+  writeFile: (relativePath: string, content: string): Promise<void> =>
+    invokeVault('vault:write-file', { relativePath, content })
+}
+
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('vaultApi', vaultApi)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+  throw new Error('contextIsolation must be enabled')
+}
+
+async function invokeVault<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
 }
