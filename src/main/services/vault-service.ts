@@ -17,6 +17,7 @@ export interface VaultInfo {
 }
 
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
+const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
 const IGNORED_DIRECTORIES = ['**/node_modules/**', '**/.git/**', '**/.app/**']
 
@@ -56,6 +57,24 @@ export class VaultService {
   async readFile(relativePath: string): Promise<string> {
     const target = this.resolveMarkdownPath(relativePath)
     await assertFile(target)
+    return readFile(target, 'utf8')
+  }
+
+  async readAssetFile(relativePath: string): Promise<string> {
+    const normalizedPath = normalizeVaultPath(relativePath)
+    const extension = extname(normalizedPath).toLowerCase()
+
+    if (!ASSET_DATA_EXTENSIONS.has(extension)) {
+      throw new Error('Only .csv and .json asset files are allowed')
+    }
+
+    const target = safeJoin(this.root, normalizedPath)
+
+    if (!isAssetPath(normalizedPath)) {
+      throw new Error('Dataset files must live under assets/')
+    }
+
+    await assertDatasetFile(target)
     return readFile(target, 'utf8')
   }
 
@@ -103,10 +122,28 @@ function normalizeVaultPath(relativePath: string): string {
   return relativePath.replaceAll('\\', '/')
 }
 
+function isAssetPath(relativePath: string): boolean {
+  return relativePath === 'assets' || relativePath.startsWith('assets/')
+}
+
 async function assertFile(target: string): Promise<void> {
   const fileStats = await stat(target)
 
   if (!fileStats.isFile()) {
     throw new Error('Path is not a file')
+  }
+}
+
+async function assertDatasetFile(target: string): Promise<void> {
+  let fileStats: Awaited<ReturnType<typeof stat>>
+
+  try {
+    fileStats = await stat(target)
+  } catch {
+    throw new Error('Dataset file not found')
+  }
+
+  if (!fileStats.isFile()) {
+    throw new Error('Dataset path is not a file')
   }
 }

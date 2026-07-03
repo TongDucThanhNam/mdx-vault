@@ -10,6 +10,7 @@ export interface ComponentRegistryEntry<TProps extends object = object> {
   description: string
   category: RegistryCategory
   defaultProps?: Partial<TProps>
+  insertSnippet?: string
 }
 
 export function defineRegistryEntry<TProps extends object>(

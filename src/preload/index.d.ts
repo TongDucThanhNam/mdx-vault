@@ -35,6 +35,7 @@ interface VaultApi {
   openVault: () => Promise<VaultInfo | null>
   listFiles: () => Promise<VaultFile[]>
   readFile: (relativePath: string) => Promise<string>
+  readAssetFile: (relativePath: string) => Promise<string>
   writeFile: (relativePath: string, content: string) => Promise<void>
 }
 

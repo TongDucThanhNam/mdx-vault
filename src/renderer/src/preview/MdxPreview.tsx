@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
 import { createMdxComponents } from './mdx-components'
 import { readPreviewMetadata } from './preview-metadata'
+import { PreviewRuntimeContext } from './runtime'
 import { rehypeSafeHtml } from './safe-html'
 import type { IndexedNoteSummary } from '@/vault/types'
 
@@ -41,6 +42,7 @@ export function MdxPreview({
   const [isCompiling, setIsCompiling] = useState(false)
   const components = useMemo(() => createMdxComponents({ notes, onNavigate }), [notes, onNavigate])
   const previewMetadata = useMemo(() => readPreviewMetadata(source), [source])
+  const runtimeValue = useMemo(() => ({ selectedPath }), [selectedPath])
 
   useEffect(() => {
     let isCancelled = false
@@ -108,7 +110,9 @@ export function MdxPreview({
               <ErrorPanel title="MDX runtime error" diagnostic={createDiagnostic(error)} />
             )}
           >
-            <Content components={components} />
+            <PreviewRuntimeContext.Provider value={runtimeValue}>
+              <Content components={components} />
+            </PreviewRuntimeContext.Provider>
           </ErrorBoundary>
         ) : (
           <div className="text-sm text-muted-foreground">Preparing preview.</div>

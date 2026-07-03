@@ -3,10 +3,13 @@ import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
 import { LanguageDescription } from '@codemirror/language'
-import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { EditorState, Prec } from '@codemirror/state'
+import { EditorView, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import { ComponentInsertPalette } from './ComponentInsertPalette'
+import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 
 export interface RevealLineRequest {
   line: number
@@ -79,6 +82,31 @@ export function MdxEditor({
   const viewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
+  const insertTemplates = useMemo(() => getRegistryInsertTemplates(), [])
+  const [insertPaletteOpen, setInsertPaletteOpen] = useState(false)
+
+  const openInsertPalette = useCallback((view: EditorView): boolean => {
+    viewRef.current = view
+    setInsertPaletteOpen(true)
+    return true
+  }, [])
+
+  const closeInsertPalette = useCallback(() => {
+    setInsertPaletteOpen(false)
+    viewRef.current?.focus()
+  }, [])
+
+  const insertTemplate = useCallback((template: RegistryInsertTemplate) => {
+    const view = viewRef.current
+
+    if (!view) {
+      return
+    }
+
+    view.dispatch(view.state.replaceSelection(createSnippetInsertion(view, template.snippet)))
+    setInsertPaletteOpen(false)
+    view.focus()
+  }, [])
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -96,6 +124,24 @@ export function MdxEditor({
         extensions: [
           basicSetup,
           markdown({ codeLanguages }),
+          Prec.highest(
+            keymap.of([
+              {
+                key: 'Mod-k',
+                run: openInsertPalette
+              },
+              {
+                key: '/',
+                run: (view) => {
+                  if (!shouldOpenSlashCommand(view)) {
+                    return false
+                  }
+
+                  return openInsertPalette(view)
+                }
+              }
+            ])
+          ),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -113,7 +159,7 @@ export function MdxEditor({
       view.destroy()
       viewRef.current = null
     }
-  }, [])
+  }, [openInsertPalette])
 
   useEffect(() => {
     const view = viewRef.current
@@ -154,5 +200,48 @@ export function MdxEditor({
     view.focus()
   }, [revealLineRequest])
 
-  return <div ref={containerRef} className="h-full overflow-hidden" />
+  return (
+    <div className="relative h-full overflow-hidden">
+      <div ref={containerRef} className="h-full overflow-hidden" />
+      {insertPaletteOpen ? (
+        <ComponentInsertPalette
+          templates={insertTemplates}
+          onClose={closeInsertPalette}
+          onSelect={insertTemplate}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function shouldOpenSlashCommand(view: EditorView): boolean {
+  const selection = view.state.selection.main
+
+  if (!selection.empty) {
+    return false
+  }
+
+  const line = view.state.doc.lineAt(selection.from)
+  const textBeforeCursor = view.state.doc.sliceString(line.from, selection.from)
+
+  return textBeforeCursor.trim().length === 0
+}
+
+function createSnippetInsertion(view: EditorView, snippet: string): string {
+  const selection = view.state.selection.main
+
+  if (!selection.empty) {
+    return snippet
+  }
+
+  const characterBefore =
+    selection.from > 0 ? view.state.doc.sliceString(selection.from - 1, selection.from) : '\n'
+  const characterAfter =
+    selection.to < view.state.doc.length
+      ? view.state.doc.sliceString(selection.to, selection.to + 1)
+      : '\n'
+  const prefix = characterBefore === '\n' ? '' : '\n\n'
+  const suffix = characterAfter === '\n' ? '' : '\n'
+
+  return `${prefix}${snippet}${suffix}`
 }

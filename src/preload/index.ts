@@ -63,6 +63,8 @@ const vaultApi = {
   listFiles: (): Promise<VaultFile[]> => invokeVault('vault:list-files'),
   readFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:read-file', { relativePath }),
+  readAssetFile: (relativePath: string): Promise<string> =>
+    invokeVault('vault:read-asset-file', { relativePath }),
   writeFile: (relativePath: string, content: string): Promise<void> =>
     invokeVault('vault:write-file', { relativePath, content })
 }

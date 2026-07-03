@@ -35,6 +35,9 @@ const emptyPayloadSchema = z.undefined()
 const readFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
+const readAssetFilePayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
 const writeFilePayloadSchema = z.object({
   relativePath: z.string().min(1),
   content: z.string()
@@ -68,6 +71,13 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
     return handleVaultRequest(async () => {
       const input = readFilePayloadSchema.parse(payload)
       return getCurrentVault().readFile(input.relativePath)
+    })
+  })
+
+  ipcMain.handle('vault:read-asset-file', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = readAssetFilePayloadSchema.parse(payload)
+      return getCurrentVault().readAssetFile(input.relativePath)
     })
   })
 
