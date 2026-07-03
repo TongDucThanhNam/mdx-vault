@@ -61,9 +61,9 @@
 | -------------------- | ----------------------------------------------------- |
 | react-error-boundary | Bọc MDX preview để lỗi compile/runtime không sập app. |
 | esbuild (dev)        | Compile vault custom components (Goal 05).            |
+| recharts ^3.9         | Chart lib cho DataChart + đồ thị mini EquationSlider (Goal 04). User đã chốt thay vì tự vẽ SVG. Tương thích React 19. |
 
 ## Chưa cài (cài khi đến goal tương ứng)
 
-- Chart lib cho `DataChart` (Goal 04 — cân nhắc recharts hoặc observable plot)
 - Virtualization cho file tree/list dài (`@tanstack/react-virtual`) nếu cần
 - Provider SDK cụ thể cho TanStack AI (Goal 06, tùy provider user chọn)

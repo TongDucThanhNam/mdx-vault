@@ -17,7 +17,7 @@ Xây bộ template components đầu tiên trong registry (Level 2 trusted) — 
 | Item             | Giá trị                                                             |
 | ---------------- | ------------------------------------------------------------------- |
 | Registry         | Có structure + props validation (GOAL-03), chỉ chứa demo components |
-| Chart lib        | CHƯA cài — goal này quyết định và cài                               |
+| Chart lib        | **recharts@3.9.1 đã cài** (quyết định của user) — dùng nó cho DataChart + đồ thị mini |
 | Editor insertion | Chưa có — user phải gõ JSX bằng tay                                 |
 
 ## Target State
@@ -40,7 +40,7 @@ Mỗi component tuân tiêu chuẩn docs/product-vision.md: thao tác biến qua
 - [ ] Mọi component đăng ký qua registry của GOAL-03 — không hardcode vào components map
 - [ ] KHÔNG dùng `eval()`/`new Function()` cho expression của EquationSlider — viết parser số học nhỏ (+-*/^, ngoặc, biến) hoặc bảng công thức có sẵn
 - [ ] `DataChart src` chỉ đọc trong vault qua safeJoin IPC; file ngoài vault → lỗi rõ ràng
-- [ ] Chart lib: chọn MỘT lib nhẹ, tree-shakeable [ước lượng: recharts hoặc tự vẽ SVG cho line/bar/scatter đơn giản — ưu tiên tự vẽ SVG nếu đủ, để giảm dependency]; nếu cài lib mới phải dùng `bun add` và báo cáo lý do
+- [ ] Chart lib: dùng **recharts** (đã cài sẵn, user đã chốt) cho DataChart và đồ thị mini của EquationSlider — KHÔNG tự vẽ SVG, KHÔNG cài thêm chart lib khác
 - [ ] Component phải render tốt trong khổ preview ~800px, responsive khi pane hẹp
 - [ ] KHÔNG đụng sandbox/manifest/AI
 - [ ] Blocker → DỪNG và hỏi
