@@ -1,0 +1,37 @@
+---
+title: Welcome
+tags: [demo, mdx]
+---
+
+# Welcome to MDX Vault
+
+Đây là một note MDX bình thường. Bạn vẫn viết Markdown như Obsidian.
+
+- Wikilink: [[Bayes Theorem]] và [[Binary Search]]
+- **Bold**, _italic_, `inline code`
+
+| Feature             | Status |
+| ------------------- | ------ |
+| Markdown            | ✅     |
+| Safe HTML           | ✅     |
+| Interactive islands | ✅     |
+
+## Native HTML (safe)
+
+<details>
+  <summary>Bấm để mở — đây là HTML native trong MDX</summary>
+
+Phần này dùng thẻ `details/summary` trực tiếp, render sau khi sanitize.
+
+</details>
+
+<svg viewBox="0 0 120 60" width="120" height="60">
+  <circle cx="30" cy="30" r="20" fill="currentColor" opacity="0.3" />
+  <rect x="65" y="12" width="36" height="36" rx="6" fill="currentColor" opacity="0.6" />
+</svg>
+
+## Interactive island
+
+Component dưới đây là một trusted island từ registry:
+
+<Counter initial={3} />

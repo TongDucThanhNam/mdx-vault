@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
+    },
+    "shadcn": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "shadcn@latest", "mcp"]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+# goals/ — Cách dùng với Codex
+
+Thư mục này chứa các goal file được viết theo format chuẩn để giao cho AI agent thực thi (Codex `/goal`, hoặc paste trực tiếp làm prompt).
+
+## Quy tắc
+
+1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 07. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
+2. Cách giao cho Codex: mở session mới trong repo và ra lệnh, ví dụ:
+   ```
+   Đọc AGENTS.md, sau đó thực thi goals/GOAL-01-app-shell-and-vault.md.
+   Tuân theo Constraints tuyệt đối. Báo cáo sau mỗi bước của Execution Plan.
+   ```
+3. Agent phải đọc `AGENTS.md` + `docs/security.md` trước khi implement bất kỳ goal nào.
+4. Khi goal xong: verify từng Success Criteria, đánh dấu checkbox, commit. Nếu một criterion không đạt được → ghi rõ lý do, không im lặng bỏ qua.
+5. Gặp blocker hoặc thứ không có trong goal → DỪNG và hỏi, không tự assume.
+
+## Danh sách
+
+| File                               | Phase                                            | Phụ thuộc |
+| ---------------------------------- | ------------------------------------------------ | --------- |
+| GOAL-01-app-shell-and-vault.md     | Vault core: hardening, editor, preview, file I/O | —         |
+| GOAL-02-indexing-and-search.md     | SQLite index, wikilinks, backlinks, search       | 01        |
+| GOAL-03-registry-and-safe-html.md  | Component registry, sanitize, error handling     | 01, 02    |
+| GOAL-04-interactive-islands.md     | Built-in template components                     | 03        |
+| GOAL-05-sandbox-and-permissions.md | iframe sandbox, manifest, permissions            | 03        |
+| GOAL-06-ai-assistant.md            | TanStack AI, diff approval, repair loop          | 04, 05    |
+| GOAL-07-export-and-share.md        | Export static/interactive HTML                   | 04, 05    |
+
+## Trạng thái ký hiệu trong goal
+
+- `[ước lượng]` — con số/quyết định agent cần verify khi làm
+- `[cần xác nhận]` — cần hỏi user trước khi làm phần đó
