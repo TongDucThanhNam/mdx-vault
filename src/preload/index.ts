@@ -1,4 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type {
+  SandboxDescriptor,
+  SandboxDocument,
+  SandboxKind,
+  SandboxPermissionDecision
+} from '../shared/sandbox'
 
 interface VaultFile {
   relativePath: string
@@ -85,10 +91,49 @@ const indexApi = {
   }
 }
 
+const sandboxApi = {
+  describeHtml: (src: string, notePath: string | null): Promise<SandboxDescriptor> =>
+    invokeSandbox('sandbox:describe-html', { src, notePath }),
+  loadHtml: (
+    src: string,
+    notePath: string | null,
+    contentHash: string,
+    instanceId: string
+  ): Promise<SandboxDocument> =>
+    invokeSandbox('sandbox:load-html', { src, notePath, contentHash, instanceId }),
+  describeInteractive: (src: string, notePath: string | null): Promise<SandboxDescriptor> =>
+    invokeSandbox('sandbox:describe-interactive', { src, notePath }),
+  loadInteractive: (
+    src: string,
+    notePath: string | null,
+    contentHash: string,
+    instanceId: string,
+    props: unknown
+  ): Promise<SandboxDocument> =>
+    invokeSandbox('sandbox:load-interactive', { src, notePath, contentHash, instanceId, props }),
+  setPermission: (
+    kind: SandboxKind,
+    src: string,
+    notePath: string | null,
+    contentHash: string,
+    decision: SandboxPermissionDecision
+  ): Promise<SandboxDescriptor> =>
+    invokeSandbox('sandbox:set-permission', { kind, src, notePath, contentHash, decision }),
+  requestData: (
+    kind: SandboxKind,
+    src: string,
+    notePath: string | null,
+    contentHash: string,
+    path: string
+  ): Promise<string> =>
+    invokeSandbox('sandbox:request-data', { kind, src, notePath, contentHash, path })
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('vaultApi', vaultApi)
     contextBridge.exposeInMainWorld('indexApi', indexApi)
+    contextBridge.exposeInMainWorld('sandboxApi', sandboxApi)
   } catch (error) {
     console.error(error)
   }
@@ -107,6 +152,16 @@ async function invokeVault<T>(channel: string, payload?: unknown): Promise<T> {
 }
 
 async function invokeIndex<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeSandbox<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

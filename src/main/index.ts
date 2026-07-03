@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIndexIpc } from './ipc/index-ipc'
+import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
 import { closeCurrentVault } from './services/vault-session'
 
@@ -59,6 +60,7 @@ app.whenReady().then(() => {
 
   registerVaultIpc({ onIndexChanged: broadcastIndexChanged })
   registerIndexIpc({ onIndexChanged: broadcastIndexChanged })
+  registerSandboxIpc()
 
   createWindow()
 

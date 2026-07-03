@@ -1,0 +1,17 @@
+{
+  "name": "React Counter Sandbox",
+  "version": "1.0.0",
+  "runtime": "react",
+  "permissions": {
+    "network": false,
+    "filesystem": false
+  },
+  "propsSchema": {
+    "label": "string",
+    "start": "number"
+  },
+  "dependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  }
+}

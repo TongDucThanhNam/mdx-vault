@@ -35,25 +35,25 @@ Implement Trust Level 3 và 4: vault custom components (`interactives/` + manife
 
 ## Constraints
 
-- [ ] Iframe: KHÔNG BAO GIỜ `allow-same-origin` cùng `allow-scripts` trên cùng origin với app
-- [ ] Sandbox không có Node, không có `window.vaultApi`, không truy cập được contextBridge API — verify bằng test thủ công trong Success Criteria
-- [ ] Mọi message RPC validate schema + nguồn; message lạ → drop + log, không throw ra UI
-- [ ] Compile service chạy ở main process; renderer không bao giờ nhận raw path tuyệt đối
-- [ ] KHÔNG dùng `webview` tag [cần xác nhận nếu thấy iframe không đủ — mặc định iframe]
-- [ ] KHÔNG implement network permission passthrough trong goal này nếu phức tạp — được phép ship với network luôn-false, ghi rõ [ước lượng]
-- [ ] KHÔNG đụng AI
-- [ ] Blocker/nghi ngờ security → DỪNG và hỏi, mô tả threat model đang phân vân
+- [x] Iframe: KHÔNG BAO GIỜ `allow-same-origin` cùng `allow-scripts` trên cùng origin với app
+- [x] Sandbox không có Node, không có `window.vaultApi`, không truy cập được contextBridge API — verify bằng test thủ công trong Success Criteria
+- [x] Mọi message RPC validate schema + nguồn; message lạ → drop + log, không throw ra UI
+- [x] Compile service chạy ở main process; renderer không bao giờ nhận raw path tuyệt đối
+- [x] KHÔNG dùng `webview` tag [cần xác nhận nếu thấy iframe không đủ — mặc định iframe]
+- [x] KHÔNG implement network permission passthrough trong goal này nếu phức tạp — được phép ship với network luôn-false, ghi rõ [ước lượng]
+- [x] KHÔNG đụng AI
+- [x] Blocker/nghi ngờ security → DỪNG và hỏi, mô tả threat model đang phân vân
 
 ## Success Criteria
 
-- [ ] `bun run typecheck` && `bun run lint` pass
-- [ ] Demo sandboxed HTML render và tương tác được trong note
-- [ ] Demo React interactive (manifest hợp lệ) compile, render, nhận props từ note, resize theo nội dung
-- [ ] Trong sandbox devtools: `window.vaultApi` undefined; `fetch('https://example.com')` bị chặn (CSP); `window.parent.document` throw (cross-origin/sandbox)
-- [ ] Component import package ngoài allowlist → error card "dependency not allowed", không chạy
-- [ ] Không có manifest / manifest sai schema → từ chối + card giải thích
-- [ ] Lần đầu chạy → permission dialog; Deny → không chạy; Allow → chạy; sửa component.tsx → hỏi lại
-- [ ] Sửa component.tsx → cache invalidate, bản mới được compile [kiểm bằng đổi UI thấy khác]
+- [x] `bun run typecheck` && `bun run lint` pass
+- [x] Demo sandboxed HTML render và tương tác được trong note
+- [x] Demo React interactive (manifest hợp lệ) compile, render, nhận props từ note, resize theo nội dung
+- [x] Trong sandbox devtools: `window.vaultApi` undefined; `fetch('https://example.com')` bị chặn (CSP); `window.parent.document` throw (cross-origin/sandbox)
+- [x] Component import package ngoài allowlist → error card "dependency not allowed", không chạy
+- [x] Không có manifest / manifest sai schema → từ chối + card giải thích
+- [x] Lần đầu chạy → permission dialog; Deny → không chạy; Allow → chạy; sửa component.tsx → hỏi lại
+- [x] Sửa component.tsx → cache invalidate, bản mới được compile [kiểm bằng đổi UI thấy khác]
 
 ## Execution Plan
 

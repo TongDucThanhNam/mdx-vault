@@ -6,6 +6,8 @@ import type { IndexedNoteSummary } from '@/vault/types'
 import { parseWikilinkUrl, resolveWikilinkTarget } from '../../../shared/wikilinks'
 import { createRegistryComponents } from './registry'
 import { UnknownComponentPlaceholder } from './registry/messages'
+import { Interactive } from './sandbox/Interactive'
+import { SandboxedHTML } from './sandbox/SandboxedHTML'
 
 interface CreateMdxComponentsOptions {
   notes: IndexedNoteSummary[]
@@ -60,6 +62,8 @@ export function createMdxComponents({
 
   const components: MDXComponents = {
     ...registryComponents,
+    Interactive,
+    SandboxedHTML,
     a: WikilinkAwareAnchor
   }
 

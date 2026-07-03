@@ -1,0 +1,15 @@
+{
+  "name": "Bad Dependency Sandbox",
+  "version": "1.0.0",
+  "runtime": "react",
+  "permissions": {
+    "network": false,
+    "filesystem": false
+  },
+  "propsSchema": {},
+  "dependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "lodash": "^4.17.21"
+  }
+}

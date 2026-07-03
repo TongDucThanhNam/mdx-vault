@@ -1,0 +1,11 @@
+{
+  "name": "Canvas Normal Sandbox",
+  "version": "1.0.0",
+  "runtime": "html",
+  "permissions": {
+    "network": false,
+    "filesystem": false
+  },
+  "propsSchema": {},
+  "dependencies": {}
+}
