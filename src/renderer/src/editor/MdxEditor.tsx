@@ -8,9 +8,15 @@ import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { useEffect, useRef } from 'react'
 
+export interface RevealLineRequest {
+  line: number
+  requestId: number
+}
+
 interface MdxEditorProps {
   value: string
   onChange: (value: string) => void
+  revealLineRequest?: RevealLineRequest | null
 }
 
 const codeLanguages = [
@@ -64,7 +70,11 @@ const editorTheme = EditorView.theme({
   }
 })
 
-export function MdxEditor({ value, onChange }: MdxEditorProps): React.JSX.Element {
+export function MdxEditor({
+  value,
+  onChange,
+  revealLineRequest
+}: MdxEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
@@ -124,6 +134,25 @@ export function MdxEditor({ value, onChange }: MdxEditorProps): React.JSX.Elemen
       })
     }
   }, [value])
+
+  useEffect(() => {
+    const view = viewRef.current
+
+    if (!view || !revealLineRequest) {
+      return
+    }
+
+    const lineNumber = Math.min(Math.max(1, revealLineRequest.line), view.state.doc.lines)
+    const line = view.state.doc.line(lineNumber)
+
+    view.dispatch({
+      selection: {
+        anchor: line.from
+      },
+      effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+    })
+    view.focus()
+  }, [revealLineRequest])
 
   return <div ref={containerRef} className="h-full overflow-hidden" />
 }

@@ -1,7 +1,7 @@
 import { Eye, EyeOff, FileSearch, FolderOpen, PanelRight, Save, Search } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { MdxEditor } from '@/editor/MdxEditor'
+import { MdxEditor, type RevealLineRequest } from '@/editor/MdxEditor'
 import { FileTree } from '@/explorer/FileTree'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,7 @@ function App(): React.JSX.Element {
   const [showPreview, setShowPreview] = useState(true)
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [revealLineRequest, setRevealLineRequest] = useState<RevealLineRequest | null>(null)
   const [indexRevision, setIndexRevision] = useState(0)
   const [isOpening, setIsOpening] = useState(false)
   const [isLoadingFile, setIsLoadingFile] = useState(false)
@@ -259,6 +260,13 @@ function App(): React.JSX.Element {
     [loadFile]
   )
 
+  const revealEditorLine = useCallback((line: number) => {
+    setRevealLineRequest({
+      line,
+      requestId: Date.now()
+    })
+  }, [])
+
   const saveLabel = getSaveLabel({
     hasFile: selectedPath !== null,
     isDirty,
@@ -394,7 +402,11 @@ function App(): React.JSX.Element {
                   Loading file.
                 </div>
               ) : (
-                <MdxEditor value={content} onChange={setContent} />
+                <MdxEditor
+                  value={content}
+                  onChange={setContent}
+                  revealLineRequest={revealLineRequest}
+                />
               )
             ) : (
               <EmptyState
@@ -419,6 +431,7 @@ function App(): React.JSX.Element {
                   selectedPath={selectedPath}
                   notes={indexNotes}
                   onNavigate={navigateToNote}
+                  onRevealLine={revealEditorLine}
                 />
               </div>
               <div className="min-h-0 border-t bg-muted/10">

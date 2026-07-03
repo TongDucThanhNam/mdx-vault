@@ -1,10 +1,11 @@
 import type { MDXComponents } from 'mdx/types'
-import type { AnchorHTMLAttributes, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ComponentType, ReactNode } from 'react'
 
-import { Counter } from './Counter'
 import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary } from '@/vault/types'
 import { parseWikilinkUrl, resolveWikilinkTarget } from '../../../shared/wikilinks'
+import { createRegistryComponents } from './registry'
+import { UnknownComponentPlaceholder } from './registry/messages'
 
 interface CreateMdxComponentsOptions {
   notes: IndexedNoteSummary[]
@@ -15,6 +16,9 @@ export function createMdxComponents({
   notes,
   onNavigate
 }: CreateMdxComponentsOptions): MDXComponents {
+  const registryComponents = createRegistryComponents()
+  const unknownComponents = new Map<string, ComponentType<Record<string, unknown>>>()
+
   function WikilinkAwareAnchor({
     href,
     children,
@@ -54,8 +58,33 @@ export function createMdxComponents({
     )
   }
 
-  return {
-    Counter,
+  const components: MDXComponents = {
+    ...registryComponents,
     a: WikilinkAwareAnchor
   }
+
+  return new Proxy(components, {
+    get(target, property, receiver) {
+      if (typeof property !== 'string' || property in target || !isComponentName(property)) {
+        return Reflect.get(target, property, receiver)
+      }
+
+      let UnknownComponent = unknownComponents.get(property)
+
+      if (!UnknownComponent) {
+        UnknownComponent = function UnknownMdxComponent(): React.JSX.Element {
+          return <UnknownComponentPlaceholder componentName={property} />
+        }
+        UnknownComponent.displayName = `Unknown${property}`
+        unknownComponents.set(property, UnknownComponent)
+      }
+
+      return UnknownComponent
+    }
+  }) as MDXComponents
+}
+
+function isComponentName(name: string): boolean {
+  const firstCharacter = name.at(0)
+  return firstCharacter !== undefined && firstCharacter === firstCharacter.toLocaleUpperCase()
 }

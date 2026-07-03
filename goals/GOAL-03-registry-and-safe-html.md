@@ -35,24 +35,24 @@ Chính thức hóa tầng render theo trust model: component registry có cấu 
 
 ## Constraints
 
-- [ ] KHÔNG phá API `components` map — MDX element viết hoa vẫn resolve qua registry
-- [ ] Sanitize schema phải là allowlist (mở rộng dần), không phải blocklist
-- [ ] SVG: cho phép hình khối cơ bản; strip `<script>`, `<foreignObject>`, event handlers
-- [ ] KHÔNG implement sandbox iframe/`<Interactive src>` — GOAL-05
-- [ ] KHÔNG thêm built-in component mới ngoài demo hiện có — GOAL-04
-- [ ] KHÔNG thêm dependency mới
-- [ ] Blocker → DỪNG và hỏi
+- [x] KHÔNG phá API `components` map — MDX element viết hoa vẫn resolve qua registry
+- [x] Sanitize schema phải là allowlist (mở rộng dần), không phải blocklist
+- [x] SVG: cho phép hình khối cơ bản; strip `<script>`, `<foreignObject>`, event handlers
+- [x] KHÔNG implement sandbox iframe/`<Interactive src>` — GOAL-05
+- [x] KHÔNG thêm built-in component mới ngoài demo hiện có — GOAL-04
+- [x] KHÔNG thêm dependency mới
+- [x] Blocker → DỪNG và hỏi
 
 ## Success Criteria
 
-- [ ] `bun run typecheck` && `bun run lint` pass
-- [ ] Note chứa `<script>alert(1)</script>` và `<div onclick="...">` → render bị strip, không execute
-- [ ] Note chứa `<details>/<summary>`, table, SVG circle → render đúng
-- [ ] `<Counter initial="abc" />` (sai type) → warning card, app sống
-- [ ] `<KhongTonTai />` → placeholder card, app sống
-- [ ] MDX syntax lỗi → error panel có line number; sửa xong preview tự phục hồi
-- [ ] Frontmatter hiện thành properties block, không lộ YAML thô
-- [ ] Registry entry mới chỉ cần thêm 1 file + 1 dòng đăng ký (kiểm bằng đọc code — chuẩn bị cho GOAL-04)
+- [x] `bun run typecheck` && `bun run lint` pass
+- [x] Note chứa `<script>alert(1)</script>` và `<div onclick="...">` → render bị strip, không execute
+- [x] Note chứa `<details>/<summary>`, table, SVG circle → render đúng
+- [x] `<Counter initial="abc" />` (sai type) → warning card, app sống
+- [x] `<KhongTonTai />` → placeholder card, app sống
+- [x] MDX syntax lỗi → error panel có line number; sửa xong preview tự phục hồi
+- [x] Frontmatter hiện thành properties block, không lộ YAML thô
+- [x] Registry entry mới chỉ cần thêm 1 file + 1 dòng đăng ký (kiểm bằng đọc code — chuẩn bị cho GOAL-04)
 
 ## Execution Plan
 
