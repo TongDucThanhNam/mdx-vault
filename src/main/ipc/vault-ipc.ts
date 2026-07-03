@@ -7,7 +7,8 @@ import {
 } from 'electron'
 import { z } from 'zod'
 
-import { VaultService, type VaultInfo, type VaultFile } from '../services/vault-service'
+import type { VaultInfo, VaultFile } from '../services/vault-service'
+import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 
 export interface IpcSuccess<T> {
   ok: true
@@ -26,7 +27,9 @@ export type IpcResult<T> = IpcSuccess<T> | IpcFailure
 
 type OpenVaultResult = VaultInfo | null
 
-let currentVault: VaultService | null = null
+interface RegisterVaultIpcOptions {
+  onIndexChanged?: () => void
+}
 
 const emptyPayloadSchema = z.undefined()
 const readFilePayloadSchema = z.object({
@@ -37,7 +40,7 @@ const writeFilePayloadSchema = z.object({
   content: z.string()
 })
 
-export function registerVaultIpc(): void {
+export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
   ipcMain.handle('vault:open', (event, payload): Promise<IpcResult<OpenVaultResult>> => {
     return handleVaultRequest(async () => {
       emptyPayloadSchema.parse(payload)
@@ -49,8 +52,8 @@ export function registerVaultIpc(): void {
         return null
       }
 
-      currentVault = new VaultService(result.filePaths[0])
-      return currentVault.getInfo()
+      const vault = await openCurrentVault(result.filePaths[0], options.onIndexChanged)
+      return vault.getInfo()
     })
   })
 
@@ -72,6 +75,7 @@ export function registerVaultIpc(): void {
     return handleVaultRequest(async () => {
       const input = writeFilePayloadSchema.parse(payload)
       await getCurrentVault().writeFile(input.relativePath, input.content)
+      await getCurrentIndex().indexFile(input.relativePath)
     })
   })
 }
@@ -87,14 +91,6 @@ async function showOpenVaultDialog(window: BrowserWindow | null): Promise<OpenDi
   }
 
   return dialog.showOpenDialog(options)
-}
-
-function getCurrentVault(): VaultService {
-  if (!currentVault) {
-    throw new Error('No vault is open')
-  }
-
-  return currentVault
 }
 
 async function handleVaultRequest<T>(operation: () => Promise<T>): Promise<IpcResult<T>> {

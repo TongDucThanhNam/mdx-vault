@@ -1,19 +1,33 @@
-import { Eye, EyeOff, FolderOpen, PanelRight, Save } from 'lucide-react'
+import { Eye, EyeOff, FileSearch, FolderOpen, PanelRight, Save, Search } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { MdxEditor } from '@/editor/MdxEditor'
 import { FileTree } from '@/explorer/FileTree'
+import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { BacklinksPanel } from '@/panels/BacklinksPanel'
 import { MdxPreview } from '@/preview/MdxPreview'
-import type { VaultInfo } from '@/vault/types'
+import { SearchPane } from '@/search/SearchPane'
+import type { BacklinkResult, IndexedNoteSummary, VaultInfo } from '@/vault/types'
 
 function App(): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null>(null)
+  const [indexNotes, setIndexNotes] = useState<IndexedNoteSummary[]>([])
+  const [backlinksState, setBacklinksState] = useState<{
+    relativePath: string | null
+    backlinks: BacklinkResult[]
+  }>({
+    relativePath: null,
+    backlinks: []
+  })
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [content, setContent] = useState('')
   const [savedContent, setSavedContent] = useState('')
   const [showPreview, setShowPreview] = useState(true)
+  const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [indexRevision, setIndexRevision] = useState(0)
   const [isOpening, setIsOpening] = useState(false)
   const [isLoadingFile, setIsLoadingFile] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -26,6 +40,22 @@ function App(): React.JSX.Element {
   const saveRequestRef = useRef(0)
 
   const isDirty = selectedPath !== null && content !== savedContent
+
+  const refreshVaultSnapshot = useCallback(async () => {
+    const [files, notes] = await Promise.all([window.vaultApi.listFiles(), window.indexApi.notes()])
+
+    setVault((currentVault) => {
+      if (!currentVault) {
+        return currentVault
+      }
+
+      return {
+        ...currentVault,
+        files
+      }
+    })
+    setIndexNotes(notes)
+  }, [])
 
   useEffect(() => {
     selectedPathRef.current = selectedPath
@@ -109,6 +139,8 @@ function App(): React.JSX.Element {
       }
 
       setVault(openedVault)
+      setIndexNotes(await window.indexApi.notes())
+      setIndexRevision((current) => current + 1)
       setSelectedPath(null)
       setContent('')
       setSavedContent('')
@@ -146,10 +178,70 @@ function App(): React.JSX.Element {
   }, [content, savedContent, saveCurrentFile, selectedPath])
 
   useEffect(() => {
+    if (!vault) {
+      return
+    }
+
+    return window.indexApi.onDidChange(() => {
+      setIndexRevision((current) => current + 1)
+
+      void refreshVaultSnapshot().catch((refreshError: unknown) => {
+        setError(formatError(refreshError))
+      })
+    })
+  }, [refreshVaultSnapshot, vault])
+
+  useEffect(() => {
+    if (!selectedPath) {
+      return
+    }
+
+    let cancelled = false
+
+    void window.indexApi
+      .backlinks(selectedPath)
+      .then((nextBacklinks) => {
+        if (!cancelled) {
+          setBacklinksState({
+            relativePath: selectedPath,
+            backlinks: nextBacklinks
+          })
+        }
+      })
+      .catch((backlinksError: unknown) => {
+        if (!cancelled) {
+          setBacklinksState({
+            relativePath: selectedPath,
+            backlinks: []
+          })
+          setError(formatError(backlinksError))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [indexRevision, selectedPath])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      const key = event.key.toLowerCase()
+
+      if ((event.ctrlKey || event.metaKey) && key === 's') {
         event.preventDefault()
         void saveCurrentFile()
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && key === 'p') {
+        event.preventDefault()
+        setQuickSwitcherOpen(true)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && key === 'f') {
+        event.preventDefault()
+        setSearchOpen(true)
       }
     }
 
@@ -160,12 +252,20 @@ function App(): React.JSX.Element {
     }
   }, [saveCurrentFile])
 
+  const navigateToNote = useCallback(
+    (relativePath: string) => {
+      void loadFile(relativePath)
+    },
+    [loadFile]
+  )
+
   const saveLabel = getSaveLabel({
     hasFile: selectedPath !== null,
     isDirty,
     isSaving,
     lastSavedAt
   })
+  const backlinks = backlinksState.relativePath === selectedPath ? backlinksState.backlinks : []
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -184,6 +284,28 @@ function App(): React.JSX.Element {
 
         <div className="flex items-center gap-2">
           <div className="hidden text-xs text-muted-foreground sm:block">{saveLabel}</div>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            title="Open note"
+            aria-label="Open note"
+            disabled={!vault}
+            onClick={() => setQuickSwitcherOpen(true)}
+          >
+            <FileSearch className="size-4" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            title="Search notes"
+            aria-label="Search notes"
+            disabled={!vault}
+            onClick={() => setSearchOpen(true)}
+          >
+            <Search className="size-4" aria-hidden="true" />
+          </Button>
           <Button
             type="button"
             size="sm"
@@ -290,12 +412,34 @@ function App(): React.JSX.Element {
               <PanelRight className="size-4" aria-hidden="true" />
               Preview
             </div>
-            <div className="h-[calc(100%-2.5rem)]">
-              <MdxPreview source={content} selectedPath={selectedPath} />
+            <div className="grid h-[calc(100%-2.5rem)] grid-rows-[minmax(0,1fr)_180px]">
+              <div className="min-h-0">
+                <MdxPreview
+                  source={content}
+                  selectedPath={selectedPath}
+                  notes={indexNotes}
+                  onNavigate={navigateToNote}
+                />
+              </div>
+              <div className="min-h-0 border-t bg-muted/10">
+                <BacklinksPanel
+                  backlinks={backlinks}
+                  selectedPath={selectedPath}
+                  onSelectNote={navigateToNote}
+                />
+              </div>
             </div>
           </aside>
         ) : null}
       </main>
+
+      <QuickSwitcher
+        open={quickSwitcherOpen}
+        notes={indexNotes}
+        onOpenChange={setQuickSwitcherOpen}
+        onSelectNote={navigateToNote}
+      />
+      <SearchPane open={searchOpen} onOpenChange={setSearchOpen} onSelectNote={navigateToNote} />
     </div>
   )
 }

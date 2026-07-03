@@ -2,7 +2,9 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { registerIndexIpc } from './ipc/index-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
+import { closeCurrentVault } from './services/vault-session'
 
 function createWindow(): void {
   // Create the browser window.
@@ -55,7 +57,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerVaultIpc()
+  registerVaultIpc({ onIndexChanged: broadcastIndexChanged })
+  registerIndexIpc({ onIndexChanged: broadcastIndexChanged })
 
   createWindow()
 
@@ -75,5 +78,17 @@ app.on('window-all-closed', () => {
   }
 })
 
+app.on('before-quit', () => {
+  void closeCurrentVault()
+})
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+function broadcastIndexChanged(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send('index:changed')
+    }
+  }
+}

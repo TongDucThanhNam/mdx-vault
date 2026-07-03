@@ -27,6 +27,10 @@ export class VaultService {
     this.root = resolve(root)
   }
 
+  get rootPath(): string {
+    return this.root
+  }
+
   async getInfo(): Promise<VaultInfo> {
     return {
       name: basename(this.root),

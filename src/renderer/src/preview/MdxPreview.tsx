@@ -4,19 +4,29 @@ import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
 import type { MDXContent } from 'mdx/types'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { mdxComponents } from './mdx-components'
+import { remarkWikilink } from '../../../shared/remark-wikilink'
+import { createMdxComponents } from './mdx-components'
+import type { IndexedNoteSummary } from '@/vault/types'
 
 interface MdxPreviewProps {
   source: string
   selectedPath: string | null
+  notes: IndexedNoteSummary[]
+  onNavigate: (relativePath: string) => void
 }
 
-export function MdxPreview({ source, selectedPath }: MdxPreviewProps): React.JSX.Element {
+export function MdxPreview({
+  source,
+  selectedPath,
+  notes,
+  onNavigate
+}: MdxPreviewProps): React.JSX.Element {
   const [Content, setContent] = useState<MDXContent | null>(null)
   const [compileError, setCompileError] = useState<string | null>(null)
   const [isCompiling, setIsCompiling] = useState(false)
+  const components = useMemo(() => createMdxComponents({ notes, onNavigate }), [notes, onNavigate])
 
   useEffect(() => {
     let isCancelled = false
@@ -78,7 +88,7 @@ export function MdxPreview({ source, selectedPath }: MdxPreviewProps): React.JSX
               <ErrorPanel title="MDX runtime error" message={formatError(error)} />
             )}
           >
-            <Content />
+            <Content components={components} />
           </ErrorBoundary>
         ) : (
           <div className="text-sm text-muted-foreground">Preparing preview.</div>
@@ -102,8 +112,8 @@ async function compileMdx(source: string): Promise<MDXContent> {
     jsx,
     jsxs,
     baseUrl: import.meta.url,
-    remarkPlugins: [remarkGfm, remarkFrontmatter],
-    useMDXComponents: () => mdxComponents
+    remarkPlugins: [remarkGfm, remarkFrontmatter, remarkWikilink],
+    useMDXComponents: () => ({})
   })
 
   return mdxModule.default

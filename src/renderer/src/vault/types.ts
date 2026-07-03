@@ -9,3 +9,24 @@ export interface VaultInfo {
   name: string
   files: VaultFile[]
 }
+
+export interface IndexedNoteSummary {
+  id: string
+  relativePath: string
+  title: string
+  aliases: string[]
+  mtimeMs: number
+  contentHash: string
+}
+
+export interface SearchResult {
+  note: IndexedNoteSummary
+  snippet: string
+  rank: number
+}
+
+export interface BacklinkResult {
+  source: IndexedNoteSummary
+  target: string
+  display: string
+}

@@ -36,25 +36,25 @@ Xây knowledge layer: parse AST của note để trích metadata (frontmatter, h
 
 ## Constraints
 
-- [ ] better-sqlite3 CHỈ ở main process
-- [ ] Index từ AST của source `.mdx` — KHÔNG index từ rendered HTML
-- [ ] `.app/` phải nằm trong ignore list của watcher/scanner và file tree
-- [ ] Xóa `.app/index.sqlite` rồi mở lại vault → app tự rebuild index, không lỗi
-- [ ] KHÔNG thay đổi nội dung file note khi index (read-only pipeline)
-- [ ] KHÔNG thêm graph view, tag pane, inline `#tag` parsing (nice-to-have, chỉ làm nếu không tốn thêm effort đáng kể)
-- [ ] KHÔNG thêm dependency mới ngoài package.json hiện tại (fuzzy match tự viết đơn giản hoặc dùng FTS5 prefix)
-- [ ] Nếu gặp blocker: DỪNG và mô tả, KHÔNG tự workaround
+- [x] better-sqlite3 CHỈ ở main process
+- [x] Index từ AST của source `.mdx` — KHÔNG index từ rendered HTML
+- [x] `.app/` phải nằm trong ignore list của watcher/scanner và file tree
+- [x] Xóa `.app/index.sqlite` rồi mở lại vault → app tự rebuild index, không lỗi
+- [x] KHÔNG thay đổi nội dung file note khi index (read-only pipeline)
+- [x] KHÔNG thêm graph view, tag pane, inline `#tag` parsing (nice-to-have, chỉ làm nếu không tốn thêm effort đáng kể)
+- [x] KHÔNG thêm dependency mới ngoài package.json hiện tại (fuzzy match tự viết đơn giản hoặc dùng FTS5 prefix)
+- [x] Nếu gặp blocker: DỪNG và mô tả, KHÔNG tự workaround
 
 ## Success Criteria
 
-- [ ] `bun run typecheck` && `bun run lint` pass
-- [ ] Mở example-vault → `.app/index.sqlite` được tạo, bảng notes/note_links/note_tags/note_components/notes_fts có dữ liệu đúng
-- [ ] Note A chứa `[[Note B]]` → mở Note B thấy A trong backlinks panel; click wikilink trong preview A → chuyển sang B
-- [ ] Sửa file bằng editor NGOÀI app (vd Notepad) khi app đang mở → index tự cập nhật ≤ vài giây
-- [ ] Ctrl+P gõ một phần title → tìm thấy và mở được note
-- [ ] Search full-text tìm được từ nằm trong body của note bất kỳ
-- [ ] Xóa index.sqlite → mở lại vault → mọi thứ trên vẫn hoạt động (rebuild)
-- [ ] `[[Không Tồn Tại]]` render kiểu unresolved, click không crash
+- [x] `bun run typecheck` && `bun run lint` pass
+- [x] Mở example-vault → `.app/index.sqlite` được tạo, bảng notes/note_links/note_tags/note_components/notes_fts có dữ liệu đúng
+- [x] Note A chứa `[[Note B]]` → mở Note B thấy A trong backlinks panel; click wikilink trong preview A → chuyển sang B
+- [x] Sửa file bằng editor NGOÀI app (vd Notepad) khi app đang mở → index tự cập nhật ≤ vài giây
+- [x] Ctrl+P gõ một phần title → tìm thấy và mở được note
+- [x] Search full-text tìm được từ nằm trong body của note bất kỳ
+- [x] Xóa index.sqlite → mở lại vault → mọi thứ trên vẫn hoạt động (rebuild)
+- [x] `[[Không Tồn Tại]]` render kiểu unresolved, click không crash
 
 ## Execution Plan
 
