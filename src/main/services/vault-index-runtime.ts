@@ -202,5 +202,10 @@ function normalizeVaultPath(relativePath: string): string {
 function isIgnoredVaultPath(path: string): boolean {
   const normalizedPath = normalizeVaultPath(path)
   const segments = normalizedPath.split('/')
-  return segments.includes('.app') || segments.includes('node_modules') || segments.includes('.git')
+  return (
+    segments.includes('.app') ||
+    segments.includes('node_modules') ||
+    segments.includes('.git') ||
+    segments.includes('.trash')
+  )
 }

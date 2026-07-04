@@ -13,16 +13,20 @@ import { join, dirname } from 'path'
 
 const SETTINGS_FILENAME = 'app-settings.json'
 
+export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+
 interface PersistedAppSettings {
   version: 1
   lastVaultPath: string | null
   theme: 'light' | 'dark' | 'system'
+  fileTreeSort: FileTreeSortSetting
 }
 
 const DEFAULT_SETTINGS: PersistedAppSettings = {
   version: 1,
   lastVaultPath: null,
-  theme: 'system'
+  theme: 'system',
+  fileTreeSort: 'name'
 }
 
 export class AppSettingsService {
@@ -39,7 +43,8 @@ export class AppSettingsService {
       return {
         version: 1,
         lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
-        theme: normalizeTheme(parsed.theme)
+        theme: normalizeTheme(parsed.theme),
+        fileTreeSort: normalizeFileTreeSort(parsed.fileTreeSort)
       }
     } catch (error) {
       if (isNotFoundError(error)) {
@@ -82,6 +87,16 @@ export class AppSettingsService {
     await this.write({ ...settings, theme })
   }
 
+  async getFileTreeSort(): Promise<FileTreeSortSetting> {
+    const settings = await this.read()
+    return settings.fileTreeSort
+  }
+
+  async setFileTreeSort(sort: FileTreeSortSetting): Promise<void> {
+    const settings = await this.read()
+    await this.write({ ...settings, fileTreeSort: sort })
+  }
+
   private async write(settings: PersistedAppSettings): Promise<void> {
     const tempPath = `${this.filePath}.tmp-${process.pid}-${Date.now()}`
     const serialized = `${JSON.stringify(settings, null, 2)}\n`
@@ -97,6 +112,13 @@ function normalizeTheme(value: unknown): 'light' | 'dark' | 'system' {
     return value
   }
   return 'system'
+}
+
+function normalizeFileTreeSort(value: unknown): FileTreeSortSetting {
+  if (value === 'name' || value === 'modified-desc' || value === 'created-desc') {
+    return value
+  }
+  return 'name'
 }
 
 async function directoryExists(target: string): Promise<boolean> {

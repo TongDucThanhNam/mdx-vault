@@ -35,6 +35,14 @@ interface VaultInfo {
   files: VaultFile[]
 }
 
+interface TrashEntry {
+  relativePath: string
+  originalPath: string
+  name: string
+  extension: '.md' | '.mdx'
+  mtimeMs: number
+}
+
 interface IndexedNoteSummary {
   id: string
   relativePath: string
@@ -94,7 +102,19 @@ const vaultApi = {
   writeFile: (relativePath: string, content: string): Promise<void> =>
     invokeVault('vault:write-file', { relativePath, content }),
   createFile: (relativePath: string, content: string): Promise<string> =>
-    invokeVault('vault:create-file', { relativePath, content })
+    invokeVault('vault:create-file', { relativePath, content }),
+  deleteFile: (relativePath: string): Promise<string> =>
+    invokeVault('vault:delete-file', { relativePath }),
+  renameFile: (fromRelativePath: string, toRelativePath: string): Promise<string> =>
+    invokeVault('vault:rename-file', { fromRelativePath, toRelativePath }),
+  duplicateFile: (relativePath: string): Promise<string> =>
+    invokeVault('vault:duplicate-file', { relativePath }),
+  emptyTrash: (): Promise<void> => invokeVault('vault:empty-trash'),
+  listTrash: (): Promise<TrashEntry[]> => invokeVault('vault:list-trash'),
+  revealInExplorer: (relativePath: string): Promise<void> =>
+    invokeVault('vault:reveal-in-explorer', { relativePath }),
+  resolveAbsolutePath: (relativePath: string): Promise<string> =>
+    invokeVault('vault:resolve-absolute-path', { relativePath })
 }
 
 const indexApi = {
@@ -214,7 +234,17 @@ const appApi = {
   getTheme: (): Promise<'light' | 'dark' | 'system'> =>
     ipcRenderer.invoke('app:get-theme') as Promise<'light' | 'dark' | 'system'>,
   setTheme: (theme: 'light' | 'dark' | 'system'): Promise<'light' | 'dark' | 'system'> =>
-    ipcRenderer.invoke('app:set-theme', theme) as Promise<'light' | 'dark' | 'system'>
+    ipcRenderer.invoke('app:set-theme', theme) as Promise<'light' | 'dark' | 'system'>,
+  getFileTreeSort: (): Promise<'name' | 'modified-desc' | 'created-desc'> =>
+    ipcRenderer.invoke('app:get-file-tree-sort') as Promise<
+      'name' | 'modified-desc' | 'created-desc'
+    >,
+  setFileTreeSort: (
+    sort: 'name' | 'modified-desc' | 'created-desc'
+  ): Promise<'name' | 'modified-desc' | 'created-desc'> =>
+    ipcRenderer.invoke('app:set-file-tree-sort', sort) as Promise<
+      'name' | 'modified-desc' | 'created-desc'
+    >
 }
 
 if (process.contextIsolated) {

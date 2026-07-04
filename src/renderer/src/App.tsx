@@ -10,16 +10,19 @@ import {
   Sparkles,
   Sun,
   Download,
-  SquareCode
+  SquareCode,
+  Trash2,
+  ArrowDownUp
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { MdxEditor, type EditorSelectionSnapshot, type RevealLineRequest } from '@/editor/MdxEditor'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
-import { FileTree } from '@/explorer/FileTree'
+import { FileTree, type FileTreeSortMode } from '@/explorer/FileTree'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { BacklinksPanel } from '@/panels/BacklinksPanel'
 import { MdxPreview } from '@/preview/MdxPreview'
@@ -35,6 +38,16 @@ import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { SelectionRange } from '../../shared/ai'
 
 type ViewMode = 'source' | 'split' | 'preview'
+
+interface DeleteRequest {
+  relativePath: string
+}
+
+interface ToastState {
+  message: string
+  variant: 'default' | 'destructive'
+  key: number
+}
 
 function App(): React.JSX.Element {
   const { theme, resolvedTheme, toggle: toggleTheme } = useTheme()
@@ -68,6 +81,12 @@ function App(): React.JSX.Element {
   const [isSaving, setIsSaving] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sortMode, setSortMode] = useState<FileTreeSortMode>('name')
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
+  const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
+  const [vaultOpsPending, setVaultOpsPending] = useState(false)
+  const [toast, setToast] = useState<ToastState | null>(null)
+  const [trashCount, setTrashCount] = useState(0)
 
   const selectedPathRef = useRef(selectedPath)
   const contentRef = useRef(content)
@@ -170,6 +189,189 @@ function App(): React.JSX.Element {
     },
     [loadFile, refreshVaultSnapshot, saveCurrentFile]
   )
+
+  const showToast = useCallback(
+    (message: string, variant: ToastState['variant'] = 'default'): void => {
+      setToast({ message, variant, key: Date.now() })
+    },
+    []
+  )
+
+  // Auto-dismiss toast after a short delay.
+  useEffect(() => {
+    if (!toast) {
+      return
+    }
+    const timer = window.setTimeout(() => setToast(null), 3500)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [toast])
+
+  const refreshTrashCount = useCallback(async (): Promise<void> => {
+    try {
+      const entries = await window.vaultApi.listTrash()
+      setTrashCount(entries.length)
+    } catch {
+      // Non-fatal: trash count is a UI nicety, not a hard requirement.
+      setTrashCount(0)
+    }
+  }, [])
+
+  const handleDelete = useCallback(
+    async (relativePath: string): Promise<void> => {
+      setVaultOpsPending(true)
+      setError(null)
+      try {
+        await window.vaultApi.deleteFile(relativePath)
+        if (selectedPathRef.current === relativePath) {
+          selectedPathRef.current = null
+          setSelectedPath(null)
+          setContent('')
+          setSavedContent('')
+        }
+        await refreshVaultSnapshot()
+        await refreshTrashCount()
+        showToast(`Moved "${deriveNoteTitle(relativePath)}" to trash`)
+      } catch (deleteError) {
+        setError(formatError(deleteError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [refreshTrashCount, refreshVaultSnapshot, showToast]
+  )
+
+  const handleRename = useCallback(
+    async (fromRelativePath: string, toRelativePath: string): Promise<void> => {
+      if (fromRelativePath === toRelativePath) {
+        return
+      }
+      setVaultOpsPending(true)
+      setError(null)
+      try {
+        const newPath = await window.vaultApi.renameFile(fromRelativePath, toRelativePath)
+        // If we were editing the renamed note, switch to the new path so the
+        // editor state (selection, save label) tracks the rename.
+        if (selectedPathRef.current === fromRelativePath) {
+          selectedPathRef.current = newPath
+          setSelectedPath(newPath)
+        }
+        await refreshVaultSnapshot()
+        showToast(`Renamed to "${deriveNoteTitle(newPath)}"`)
+      } catch (renameError) {
+        setError(formatError(renameError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [refreshVaultSnapshot, showToast]
+  )
+
+  const handleDuplicate = useCallback(
+    async (relativePath: string): Promise<void> => {
+      setVaultOpsPending(true)
+      setError(null)
+      try {
+        const newPath = await window.vaultApi.duplicateFile(relativePath)
+        await refreshVaultSnapshot()
+        await loadFile(newPath, false)
+        showToast(`Duplicated to "${deriveNoteTitle(newPath)}"`)
+      } catch (duplicateError) {
+        setError(formatError(duplicateError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [loadFile, refreshVaultSnapshot, showToast]
+  )
+
+  const handleRevealInExplorer = useCallback(
+    async (relativePath: string): Promise<void> => {
+      try {
+        await window.vaultApi.revealInExplorer(relativePath)
+      } catch (revealError) {
+        setError(formatError(revealError))
+      }
+    },
+    []
+  )
+
+  const handleCopyPath = useCallback(
+    async (relativePath: string): Promise<void> => {
+      try {
+        const absolutePath = await window.vaultApi.resolveAbsolutePath(relativePath)
+        await navigator.clipboard.writeText(absolutePath)
+        showToast(`Copied ${absolutePath}`)
+      } catch (copyError) {
+        setError(formatError(copyError))
+      }
+    },
+    [showToast]
+  )
+
+  const handleEmptyTrash = useCallback(async (): Promise<void> => {
+    setVaultOpsPending(true)
+    setError(null)
+    try {
+      await window.vaultApi.emptyTrash()
+      await refreshTrashCount()
+      showToast('Trash emptied')
+    } catch (emptyTrashError) {
+      setError(formatError(emptyTrashError))
+    } finally {
+      setVaultOpsPending(false)
+    }
+  }, [refreshTrashCount, showToast])
+
+  // Persist sort mode changes.
+  const handleSortModeChange = useCallback((next: FileTreeSortMode): void => {
+    setSortMode(next)
+    void window.appApi.setFileTreeSort(next).catch(() => {
+      // Persistence is best-effort — the in-memory sort still applies.
+    })
+  }, [])
+
+  // Load persisted sort mode + initial trash count when a vault opens. When
+  // no vault is open, refreshTrashCount naturally reports 0 — no separate
+  // state write needed here. The microtask wrapper keeps setState out of the
+  // synchronous effect body (and silences the cascading-render lint rule).
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+    void window.appApi.getFileTreeSort().then((persisted) => {
+      setSortMode(persisted)
+    })
+    queueMicrotask(() => {
+      void refreshTrashCount()
+    })
+  }, [vault, refreshTrashCount])
+
+  // Refresh trash count whenever the index changes (so deletes from elsewhere
+  // surface in the sidebar indicator). Skips the no-vault case — refreshTrash
+  // would also no-op, but skipping avoids an unnecessary IPC round trip.
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+    queueMicrotask(() => {
+      void refreshTrashCount()
+    })
+  }, [indexRevision, vault, refreshTrashCount])
+
+  // When the vault closes, drop the trash count back to zero (deferred to a
+  // microtask to avoid the synchronous-setState-in-effect lint rule).
+  const prevVaultRef = useRef(vault)
+  useEffect(() => {
+    const hadVault = prevVaultRef.current
+    prevVaultRef.current = vault
+    if (hadVault && !vault) {
+      queueMicrotask(() => {
+        setTrashCount(0)
+      })
+    }
+  }, [vault])
 
   const openVaultInternal = useCallback(
     async (openedVault: VaultInfo | null): Promise<void> => {
@@ -559,6 +761,25 @@ function App(): React.JSX.Element {
               >
                 <FilePlus className="size-3.5" aria-hidden="true" />
               </Button>
+              <SortMenu sortMode={sortMode} onChange={handleSortModeChange} disabled={!vault} />
+              <Button
+                type="button"
+                size="icon-sm"
+                variant={trashCount > 0 ? 'outline' : 'ghost'}
+                title={
+                  trashCount > 0
+                    ? `Trash (${trashCount} item${trashCount === 1 ? '' : 's'})`
+                    : 'Trash is empty'
+                }
+                aria-label="Trash"
+                disabled={!vault || trashCount === 0}
+                onClick={() => setEmptyTrashOpen(true)}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+                {trashCount > 0 ? (
+                  <span className="ml-1 text-[11px] tabular-nums">{trashCount}</span>
+                ) : null}
+              </Button>
               <div className="text-[11px] tabular-nums text-muted-foreground/60">
                 {vault?.files.length ?? 0}
               </div>
@@ -568,8 +789,17 @@ function App(): React.JSX.Element {
             {vault ? (
               <FileTree
                 files={vault.files}
+                notes={indexNotes}
                 selectedPath={selectedPath}
+                sortMode={sortMode}
                 onSelectFile={(relativePath) => void loadFile(relativePath)}
+                onDeleteFile={(relativePath) => setDeleteRequest({ relativePath })}
+                onRenameFile={(fromRelativePath, toRelativePath) =>
+                  void handleRename(fromRelativePath, toRelativePath)
+                }
+                onDuplicateFile={(relativePath) => void handleDuplicate(relativePath)}
+                onRevealInExplorer={(relativePath) => void handleRevealInExplorer(relativePath)}
+                onCopyPath={(relativePath) => void handleCopyPath(relativePath)}
               />
             ) : (
               <EmptyState
@@ -705,6 +935,138 @@ function App(): React.JSX.Element {
         onOpenChange={setCreateNoteOpen}
         onCreate={createNote}
       />
+      <ConfirmDialog
+        open={deleteRequest !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteRequest(null)
+          }
+        }}
+        title={`Delete "${deleteRequest ? deriveNoteTitle(deleteRequest.relativePath) : ''}"?`}
+        description={
+          <>
+            The note will be moved to{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-[11px]">{'.trash/'}</code>. You can
+            recover it from there with your file manager, or use “Empty trash” to remove it
+            permanently.
+          </>
+        }
+        confirmLabel="Move to trash"
+        destructive
+        isPending={vaultOpsPending}
+        onConfirm={() => {
+          if (deleteRequest) {
+            void handleDelete(deleteRequest.relativePath)
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={emptyTrashOpen}
+        onOpenChange={setEmptyTrashOpen}
+        title="Empty trash?"
+        description={
+          <>
+            This permanently deletes{' '}
+            <strong className="text-foreground">
+              {trashCount} item{trashCount === 1 ? '' : 's'}
+            </strong>{' '}
+            from <code className="rounded bg-muted px-1 py-0.5 text-[11px]">{'.trash/'}</code>. This
+            cannot be undone.
+          </>
+        }
+        confirmLabel="Empty trash"
+        destructive
+        isPending={vaultOpsPending}
+        onConfirm={() => void handleEmptyTrash()}
+      />
+      {toast ? (
+        <ToastView key={toast.key} message={toast.message} variant={toast.variant} />
+      ) : null}
+    </div>
+  )
+}
+
+function SortMenu({
+  sortMode,
+  onChange,
+  disabled
+}: {
+  sortMode: FileTreeSortMode
+  onChange: (mode: FileTreeSortMode) => void
+  disabled?: boolean
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+
+  const options: Array<{ mode: FileTreeSortMode; label: string }> = [
+    { mode: 'name', label: 'Name (A→Z)' },
+    { mode: 'modified-desc', label: 'Modified (newest)' },
+    { mode: 'created-desc', label: 'Created (newest)*' }
+  ]
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        size="icon-sm"
+        variant={open ? 'outline' : 'ghost'}
+        title={`Sort: ${options.find((option) => option.mode === sortMode)?.label ?? 'Name'}`}
+        aria-label="Sort files"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        onBlur={() => {
+          // Defer to allow click events on menu items to fire first.
+          window.setTimeout(() => setOpen(false), 150)
+        }}
+      >
+        <ArrowDownUp className="size-3.5" aria-hidden="true" />
+      </Button>
+      {open ? (
+        <div className="absolute right-0 top-full z-40 mt-1 min-w-[180px] overflow-hidden rounded-md border bg-popover p-1 text-[13px] text-popover-foreground shadow-md">
+          {options.map((option) => (
+            <button
+              key={option.mode}
+              type="button"
+              onMouseDown={(event) => {
+                event.preventDefault()
+                onChange(option.mode)
+                setOpen(false)
+              }}
+              className={cn(
+                'flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left hover:bg-accent',
+                sortMode === option.mode && 'bg-accent/60 font-medium'
+              )}
+            >
+              <span>{option.label}</span>
+              {sortMode === option.mode ? <span className="text-[var(--viridian)]">✓</span> : null}
+            </button>
+          ))}
+          <p className="px-2 pt-1 text-[10px] text-muted-foreground">
+            *Created time is not yet tracked; falls back to Name.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ToastView({
+  message,
+  variant
+}: {
+  message: string
+  variant: ToastState['variant']
+}): React.JSX.Element {
+  return (
+    <div
+      role="status"
+      className={cn(
+        'pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border px-3 py-1.5 text-[13px] shadow-md',
+        variant === 'destructive'
+          ? 'border-destructive/40 bg-destructive/10 text-destructive'
+          : 'border-border bg-popover text-popover-foreground'
+      )}
+    >
+      {message}
     </div>
   )
 }

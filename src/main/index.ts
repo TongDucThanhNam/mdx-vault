@@ -120,4 +120,20 @@ function registerAppSettingsIpc(appSettings: AppSettingsService): void {
     }
     return appSettings.getTheme()
   })
+
+  ipcMain.handle('app:get-file-tree-sort', async () => {
+    return appSettings.getFileTreeSort()
+  })
+
+  ipcMain.handle('app:set-file-tree-sort', async (_event, payload: unknown) => {
+    if (
+      payload === 'name' ||
+      payload === 'modified-desc' ||
+      payload === 'created-desc'
+    ) {
+      await appSettings.setFileTreeSort(payload)
+      return payload
+    }
+    return appSettings.getFileTreeSort()
+  })
 }

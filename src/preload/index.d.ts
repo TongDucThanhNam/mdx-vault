@@ -10,6 +10,14 @@ interface VaultInfo {
   files: VaultFile[]
 }
 
+interface TrashEntry {
+  relativePath: string
+  originalPath: string
+  name: string
+  extension: '.md' | '.mdx'
+  mtimeMs: number
+}
+
 interface IndexedNoteSummary {
   id: string
   relativePath: string
@@ -289,6 +297,13 @@ interface VaultApi {
   readAssetFile: (relativePath: string) => Promise<string>
   writeFile: (relativePath: string, content: string) => Promise<void>
   createFile: (relativePath: string, content: string) => Promise<string>
+  deleteFile: (relativePath: string) => Promise<string>
+  renameFile: (fromRelativePath: string, toRelativePath: string) => Promise<string>
+  duplicateFile: (relativePath: string) => Promise<string>
+  emptyTrash: () => Promise<void>
+  listTrash: () => Promise<TrashEntry[]>
+  revealInExplorer: (relativePath: string) => Promise<void>
+  resolveAbsolutePath: (relativePath: string) => Promise<string>
 }
 
 interface IndexApi {
@@ -332,10 +347,13 @@ interface SandboxApi {
 }
 
 type AppTheme = 'light' | 'dark' | 'system'
+type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
 
 interface AppApi {
   getTheme: () => Promise<AppTheme>
   setTheme: (theme: AppTheme) => Promise<AppTheme>
+  getFileTreeSort: () => Promise<FileTreeSortSetting>
+  setFileTreeSort: (sort: FileTreeSortSetting) => Promise<FileTreeSortSetting>
 }
 
 declare global {
