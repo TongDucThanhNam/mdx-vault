@@ -1,37 +1,47 @@
 ---
-title: Welcome
-tags: [demo, mdx]
+title: Welcome to mdx-vault
+tags: [intro]
 ---
 
-# Welcome to MDX Vault
+# Welcome
 
-Đây là một note MDX bình thường. Bạn vẫn viết Markdown như Obsidian.
+This vault demonstrates the export pipeline.
 
-- Wikilink: [[Bayes Theorem]], [[Binary Search]], và [[GOAL-03 Safe Render]]
-- **Bold**, _italic_, `inline code`
+## Prose
 
-| Feature             | Status |
-| ------------------- | ------ |
-| Markdown            | ✅     |
-| Safe HTML           | ✅     |
-| Interactive islands | ✅     |
+A paragraph with **bold**, _italic_, and `inline code`.
 
-## Native HTML (safe)
+- Bullet 1
+- Bullet 2
 
-<details>
-  <summary>Bấm để mở — đây là HTML native trong MDX</summary>
+1. Numbered
+2. List
 
-Phần này dùng thẻ `details/summary` trực tiếp, render sau khi sanitize.
+> A blockquote referencing [[Bayes Theorem]].
 
-</details>
+## Trusted islands
 
-<svg viewBox="0 0 120 60" width="120" height="60">
-  <circle cx="30" cy="30" r="20" fill="currentColor" opacity="0.3" />
-  <rect x="65" y="12" width="36" height="36" rx="6" fill="currentColor" opacity="0.6" />
-</svg>
+A multiple-choice question that the renderer hydrates in interactive mode:
 
-## Interactive island
+<QuizBlock
+  question="Which invariant makes binary search valid?"
+  options={["The input is sorted", "The input is random", "The array has no duplicates"]}
+  answerIndex={0}
+  explanation="Binary search can discard half of the search space only when ordering is known."
+/>
 
-Component dưới đây là một trusted island từ registry:
+A small slider:
 
-<Counter initial={3} />
+<EquationSlider
+  formula="y = m * x + b"
+  compute="m * x + b"
+  variables={{
+    x: { min: -10, max: 10, default: 2, step: 0.5 },
+    m: { min: -5, max: 5, default: 1.5, step: 0.1 },
+    b: { min: -10, max: 10, default: 1, step: 0.5 }
+  }}
+/>
+
+## Inline image
+
+![Sample](../assets/sample.png)

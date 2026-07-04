@@ -1,5 +1,6 @@
 import { VaultIndexRuntime } from './vault-index-runtime'
 import { VaultService } from './vault-service'
+import { bindCurrentSandboxService } from './sandbox-session'
 
 type IndexChangeCallback = () => void
 
@@ -14,6 +15,7 @@ export async function openCurrentVault(
 
   const vault = new VaultService(root)
   const index = VaultIndexRuntime.open(vault, onIndexChanged)
+  bindCurrentSandboxService(vault)
 
   currentVault = vault
   currentIndex = index

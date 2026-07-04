@@ -10,3 +10,4 @@ example-vault/.app/
 
 # Codex session data
 .codex/
+mcps.json

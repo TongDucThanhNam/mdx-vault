@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="mdx-vault export">
+<title>Welcome to mdx-vault</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --mdx-bg: #ffffff;
+  --mdx-fg: #111827;
+  --mdx-muted: #6b7280;
+  --mdx-border: #e5e7eb;
+  --mdx-muted-bg: #f3f4f6;
+  --mdx-accent: #1f2937;
+  --mdx-link: #2563eb;
+  --mdx-radius: 0.5rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mdx-bg: #0b0f19;
+    --mdx-fg: #f3f4f6;
+    --mdx-muted: #9ca3af;
+    --mdx-border: #1f2937;
+    --mdx-muted-bg: #111827;
+    --mdx-accent: #f3f4f6;
+    --mdx-link: #93c5fd;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--mdx-bg); color: var(--mdx-fg); }
+body { line-height: 1.65; font-size: 0.95rem; }
+main.mdx-export { max-width: 48rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+header.mdx-export-header {
+  border-bottom: 1px solid var(--mdx-border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--mdx-bg);
+}
+header.mdx-export-header .mdx-export-meta {
+  font-size: 0.75rem;
+  color: var(--mdx-muted);
+}
+.mdx-vault-export h1, .mdx-vault-export h2, .mdx-vault-export h3 {
+  font-weight: 650;
+  line-height: 1.2;
+  margin-top: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+.mdx-vault-export h1 { font-size: 1.8rem; margin-top: 0.4rem; }
+.mdx-vault-export h2 { font-size: 1.35rem; }
+.mdx-vault-export h3 { font-size: 1.1rem; }
+.mdx-vault-export p { margin: 0.8rem 0; }
+.mdx-vault-export ul, .mdx-vault-export ol { padding-left: 1.35rem; }
+.mdx-vault-export ul { list-style: disc; }
+.mdx-vault-export ol { list-style: decimal; }
+.mdx-vault-export li + li { margin-top: 0.25rem; }
+.mdx-vault-export a {
+  color: var(--mdx-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mdx-vault-export code {
+  background: var(--mdx-muted-bg);
+  border-radius: 0.25rem;
+  padding: 0.12rem 0.28rem;
+  font-size: 0.86em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.mdx-vault-export pre {
+  overflow: auto;
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  background: var(--mdx-muted-bg);
+  padding: 1rem;
+}
+.mdx-vault-export pre code { background: transparent; padding: 0; }
+.mdx-vault-export table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.mdx-vault-export th, .mdx-vault-export td {
+  border: 1px solid var(--mdx-border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+.mdx-vault-export th { background: var(--mdx-muted-bg); font-weight: 600; }
+.mdx-vault-export details {
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  padding: 0.75rem 1rem;
+  background: var(--mdx-muted-bg);
+}
+.mdx-vault-export summary { cursor: pointer; font-weight: 600; }
+.mdx-vault-export blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--mdx-border);
+  color: var(--mdx-muted);
+}
+.mdx-vault-export img { max-width: 100%; height: auto; }
+.mdx-vault-export hr { border: none; border-top: 1px solid var(--mdx-border); margin: 1.5rem 0; }
+
+.mdx-vault-snapshot, .mdx-vault-snapshot-placeholder {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--mdx-border);
+  border-radius: var(--mdx-radius);
+  background: var(--mdx-bg);
+}
+.mdx-vault-snapshot-placeholder { background: var(--mdx-muted-bg); }
+.mdx-vault-snapshot-placeholder-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.mdx-vault-snapshot-placeholder-body {
+  font-size: 0.85rem;
+  color: var(--mdx-muted);
+}
+.mdx-vault-sandbox {
+  margin: 1.25rem 0;
+  border: 1px solid var(--mdx-border);
+  border-radius: var(--mdx-radius);
+  overflow: hidden;
+}
+.mdx-vault-sandbox-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.mdx-vault-unresolved {
+  color: var(--mdx-muted);
+  border-bottom: 1px dashed currentColor;
+  cursor: help;
+}
+.mdx-vault-component[data-mdx-component-id] {
+  display: block;
+}
+.mdx-vault-frontmatter {
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  background: var(--mdx-muted-bg);
+  font-size: 0.85rem;
+}
+.mdx-vault-frontmatter dt {
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--mdx-muted);
+}
+.mdx-vault-frontmatter dd { margin: 0 0 0.5rem; }
+</style>
+</head>
+<body>
+<header class="mdx-export-header">
+  <strong>Welcome to mdx-vault</strong>
+  <span class="mdx-export-meta">Exported by mdx-vault · 2026-07-04T06:53:00.516Z</span>
+</header>
+<main class="mdx-export">
+<dl class="mdx-vault-frontmatter"><dt>title</dt><dd>Welcome to mdx-vault</dd><dt>tags</dt><dd>intro</dd></dl>
+<article class="mdx-vault-export">
+<h1>Welcome</h1>
+<p>This vault demonstrates the export pipeline.</p>
+<h2>Prose</h2>
+<p>A paragraph with <strong>bold</strong>, <em>italic</em>, and <code>inline code</code>.</p>
+<ul>
+<li>Bullet 1</li>
+<li>Bullet 2</li>
+</ul>
+<ol>
+<li>Numbered</li>
+<li>List</li>
+</ol>
+<blockquote>
+<p>A blockquote referencing <a>Bayes Theorem</a>.</p>
+</blockquote>
+<h2>Trusted islands</h2>
+<p>A multiple-choice question that the renderer hydrates in interactive mode:</p>
+<p><div class="mdx-vault-snapshot mdx-vault-snapshot-quizblock"><section class="my-5 rounded-md border bg-background p-4 shadow-xs"><div class="mb-3"><div class="text-xs font-medium uppercase text-muted-foreground">Check understanding</div><div class="mt-1 text-base font-semibold leading-snug">Which invariant makes binary search valid?</div></div><div role="radiogroup" aria-label="Which invariant makes binary search valid?" class="grid gap-2"><button type="button" role="radio" aria-checked="false" class="flex w-full items-start gap-3 rounded-md border bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg><span class="min-w-0">The input is sorted</span></button><button type="button" role="radio" aria-checked="false" class="flex w-full items-start gap-3 rounded-md border bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg><span class="min-w-0">The input is random</span></button><button type="button" role="radio" aria-checked="false" class="flex w-full items-start gap-3 rounded-md border bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg><span class="min-w-0">The array has no duplicates</span></button></div><div class="mt-3 text-xs text-muted-foreground">Pick an answer to get immediate feedback.</div></section></div></p>
+<p>A small slider:</p>
+<p><div class="mdx-vault-snapshot-placeholder"><div class="mdx-vault-snapshot-placeholder-title">EquationSlider</div><div class="mdx-vault-snapshot-placeholder-body">Interactive preview unavailable in static export. Title: y = m * x + b.</div></div></p>
+<h2>Inline image</h2>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNkYPj/n4GBgYmBgYEBADwHBPF0WJqtAAAAAElFTkSuQmCC" alt="Sample"></p>
+</article>
+</main>
+
+
+</body>
+</html>

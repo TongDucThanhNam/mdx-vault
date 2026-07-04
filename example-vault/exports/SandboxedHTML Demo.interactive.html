@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="mdx-vault export">
+<title>SandboxedHTML Demo</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --mdx-bg: #ffffff;
+  --mdx-fg: #111827;
+  --mdx-muted: #6b7280;
+  --mdx-border: #e5e7eb;
+  --mdx-muted-bg: #f3f4f6;
+  --mdx-accent: #1f2937;
+  --mdx-link: #2563eb;
+  --mdx-radius: 0.5rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mdx-bg: #0b0f19;
+    --mdx-fg: #f3f4f6;
+    --mdx-muted: #9ca3af;
+    --mdx-border: #1f2937;
+    --mdx-muted-bg: #111827;
+    --mdx-accent: #f3f4f6;
+    --mdx-link: #93c5fd;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--mdx-bg); color: var(--mdx-fg); }
+body { line-height: 1.65; font-size: 0.95rem; }
+main.mdx-export { max-width: 48rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+header.mdx-export-header {
+  border-bottom: 1px solid var(--mdx-border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--mdx-bg);
+}
+header.mdx-export-header .mdx-export-meta {
+  font-size: 0.75rem;
+  color: var(--mdx-muted);
+}
+.mdx-vault-export h1, .mdx-vault-export h2, .mdx-vault-export h3 {
+  font-weight: 650;
+  line-height: 1.2;
+  margin-top: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+.mdx-vault-export h1 { font-size: 1.8rem; margin-top: 0.4rem; }
+.mdx-vault-export h2 { font-size: 1.35rem; }
+.mdx-vault-export h3 { font-size: 1.1rem; }
+.mdx-vault-export p { margin: 0.8rem 0; }
+.mdx-vault-export ul, .mdx-vault-export ol { padding-left: 1.35rem; }
+.mdx-vault-export ul { list-style: disc; }
+.mdx-vault-export ol { list-style: decimal; }
+.mdx-vault-export li + li { margin-top: 0.25rem; }
+.mdx-vault-export a {
+  color: var(--mdx-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mdx-vault-export code {
+  background: var(--mdx-muted-bg);
+  border-radius: 0.25rem;
+  padding: 0.12rem 0.28rem;
+  font-size: 0.86em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.mdx-vault-export pre {
+  overflow: auto;
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  background: var(--mdx-muted-bg);
+  padding: 1rem;
+}
+.mdx-vault-export pre code { background: transparent; padding: 0; }
+.mdx-vault-export table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.mdx-vault-export th, .mdx-vault-export td {
+  border: 1px solid var(--mdx-border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+.mdx-vault-export th { background: var(--mdx-muted-bg); font-weight: 600; }
+.mdx-vault-export details {
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  padding: 0.75rem 1rem;
+  background: var(--mdx-muted-bg);
+}
+.mdx-vault-export summary { cursor: pointer; font-weight: 600; }
+.mdx-vault-export blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--mdx-border);
+  color: var(--mdx-muted);
+}
+.mdx-vault-export img { max-width: 100%; height: auto; }
+.mdx-vault-export hr { border: none; border-top: 1px solid var(--mdx-border); margin: 1.5rem 0; }
+
+.mdx-vault-snapshot, .mdx-vault-snapshot-placeholder {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--mdx-border);
+  border-radius: var(--mdx-radius);
+  background: var(--mdx-bg);
+}
+.mdx-vault-snapshot-placeholder { background: var(--mdx-muted-bg); }
+.mdx-vault-snapshot-placeholder-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.mdx-vault-snapshot-placeholder-body {
+  font-size: 0.85rem;
+  color: var(--mdx-muted);
+}
+.mdx-vault-sandbox {
+  margin: 1.25rem 0;
+  border: 1px solid var(--mdx-border);
+  border-radius: var(--mdx-radius);
+  overflow: hidden;
+}
+.mdx-vault-sandbox-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.mdx-vault-unresolved {
+  color: var(--mdx-muted);
+  border-bottom: 1px dashed currentColor;
+  cursor: help;
+}
+.mdx-vault-component[data-mdx-component-id] {
+  display: block;
+}
+.mdx-vault-frontmatter {
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--mdx-radius);
+  border: 1px solid var(--mdx-border);
+  background: var(--mdx-muted-bg);
+  font-size: 0.85rem;
+}
+.mdx-vault-frontmatter dt {
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--mdx-muted);
+}
+.mdx-vault-frontmatter dd { margin: 0 0 0.5rem; }
+</style>
+</head>
+<body>
+<header class="mdx-export-header">
+  <strong>SandboxedHTML Demo</strong>
+  <span class="mdx-export-meta">Exported by mdx-vault · 2026-07-04T06:53:01.046Z</span>
+</header>
+<main class="mdx-export">
+
+<article class="mdx-vault-export">
+<h1>Sandboxed HTML demo</h1>
+<p>This note embeds an arbitrary HTML document. In interactive exports it stays
+inside an iframe sandbox with no <code>allow-same-origin</code>, so any script it runs
+cannot reach the parent document.</p>
+<p><div class="mdx-vault-sandbox"><iframe class="mdx-vault-sandbox-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="<!doctype html>
+<html>
+<head>
+<meta charset=&quot;utf-8&quot;>
+<meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &amp;#39;none&amp;#39;; script-src &amp;#39;unsafe-inline&amp;#39;; style-src &amp;#39;unsafe-inline&amp;#39;; img-src data: blob:; connect-src &amp;#39;none&amp;#39;; font-src &amp;#39;none&amp;#39;; object-src &amp;#39;none&amp;#39;; base-uri &amp;#39;none&amp;#39;; form-action &amp;#39;none&amp;#39;; frame-ancestors &amp;#39;none&amp;#39;&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;>
+<title>Normal canvas</title>
+<style>
+:root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; }
+html, body { margin: 0; min-height: 100%; background: transparent; color: #111827; }
+body { overflow: hidden; }
+#root { min-height: 1px; }
+button, input, select, textarea { font: inherit; }
+</style>
+</head>
+<body>
+<!doctype html>
+<html>
+  <head>
+    <meta charset=&quot;utf-8&quot; />
+    <title>Normal canvas sandbox</title>
+    <style>
+      body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+      canvas { display: block; width: 100%; height: 180px; background: #fafafa; }
+      .caption { padding: 0.5rem 0.75rem; font-size: 0.75rem; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <canvas id=&quot;canvas&quot;></canvas>
+    <div class=&quot;caption&quot;>Arbitrary canvas sandbox. Tries to access parent.document but is blocked by sandbox.</div>
+    <script>
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+      var x = 10;
+      var dir = 1;
+      function frame() {
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(x, 60, 30, 30);
+        x += dir;
+        if (x > canvas.width - 40 || x < 0) dir = -dir;
+        requestAnimationFrame(frame);
+      }
+      frame();
+      // Demonstrate that the sandbox cannot reach the parent document.
+      try {
+        window.parent.document.body.style.background = 'red';
+      } catch (err) {
+        var warn = document.createElement('div');
+        warn.className = 'caption';
+        warn.textContent = 'Cross-origin access blocked (expected): ' + err.message;
+        document.body.appendChild(warn);
+      }
+    </script>
+  </body>
+</html>
+<script>
+
+(function () {
+  var channel = 'mdx-vault';
+  var instanceId = &quot;export-instance&quot;;
+  var pendingRequests = new Map();
+  var nextRequestId = 1;
+
+  function post(message) {
+    window.parent.postMessage(Object.assign({ channel: channel, instanceId: instanceId }, message), '*');
+  }
+
+  function measureHeight() {
+    var body = document.body;
+    var element = document.documentElement;
+    return Math.max(
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+      element ? element.scrollHeight : 0,
+      element ? element.offsetHeight : 0,
+      80
+    );
+  }
+
+  function postResize() {
+    post({ type: 'resize', height: Math.ceil(measureHeight()) });
+  }
+
+  window.mdxVault = Object.freeze({
+    requestData: function requestData(path) {
+      return new Promise(function (resolve, reject) {
+        if (typeof path !== 'string' || path.length === 0) {
+          reject(new Error('requestData(path) requires a non-empty string path'));
+          return;
+        }
+
+        var requestId = String(nextRequestId++);
+        pendingRequests.set(requestId, { resolve: resolve, reject: reject });
+        post({ type: 'requestData', requestId: requestId, path: path });
+      });
+    }
+  });
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window.parent) {
+      return;
+    }
+
+    var message = event.data;
+    if (!message || message.channel !== channel || message.instanceId !== instanceId) {
+      return;
+    }
+
+    if (message.type === 'dataResponse') {
+      var pending = pendingRequests.get(message.requestId);
+      if (!pending) {
+        return;
+      }
+
+      pendingRequests.delete(message.requestId);
+      if (message.ok === true) {
+        pending.resolve(message.data);
+      } else {
+        pending.reject(new Error(String(message.error || 'Dataset request failed')));
+      }
+    }
+  });
+
+  window.addEventListener('load', postResize);
+
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(postResize).observe(document.documentElement);
+  } else {
+    window.setInterval(postResize, 500);
+  }
+
+  post({ type: 'ready' });
+  postResize();
+})();
+
+</script>
+
+</body>
+</html>" title="Normal canvas"></iframe></div></p>
+</article>
+</main>
+<script>
+/* no registry components used in this note */
+</script>
+<script>
+
+(function () {
+  function hydrate() {
+    var nodes = document.querySelectorAll('mdx-vault-component[data-component]');
+    if (!nodes.length) return;
+    var registry = window.__mdxVaultIslands;
+    var runtime = window.__mdxVaultReact;
+    if (!registry || !runtime) return;
+    var React = runtime.React;
+    var createRoot = runtime.createRoot;
+    nodes.forEach(function (node) {
+      var name = node.getAttribute('data-component');
+      if (!name) return;
+      var Component = registry[name];
+      if (!Component) return;
+      var propsAttr = node.getAttribute('data-props');
+      var props = {};
+      try { props = propsAttr ? JSON.parse(propsAttr) : {}; } catch (err) { props = {}; }
+      var container = document.createElement('div');
+      node.replaceWith(container);
+      var root = createRoot(container);
+      root.render(React.createElement(Component, props));
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hydrate);
+  } else {
+    hydrate();
+  }
+})();
+
+</script>
+</body>
+</html>

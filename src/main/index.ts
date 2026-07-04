@@ -1,10 +1,13 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { registerAiIpc } from './ipc/ai-ipc'
+import { registerExportIpc } from './ipc/export-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
+import { AppSettingsService } from './services/app-settings'
 import { closeCurrentVault } from './services/vault-session'
 
 function createWindow(): void {
@@ -58,9 +61,14 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerVaultIpc({ onIndexChanged: broadcastIndexChanged })
+  const appSettings = new AppSettingsService()
+
+  registerVaultIpc({ onIndexChanged: broadcastIndexChanged, appSettings })
   registerIndexIpc({ onIndexChanged: broadcastIndexChanged })
   registerSandboxIpc()
+  registerAiIpc()
+  registerExportIpc()
+  registerAppSettingsIpc(appSettings)
 
   createWindow()
 
@@ -93,4 +101,23 @@ function broadcastIndexChanged(): void {
       window.webContents.send('index:changed')
     }
   }
+}
+
+/**
+ * Theme + UI prefs IPC. These live outside the vault (app userData), so they
+ * must NOT depend on a vault being open. Only non-sensitive UI state here.
+ */
+function registerAppSettingsIpc(appSettings: AppSettingsService): void {
+  ipcMain.handle('app:get-theme', async () => {
+    return appSettings.getTheme()
+  })
+
+  ipcMain.handle('app:set-theme', async (_event, payload: unknown) => {
+    const theme = payload
+    if (theme === 'light' || theme === 'dark' || theme === 'system') {
+      await appSettings.setTheme(theme)
+      return theme
+    }
+    return appSettings.getTheme()
+  })
 }

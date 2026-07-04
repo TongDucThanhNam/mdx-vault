@@ -57,11 +57,11 @@
 
 ## Khác
 
-| Lib                  | Ghi chú                                               |
-| -------------------- | ----------------------------------------------------- |
-| react-error-boundary | Bọc MDX preview để lỗi compile/runtime không sập app. |
-| esbuild (dev)        | Compile vault custom components (Goal 05).            |
-| recharts ^3.9         | Chart lib cho DataChart + đồ thị mini EquationSlider (Goal 04). User đã chốt thay vì tự vẽ SVG. Tương thích React 19. |
+| Lib                  | Ghi chú                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| react-error-boundary | Bọc MDX preview để lỗi compile/runtime không sập app.                                                                 |
+| esbuild (dev)        | Compile vault custom components (Goal 05).                                                                            |
+| recharts ^3.9        | Chart lib cho DataChart + đồ thị mini EquationSlider (Goal 04). User đã chốt thay vì tự vẽ SVG. Tương thích React 19. |
 
 ## Chưa cài (cài khi đến goal tương ứng)
 

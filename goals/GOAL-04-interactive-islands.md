@@ -14,11 +14,11 @@ Xây bộ template components đầu tiên trong registry (Level 2 trusted) — 
 
 ## Current State
 
-| Item             | Giá trị                                                             |
-| ---------------- | ------------------------------------------------------------------- |
-| Registry         | Có structure + props validation (GOAL-03), chỉ chứa demo components |
+| Item             | Giá trị                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| Registry         | Có structure + props validation (GOAL-03), chỉ chứa demo components                   |
 | Chart lib        | **recharts@3.9.1 đã cài** (quyết định của user) — dùng nó cho DataChart + đồ thị mini |
-| Editor insertion | Chưa có — user phải gõ JSX bằng tay                                 |
+| Editor insertion | Chưa có — user phải gõ JSX bằng tay                                                   |
 
 ## Target State
 

@@ -1,0 +1,131 @@
+---
+id: concept-cpu-cache-hierarchy
+type: concept
+layer: hardware
+priority: P0
+maturity_target: L3
+current_maturity: L2 (spatial) / L1 (coherence)
+labs:
+  - "[[lab-cache-locality-row-vs-col]]"
+review_interval_days: 14
+next_review: 2026-07-18
+tags:
+  - hardware
+  - cache
+  - locality
+  - performance
+---
+
+# Cache Hierarchy & Locality
+
+Day 2 · Hardware Layer · Concept Note
+
+---
+
+## One-liner
+
+**Cache mua latency bằng cách đánh cược vào locality** — CPU không nạp từng byte, nó nạp cả _cache line_ (thường 64B) và cược rằng bạn sẽ dùng phần còn lại của line đó. Code thắng cược thì nhanh, thua cược thì chờ RAM.
+
+## Mental Model
+
+| Dimension | Detail |
+|-----------|--------|
+| **Extends** | "Memory là mảng phẳng, truy cập đều nhau" — cache _phá_ giả định đều nhau: L1 ~1ns, RAM ~100ns. Chi phí truy cập phụ thuộc **vị trí dữ liệu**, không phụ thuộc phép toán. |
+| **Conflicts** | Big-O model: "cùng số phép toán = cùng chi phí". **Sai ở tầng memory hierarchy** — hai vòng lặp cùng O(N²) có thể chênh nhau nhiều lần chỉ vì thứ tự truy cập. Đây là misconception mà Widget 1 bên dưới nhắm vào. |
+| **Requires** | Cache line là **đơn vị transfer** (không phải byte, không phải variable). Hiểu điều này trước, mọi thứ khác suy ra được. |
+| **Misapplication** | Đơn luồng: line = unit of _transfer_ → tận dụng. Đa luồng: line = unit of _ownership_ (MESI) → chia sẻ line giữa 2 core ghi là thảm họa (false sharing). **Cùng mechanism, dấu ngược nhau tùy context** → `[[bridge-cache-line-transfer-vs-ownership]]` |
+
+## Mechanism
+
+```text
+Load địa chỉ X
+├── L1 lookup (~1ns)         [HIT? trả về ngay — 90%+ trường hợp tốt]
+├── L2 lookup (~4ns)         [miss L1 thì xuống đây]
+├── L3 lookup (~40ns)        [shared giữa các core]
+├── RAM fetch (~100ns)       [MISS toàn bộ — nạp NGUYÊN LINE 64B, không chỉ X]
+├── Line fill vào L1/L2      [byte lân cận X giờ "miễn phí"]
+└── Eviction                 [line cũ bị đẩy ra nhường chỗ]
+```
+
+Hệ quả then chốt: truy cập `a[i]` lần đầu trả 100ns, nhưng `a[i+1..i+7]` (double 8B, line 64B) gần như miễn phí — **nếu bạn dùng chúng trước khi line bị evict**. Toàn bộ trò chơi locality nằm trong chữ "nếu" đó.
+
+## Widget 01 — Row vs Col: cùng O(N²), khác số phận
+
+> **Misconception nhắm tới:** "Cùng số phép toán → cùng tốc độ"
+
+<SandboxedHTML src="../interactives/cache-row-col/index.html" />
+
+Kết quả không nằm ở con số — nằm ở **khoảng cách giữa dự đoán của bạn và thực tế**. Row-major dùng cả 4 phần tử của line trước khi bỏ nó. Col-major nhảy stride 4 → mỗi truy cập rơi vào line khác → line vừa nạp bị vứt khi mới dùng 1/4. Big-O đếm phép cộng; hardware đếm line fill.
+
+## Tradeoffs
+
+| Quyết định | Được gì | Trả giá gì |
+|-------------|---------|------------|
+| Line lớn (64B thay vì 8B) | Spatial locality rẻ — 1 miss nạp 8 double | Truy cập rải rác lãng phí bandwidth; false sharing dễ xảy ra hơn |
+| Cache nhỏ & gần (L1) | Latency ~1ns | Working set vượt 32–48KB → thrash xuống L2/L3 |
+| Array-of-Structs | Code tự nhiên, 1 object liền khối | Duyệt 1 field của N object → nạp cả struct, dùng 1/8 line → SoA thắng cho analytics |
+
+## Widget 02 — Stride Explorer: locality chết ở stride nào?
+
+> **Misconception nhắm tới:** "Truy cập có quy luật thì cache vẫn giúp được" — sai: cache không hiểu "quy luật", nó chỉ hiểu line
+
+<SandboxedHTML src="../interactives/cache-stride/index.html" />
+
+Quy luật rút ra được: hit ratio = `1 − stride/line_size` (khi stride ≤ line size). Stride = line size → **mỗi truy cập một line mới, hit ratio = 0**, dù bạn chỉ đọc 4 phần tử.
+
+## Failure Modes
+
+| Failure | Cơ chế | Symptom production |
+|---------|--------|-------------------|
+| Cache thrash | Working set > cache capacity → eviction liên tục | Throughput sụp khi data size vượt ngưỡng L2/L3 — đồ thị có "bậc thang" |
+| Pointer chasing | Linked list/tree: node kế tiếp ở line ngẫu nhiên → không prefetch được | Array traversal nhanh hơn linked list 5–10× cùng N |
+| False sharing | 2 core ghi 2 biến _khác nhau_ nhưng cùng line → MESI invalidate qua lại | Thêm thread mà throughput không scale, thậm chí giảm, dù zero lock |
+
+> **Chú ý:** False sharing _không có widget_ — có chủ đích. Simulation tự code sẽ output con số mình lập trình sẵn = zero evidence value. Mechanism này cần **benchmark thật + perf stat**. Prerequisite còn thiếu: MESI coherence (chưa học, maturity L1).
+
+## Evidence Log — máy của tôi
+
+Con số thật là thứ neo trí nhớ. Simulation ở trên dựng model; bảng này chứng minh model đúng trên phần cứng thật. **Note chưa đạt L3 khi bảng này còn trống.**
+
+| Benchmark | Lệnh | Kết quả |
+|-----------|------|---------|
+| Row vs col-major, N=4096 | `perf stat -e cache-misses,cache-references ./traverse row` · `./traverse col` | _[ CHƯA CÓ — chạy Day 2 ]_ |
+| False sharing: padded vs unpadded, 2 thread | `perf stat -e cache-misses ./fs_bench unpadded` · `./fs_bench padded` | _[ CHƯA CÓ — cần MESI trước ]_ |
+| Pointer chasing: array vs linked list | `./chase array 10000000` · `./chase list 10000000` | _[ CHƯA CÓ ]_ |
+
+## Self-test
+
+Trả lời từ trí nhớ _trước_ khi bấm reveal. Sai → quay lại đúng section được link, không đọc lại cả note.
+
+<details>
+<summary>Mức 3 — Mảng 4×4, line = 4 phần tử: vì sao col-major miss **cả 16 lần** trong khi mỗi line chứa sẵn 4 phần tử liên tiếp?</summary>
+
+Col-major truy cập theo stride 4 = đúng bằng line size → phần tử kế tiếp _luôn_ nằm ở line khác. Cache 1-line phải evict line vừa nạp khi mới dùng 1/4 nó. Đến khi vòng lặp quay lại cột sau, line cũ đã bị đẩy ra từ lâu → mọi truy cập đều là cold miss. (→ [Widget 01](#widget-01--row-vs-col-cùng-on²-khác-số-phận))
+
+</details>
+
+<details>
+<summary>Mức 4 — Line 64B, mảng `double` 8B. Stride bao nhiêu **phần tử** thì spatial locality biến mất hoàn toàn? Hit ratio thay đổi thế nào ở stride 2, 4, 8?</summary>
+
+Line chứa 64/8 = **8 double**. Stride 2 → dùng 4/8 line → hit 50%. Stride 4 → 25%. **Stride 8 → mỗi truy cập một line mới → hit 0%**, locality chết hẳn dù pattern hoàn toàn "có quy luật". Công thức: hit = 1 − stride/8 (stride ≤ 8). (→ [Widget 02](#widget-02--stride-explorer-locality-chết-ở-stride-nào))
+
+</details>
+
+<details>
+<summary>Mức 5 — Trong PostgreSQL, hiện tượng nào ở tầng buffer pool đóng vai trò tương đương "duyệt col-major"?</summary>
+
+**\[PG-specific\]** Index scan trên cột có **correlation thấp** với thứ tự vật lý của heap: mỗi TID trỏ tới một heap page khác nhau → mỗi row fetch là một page read riêng, giống mỗi phần tử một cache line. Cùng số row, index scan correlation thấp có thể thua seq scan — lý do planner đôi khi "từ chối" dùng index. Cache line ↔ heap page, L1 ↔ shared_buffers, RAM fetch ↔ disk I/O. (→ `[[bridge-locality-cpu-cache-to-buffer-pool]]`, học kỹ Day 10–11)
+
+</details>
+
+## Links
+
+- Prereq: `[[concept-cpu-execution-pipeline]]`
+- Downstream: `[[concept-disk-pages-buffer-pool]]` (Day 10)
+- Bridge: `[[bridge-locality-cpu-cache-to-buffer-pool]]` · `[[bridge-cache-line-transfer-vs-ownership]]` (stub — chờ MESI)
+- Lab (dựng model lần đầu, dùng 1 lần): `[[lab-cache-locality-row-vs-col]]`
+- Source: Intel Optimization Reference Manual · ch. Memory Subsystem
+
+---
+
+_Format B · text-first · 2/3 widget budget · body scrolls · mọi section visible & linkable_

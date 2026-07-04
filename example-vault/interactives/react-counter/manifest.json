@@ -1,17 +1,17 @@
 {
-  "name": "React Counter Sandbox",
+  "name": "React counter",
   "version": "1.0.0",
   "runtime": "react",
   "permissions": {
     "network": false,
-    "filesystem": false
+    "filesystem": false,
+    "dataPaths": []
   },
   "propsSchema": {
-    "label": "string",
-    "start": "number"
+    "initial": "number"
   },
   "dependencies": {
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

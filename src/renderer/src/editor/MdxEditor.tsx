@@ -2,13 +2,15 @@ import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
-import { LanguageDescription } from '@codemirror/language'
+import { HighlightStyle, LanguageDescription, syntaxHighlighting } from '@codemirror/language'
 import { EditorState, Prec } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
+import { tags as t } from '@lezer/highlight'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ComponentInsertPalette } from './ComponentInsertPalette'
+import { mdxHighlightExtension } from './mdx-highlight'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 
 export interface RevealLineRequest {
@@ -16,10 +18,26 @@ export interface RevealLineRequest {
   requestId: number
 }
 
+export interface EditorSelectionSnapshot {
+  /** True when the selection is non-empty. */
+  hasSelection: boolean
+  /** 1-based line where the selection starts. */
+  startLine: number
+  /** 0-based column where the selection starts. */
+  startColumn: number
+  /** 1-based line where the selection ends. */
+  endLine: number
+  /** 0-based column where the selection ends. */
+  endColumn: number
+  /** The exact text inside the selection (already trimmed at the boundary by CodeMirror). */
+  text: string
+}
+
 interface MdxEditorProps {
   value: string
   onChange: (value: string) => void
   revealLineRequest?: RevealLineRequest | null
+  onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
 }
 
 const codeLanguages = [
@@ -46,42 +64,74 @@ const codeLanguages = [
 const editorTheme = EditorView.theme({
   '&': {
     height: '100%',
-    backgroundColor: 'var(--background)'
+    backgroundColor: 'var(--card)'
   },
   '.cm-scroller': {
     fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    fontSize: '13px',
-    lineHeight: '1.65'
+      '"JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontSize: '13.5px',
+    lineHeight: '1.7'
   },
   '.cm-content': {
-    padding: '18px 0',
-    caretColor: 'var(--foreground)'
+    padding: '20px 0',
+    caretColor: 'var(--viridian)'
   },
   '.cm-line': {
-    padding: '0 18px'
+    padding: '0 20px'
   },
   '.cm-gutters': {
     backgroundColor: 'var(--muted)',
-    borderRightColor: 'var(--border)'
+    borderRightColor: 'var(--border)',
+    color: 'var(--muted-foreground)',
+    fontFamily:
+      '"JetBrains Mono", "Cascadia Code", ui-monospace, monospace',
+    fontSize: '11px'
   },
   '.cm-activeLineGutter, .cm-activeLine': {
-    backgroundColor: 'var(--accent)'
+    backgroundColor: 'var(--secondary)'
+  },
+  '.cm-selectionBackground': {
+    backgroundColor: 'color-mix(in oklch, var(--viridian) 20%, transparent) !important'
+  },
+  '.cm-cursor': {
+    borderLeftColor: 'var(--viridian)'
   },
   '&.cm-focused': {
     outline: 'none'
   }
 })
 
+/**
+ * Highlight style mapping the Lezer tags produced by `mdx-highlight.ts` (and
+ * the standard markdown/JS tags already used by `@codemirror/lang-markdown`)
+ * to actual editor colors. Without this, the parser tags the tokens but no
+ * color is applied — JSX/braces render as plain prose. The CSS variables match
+ * the design tokens defined in `globals.css` and adapt to light/dark themes.
+ */
+const mdxHighlightStyle = HighlightStyle.define([
+  // JSX tag name (e.g. the `QuizBlock` in `<QuizBlock />`).
+  { tag: t.tagName, color: 'var(--viridian)', fontWeight: '600' },
+  // JSX attribute name (e.g. `bar` in `bar="x"`).
+  { tag: t.attributeName, color: 'var(--chart-3)' },
+  // JSX attribute string value (e.g. `"x"` in `bar="x"`).
+  { tag: t.string, color: 'var(--chart-2)' },
+  // JSX angle brackets, `/`, `=`, etc.
+  { tag: t.angleBracket, color: 'var(--muted-foreground)' },
+  // MDX brace expression marks (`{` and `}`).
+  { tag: t.brace, color: 'var(--viridian)' }
+])
+
 export function MdxEditor({
   value,
   onChange,
-  revealLineRequest
+  revealLineRequest,
+  onSelectionChange
 }: MdxEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
+  const onSelectionChangeRef = useRef(onSelectionChange)
   const insertTemplates = useMemo(() => getRegistryInsertTemplates(), [])
   const [insertPaletteOpen, setInsertPaletteOpen] = useState(false)
 
@@ -113,6 +163,10 @@ export function MdxEditor({
   }, [onChange])
 
   useEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange
+  }, [onSelectionChange])
+
+  useEffect(() => {
     if (!containerRef.current) {
       return
     }
@@ -123,7 +177,8 @@ export function MdxEditor({
         doc: initialValueRef.current,
         extensions: [
           basicSetup,
-          markdown({ codeLanguages }),
+          markdown({ codeLanguages, extensions: mdxHighlightExtension }),
+          syntaxHighlighting(mdxHighlightStyle),
           Prec.highest(
             keymap.of([
               {
@@ -146,6 +201,12 @@ export function MdxEditor({
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString())
+            }
+            if (update.selectionSet || update.docChanged) {
+              const callback = onSelectionChangeRef.current
+              if (callback) {
+                callback(buildSelectionSnapshot(update.view))
+              }
             }
           }),
           editorTheme
@@ -225,6 +286,24 @@ function shouldOpenSlashCommand(view: EditorView): boolean {
   const textBeforeCursor = view.state.doc.sliceString(line.from, selection.from)
 
   return textBeforeCursor.trim().length === 0
+}
+
+function buildSelectionSnapshot(view: EditorView): EditorSelectionSnapshot {
+  const selection = view.state.selection.main
+  const startLine = view.state.doc.lineAt(selection.from).number
+  const endLine = view.state.doc.lineAt(selection.to).number
+  const startLineInfo = view.state.doc.line(startLine)
+  const endLineInfo = view.state.doc.line(endLine)
+  const text = view.state.sliceDoc(selection.from, selection.to)
+
+  return {
+    hasSelection: !selection.empty,
+    startLine,
+    startColumn: Math.max(0, selection.from - startLineInfo.from),
+    endLine,
+    endColumn: Math.max(0, selection.to - endLineInfo.from),
+    text
+  }
 }
 
 function createSnippetInsertion(view: EditorView, snippet: string): string {

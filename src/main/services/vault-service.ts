@@ -87,6 +87,42 @@ export class VaultService {
     await rename(tempPath, target)
   }
 
+  /**
+   * Create a new note file. Refuses to overwrite an existing file — callers
+   * should check `exists()` first or pass a unique path. Resolves to the
+   * canonical (normalized) relative path so the renderer can open it.
+   */
+  async createFile(relativePath: string, content: string): Promise<string> {
+    const normalizedPath = normalizeVaultPath(relativePath)
+    const extension = extname(normalizedPath).toLowerCase()
+
+    if (!MARKDOWN_EXTENSIONS.has(extension)) {
+      throw new Error('Only .md and .mdx files are allowed')
+    }
+
+    const target = safeJoin(this.root, normalizedPath)
+
+    if (await pathExists(target)) {
+      throw new Error('A file with this name already exists')
+    }
+
+    await mkdir(dirname(target), { recursive: true })
+    await writeFile(target, content, 'utf8')
+
+    return normalizedPath
+  }
+
+  /** Check whether a relative markdown path already exists on disk. */
+  async exists(relativePath: string): Promise<boolean> {
+    try {
+      const target = this.resolveMarkdownPath(relativePath)
+      await stat(target)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   private resolveMarkdownPath(relativePath: string): string {
     const normalizedPath = normalizeVaultPath(relativePath)
     const extension = extname(normalizedPath).toLowerCase()
@@ -145,5 +181,14 @@ async function assertDatasetFile(target: string): Promise<void> {
 
   if (!fileStats.isFile()) {
     throw new Error('Dataset path is not a file')
+  }
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await stat(target)
+    return true
+  } catch {
+    return false
   }
 }

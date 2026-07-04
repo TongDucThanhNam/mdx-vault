@@ -89,24 +89,24 @@ function TreeNodeItem({
 
   const isSelected = selectedPath === node.file.relativePath
 
-  return (
-    <button
-      type="button"
-      className={cn(
-        'flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors',
-        isSelected
-          ? 'bg-primary text-primary-foreground'
-          : 'text-foreground hover:bg-accent hover:text-accent-foreground'
-      )}
-      style={{ paddingLeft: `${level * 14 + 8}px` }}
-      title={node.file.relativePath}
-      aria-current={isSelected ? 'page' : undefined}
-      onClick={() => onSelectFile(node.file.relativePath)}
-    >
-      <FileText className="size-4 shrink-0" aria-hidden="true" />
-      <span className="truncate">{node.name}</span>
-    </button>
-  )
+    return (
+      <button
+        type="button"
+        className={cn(
+          'flex h-8 w-full items-center gap-2 rounded-[4px] px-2 text-left text-[13px] transition-colors',
+          isSelected
+            ? 'bg-[var(--viridian-soft)] text-accent-foreground font-medium shadow-[inset_2px_0_0_0_var(--viridian)]'
+            : 'text-foreground/80 hover:bg-accent hover:text-foreground'
+        )}
+        style={{ paddingLeft: `${level * 14 + 8}px` }}
+        title={node.file.relativePath}
+        aria-current={isSelected ? 'page' : undefined}
+        onClick={() => onSelectFile(node.file.relativePath)}
+      >
+        <FileText className="size-[15px] shrink-0 opacity-60" aria-hidden="true" />
+        <span className="truncate">{node.name}</span>
+      </button>
+    )
 }
 
 function buildTree(files: VaultFile[]): TreeNode[] {

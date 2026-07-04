@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Row vs Col — Cache Locality</title>
+<style>
+:root {
+  --paper: #f9f9f7; --ink: #111; --accent: #d32f2f; --result: #2b5797;
+  --border: 2px solid var(--ink); --shadow: 3px 3px 0 var(--ink);
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  padding: 1rem; max-width: 600px; margin: 0 auto;
+}
+
+.viz-flex { display:flex; gap:2rem; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-bottom:1rem; }
+.viz-col { display:flex; flex-direction:column; align-items:center; gap:.4rem; }
+.viz-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; text-align:center; }
+.cell-grid { display:grid; grid-template-columns:repeat(4,34px); gap:3px; }
+.cell {
+  width:34px; height:34px; border:var(--border); display:flex; align-items:center;
+  justify-content:center; font-family:inherit; font-size:.75rem; font-weight:700;
+  background:var(--paper); transition:background .15s;
+}
+.cell.current { background:var(--accent); color:#fff; }
+.cell.visited-hit { background:#dce6f5; }
+.cell.visited-miss { background:#f5d5d5; }
+.cell.inline-cache { outline:3px solid var(--result); outline-offset:2px; }
+
+.counter-box {
+  font-family:inherit; font-size:.9rem; border:var(--border); box-shadow:var(--shadow);
+  padding:.7rem 1.2rem; margin-top:.8rem; text-align:center; line-height:1.8;
+}
+.counter-box .m { color:var(--accent); font-weight:700; }
+.counter-box .h { color:var(--result); font-weight:700; }
+
+.gate { border:2px dashed var(--accent); padding:.8rem 1rem; margin-bottom:1rem; background:var(--paper); }
+.gate-q { font-size:.88rem; margin-bottom:.7rem; line-height:1.55; }
+.gate-q b { color:var(--accent); }
+.gate-opts { display:flex; gap:.4rem; flex-wrap:wrap; }
+.gate-btn {
+  font-family:"Courier Prime",ui-monospace,monospace; font-weight:700; font-size:.75rem;
+  padding:.4rem .8rem; border:var(--border); background:var(--paper); cursor:pointer;
+  box-shadow:2px 2px 0 var(--ink); text-transform:uppercase; letter-spacing:.5px;
+  transition:background .1s,color .1s;
+}
+.gate-btn:hover { background:var(--ink); color:var(--paper); }
+.gate-btn.chosen { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:none; transform:translate(2px,2px); }
+.gate-verdict {
+  margin-top:.8rem; font-family:inherit; font-size:.82rem; line-height:1.65;
+  display:none; padding:.6rem .9rem; border:var(--border); background:#f5f3f0;
+}
+.gate-verdict.show { display:block; }
+.gate-verdict .right { color:var(--result); font-weight:700; }
+.gate-verdict .wrong { color:var(--accent); font-weight:700; }
+
+.controls-row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.8rem; padding-top:.8rem; border-top:var(--border); }
+.lab-btn {
+  font-family:"Courier Prime",ui-monospace,monospace; font-weight:700; font-size:.78rem;
+  padding:.4rem .8rem; border:var(--border); background:var(--paper); cursor:pointer;
+  box-shadow:2px 2px 0 var(--ink); text-transform:uppercase; letter-spacing:.5px;
+  transition:background .1s,color .1s;
+}
+.lab-btn:hover:not(:disabled) { background:var(--ink); color:var(--paper); }
+.lab-btn:active:not(:disabled) { transform:translate(2px,2px); box-shadow:none; }
+.lab-btn.accent { background:var(--accent); color:#fff; border-color:var(--accent); }
+.lab-btn:disabled { opacity:.3; cursor:not-allowed; box-shadow:none; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-q">Mảng 4×4, cache giữ đúng <b>1 line = 4 phần tử liên tiếp</b>. Duyệt <b>row-major</b> cho hit ratio <b>75%</b> (4 miss / 12 hit). Chuyển sang <b>col-major</b> — bạn dự đoán hit ratio sẽ là?</div>
+  <div class="gate-opts">
+    <button class="gate-btn" data-pred="75">Vẫn ~75%</button>
+    <button class="gate-btn" data-pred="50">Giảm còn ~50%</button>
+    <button class="gate-btn" data-pred="0">Sụp về 0%</button>
+  </div>
+  <div class="gate-verdict" id="verdict"></div>
+</div>
+
+<div class="viz-flex">
+  <div class="viz-col">
+    <span class="viz-label">Thứ tự duyệt</span>
+    <div class="cell-grid" id="grid"></div>
+  </div>
+  <div class="viz-col">
+    <span class="viz-label">Cache (line = hàng, viền xanh)</span>
+    <div class="cell-grid" id="ram"></div>
+    <div class="counter-box" id="counter">Misses: <span class="m">0</span> · Hits: <span class="h">0</span><br/>Hit Ratio: <strong>—</strong></div>
+  </div>
+</div>
+
+<div class="controls-row">
+  <button class="lab-btn" id="mode">Row-major</button>
+  <button class="lab-btn accent" id="play" disabled>▶ Play</button>
+  <button class="lab-btn" id="step" disabled>Step →</button>
+  <button class="lab-btn" id="reset" disabled>Reset</button>
+</div>
+
+<script>
+const G = document.getElementById.bind(document);
+const grid = G('grid'), ram = G('ram'), counter = G('counter');
+const btnMode = G('mode'), btnPlay = G('play'), btnStep = G('step'), btnReset = G('reset');
+const verdict = G('verdict');
+
+let mode = 'row', prediction = null, order = [], pos = 0, cachedLine = -1, hits = 0, misses = 0, history = [], timer = null;
+
+function lineOf(i) { return Math.floor(i / 4); }
+
+function buildCells() {
+  [grid, ram].forEach(h => { h.innerHTML = ''; for (let i = 0; i < 16; i++) { const d = document.createElement('div'); d.className = 'cell'; d.textContent = i; h.appendChild(d); }});
+}
+
+function computeOrder() {
+  order = mode === 'row'
+    ? Array.from({length:16}, (_,i) => i)
+    : (() => { const o = []; for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o.push(r*4 + c); return o; })();
+}
+
+function reset(keepGate) {
+  clearInterval(timer); pos = 0; cachedLine = -1; hits = 0; misses = 0; history = [];
+  computeOrder(); render();
+  if (!keepGate) { prediction = null; document.querySelectorAll('.gate-btn').forEach(b => b.classList.remove('chosen')); [btnPlay, btnStep, btnReset].forEach(b => b.disabled = true); verdict.classList.remove('show'); }
+}
+
+function step() {
+  if (pos >= 16) return;
+  const idx = order[pos], ln = lineOf(idx);
+  const hit = ln === cachedLine;
+  hit ? hits++ : (misses++, cachedLine = ln);
+  history.push({idx, hit}); pos++;
+  render();
+  if (pos >= 16) finish();
+}
+
+function finish() {
+  clearInterval(timer);
+  if (mode === 'col' && prediction !== null) {
+    const actual = Math.round(100 * hits / 16);
+    verdict.innerHTML = prediction === '0'
+      ? `Bạn đoán <span class="right">sụp về 0%</span> — thực tế: <span class="right">${actual}%</span>. Model của bạn đã đúng ở tầng line-granularity.`
+      : `Bạn đoán <span class="wrong">${prediction}%</span> — thực tế: <span class="right">${actual}%</span>. Khoảng lệch này chính là chỗ mental model cũ (đếm phép toán) khác hardware (đếm line fill).`;
+    verdict.classList.add('show');
+  }
+}
+
+function play() { if (pos < 16) { timer = setInterval(step, 380); } }
+
+function render() {
+  const gc = grid.children, rc = ram.children;
+  for (let i = 0; i < 16; i++) { gc[i].className = 'cell'; rc[i].className = 'cell'; }
+  history.forEach((h, k) => {
+    const cls = h.hit ? 'visited-hit' : 'visited-miss';
+    const isLast = k === history.length - 1;
+    gc[h.idx].classList.add(isLast ? 'current' : cls);
+    rc[h.idx].classList.add(isLast ? 'current' : cls);
+  });
+  if (cachedLine >= 0) { for (let i = cachedLine*4; i < cachedLine*4+4; i++) rc[i].classList.add('inline-cache'); }
+  const total = hits + misses;
+  const ratio = total ? Math.round(100 * hits / total) + '%' : '—';
+  counter.innerHTML = `Misses: <span class="m">${misses}</span> · Hits: <span class="h">${hits}</span><br/>Hit Ratio: <strong>${ratio}</strong>`;
+}
+
+document.querySelectorAll('.gate-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    if (prediction !== null) return;
+    prediction = b.dataset.pred;
+    b.classList.add('chosen');
+    [btnPlay, btnStep, btnReset].forEach(b => b.disabled = false);
+  });
+});
+
+btnMode.addEventListener('click', () => {
+  mode = mode === 'row' ? 'col' : 'row';
+  btnMode.textContent = mode === 'row' ? 'Row-major' : 'Col-major';
+  reset(true);
+});
+btnPlay.addEventListener('click', play);
+btnStep.addEventListener('click', () => { if (!timer) step(); });
+btnReset.addEventListener('click', () => reset(true));
+
+buildCells(); computeOrder(); render();
+</script>
+</body>
+</html>

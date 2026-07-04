@@ -1,172 +1,41 @@
-<style>
-  .normal-demo {
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 260px;
-    padding: 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #111827;
-  }
-
-  .normal-demo * {
-    box-sizing: border-box;
-  }
-
-  .normal-demo__header {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .normal-demo__title {
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.3;
-  }
-
-  .normal-demo__subtitle,
-  .normal-demo__status {
-    margin: 4px 0 0;
-    color: #6b7280;
-    font-size: 12px;
-  }
-
-  .normal-demo__controls {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin: 12px 0;
-  }
-
-  .normal-demo label {
-    display: grid;
-    gap: 4px;
-    font-size: 12px;
-    color: #374151;
-  }
-
-  .normal-demo input {
-    width: 100%;
-  }
-
-  .normal-demo canvas {
-    display: block;
-    width: 100%;
-    height: 180px;
-    border-radius: 6px;
-    background: #f9fafb;
-  }
-
-  .normal-demo button {
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: #ffffff;
-    padding: 6px 10px;
-    color: #111827;
-    cursor: pointer;
-  }
-</style>
-
-<section class="normal-demo">
-  <div class="normal-demo__header">
-    <div>
-      <h2 class="normal-demo__title">Normal distribution</h2>
-      <p class="normal-demo__subtitle">Pure HTML/CSS/JS in an iframe sandbox.</p>
-    </div>
-    <button id="probe" type="button">Probe sandbox</button>
-  </div>
-
-  <canvas id="chart" width="720" height="220" aria-label="Normal distribution curve"></canvas>
-
-  <div class="normal-demo__controls">
-    <label>
-      Mean: <span id="meanValue">0</span>
-      <input id="mean" type="range" min="-3" max="3" step="0.1" value="0" />
-    </label>
-    <label>
-      Sigma: <span id="sigmaValue">1</span>
-      <input id="sigma" type="range" min="0.4" max="2.5" step="0.1" value="1" />
-    </label>
-  </div>
-
-  <p id="status" class="normal-demo__status">window.vaultApi: unchecked</p>
-</section>
-
-<script>
-  var canvas = document.getElementById('chart');
-  var context = canvas.getContext('2d');
-  var meanInput = document.getElementById('mean');
-  var sigmaInput = document.getElementById('sigma');
-  var meanValue = document.getElementById('meanValue');
-  var sigmaValue = document.getElementById('sigmaValue');
-  var status = document.getElementById('status');
-
-  function normalPdf(x, mean, sigma) {
-    var exponent = -Math.pow(x - mean, 2) / (2 * sigma * sigma);
-    return Math.exp(exponent) / (sigma * Math.sqrt(2 * Math.PI));
-  }
-
-  function draw() {
-    var mean = Number(meanInput.value);
-    var sigma = Number(sigmaInput.value);
-    meanValue.textContent = mean.toFixed(1);
-    sigmaValue.textContent = sigma.toFixed(1);
-
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.strokeStyle = '#d1d5db';
-    context.lineWidth = 1;
-    context.beginPath();
-    context.moveTo(24, 180);
-    context.lineTo(696, 180);
-    context.stroke();
-
-    context.strokeStyle = '#0f766e';
-    context.lineWidth = 3;
-    context.beginPath();
-
-    for (var pixel = 0; pixel <= 672; pixel += 1) {
-      var x = -4 + (pixel / 672) * 8;
-      var y = 180 - normalPdf(x, mean, sigma) * 260;
-      var canvasX = 24 + pixel;
-
-      if (pixel === 0) {
-        context.moveTo(canvasX, y);
-      } else {
-        context.lineTo(canvasX, y);
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Normal canvas sandbox</title>
+    <style>
+      body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+      canvas { display: block; width: 100%; height: 180px; background: #fafafa; }
+      .caption { padding: 0.5rem 0.75rem; font-size: 0.75rem; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div class="caption">Arbitrary canvas sandbox. Tries to access parent.document but is blocked by sandbox.</div>
+    <script>
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+      var x = 10;
+      var dir = 1;
+      function frame() {
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(x, 60, 30, 30);
+        x += dir;
+        if (x > canvas.width - 40 || x < 0) dir = -dir;
+        requestAnimationFrame(frame);
       }
-    }
-
-    context.stroke();
-  }
-
-  function runProbe() {
-    var checks = [];
-    checks.push('window.vaultApi=' + String(window.vaultApi));
-
-    try {
-      window.parent.document;
-      checks.push('parent.document=visible');
-    } catch (error) {
-      checks.push('parent.document=blocked');
-    }
-
-    fetch('https://example.com')
-      .then(function () {
-        checks.push('fetch=unexpected success');
-        status.textContent = checks.join(' | ');
-      })
-      .catch(function () {
-        checks.push('fetch=blocked');
-        status.textContent = checks.join(' | ');
-      });
-  }
-
-  meanInput.addEventListener('input', draw);
-  sigmaInput.addEventListener('input', draw);
-  document.getElementById('probe').addEventListener('click', runProbe);
-  draw();
-</script>
+      frame();
+      // Demonstrate that the sandbox cannot reach the parent document.
+      try {
+        window.parent.document.body.style.background = 'red';
+      } catch (err) {
+        var warn = document.createElement('div');
+        warn.className = 'caption';
+        warn.textContent = 'Cross-origin access blocked (expected): ' + err.message;
+        document.body.appendChild(warn);
+      }
+    </script>
+  </body>
+</html>

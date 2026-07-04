@@ -5,6 +5,23 @@ import type {
   SandboxKind,
   SandboxPermissionDecision
 } from '../shared/sandbox'
+import type {
+  ExportMode,
+  ExportPickTargetResult,
+  ExportProgressEvent,
+  ExportRunPayload,
+  ExportRunResult,
+  ExportScanResult
+} from '../shared/export'
+import type {
+  AiPublicSettings,
+  AiSaveSettingsInput,
+  AssistantApplyPatchOutput,
+  AssistantChatStartInput,
+  AssistantChatStartOutput,
+  AssistantEvent,
+  PatchOperation
+} from '../shared/ai'
 
 interface VaultFile {
   relativePath: string
@@ -66,13 +83,18 @@ class VaultApiError extends Error {
 
 const vaultApi = {
   openVault: (): Promise<VaultInfo | null> => invokeVault('vault:open'),
+  openVaultPath: (path: string): Promise<VaultInfo | null> =>
+    invokeVault('vault:open-path', { path }),
+  lastOpenVault: (): Promise<string | null> => invokeVault('vault:last-open'),
   listFiles: (): Promise<VaultFile[]> => invokeVault('vault:list-files'),
   readFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:read-file', { relativePath }),
   readAssetFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:read-asset-file', { relativePath }),
   writeFile: (relativePath: string, content: string): Promise<void> =>
-    invokeVault('vault:write-file', { relativePath, content })
+    invokeVault('vault:write-file', { relativePath, content }),
+  createFile: (relativePath: string, content: string): Promise<string> =>
+    invokeVault('vault:create-file', { relativePath, content })
 }
 
 const indexApi = {
@@ -129,11 +151,80 @@ const sandboxApi = {
     invokeSandbox('sandbox:request-data', { kind, src, notePath, contentHash, path })
 }
 
+const aiApi = {
+  getSettings: (): Promise<AiPublicSettings> => invokeAi<AiPublicSettings>('ai:get-settings'),
+  saveSettings: (input: AiSaveSettingsInput): Promise<AiPublicSettings> =>
+    invokeAi<AiPublicSettings>('ai:save-settings', input),
+  clearApiKey: (): Promise<AiPublicSettings> => invokeAi<AiPublicSettings>('ai:clear-api-key'),
+  chatStart: (input: AssistantChatStartInput): Promise<AssistantChatStartOutput> =>
+    invokeAi<AssistantChatStartOutput>('ai:chat-start', input),
+  chatCancel: (input: { sessionId: string }): Promise<{ ok: boolean; reason?: string }> =>
+    invokeAi<{ ok: boolean; reason?: string }>('ai:chat-cancel', input),
+  applyPatch: (input: {
+    noteRelativePath: string
+    operations: PatchOperation[]
+  }): Promise<AssistantApplyPatchOutput> =>
+    invokeAi<AssistantApplyPatchOutput>('ai:apply-patch', input),
+  allowedPatchKinds: (): Promise<ReadonlyArray<PatchOperation['kind']>> =>
+    invokeAi<ReadonlyArray<PatchOperation['kind']>>('ai:allowed-patch-kinds'),
+  onEvent: (callback: (sessionId: string, event: AssistantEvent) => void): (() => void) => {
+    const listener = (_event: unknown, payload: unknown): void => {
+      if (!payload || typeof payload !== 'object') {
+        return
+      }
+      const envelope = payload as { sessionId?: unknown; event?: unknown }
+      if (typeof envelope.sessionId !== 'string' || !envelope.event) {
+        return
+      }
+      callback(envelope.sessionId, envelope.event as AssistantEvent)
+    }
+    ipcRenderer.on('ai:event', listener)
+    return () => {
+      ipcRenderer.removeListener('ai:event', listener)
+    }
+  }
+}
+
+const exportApi = {
+  scan: (noteRelativePath: string): Promise<ExportScanResult> =>
+    invokeExport<ExportScanResult>('export:scan', { noteRelativePath }),
+  pickTarget: (input: {
+    noteRelativePath: string
+    mode: ExportMode
+    defaultFileName: string
+  }): Promise<ExportPickTargetResult | null> =>
+    invokeExport<ExportPickTargetResult | null>('export:pick-target', input),
+  run: (input: ExportRunPayload): Promise<ExportRunResult> =>
+    invokeExport<ExportRunResult>('export:run', input),
+  onProgress: (callback: (event: ExportProgressEvent) => void): (() => void) => {
+    const listener = (_event: unknown, payload: unknown): void => {
+      if (!payload || typeof payload !== 'object') {
+        return
+      }
+      callback(payload as ExportProgressEvent)
+    }
+    ipcRenderer.on('export:progress', listener)
+    return () => {
+      ipcRenderer.removeListener('export:progress', listener)
+    }
+  }
+}
+
+const appApi = {
+  getTheme: (): Promise<'light' | 'dark' | 'system'> =>
+    ipcRenderer.invoke('app:get-theme') as Promise<'light' | 'dark' | 'system'>,
+  setTheme: (theme: 'light' | 'dark' | 'system'): Promise<'light' | 'dark' | 'system'> =>
+    ipcRenderer.invoke('app:set-theme', theme) as Promise<'light' | 'dark' | 'system'>
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('vaultApi', vaultApi)
     contextBridge.exposeInMainWorld('indexApi', indexApi)
     contextBridge.exposeInMainWorld('sandboxApi', sandboxApi)
+    contextBridge.exposeInMainWorld('aiApi', aiApi)
+    contextBridge.exposeInMainWorld('exportApi', exportApi)
+    contextBridge.exposeInMainWorld('appApi', appApi)
   } catch (error) {
     console.error(error)
   }
@@ -162,6 +253,26 @@ async function invokeIndex<T>(channel: string, payload?: unknown): Promise<T> {
 }
 
 async function invokeSandbox<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeAi<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeExport<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

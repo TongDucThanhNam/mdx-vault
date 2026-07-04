@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 import type { VaultInfo, VaultFile } from '../services/vault-service'
 import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
+import type { AppSettingsService } from '../services/app-settings'
 
 export interface IpcSuccess<T> {
   ok: true
@@ -29,9 +30,13 @@ type OpenVaultResult = VaultInfo | null
 
 interface RegisterVaultIpcOptions {
   onIndexChanged?: () => void
+  appSettings?: AppSettingsService
 }
 
 const emptyPayloadSchema = z.undefined()
+const openVaultPathPayloadSchema = z.object({
+  path: z.string().min(1)
+})
 const readFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
@@ -39,6 +44,10 @@ const readAssetFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
 const writeFilePayloadSchema = z.object({
+  relativePath: z.string().min(1),
+  content: z.string()
+})
+const createFilePayloadSchema = z.object({
   relativePath: z.string().min(1),
   content: z.string()
 })
@@ -55,8 +64,25 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
         return null
       }
 
-      const vault = await openCurrentVault(result.filePaths[0], options.onIndexChanged)
+      const vaultPath = result.filePaths[0]
+      const vault = await openCurrentVault(vaultPath, options.onIndexChanged)
+      await options.appSettings?.setLastVaultPath(vaultPath)
       return vault.getInfo()
+    })
+  })
+
+  ipcMain.handle('vault:open-path', (_event, payload): Promise<IpcResult<OpenVaultResult>> => {
+    return handleVaultRequest(async () => {
+      const input = openVaultPathPayloadSchema.parse(payload)
+      const vault = await openCurrentVault(input.path, options.onIndexChanged)
+      await options.appSettings?.setLastVaultPath(input.path)
+      return vault.getInfo()
+    })
+  })
+
+  ipcMain.handle('vault:last-open', (): Promise<IpcResult<string | null>> => {
+    return handleVaultRequest(async () => {
+      return options.appSettings ? await options.appSettings.getLastVaultPath() : null
     })
   })
 
@@ -86,6 +112,15 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
       const input = writeFilePayloadSchema.parse(payload)
       await getCurrentVault().writeFile(input.relativePath, input.content)
       await getCurrentIndex().indexFile(input.relativePath)
+    })
+  })
+
+  ipcMain.handle('vault:create-file', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = createFilePayloadSchema.parse(payload)
+      const createdPath = await getCurrentVault().createFile(input.relativePath, input.content)
+      await getCurrentIndex().indexFile(createdPath)
+      return createdPath
     })
   })
 }

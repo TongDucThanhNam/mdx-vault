@@ -1,5 +1,5 @@
-import { createHash } from 'crypto'
-import { mkdir, readFile, rename, stat, writeFile } from 'fs/promises'
+import { createHash, randomUUID } from 'crypto'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { dirname, extname, isAbsolute, relative, resolve } from 'path'
 import { posix as pathPosix } from 'path'
 import { build, type Plugin } from 'esbuild'
@@ -19,7 +19,11 @@ import { VaultService } from './vault-service'
 
 const permissionStoreRelativePath = '.app/sandbox-permissions.json'
 const componentCacheRelativeDir = '.app/component-cache'
+const sandboxDraftsRelativeDir = '.app/sandbox-drafts'
 const dependencyAllowlist = new Set(['react', 'react-dom'])
+
+export type SandboxDraftCompileResult =
+  { ok: true; contentHash: string; script: string } | { ok: false; errors: string[] }
 const sandboxCsp = [
   "default-src 'none'",
   "script-src 'unsafe-inline'",
@@ -120,6 +124,63 @@ export class SandboxService {
       contentHash,
       manifest: manifest.data
     })
+  }
+
+  /** Compile (and lightly lint) an AI-generated component **without** writing
+   *  it to the vault and without consulting the permission store. The draft is
+   *  staged under `.app/sandbox-drafts/<draftId>/`, esbuild + dependency guard
+   *  run against it, the resulting script (or errors) are returned, and the
+   *  staged folder is cleaned up before this method resolves.
+   *
+   *  The real `interactives/<name>/` folder is created only after the user
+   *  approves the patch in the diff review and the renderer calls
+   *  `vault:write-file` for each file the patch proposes. This method is
+   *  therefore read-only with respect to user content. */
+  async compileDraft(
+    componentSource: string,
+    manifestDraft: SandboxManifest
+  ): Promise<SandboxDraftCompileResult> {
+    const manifestValidation = sandboxManifestSchema.safeParse(manifestDraft)
+
+    if (!manifestValidation.success) {
+      return {
+        ok: false,
+        errors: manifestValidation.error.issues.map(
+          (issue) => `${issue.path.join('.') || 'manifest'}: ${issue.message}`
+        )
+      }
+    }
+
+    const draftId = randomUUID()
+    const draftRoot = safeJoin(this.vault.rootPath, `${sandboxDraftsRelativeDir}/${draftId}`)
+    const componentPath = `${draftRoot}/component.tsx`
+    const manifestPath = `${draftRoot}/manifest.json`
+
+    try {
+      await mkdir(draftRoot, { recursive: true })
+      await writeFile(componentPath, componentSource, 'utf8')
+      await writeFile(manifestPath, `${JSON.stringify(manifestValidation.data, null, 2)}\n`, 'utf8')
+
+      const script = await this.buildInteractiveBundle({
+        rootPath: draftRoot,
+        manifest: manifestValidation.data
+      })
+
+      const contentHash = hashParts([
+        'interactive-draft',
+        manifestValidation.data.name,
+        componentSource,
+        JSON.stringify(manifestValidation.data)
+      ])
+
+      return { ok: true, contentHash, script }
+    } catch (error) {
+      return { ok: false, errors: [formatBuildError(error)] }
+    } finally {
+      void rm(draftRoot, { recursive: true, force: true }).catch(() => {
+        /* best-effort cleanup; nothing else needs this folder */
+      })
+    }
   }
 
   async loadInteractive(
@@ -400,6 +461,23 @@ export class SandboxService {
       // Cache miss: compile below.
     }
 
+    const script = await this.buildInteractiveBundle({ rootPath, manifest })
+
+    await mkdir(dirname(cachePath), { recursive: true })
+    await writeFile(cachePath, script, 'utf8')
+    return script
+  }
+
+  /** Shared esbuild driver used by both the live-component compile path and
+   *  the AI "compile a draft without writing it" path. The cache decision is
+   *  left to the caller — live path caches; the draft path discards. */
+  private async buildInteractiveBundle({
+    rootPath,
+    manifest
+  }: {
+    rootPath: string
+    manifest: SandboxManifest
+  }): Promise<string> {
     try {
       const result = await build({
         absWorkingDir: rootPath,
@@ -429,8 +507,6 @@ export class SandboxService {
         throw new Error('esbuild did not return an output file')
       }
 
-      await mkdir(dirname(cachePath), { recursive: true })
-      await writeFile(cachePath, script, 'utf8')
       return script
     } catch (error) {
       throw new Error(formatBuildError(error))

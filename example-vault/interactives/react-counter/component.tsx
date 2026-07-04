@@ -1,41 +1,46 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import { createRoot } from 'react-dom/client'
 
-interface ReactCounterProps {
-  label: string
-  start: number
+export interface ReactCounterProps {
+  initial?: number
 }
 
-export default function ReactCounter({ label, start }: ReactCounterProps): React.JSX.Element {
-  const [count, setCount] = useState(start)
-  const doubled = useMemo(() => count * 2, [count])
-  const vaultApiState = typeof window.vaultApi === 'undefined' ? 'undefined' : 'visible'
+function ReactCounter({ initial = 0 }: ReactCounterProps): React.JSX.Element {
+  const [count, setCount] = useState(initial)
 
   return (
-    <section
+    <div
       style={{
-        border: '1px solid #d1d5db',
-        borderRadius: 8,
-        padding: 16,
-        background: '#ffffff',
-        color: '#111827'
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+        padding: 12,
+        fontFamily: 'ui-sans-serif, system-ui, sans-serif'
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>
-        React sandbox
-      </div>
-      <h2 style={{ margin: '6px 0 8px', fontSize: 18 }}>{label}</h2>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button type="button" onClick={() => setCount((value) => value - 1)}>
-          -
-        </button>
-        <strong style={{ minWidth: 40, textAlign: 'center' }}>{count}</strong>
-        <button type="button" onClick={() => setCount((value) => value + 1)}>
-          +
-        </button>
-      </div>
-      <p style={{ margin: '10px 0 0', color: '#4b5563', fontSize: 13 }}>
-        doubled={doubled}; window.vaultApi={vaultApiState}
-      </p>
-    </section>
+      <button
+        type="button"
+        aria-label="Decrement"
+        onClick={() => setCount((value) => value - 1)}
+        style={{ padding: '4px 10px' }}
+      >
+        −
+      </button>
+      <span style={{ minWidth: 32, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+        {count}
+      </span>
+      <button
+        type="button"
+        aria-label="Increment"
+        onClick={() => setCount((value) => value + 1)}
+        style={{ padding: '4px 10px' }}
+      >
+        +
+      </button>
+    </div>
   )
 }
+
+export default ReactCounter
+
+void createRoot

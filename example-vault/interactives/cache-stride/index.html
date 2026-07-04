@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stride Explorer — Cache Locality</title>
+<style>
+:root {
+  --paper: #f9f9f7; --ink: #111; --accent: #d32f2f; --result: #2b5797;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  padding: 1rem; max-width: 560px; margin: 0 auto;
+}
+p { font-size:.88rem; line-height:1.55; margin-bottom:.8rem; }
+
+.line-brackets { display:grid; grid-template-columns:repeat(4,1fr); gap:3px; margin-bottom:2px; }
+.line-brackets div {
+  font-family:inherit; font-size:.62rem; text-align:center; border-top:2px solid var(--ink);
+  border-left:2px solid var(--ink); border-right:2px solid var(--ink); padding:1px 0; letter-spacing:1px;
+}
+.stride-row { display:grid; grid-template-columns:repeat(16,1fr); gap:3px; margin:.5rem 0; }
+.sdot {
+  aspect-ratio:1; border:2px solid var(--ink); background:var(--paper);
+  display:flex; align-items:center; justify-content:center; font-family:inherit; font-size:.6rem;
+}
+.sdot.hit { background:var(--result); color:#fff; }
+.sdot.miss { background:var(--accent); color:#fff; }
+.sdot.skip { opacity:.25; }
+
+.formula-line {
+  font-family:inherit; font-size:.95rem; background:var(--paper); border:2px solid var(--ink);
+  padding:.6rem 1rem; margin:.8rem 0; display:block; box-shadow:3px 3px 0 var(--ink);
+}
+.controls-row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.8rem; }
+.slider-label { font-family:inherit; font-size:.8rem; text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+.lab-slider { -webkit-appearance:none; width:160px; height:4px; background:var(--ink); outline:none; cursor:pointer; }
+.lab-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; background:var(--accent); border:2px solid var(--ink); cursor:pointer; }
+span { font-family:inherit; }
+</style>
+</head>
+<body>
+
+<p>Mảng 16 phần tử, line = 4. Kéo stride và <strong>dự đoán hit ratio trước khi nhìn số</strong>: tại stride nào locality biến mất hoàn toàn?</p>
+<div class="line-brackets"><div>LINE 0</div><div>LINE 1</div><div>LINE 2</div><div>LINE 3</div></div>
+<div class="stride-row" id="dots"></div>
+<div class="formula-line" id="formula">stride=1 → 16 truy cập · 4 miss · Hit Ratio = 75%</div>
+<div class="controls-row">
+  <span class="slider-label">Stride</span>
+  <input type="range" class="lab-slider" id="slider" min="0" max="3" value="0" step="1"/>
+  <span id="disp" style="font-weight:700;min-width:20px">1</span>
+</div>
+
+<script>
+const STRIDES = [1, 2, 4, 8];
+const dots = document.getElementById('dots');
+const formula = document.getElementById('formula');
+const slider = document.getElementById('slider');
+const disp = document.getElementById('disp');
+
+function render() {
+  const stride = STRIDES[+slider.value];
+  disp.textContent = stride;
+  dots.innerHTML = '';
+  let cached = -1, hits = 0, misses = 0;
+  const touched = {};
+  for (let i = 0; i < 16; i += stride) {
+    const ln = Math.floor(i / 4);
+    const hit = ln === cached;
+    hit ? hits++ : (misses++, cached = ln);
+    touched[i] = hit;
+  }
+  for (let i = 0; i < 16; i++) {
+    const d = document.createElement('div');
+    d.className = 'sdot'; d.textContent = i;
+    if (i in touched) d.classList.add(touched[i] ? 'hit' : 'miss');
+    else d.classList.add('skip');
+    dots.appendChild(d);
+  }
+  const total = hits + misses;
+  const ratio = Math.round(100 * hits / total);
+  formula.innerHTML = `stride=${stride} → ${total} truy cập · <span style="color:var(--accent);font-weight:700">${misses} miss</span> · Hit Ratio = <span style="color:var(--result);font-weight:700">${ratio}%</span>${ratio === 0 ? ' — locality chết: stride = line size' : ''}`;
+}
+slider.addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
