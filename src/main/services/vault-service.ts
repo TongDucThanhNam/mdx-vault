@@ -285,6 +285,24 @@ export class VaultService {
     return safeJoin(this.root, normalizedPath)
   }
 
+  /**
+   * Persist a binary asset (image) under `<vault>/assets/`. The filename is
+   * sanitized, restricted to an image-extension allowlist, and uniquified if
+   * a file with the same name already exists. Returns the vault-relative path
+   * (e.g. `assets/screenshot-1.png`) so the renderer can insert a markdown
+   * reference like `![](assets/screenshot-1.png)`.
+   */
+  async saveAsset(suggestedName: string, data: Uint8Array): Promise<string> {
+    const sanitized = sanitizeAssetName(suggestedName)
+    const uniqueName = await this.findUniqueAssetName(sanitized)
+    const relativePath = `assets/${uniqueName}`
+    const target = safeJoin(this.root, relativePath)
+
+    await mkdir(dirname(target), { recursive: true })
+    await writeFile(target, data)
+    return relativePath
+  }
+
   private async findUniqueDuplicatePath(relativePath: string): Promise<string> {
     const directory = dirname(relativePath)
     const extension = extname(relativePath)
@@ -296,6 +314,20 @@ export class VaultService {
 
     while (await pathExists(safeJoin(this.root, candidate))) {
       candidate = `${prefix}${stem} copy ${counter}${extension}`
+      counter += 1
+    }
+
+    return candidate
+  }
+
+  private async findUniqueAssetName(sanitizedName: string): Promise<string> {
+    const extension = extname(sanitizedName)
+    const stem = basename(sanitizedName, extension)
+    let candidate = sanitizedName
+    let counter = 1
+
+    while (await pathExists(safeJoin(this.root, `assets/${candidate}`))) {
+      candidate = `${stem}-${counter}${extension}`
       counter += 1
     }
 
@@ -418,4 +450,38 @@ function parseOriginalPathFromTrashName(trashRelativePath: string): string {
 
   const prefix = directory && directory !== '.' ? `${directory}/` : ''
   return `${prefix}${stripped}${extension}`
+}
+
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+const ILLEGAL_ASSET_CHARS = new Set(['<', '>', ':', '"', '/', '\\', '|', '?', '*'])
+
+/**
+ * Sanitize a caller-suggested asset filename:
+ *   - basename only (strip any path components)
+ *   - lowercase extension must be in the image allowlist
+ *   - drop illegal cross-OS filename chars
+ *   - fall back to `image-<timestamp>.<ext>` if everything got stripped
+ */
+function sanitizeAssetName(rawName: string): string {
+  const base = basename(rawName.replaceAll('\\', '/')).trim()
+  const dotIndex = base.lastIndexOf('.')
+  const stemRaw = dotIndex > 0 ? base.slice(0, dotIndex) : base
+  const extRaw = dotIndex > 0 ? base.slice(dotIndex).toLowerCase() : ''
+
+  if (!IMAGE_EXTENSIONS.has(extRaw)) {
+    throw new Error(`Unsupported asset extension: ${extRaw || '(none)'}`)
+  }
+
+  let stem = stemRaw
+    .split('')
+    .filter((char) => !ILLEGAL_ASSET_CHARS.has(char) && char.charCodeAt(0) > 0x1f)
+    .join('')
+    .trim()
+    .replace(/\s+/g, '-')
+
+  if (!stem) {
+    stem = `image-${Date.now()}`
+  }
+
+  return `${stem}${extRaw}`
 }

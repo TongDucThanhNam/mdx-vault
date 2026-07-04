@@ -114,7 +114,9 @@ const vaultApi = {
   revealInExplorer: (relativePath: string): Promise<void> =>
     invokeVault('vault:reveal-in-explorer', { relativePath }),
   resolveAbsolutePath: (relativePath: string): Promise<string> =>
-    invokeVault('vault:resolve-absolute-path', { relativePath })
+    invokeVault('vault:resolve-absolute-path', { relativePath }),
+  saveAsset: (suggestedName: string, base64: string): Promise<string> =>
+    invokeVault('vault:save-asset', { suggestedName, base64 })
 }
 
 const indexApi = {

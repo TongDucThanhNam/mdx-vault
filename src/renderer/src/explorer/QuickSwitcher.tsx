@@ -2,7 +2,7 @@ import { FileText, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 
-import { getNoteLinkKeys } from '../../../shared/wikilinks'
+import { getScoredNotes } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary } from '@/vault/types'
 
@@ -11,11 +11,6 @@ interface QuickSwitcherProps {
   notes: IndexedNoteSummary[]
   onOpenChange: (open: boolean) => void
   onSelectNote: (relativePath: string) => void
-}
-
-interface ScoredNote {
-  note: IndexedNoteSummary
-  score: number
 }
 
 export function QuickSwitcher({
@@ -109,56 +104,4 @@ export function QuickSwitcher({
       </div>
     </div>
   )
-}
-
-function getScoredNotes(notes: IndexedNoteSummary[], query: string): ScoredNote[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase()
-
-  return notes
-    .map((note) => ({
-      note,
-      score: normalizedQuery ? scoreNote(note, normalizedQuery) : 1
-    }))
-    .filter((candidate) => candidate.score > 0)
-    .sort(
-      (left, right) => right.score - left.score || left.note.title.localeCompare(right.note.title)
-    )
-    .slice(0, 30)
-}
-
-function scoreNote(note: IndexedNoteSummary, query: string): number {
-  const keys = [note.title, note.relativePath, ...getNoteLinkKeys(note)].map((value) =>
-    value.toLocaleLowerCase()
-  )
-  let bestScore = 0
-
-  for (const key of keys) {
-    if (key === query) {
-      bestScore = Math.max(bestScore, 100)
-    } else if (key.startsWith(query)) {
-      bestScore = Math.max(bestScore, 80)
-    } else if (key.includes(query)) {
-      bestScore = Math.max(bestScore, 55)
-    } else if (isSubsequence(query, key)) {
-      bestScore = Math.max(bestScore, 25)
-    }
-  }
-
-  return bestScore
-}
-
-function isSubsequence(query: string, value: string): boolean {
-  let queryIndex = 0
-
-  for (const character of value) {
-    if (character === query[queryIndex]) {
-      queryIndex += 1
-    }
-
-    if (queryIndex === query.length) {
-      return true
-    }
-  }
-
-  return false
 }

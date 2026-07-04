@@ -65,6 +65,11 @@ const duplicateFilePayloadSchema = z.object({
 const revealInExplorerPayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
+const saveAssetPayloadSchema = z.object({
+  suggestedName: z.string().min(1),
+  /** Base64-encoded image bytes (the renderer encodes from Blob.arrayBuffer). */
+  base64: z.string().min(1)
+})
 
 export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
   ipcMain.handle('vault:open', (event, payload): Promise<IpcResult<OpenVaultResult>> => {
@@ -212,6 +217,20 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
     return handleVaultRequest(async () => {
       const input = revealInExplorerPayloadSchema.parse(payload)
       return getCurrentVault().resolveAbsolutePath(input.relativePath)
+    })
+  })
+
+  /**
+   * Persist a binary asset (image) under `<vault>/assets/`. The renderer
+   * encodes the file bytes as base64 to avoid structuredClone overhead for
+   * ArrayBuffer payloads through the context bridge. Returns the
+   * vault-relative path so the editor can insert a markdown image reference.
+   */
+  ipcMain.handle('vault:save-asset', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = saveAssetPayloadSchema.parse(payload)
+      const bytes = Buffer.from(input.base64, 'base64')
+      return getCurrentVault().saveAsset(input.suggestedName, new Uint8Array(bytes))
     })
   })
 }

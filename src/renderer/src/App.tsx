@@ -310,6 +310,21 @@ function App(): React.JSX.Element {
     [showToast]
   )
 
+  const handleSaveImage = useCallback(
+    async (file: File): Promise<string | null> => {
+      try {
+        const base64 = await fileToBase64(file)
+        const relativePath = await window.vaultApi.saveAsset(file.name, base64)
+        showToast(`Saved image to ${relativePath}`)
+        return relativePath
+      } catch (saveImageError) {
+        setError(formatError(saveImageError))
+        return null
+      }
+    },
+    [showToast]
+  )
+
   const handleEmptyTrash = useCallback(async (): Promise<void> => {
     setVaultOpsPending(true)
     setError(null)
@@ -630,6 +645,7 @@ function App(): React.JSX.Element {
     isSaving,
     lastSavedAt
   })
+  const wordCount = useMemo(() => computeWordCount(content), [content])
   const backlinks = backlinksState.relativePath === selectedPath ? backlinksState.backlinks : []
   const showEditor = viewMode !== 'preview'
   const showPreview = viewMode !== 'source'
@@ -819,11 +835,17 @@ function App(): React.JSX.Element {
         {showEditor ? (
           <section className="min-h-0 min-w-0 border-r bg-card/50">
             <div className="flex h-9 items-center justify-between border-b px-4">
-              <div className="truncate text-[13px] font-medium tracking-tight">
+              <div className="min-w-0 truncate text-[13px] font-medium tracking-tight">
                 {selectedPath ?? 'No file selected'}
               </div>
-              <div className="shrink-0 text-[11px] tabular-nums text-muted-foreground/70">
-                {isLoadingFile ? 'Loading' : saveLabel}
+              <div className="flex shrink-0 items-center gap-3 text-[11px] tabular-nums text-muted-foreground/70">
+                {selectedPath ? (
+                  <span title="Word / character count and estimated reading time">
+                    {wordCount.words} words · {wordCount.chars} chars · {wordCount.readingMinutes}{' '}
+                    min read
+                  </span>
+                ) : null}
+                <span>{isLoadingFile ? 'Loading' : saveLabel}</span>
               </div>
             </div>
             <div className="relative h-[calc(100%-2.25rem)] min-h-0">
@@ -837,8 +859,10 @@ function App(): React.JSX.Element {
                     <MdxEditor
                       value={content}
                       onChange={setContent}
+                      notes={indexNotes}
                       revealLineRequest={revealLineRequest}
                       onSelectionChange={handleEditorSelectionChange}
+                      onSaveImage={handleSaveImage}
                     />
                     <AiSelectionActionPalette
                       open={aiPaletteOpen}
@@ -1212,6 +1236,70 @@ function formatError(error: unknown): string {
   }
 
   return String(error)
+}
+
+interface WordCount {
+  words: number
+  chars: number
+  readingMinutes: number
+}
+
+/**
+ * Read a File as a base64 string (no data: prefix). The main process decodes
+ * this back to bytes via Buffer.from(base64, 'base64'). Using base64 instead
+ * of passing ArrayBuffer through the context bridge avoids structuredClone
+ * overhead and matches what the preload IPC schema expects.
+ */
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode.apply(null, Array.from(chunk) as unknown as number[])
+  }
+  return btoa(binary)
+}
+
+const WORDS_PER_MINUTE = 200
+
+/**
+ * Compute word / character count + estimated reading time for the editor
+ * status bar. Strips common Markdown syntax (frontmatter, code fences,
+ * heading/list markers, wikilink brackets) so the count reflects what a reader
+ * would see — not the raw source. Reading time uses the standard 200 wpm.
+ */
+function computeWordCount(value: string): WordCount {
+  if (!value) {
+    return { words: 0, chars: 0, readingMinutes: 0 }
+  }
+
+  // Drop YAML frontmatter block entirely.
+  const withoutFrontmatter = value.replace(/^---\n[\s\S]*?\n---\n?/, '')
+
+  // Strip fenced code blocks (treat them as a single chunk per block to avoid
+  // counting code identifiers as words).
+  const withoutCodeFences = withoutFrontmatter.replace(/```[\s\S]*?```/g, ' ')
+
+  // Inline code, MDX/JSX tags, images, links → keep the link text but drop the
+  // markup. `[label](url)` → `label`; `![alt](src)` → `alt`; `<Foo bar />` → ''.
+  const stripped = withoutCodeFences
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/<[^>]+\/?>/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, (_, alt) => alt as string)
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, (_, label) => label as string)
+    .replace(/\[\[([^\]]*)\]\]/g, (_, label) => label as string)
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/[*_~]/g, '')
+
+  const words = stripped.split(/\s+/).filter((word) => word.length > 0).length
+  const chars = withoutFrontmatter.length
+  const readingMinutes = Math.max(1, Math.round(words / WORDS_PER_MINUTE))
+
+  return { words, chars, readingMinutes }
 }
 
 export default App

@@ -304,6 +304,7 @@ interface VaultApi {
   listTrash: () => Promise<TrashEntry[]>
   revealInExplorer: (relativePath: string) => Promise<void>
   resolveAbsolutePath: (relativePath: string) => Promise<string>
+  saveAsset: (suggestedName: string, base64: string) => Promise<string>
 }
 
 interface IndexApi {
