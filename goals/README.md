@@ -4,7 +4,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 
 ## Quy tắc
 
-1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 07. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
+1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 12. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
 2. Cách giao cho Codex: mở session mới trong repo và ra lệnh, ví dụ:
    ```
    Đọc AGENTS.md, sau đó thực thi goals/GOAL-01-app-shell-and-vault.md.
@@ -25,6 +25,11 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-05-sandbox-and-permissions.md | iframe sandbox, manifest, permissions            | 03        |
 | GOAL-06-ai-assistant.md            | TanStack AI, diff approval, repair loop          | 04, 05    |
 | GOAL-07-export-and-share.md        | Export static/interactive HTML                   | 04, 05    |
+| GOAL-08-ux-productization.md       | Create note, remember vault, view/theme UX       | 07        |
+| GOAL-09-polish-sprint.md           | Reopen/highlight fixes, vault ops, editor polish | 08        |
+| GOAL-10-feature-gap-research.md    | Competitor feature-gap research                  | 09        |
+| GOAL-11-editor-enrichment.md       | Math, code highlight, Mermaid, callouts          | 09, 10    |
+| GOAL-12-organization-and-navigation.md | Editor highlighter, navigation panels, commands | 11        |
 
 ## Trạng thái ký hiệu trong goal
 
