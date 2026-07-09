@@ -11,6 +11,13 @@
  * the same trust model used in-app.
  */
 
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, extname, join } from 'node:path'
+
+const nodeRequire = createRequire(__filename)
+const KATEX_EXPORT_STYLESHEET = loadKatexExportStylesheet()
+
 export const STATIC_STYLESHEET = `
 :root {
   color-scheme: light dark;
@@ -21,6 +28,10 @@ export const STATIC_STYLESHEET = `
   --mdx-muted-bg: #f3f4f6;
   --mdx-accent: #1f2937;
   --mdx-link: #2563eb;
+  --mdx-code-keyword: #b91c1c;
+  --mdx-code-title: #1d4ed8;
+  --mdx-code-string: #8a5a00;
+  --mdx-code-special: #6b21a8;
   --mdx-radius: 0.5rem;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -33,6 +44,10 @@ export const STATIC_STYLESHEET = `
     --mdx-muted-bg: #111827;
     --mdx-accent: #f3f4f6;
     --mdx-link: #93c5fd;
+    --mdx-code-keyword: #f87171;
+    --mdx-code-title: #93c5fd;
+    --mdx-code-string: #facc15;
+    --mdx-code-special: #c4b5fd;
   }
 }
 * { box-sizing: border-box; }
@@ -66,6 +81,11 @@ header.mdx-export-header .mdx-export-meta {
 .mdx-vault-export ul { list-style: disc; }
 .mdx-vault-export ol { list-style: decimal; }
 .mdx-vault-export li + li { margin-top: 0.25rem; }
+.mdx-vault-export mark {
+  background: color-mix(in srgb, #b8860b 24%, transparent);
+  color: var(--mdx-fg);
+  padding: 0 0.18em;
+}
 .mdx-vault-export a {
   color: var(--mdx-link);
   text-decoration: underline;
@@ -86,6 +106,100 @@ header.mdx-export-header .mdx-export-meta {
   padding: 1rem;
 }
 .mdx-vault-export pre code { background: transparent; padding: 0; }
+.mdx-vault-export pre code.hljs { display: block; }
+.mdx-vault-export .hljs-comment,
+.mdx-vault-export .hljs-quote { color: var(--mdx-muted); font-style: italic; }
+.mdx-vault-export .hljs-keyword,
+.mdx-vault-export .hljs-selector-tag,
+.mdx-vault-export .hljs-subst { color: var(--mdx-code-keyword); font-weight: 700; }
+.mdx-vault-export .hljs-title,
+.mdx-vault-export .hljs-section,
+.mdx-vault-export .hljs-function .hljs-title,
+.mdx-vault-export .hljs-title.function_ { color: var(--mdx-code-title); font-weight: 700; }
+.mdx-vault-export .hljs-string,
+.mdx-vault-export .hljs-attr,
+.mdx-vault-export .hljs-attribute,
+.mdx-vault-export .hljs-symbol,
+.mdx-vault-export .hljs-template-variable,
+.mdx-vault-export .hljs-variable { color: var(--mdx-code-string); }
+.mdx-vault-export .hljs-number,
+.mdx-vault-export .hljs-literal,
+.mdx-vault-export .hljs-built_in,
+.mdx-vault-export .hljs-builtin-name,
+.mdx-vault-export .hljs-type,
+.mdx-vault-export .hljs-meta { color: var(--mdx-code-special); }
+.mdx-vault-export .hljs-deletion { color: var(--mdx-code-keyword); }
+.mdx-vault-export .hljs-addition { color: var(--mdx-code-title); }
+.mdx-vault-export .mdx-callout {
+  --callout-accent: var(--mdx-fg);
+  --callout-bg: color-mix(in srgb, var(--callout-accent) 8%, var(--mdx-bg));
+  margin: 1.25rem 0;
+  border: 2px solid var(--callout-accent);
+  border-left-width: 8px;
+  background: var(--callout-bg);
+  box-shadow: 3px 3px 0 var(--callout-accent);
+  padding: 0.85rem 1rem 1rem;
+}
+.mdx-vault-export .mdx-callout[data-callout='info'] { --callout-accent: var(--mdx-muted); }
+.mdx-vault-export .mdx-callout[data-callout='tip'] { --callout-accent: var(--mdx-link); }
+.mdx-vault-export .mdx-callout[data-callout='warning'] { --callout-accent: #b8860b; }
+.mdx-vault-export .mdx-callout[data-callout='danger'] { --callout-accent: #dc2626; }
+.mdx-vault-export .mdx-callout-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--callout-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.mdx-vault-export .mdx-callout-title::before {
+  display: inline-flex;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--callout-accent);
+  background: var(--mdx-bg);
+  color: var(--callout-accent);
+  box-shadow: 2px 2px 0 var(--callout-accent);
+  content: 'N';
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.mdx-vault-export .mdx-callout[data-callout='info'] .mdx-callout-title::before { content: 'i'; }
+.mdx-vault-export .mdx-callout[data-callout='tip'] .mdx-callout-title::before { content: '+'; }
+.mdx-vault-export .mdx-callout[data-callout='warning'] .mdx-callout-title::before { content: '!'; }
+.mdx-vault-export .mdx-callout[data-callout='danger'] .mdx-callout-title::before { content: 'X'; }
+.mdx-vault-export .mdx-callout > * + * { margin-top: 0.6rem; }
+.mdx-vault-export .mdx-mermaid-fallback {
+  margin: 1.25rem 0;
+  border: 2px solid var(--mdx-fg);
+  background: var(--mdx-muted-bg);
+  box-shadow: 3px 3px 0 var(--mdx-fg);
+  padding: 0;
+}
+.mdx-vault-export .mdx-mermaid-fallback figcaption {
+  border-bottom: 2px solid var(--mdx-fg);
+  padding: 0.55rem 0.75rem;
+  color: var(--mdx-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.mdx-vault-export .mdx-mermaid-fallback pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .mdx-vault-export table {
   width: 100%;
   border-collapse: collapse;
@@ -163,6 +277,7 @@ header.mdx-export-header .mdx-export-meta {
   color: var(--mdx-muted);
 }
 .mdx-vault-frontmatter dd { margin: 0 0 0.5rem; }
+${KATEX_EXPORT_STYLESHEET}
 `
 
 export const HYDRATION_SCRIPT = `
@@ -291,4 +406,33 @@ function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+function loadKatexExportStylesheet(): string {
+  try {
+    const cssPath = nodeRequire.resolve('katex/dist/katex.min.css')
+    const cssDirectory = dirname(cssPath)
+    const css = readFileSync(cssPath, 'utf8')
+
+    return css.replace(/url\((fonts\/[^)]+)\)/g, (_match, fontReference: string) => {
+      const fontPath = join(cssDirectory, fontReference)
+      const font = readFileSync(fontPath)
+      return `url(data:${fontMimeType(fontReference)};base64,${font.toString('base64')})`
+    })
+  } catch {
+    return ''
+  }
+}
+
+function fontMimeType(path: string): string {
+  switch (extname(path).toLowerCase()) {
+    case '.woff2':
+      return 'font/woff2'
+    case '.woff':
+      return 'font/woff'
+    case '.ttf':
+      return 'font/ttf'
+    default:
+      return 'application/octet-stream'
+  }
 }

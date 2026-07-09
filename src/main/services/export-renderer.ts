@@ -1,15 +1,20 @@
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
 import remarkMdx from 'remark-mdx'
+import remarkMath from 'remark-math'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeKatex from 'rehype-katex'
 import rehypeSanitize, { type Options as SanitizeSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import { unified, type Pluggable } from 'unified'
-import { visit } from 'unist-util-visit'
+import { SKIP, visit } from 'unist-util-visit'
 import type { Root } from 'mdast'
-import type { Root as HastRoot } from 'hast'
+import type { Element as HastElement, Root as HastRoot, RootContent as HastRootContent } from 'hast'
 
+import { calloutTypes, remarkCallouts } from '../../shared/remark-callouts'
+import { remarkMarks } from '../../shared/remark-mark'
 import { remarkWikilink } from '../../shared/remark-wikilink'
 import type { ExportScanResult } from '../../shared/export'
 
@@ -45,8 +50,11 @@ type AttributeValue = string | null | undefined | MdxExpressionNode
 const remarkParsePlugin = resolvePluginDefault(remarkParse)
 const remarkMdxPlugin = resolvePluginDefault(remarkMdx)
 const remarkGfmPlugin = resolvePluginDefault(remarkGfm)
+const remarkMathPlugin = resolvePluginDefault(remarkMath)
 const remarkFrontmatterPlugin = resolvePluginDefault(remarkFrontmatter)
 const remarkRehypePlugin = resolvePluginDefault(remarkRehype)
+const rehypeHighlightPlugin = resolvePluginDefault(rehypeHighlight)
+const rehypeKatexPlugin = resolvePluginDefault(rehypeKatex)
 const rehypeSanitizePlugin = resolvePluginDefault(rehypeSanitize)
 const rehypeStringifyPlugin = resolvePluginDefault(rehypeStringify)
 
@@ -54,13 +62,19 @@ const mdastPipeline = unified()
   .use(remarkParsePlugin)
   .use(remarkMdxPlugin)
   .use(remarkGfmPlugin)
+  .use(remarkMathPlugin)
   .use(remarkFrontmatterPlugin, ['yaml'])
   .use(remarkWikilink)
+  .use(remarkMarks)
+  .use(remarkCallouts)
   .use(remarkReplaceMdxJsxWithPlaceholder)
 
 const hastPipeline = unified()
   .use(remarkRehypePlugin)
   .use(rehypeSanitizePlugin, sanitizeSchema())
+  .use(rehypeKatexPlugin)
+  .use(rehypeHighlightPlugin, { plainText: ['mermaid'] })
+  .use(rehypeMermaidFallback)
   .use(rehypeInjectJsxPlaceholders)
 
 const htmlPipeline = unified().use(rehypeStringifyPlugin, {
@@ -194,6 +208,12 @@ function remarkReplaceMdxJsxWithPlaceholder() {
       for (let i = 0; i < children.length; i += 1) {
         const child = children[i]
         if (isMdxJsxElement(child)) {
+          if (!shouldCreatePlaceholder(child.name ?? '')) {
+            children[i] = convertMdxJsxElementToHtmlNode(child)
+            walk(children[i])
+            continue
+          }
+
           const id = String(counter)
           counter += 1
           children[i] = buildPlaceholderNode(child, id)
@@ -203,6 +223,50 @@ function remarkReplaceMdxJsxWithPlaceholder() {
       }
     }
   }
+}
+
+function shouldCreatePlaceholder(name: string): boolean {
+  return componentNameRegex.test(name) || name === 'SandboxedHTML' || name === 'Interactive'
+}
+
+function convertMdxJsxElementToHtmlNode(node: MdxJsxNode): {
+  type: 'paragraph' | 'emphasis'
+  data: unknown
+  children: unknown[]
+} {
+  return {
+    type: node.type === 'mdxJsxFlowElement' ? 'paragraph' : 'emphasis',
+    data: {
+      hName: node.name ?? 'span',
+      hProperties: mdxAttributesToProperties(node.attributes ?? [])
+    },
+    children: (node.children ?? []).map((child) =>
+      isMdxJsxElement(child) && !shouldCreatePlaceholder(child.name ?? '')
+        ? convertMdxJsxElementToHtmlNode(child)
+        : child
+    )
+  }
+}
+
+function mdxAttributesToProperties(attributes: MdxJsxAttribute[]): Record<string, unknown> {
+  const properties: Record<string, unknown> = {}
+
+  for (const attribute of attributes) {
+    if (attribute.type !== 'mdxJsxAttribute') {
+      continue
+    }
+
+    if (typeof attribute.value === 'string') {
+      properties[attribute.name] = attribute.value
+      continue
+    }
+
+    if (attribute.value === null || attribute.value === undefined) {
+      properties[attribute.name] = true
+    }
+  }
+
+  return properties
 }
 
 function buildPlaceholderNode(
@@ -304,9 +368,16 @@ function sanitizeSchema(): SanitizeSchema {
     attributes: {
       '*': ['ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy', 'title', 'className'],
       a: ['href', 'title'],
+      aside: [
+        ['className', 'mdx-callout'],
+        ['dataCallout', ...calloutTypes]
+      ],
       blockquote: ['cite'],
-      code: [['className', /^language-[\w-]+$/]],
+      // Math code classes are emitted by remark-math and consumed by trusted rehype-katex
+      // after sanitize; keep this allowlist narrow.
+      code: [['className', /^language-[\w-]+$/, 'math-inline', 'math-display']],
       del: ['cite'],
+      div: [['className', 'mdx-callout-title']],
       img: ['alt', 'src', 'title', 'width', 'height'],
       ol: ['start', ['type', '1', 'a', 'A', 'i', 'I']],
       th: ['align'],
@@ -335,6 +406,7 @@ function sanitizeSchema(): SanitizeSchema {
     tagNames: [
       'a',
       'abbr',
+      'aside',
       'b',
       'blockquote',
       'br',
@@ -448,6 +520,50 @@ function rehypeInjectJsxPlaceholders() {
   }
 }
 
+function rehypeMermaidFallback() {
+  return function transform(tree: HastRoot): void {
+    visit(tree, 'element', (node: HastElement) => {
+      if (node.tagName !== 'pre') {
+        return
+      }
+
+      const code = node.children.find(
+        (child): child is HastElement => isHastElement(child) && child.tagName === 'code'
+      )
+
+      if (!code || !hasClassName(code, 'language-mermaid')) {
+        return
+      }
+
+      node.tagName = 'figure'
+      node.properties = {
+        className: ['mdx-mermaid-fallback']
+      }
+      node.children = [
+        {
+          type: 'element',
+          tagName: 'figcaption',
+          properties: {},
+          children: [
+            {
+              type: 'text',
+              value: 'Mermaid diagram fallback. Open this note in mdx-vault to render it.'
+            }
+          ]
+        },
+        {
+          type: 'element',
+          tagName: 'pre',
+          properties: {},
+          children: [code]
+        }
+      ]
+
+      return SKIP
+    })
+  }
+}
+
 function splitSentinelText(
   value: string
 ): Array<
@@ -483,6 +599,20 @@ function splitSentinelText(
 function isMdxJsxElement(node: unknown): node is MdxJsxNode {
   const candidate = node as { type?: string }
   return candidate?.type === 'mdxJsxFlowElement' || candidate?.type === 'mdxJsxTextElement'
+}
+
+function isHastElement(node: HastRootContent): node is HastElement {
+  return node.type === 'element'
+}
+
+function hasClassName(node: HastElement, className: string): boolean {
+  const value = node.properties.className
+
+  if (Array.isArray(value)) {
+    return value.includes(className)
+  }
+
+  return typeof value === 'string' && value.split(/\s+/).includes(className)
 }
 
 function isExternalOrAbsoluteUrl(url: string): boolean {

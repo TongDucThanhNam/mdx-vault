@@ -2,12 +2,13 @@
  * MDX syntax highlighting for the CodeMirror 6 markdown editor.
  *
  * There is no official `@codemirror/lang-mdx` package. This module adds a
- * `@lezer/markdown` extension that recognizes the three MDX-specific inline
+ * `@lezer/markdown` extension that recognizes MDX/Obsidian-style inline
  * constructs and tags them with highlighting tags so the existing CodeMirror
  * theme colors them:
  *
  *   1. JSX tags:        `<Tag />`, `<Tag>`, `</Tag>`, `<Tag attr="x">`
  *   2. Brace expressions: `{expr}` in prose (rendered as JSX children)
+ *   3. Math, marks, wikilinks, tags, and callout markers used by notes
  *
  * This is **presentation-only** highlighting. It does not build a real MDX AST,
  * does not validate JSX, and does not affect the preview/render pipeline. The
@@ -16,8 +17,10 @@
  * Reference: @lezer/markdown InlineParser API + @lezer/highlight tags.
  */
 
-import { tags as t } from '@lezer/highlight'
+import type { Line, Range } from '@codemirror/state'
+import { Decoration, type DecorationSet, EditorView, ViewPlugin } from '@codemirror/view'
 import type { Element, InlineParser, MarkdownExtension, NodeSpec } from '@lezer/markdown'
+import { tags as t } from '@lezer/highlight'
 
 /* -------------------------------------------------------------------------- */
 /*                              Node definitions                              */
@@ -35,6 +38,15 @@ const MDX_JSX_STRING = 'JSXAttrValue'
 const MDX_JSX_PUNCT = 'JSXPunct'
 const MDX_BRACE = 'MDXBrace'
 const MDX_BRACE_MARK = 'MDXBraceMark'
+const MDX_INLINE_MATH = 'MDXInlineMath'
+const MDX_MATH_MARK = 'MDXMathMark'
+const MDX_MARK = 'MDXMark'
+const MDX_MARK_PUNCT = 'MDXMarkPunct'
+const MDX_WIKILINK = 'MDXWikilink'
+const MDX_WIKILINK_PUNCT = 'MDXWikilinkPunct'
+const MDX_TAG = 'MDXTag'
+const MDX_CALLOUT_MARKER = 'MDXCalloutMarker'
+const MDX_CALLOUT_PUNCT = 'MDXCalloutPunct'
 
 const nodeSpecs: NodeSpec[] = [
   { name: MDX_JSX_OPEN },
@@ -44,7 +56,16 @@ const nodeSpecs: NodeSpec[] = [
   { name: MDX_JSX_STRING, style: t.string },
   { name: MDX_JSX_PUNCT, style: t.angleBracket },
   { name: MDX_BRACE },
-  { name: MDX_BRACE_MARK, style: t.brace }
+  { name: MDX_BRACE_MARK, style: t.brace },
+  { name: MDX_INLINE_MATH, style: t.regexp },
+  { name: MDX_MATH_MARK, style: t.processingInstruction },
+  { name: MDX_MARK, style: t.inserted },
+  { name: MDX_MARK_PUNCT, style: t.punctuation },
+  { name: MDX_WIKILINK, style: t.link },
+  { name: MDX_WIKILINK_PUNCT, style: t.squareBracket },
+  { name: MDX_TAG, style: t.labelName },
+  { name: MDX_CALLOUT_MARKER, style: t.processingInstruction },
+  { name: MDX_CALLOUT_PUNCT, style: t.squareBracket }
 ]
 
 /* -------------------------------------------------------------------------- */
@@ -59,6 +80,12 @@ const DOUBLE_QUOTE = 34 // '"'
 const SINGLE_QUOTE = 39 // "'"
 const BRACE_OPEN = 123 // '{'
 const SPACE = 32
+const DOLLAR = 36 // '$'
+const HASH = 35 // '#'
+const BRACKET_OPEN = 91 // '['
+const BRACKET_CLOSE = 93 // ']'
+const EXCLAMATION = 33 // '!'
+const NEWLINE = 10
 
 /**
  * Recognizes `<Tag ...>`, `</Tag>`, and `<Tag ... />`. Runs before the default
@@ -79,23 +106,22 @@ const jsxTagParser: InlineParser = {
       return -1
     }
 
-    const text = cx.text
     const start = pos
     let i = pos + 1
     let isClosing = false
 
-    if (text.charCodeAt(i) === SLASH) {
+    if (cx.char(i) === SLASH) {
       isClosing = true
       i += 1
     }
 
     // Tag name: letters, digits, `.`, `-`, `:` (member expressions allowed).
     const nameStart = i
-    if (!isTagNameChar(text.charCodeAt(i)) || isDigit(text.charCodeAt(i))) {
+    if (!isTagNameChar(cx.char(i)) || isDigit(cx.char(i))) {
       // Tag name cannot start with a digit; bail (likely markdown `<`).
       return -1
     }
-    while (i < text.length && isTagNameChar(text.charCodeAt(i))) {
+    while (i < cx.end && isTagNameChar(cx.char(i))) {
       i += 1
     }
     const nameEnd = i
@@ -110,7 +136,7 @@ const jsxTagParser: InlineParser = {
     elements.push(cx.elt(MDX_JSX_NAME, nameStart, nameEnd))
 
     // Parse attributes until we hit `>` or `/>`.
-    i = scanAttributes(cx, text, i, elements)
+    i = scanAttributes(cx, i, elements)
 
     if (i === -1) {
       // Unbalanced — not a tag we can confidently claim. Let other parsers
@@ -119,8 +145,8 @@ const jsxTagParser: InlineParser = {
     }
 
     // Closing punct (`>` or `/>`).
-    elements.push(cx.elt(MDX_JSX_PUNCT, i, i + (text.charCodeAt(i) === SLASH ? 2 : 1)))
-    const endPos = text.charCodeAt(i) === SLASH ? i + 2 : i + 1
+    elements.push(cx.elt(MDX_JSX_PUNCT, i, i + (cx.char(i) === SLASH ? 2 : 1)))
+    const endPos = cx.char(i) === SLASH ? i + 2 : i + 1
 
     cx.addElement(cx.elt(MDX_JSX_OPEN, start, endPos, elements))
     return endPos
@@ -131,16 +157,11 @@ const jsxTagParser: InlineParser = {
  * Scan attributes inside a JSX tag, appending elements. Returns the index of
  * the closing `>` or `/>`, or -1 if the tag looks unbalanced.
  */
-function scanAttributes(
-  cx: InlineContextLike,
-  text: string,
-  start: number,
-  elements: Element[]
-): number {
+function scanAttributes(cx: InlineContextLike, start: number, elements: Element[]): number {
   let i = start
 
-  while (i < text.length) {
-    const ch = text.charCodeAt(i)
+  while (i < cx.end) {
+    const ch = cx.char(i)
 
     // Whitespace — skip.
     if (isWhitespace(ch)) {
@@ -152,39 +173,39 @@ function scanAttributes(
       return i
     }
 
-    if (ch === SLASH && text.charCodeAt(i + 1) === GT) {
+    if (ch === SLASH && cx.char(i + 1) === GT) {
       return i
     }
 
     // Attribute name: letter/underscore start, then word chars.
     if (isAttrNameStart(ch)) {
       const attrStart = i
-      while (i < text.length && isAttrNameChar(text.charCodeAt(i))) {
+      while (i < cx.end && isAttrNameChar(cx.char(i))) {
         i += 1
       }
       elements.push(cx.elt(MDX_JSX_ATTR, attrStart, i))
 
       // Optional `="value"` or `={expr}`.
-      const afterName = text.charCodeAt(i)
+      const afterName = cx.char(i)
       if (afterName === EQUALS) {
         elements.push(cx.elt(MDX_JSX_PUNCT, i, i + 1))
         i += 1
 
-        if (text.charCodeAt(i) === DOUBLE_QUOTE || text.charCodeAt(i) === SINGLE_QUOTE) {
-          const quote = text.charCodeAt(i)
+        if (cx.char(i) === DOUBLE_QUOTE || cx.char(i) === SINGLE_QUOTE) {
+          const quote = cx.char(i)
           const valStart = i
           i += 1
-          while (i < text.length && text.charCodeAt(i) !== quote) {
+          while (i < cx.end && cx.char(i) !== quote) {
             i += 1
           }
           // include closing quote if present
-          if (i < text.length) {
+          if (i < cx.end) {
             i += 1
           }
           elements.push(cx.elt(MDX_JSX_STRING, valStart, i))
-        } else if (text.charCodeAt(i) === BRACE_OPEN) {
+        } else if (cx.char(i) === BRACE_OPEN) {
           // `={expr}` — find matching closing brace.
-          const exprEnd = findMatchingBrace(text, i)
+          const exprEnd = findMatchingBrace(cx, i)
           if (exprEnd === -1) {
             return -1
           }
@@ -217,8 +238,7 @@ const braceParser: InlineParser = {
       return -1
     }
 
-    const text = cx.text
-    const end = findMatchingBrace(text, pos)
+    const end = findMatchingBrace(cx, pos)
 
     if (end === -1) {
       return -1
@@ -234,20 +254,270 @@ const braceParser: InlineParser = {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                        Markdown enrichment inline parsers                   */
+/* -------------------------------------------------------------------------- */
+
+const inlineMathParser: InlineParser = {
+  name: 'MdxInlineMath',
+  parse(cx, next, pos) {
+    if (next !== DOLLAR) {
+      return -1
+    }
+
+    const delimiterLength = cx.char(pos + 1) === DOLLAR ? 2 : 1
+    const end = findClosingDelimiter(cx, pos, DOLLAR, delimiterLength)
+
+    if (end === -1 || !hasNonWhitespaceContent(cx, pos + delimiterLength, end)) {
+      return -1
+    }
+
+    // Avoid common currency ranges such as `$5 and $10`.
+    if (delimiterLength === 1 && isDigit(cx.char(pos + 1))) {
+      return -1
+    }
+
+    const endPos = end + delimiterLength
+    const elements: Element[] = [
+      cx.elt(MDX_MATH_MARK, pos, pos + delimiterLength),
+      cx.elt(MDX_MATH_MARK, end, endPos)
+    ]
+
+    cx.addElement(cx.elt(MDX_INLINE_MATH, pos, endPos, elements))
+    return endPos
+  }
+}
+
+const markParser: InlineParser = {
+  name: 'MdxMark',
+  parse(cx, next, pos) {
+    if (next !== EQUALS || cx.char(pos + 1) !== EQUALS) {
+      return -1
+    }
+
+    const end = findClosingDelimiter(cx, pos, EQUALS, 2)
+
+    if (end === -1 || !hasNonWhitespaceContent(cx, pos + 2, end)) {
+      return -1
+    }
+
+    const endPos = end + 2
+    const elements: Element[] = [
+      cx.elt(MDX_MARK_PUNCT, pos, pos + 2),
+      cx.elt(MDX_MARK_PUNCT, end, endPos)
+    ]
+
+    cx.addElement(cx.elt(MDX_MARK, pos, endPos, elements))
+    return endPos
+  }
+}
+
+const wikilinkParser: InlineParser = {
+  name: 'MdxWikilink',
+  before: 'Link',
+  parse(cx, next, pos) {
+    if (next !== BRACKET_OPEN || cx.char(pos + 1) !== BRACKET_OPEN) {
+      return -1
+    }
+
+    let i = pos + 2
+    while (i < cx.end) {
+      if (cx.char(i) === NEWLINE) {
+        return -1
+      }
+      if (cx.char(i) === BRACKET_CLOSE && cx.char(i + 1) === BRACKET_CLOSE) {
+        break
+      }
+      i += 1
+    }
+
+    if (i >= cx.end || !hasNonWhitespaceContent(cx, pos + 2, i)) {
+      return -1
+    }
+
+    const endPos = i + 2
+    const elements: Element[] = [
+      cx.elt(MDX_WIKILINK_PUNCT, pos, pos + 2),
+      cx.elt(MDX_WIKILINK_PUNCT, i, endPos)
+    ]
+
+    cx.addElement(cx.elt(MDX_WIKILINK, pos, endPos, elements))
+    return endPos
+  }
+}
+
+const tagParser: InlineParser = {
+  name: 'MdxHashTag',
+  parse(cx, next, pos) {
+    if (next !== HASH || !isTagBoundary(cx.char(pos - 1)) || !isTagStart(cx.char(pos + 1))) {
+      return -1
+    }
+
+    let i = pos + 2
+    while (i < cx.end && isTagBody(cx.char(i))) {
+      i += 1
+    }
+
+    const last = cx.char(i - 1)
+    if (last === SLASH || last === 45 /* '-' */) {
+      return -1
+    }
+
+    cx.addElement(cx.elt(MDX_TAG, pos, i))
+    return i
+  }
+}
+
+const calloutMarkerParser: InlineParser = {
+  name: 'MdxCalloutMarker',
+  before: 'Link',
+  parse(cx, next, pos) {
+    if (
+      next !== BRACKET_OPEN ||
+      cx.char(pos + 1) !== EXCLAMATION ||
+      !isCalloutBoundary(cx.char(pos - 1))
+    ) {
+      return -1
+    }
+
+    let i = pos + 2
+    if (!isAsciiLetter(cx.char(i))) {
+      return -1
+    }
+
+    while (i < cx.end && isCalloutTypeChar(cx.char(i))) {
+      i += 1
+    }
+
+    if (cx.char(i) !== BRACKET_CLOSE) {
+      return -1
+    }
+
+    const endPos = i + 1
+    const elements: Element[] = [
+      cx.elt(MDX_CALLOUT_PUNCT, pos, pos + 2),
+      cx.elt(MDX_CALLOUT_PUNCT, i, endPos)
+    ]
+
+    cx.addElement(cx.elt(MDX_CALLOUT_MARKER, pos, endPos, elements))
+    return endPos
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         Block/line decoration layer                         */
+/* -------------------------------------------------------------------------- */
+
+const mathBlockDecoration = Decoration.mark({ class: 'cm-mdx-math-block' })
+const mathBlockDelimiterDecoration = Decoration.mark({ class: 'cm-mdx-math-delimiter' })
+const mermaidBlockDecoration = Decoration.mark({ class: 'cm-mdx-mermaid-block' })
+const mermaidFenceDecoration = Decoration.mark({ class: 'cm-mdx-mermaid-fence' })
+const calloutDecoration = (type: string): Decoration =>
+  Decoration.mark({ class: `cm-mdx-callout-marker cm-mdx-callout-${type}` })
+
+class MdxBlockHighlightPlugin {
+  decorations: DecorationSet
+
+  constructor(view: EditorView) {
+    this.decorations = buildBlockDecorations(view)
+  }
+
+  update(update: { docChanged: boolean; viewportChanged: boolean; view: EditorView }): void {
+    if (update.docChanged || update.viewportChanged) {
+      this.decorations = buildBlockDecorations(update.view)
+    }
+  }
+}
+
+export const mdxBlockHighlightExtension = ViewPlugin.fromClass(MdxBlockHighlightPlugin, {
+  decorations: (value) => value.decorations
+})
+
+function buildBlockDecorations(view: EditorView): DecorationSet {
+  const ranges: Array<Range<Decoration>> = []
+  const doc = view.state.doc
+  let lineNumber = 1
+
+  while (lineNumber <= doc.lines) {
+    const line = doc.line(lineNumber)
+    const mathDelimiterIndex = line.text.indexOf('$$')
+
+    if (isDisplayMathDelimiterLine(line.text, mathDelimiterIndex)) {
+      const closingLine = findClosingDisplayMathLine(view, lineNumber + 1)
+
+      if (closingLine) {
+        ranges.push(mathBlockDecoration.range(line.from, closingLine.to))
+        ranges.push(
+          mathBlockDelimiterDecoration.range(
+            line.from + mathDelimiterIndex,
+            line.from + mathDelimiterIndex + 2
+          )
+        )
+        const closingIndex = closingLine.text.indexOf('$$')
+        ranges.push(
+          mathBlockDelimiterDecoration.range(
+            closingLine.from + closingIndex,
+            closingLine.from + closingIndex + 2
+          )
+        )
+        lineNumber = closingLine.number + 1
+        continue
+      }
+    }
+
+    const mermaidFence = readMermaidFence(line.text)
+    if (mermaidFence) {
+      const closingLine = findClosingCodeFenceLine(view, lineNumber + 1, mermaidFence.tickCount)
+
+      if (closingLine) {
+        ranges.push(mermaidBlockDecoration.range(line.from, closingLine.to))
+        ranges.push(
+          mermaidFenceDecoration.range(
+            line.from + mermaidFence.index,
+            line.from + mermaidFence.index + mermaidFence.tickCount
+          )
+        )
+        const closingIndex = closingLine.text.indexOf('`'.repeat(mermaidFence.tickCount))
+        ranges.push(
+          mermaidFenceDecoration.range(
+            closingLine.from + closingIndex,
+            closingLine.from + closingIndex + mermaidFence.tickCount
+          )
+        )
+        lineNumber = closingLine.number + 1
+        continue
+      }
+    }
+
+    const callout = readCalloutMarker(line.text)
+    if (callout) {
+      ranges.push(
+        calloutDecoration(callout.type).range(line.from + callout.from, line.from + callout.to)
+      )
+    }
+
+    lineNumber += 1
+  }
+
+  return Decoration.set(ranges, true)
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                 Helpers                                     */
 /* -------------------------------------------------------------------------- */
 
 /** Minimal slice of InlineContext used by attribute scanning. */
 interface InlineContextLike {
+  readonly end: number
+  char(pos: number): number
   elt(type: string, from: number, to: number): Element
 }
 
-function findMatchingBrace(text: string, openPos: number): number {
+function findMatchingBrace(cx: InlineContextLike, openPos: number): number {
   let depth = 0
   let inString: number | null = null
 
-  for (let i = openPos; i < text.length; i += 1) {
-    const ch = text.charCodeAt(i)
+  for (let i = openPos; i < cx.end; i += 1) {
+    const ch = cx.char(i)
 
     if (inString !== null) {
       if (ch === BACKSLASH) {
@@ -307,6 +577,174 @@ function isWhitespace(code: number): boolean {
   return code === SPACE || code === 9 || code === 10 || code === 13
 }
 
+function isMissingCode(code: number): boolean {
+  return code < 0 || Number.isNaN(code)
+}
+
+function findClosingDelimiter(
+  cx: InlineContextLike,
+  openPos: number,
+  delimiter: number,
+  delimiterLength: 1 | 2
+): number {
+  for (let i = openPos + delimiterLength; i < cx.end; i += 1) {
+    if (cx.char(i) === NEWLINE) {
+      return -1
+    }
+
+    if (isEscaped(cx, i)) {
+      continue
+    }
+
+    if (delimiterLength === 1) {
+      if (cx.char(i) === delimiter) {
+        return i
+      }
+      continue
+    }
+
+    if (cx.char(i) === delimiter && cx.char(i + 1) === delimiter) {
+      return i
+    }
+  }
+
+  return -1
+}
+
+function hasNonWhitespaceContent(cx: InlineContextLike, from: number, to: number): boolean {
+  if (from >= to || isWhitespace(cx.char(from)) || isWhitespace(cx.char(to - 1))) {
+    return false
+  }
+
+  for (let i = from; i < to; i += 1) {
+    if (cx.char(i) === NEWLINE) {
+      return false
+    }
+    if (!isWhitespace(cx.char(i))) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function isEscaped(cx: InlineContextLike, pos: number): boolean {
+  let backslashes = 0
+  for (let i = pos - 1; cx.char(i) === BACKSLASH; i -= 1) {
+    backslashes += 1
+  }
+  return backslashes % 2 === 1
+}
+
+function isTagBoundary(code: number): boolean {
+  return (
+    isMissingCode(code) ||
+    isWhitespace(code) ||
+    code === BRACKET_OPEN ||
+    code === 40 /* '(' */ ||
+    code === 123 /* '{' */
+  )
+}
+
+function isTagStart(code: number): boolean {
+  return isAsciiLetter(code)
+}
+
+function isTagBody(code: number): boolean {
+  return (
+    isAsciiLetter(code) ||
+    isDigit(code) ||
+    code === 95 /* '_' */ ||
+    code === 45 /* '-' */ ||
+    code === SLASH
+  )
+}
+
+function isCalloutBoundary(code: number): boolean {
+  return isMissingCode(code) || isWhitespace(code)
+}
+
+function isAsciiLetter(code: number): boolean {
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+}
+
+function isCalloutTypeChar(code: number): boolean {
+  return isAsciiLetter(code) || isDigit(code) || code === 95 /* '_' */ || code === 45 /* '-' */
+}
+
+function isDisplayMathDelimiterLine(text: string, delimiterIndex: number): boolean {
+  if (delimiterIndex === -1) {
+    return false
+  }
+
+  return (
+    text.slice(0, delimiterIndex).trim().length === 0 &&
+    text.slice(delimiterIndex + 2).trim().length === 0
+  )
+}
+
+function findClosingDisplayMathLine(view: EditorView, fromLineNumber: number): Line | null {
+  const doc = view.state.doc
+
+  for (let lineNumber = fromLineNumber; lineNumber <= doc.lines; lineNumber += 1) {
+    const line = doc.line(lineNumber)
+    const delimiterIndex = line.text.indexOf('$$')
+
+    if (isDisplayMathDelimiterLine(line.text, delimiterIndex)) {
+      return line
+    }
+  }
+
+  return null
+}
+
+function readMermaidFence(text: string): { index: number; tickCount: number } | null {
+  const match = /^(\s*)(`{3,})\s*mermaid(?:\s|$)/i.exec(text)
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    index: match[1].length,
+    tickCount: match[2].length
+  }
+}
+
+function findClosingCodeFenceLine(
+  view: EditorView,
+  fromLineNumber: number,
+  tickCount: number
+): Line | null {
+  const doc = view.state.doc
+  const closingPattern = new RegExp(`^\\s*\`{${tickCount},}\\s*$`)
+
+  for (let lineNumber = fromLineNumber; lineNumber <= doc.lines; lineNumber += 1) {
+    const line = doc.line(lineNumber)
+
+    if (closingPattern.test(line.text)) {
+      return line
+    }
+  }
+
+  return null
+}
+
+function readCalloutMarker(text: string): { type: string; from: number; to: number } | null {
+  const match = /^(\s*>\s*)(\[!([a-z][\w-]*)\][+-]?)/i.exec(text)
+
+  if (!match) {
+    return null
+  }
+
+  const from = match[1].length
+  return {
+    type: match[3].toLocaleLowerCase(),
+    from,
+    to: from + match[2].length
+  }
+}
+
 const BACKSLASH = 92
 const BACKTICK = 96
 
@@ -320,5 +758,13 @@ const BACKTICK = 96
  */
 export const mdxHighlightExtension: MarkdownExtension = {
   defineNodes: nodeSpecs,
-  parseInline: [jsxTagParser, braceParser]
+  parseInline: [
+    jsxTagParser,
+    braceParser,
+    inlineMathParser,
+    markParser,
+    wikilinkParser,
+    tagParser,
+    calloutMarkerParser
+  ]
 }

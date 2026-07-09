@@ -2,11 +2,16 @@ import { evaluate } from '@mdx-js/mdx'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
 import type { MDXContent } from 'mdx/types'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeKatex from 'rehype-katex'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { remarkCallouts } from '../../../shared/remark-callouts'
+import { remarkMarks } from '../../../shared/remark-mark'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
 import { createMdxComponents } from './mdx-components'
 import { readPreviewMetadata } from './preview-metadata'
@@ -90,11 +95,13 @@ export function MdxPreview({
 
   return (
     <div className="h-full min-h-0 overflow-y-auto">
-      <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b bg-background/95 px-4 text-xs text-muted-foreground backdrop-blur">
+      <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b-2 border-foreground bg-background/95 px-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground backdrop-blur">
         <span className="truncate">{selectedPath}</span>
-        <span>{isCompiling ? 'Compiling' : 'Live'}</span>
+        <span className={isCompiling ? 'text-muted-foreground' : 'text-[var(--editorial-red)]'}>
+          {isCompiling ? 'Compiling' : '● Live'}
+        </span>
       </div>
-      <div className="mdx-preview mx-auto max-w-3xl px-6 py-6">
+      <div className="mdx-preview mx-auto max-w-3xl px-6 py-8">
         <PreviewWarnings warnings={previewMetadata.warnings} />
         <FrontmatterPropertiesBlock properties={previewMetadata.frontmatter} />
         {compileError ? (
@@ -115,7 +122,9 @@ export function MdxPreview({
             </PreviewRuntimeContext.Provider>
           </ErrorBoundary>
         ) : (
-          <div className="text-sm text-muted-foreground">Preparing preview.</div>
+          <div className="font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+            Preparing preview.
+          </div>
         )}
       </div>
     </div>
@@ -136,8 +145,15 @@ async function compileMdx(source: string): Promise<MDXContent> {
     jsx,
     jsxs,
     baseUrl: import.meta.url,
-    remarkPlugins: [remarkGfm, remarkFrontmatter, remarkWikilink],
-    rehypePlugins: [rehypeSafeHtml]
+    remarkPlugins: [
+      remarkGfm,
+      remarkMath,
+      remarkFrontmatter,
+      remarkWikilink,
+      remarkMarks,
+      remarkCallouts
+    ],
+    rehypePlugins: [rehypeSafeHtml, rehypeKatex, [rehypeHighlight, { plainText: ['mermaid'] }]]
   })
 
   return mdxModule.default
@@ -153,9 +169,11 @@ function PreviewWarnings({
   }
 
   return (
-    <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-      <div className="font-medium text-amber-900 dark:text-amber-200">Note warning</div>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-950/80 dark:text-amber-100/85">
+    <div className="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm">
+      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+        Note warning
+      </div>
+      <ul className="mt-2 space-y-1 pl-5 text-xs text-foreground/80">
         {warnings.map((warning, index) => (
           <li key={`${warning.line ?? 'note'}-${index}`}>
             {warning.line ? `Line ${warning.line}: ` : null}
@@ -179,13 +197,17 @@ function FrontmatterPropertiesBlock({
   }
 
   return (
-    <section className="mb-5 rounded-md border bg-muted/30 p-3 text-sm">
-      <div className="mb-2 text-xs font-medium uppercase text-muted-foreground">Properties</div>
-      <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[7rem_minmax(0,1fr)]">
+    <section className="mb-6 border-2 border-foreground bg-paper-dark p-3 text-sm shadow-[3px_3px_0_0_var(--foreground)]">
+      <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        Properties
+      </div>
+      <dl className="grid gap-x-4 gap-y-2 font-mono text-[12px] sm:grid-cols-[7rem_minmax(0,1fr)]">
         {entries.map(([key, value]) => (
           <div key={key} className="contents">
-            <dt className="font-mono text-xs text-muted-foreground">{key}</dt>
-            <dd className="min-w-0 break-words text-sm">{formatPropertyValue(value)}</dd>
+            <dt className="font-bold text-[var(--editorial-red)]">{key}</dt>
+            <dd className="min-w-0 break-words text-[var(--editorial-blue)]">
+              {formatPropertyValue(value)}
+            </dd>
           </div>
         ))}
       </dl>
@@ -208,9 +230,11 @@ function ErrorPanel({
       : null
 
   return (
-    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+    <div className="border-2 border-destructive bg-destructive/5 p-4 text-sm shadow-[3px_3px_0_0_var(--destructive)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="font-medium text-destructive">{title}</div>
+        <div className="font-mono text-[12px] font-bold uppercase tracking-wider text-destructive">
+          {title}
+        </div>
         {location && onRevealLine ? (
           <Button
             type="button"
@@ -221,15 +245,17 @@ function ErrorPanel({
             {location}
           </Button>
         ) : location ? (
-          <div className="text-xs font-medium text-muted-foreground">{location}</div>
+          <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            {location}
+          </div>
         ) : null}
       </div>
       {diagnostic.source || diagnostic.ruleId ? (
-        <div className="mb-2 text-xs text-muted-foreground">
+        <div className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
           {[diagnostic.source, diagnostic.ruleId].filter(Boolean).join(' / ')}
         </div>
       ) : null}
-      <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-sm bg-background p-3 font-mono text-xs text-foreground">
+      <pre className="max-h-80 overflow-auto whitespace-pre-wrap border-2 border-foreground bg-background p-3 font-mono text-xs text-foreground">
         {diagnostic.message}
       </pre>
     </div>

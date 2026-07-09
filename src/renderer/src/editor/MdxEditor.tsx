@@ -2,7 +2,11 @@ import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult
+} from '@codemirror/autocomplete'
 import { HighlightStyle, LanguageDescription, syntaxHighlighting } from '@codemirror/language'
 import { search } from '@codemirror/search'
 import { EditorState, Prec } from '@codemirror/state'
@@ -13,7 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ComponentInsertPalette } from './ComponentInsertPalette'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
-import { mdxHighlightExtension } from './mdx-highlight'
+import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
 import { getNoteLinkKeys } from '../../../shared/wikilinks'
 import { getScoredNotes } from '@/lib/fuzzy-match'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
@@ -80,35 +84,67 @@ const editorTheme = EditorView.theme({
     height: '100%',
     backgroundColor: 'var(--card)'
   },
+  // Editor = "writing voice": Courier Prime mono. Khác với preview serif.
   '.cm-scroller': {
-    fontFamily:
-      '"JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontFamily: '"Courier Prime", "Courier New", ui-monospace, monospace',
     fontSize: '13.5px',
     lineHeight: '1.7'
   },
   '.cm-content': {
     padding: '20px 0',
-    caretColor: 'var(--viridian)'
+    caretColor: 'var(--editorial-red)'
   },
   '.cm-line': {
     padding: '0 20px'
   },
   '.cm-gutters': {
     backgroundColor: 'var(--muted)',
-    borderRightColor: 'var(--border)',
+    borderRight: '2px solid var(--foreground)',
     color: 'var(--muted-foreground)',
-    fontFamily:
-      '"JetBrains Mono", "Cascadia Code", ui-monospace, monospace',
+    fontFamily: '"Courier Prime", "Courier New", ui-monospace, monospace',
     fontSize: '11px'
   },
   '.cm-activeLineGutter, .cm-activeLine': {
     backgroundColor: 'var(--secondary)'
   },
   '.cm-selectionBackground': {
-    backgroundColor: 'color-mix(in oklch, var(--viridian) 20%, transparent) !important'
+    backgroundColor: 'color-mix(in srgb, var(--editorial-red) 22%, transparent) !important'
   },
   '.cm-cursor': {
-    borderLeftColor: 'var(--viridian)'
+    borderLeftColor: 'var(--editorial-red)',
+    borderLeftWidth: '2px'
+  },
+  '.cm-mdx-math-block': {
+    backgroundColor: 'color-mix(in srgb, var(--editorial-blue) 8%, transparent)'
+  },
+  '.cm-mdx-math-delimiter': {
+    color: 'var(--editorial-blue)',
+    fontWeight: '700'
+  },
+  '.cm-mdx-mermaid-block': {
+    backgroundColor: 'color-mix(in srgb, var(--chart-5) 10%, transparent)'
+  },
+  '.cm-mdx-mermaid-fence': {
+    color: 'var(--chart-5)',
+    fontWeight: '700'
+  },
+  '.cm-mdx-callout-marker': {
+    fontWeight: '700'
+  },
+  '.cm-mdx-callout-note': {
+    color: 'var(--foreground)'
+  },
+  '.cm-mdx-callout-info': {
+    color: 'var(--muted-foreground)'
+  },
+  '.cm-mdx-callout-tip': {
+    color: 'var(--editorial-blue)'
+  },
+  '.cm-mdx-callout-warning': {
+    color: 'var(--chart-5)'
+  },
+  '.cm-mdx-callout-danger': {
+    color: 'var(--editorial-red)'
   },
   '&.cm-focused': {
     outline: 'none'
@@ -121,18 +157,35 @@ const editorTheme = EditorView.theme({
  * to actual editor colors. Without this, the parser tags the tokens but no
  * color is applied — JSX/braces render as plain prose. The CSS variables match
  * the design tokens defined in `globals.css` and adapt to light/dark themes.
+ *
+ * Editorial palette: red = JSX tag/brace (the "live" markup), blue = string
+ * value (the data), muted = punctuation.
  */
 const mdxHighlightStyle = HighlightStyle.define([
   // JSX tag name (e.g. the `QuizBlock` in `<QuizBlock />`).
-  { tag: t.tagName, color: 'var(--viridian)', fontWeight: '600' },
+  { tag: t.tagName, color: 'var(--editorial-red)', fontWeight: '700' },
   // JSX attribute name (e.g. `bar` in `bar="x"`).
   { tag: t.attributeName, color: 'var(--chart-3)' },
   // JSX attribute string value (e.g. `"x"` in `bar="x"`).
-  { tag: t.string, color: 'var(--chart-2)' },
+  { tag: t.string, color: 'var(--editorial-blue)' },
   // JSX angle brackets, `/`, `=`, etc.
   { tag: t.angleBracket, color: 'var(--muted-foreground)' },
   // MDX brace expression marks (`{` and `}`).
-  { tag: t.brace, color: 'var(--viridian)' }
+  { tag: t.brace, color: 'var(--editorial-red)' },
+  // Math spans (`$...$` / `$$...$$`) stay source text but read as math.
+  { tag: t.regexp, color: 'var(--chart-5)', fontWeight: '700' },
+  // Callout and math delimiters.
+  { tag: t.processingInstruction, color: 'var(--editorial-red)', fontWeight: '700' },
+  // Obsidian-style mark syntax (`==text==`).
+  {
+    tag: t.inserted,
+    backgroundColor: 'color-mix(in srgb, var(--chart-5) 22%, transparent)',
+    color: 'var(--foreground)'
+  },
+  // Wikilinks (`[[Note]]`) and tags (`#project`).
+  { tag: t.link, color: 'var(--editorial-blue)', fontWeight: '700' },
+  { tag: t.labelName, color: 'var(--chart-5)', fontWeight: '700' },
+  { tag: t.squareBracket, color: 'var(--muted-foreground)' }
 ])
 
 export function MdxEditor({
@@ -263,6 +316,7 @@ export function MdxEditor({
           basicSetup,
           markdown({ codeLanguages, extensions: mdxHighlightExtension }),
           syntaxHighlighting(mdxHighlightStyle),
+          mdxBlockHighlightExtension,
           search({ top: true }),
           autocompletion({
             override: [wikilinkCompletions],

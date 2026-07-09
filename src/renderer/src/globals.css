@@ -4,83 +4,111 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* "Ink & paper" — warm-neutral, not zinc. Slight warmth keeps it alive
-     without drifting into cream. Hue 95 = warm yellow-gray axis. */
-  --background: oklch(0.985 0.002 95);
-  --foreground: oklch(0.22 0.012 95);
-  --card: oklch(0.995 0.001 95);
-  --card-foreground: oklch(0.22 0.012 95);
-  --popover: oklch(0.995 0.001 95);
-  --popover-foreground: oklch(0.22 0.012 95);
-  --primary: oklch(0.30 0.014 95);
-  --primary-foreground: oklch(0.985 0.002 95);
-  --secondary: oklch(0.96 0.005 95);
-  --secondary-foreground: oklch(0.30 0.014 95);
-  --muted: oklch(0.955 0.005 95);
-  --muted-foreground: oklch(0.50 0.009 95);
-  --accent: oklch(0.95 0.03 150);
-  --accent-foreground: oklch(0.30 0.10 150);
-  --destructive: oklch(0.58 0.20 25);
-  --destructive-foreground: oklch(0.985 0.002 95);
-  --border: oklch(0.91 0.005 95);
-  --input: oklch(0.91 0.005 95);
-  --ring: oklch(0.55 0.14 150);
-  /* Signature: viridian green — islands are interactive/alive. */
-  --viridian: oklch(0.55 0.14 150);
-  --viridian-soft: oklch(0.95 0.03 150);
-  --chart-1: oklch(0.55 0.14 150);
-  --chart-2: oklch(0.62 0.13 220);
-  --chart-3: oklch(0.70 0.15 70);
-  --chart-4: oklch(0.60 0.18 300);
-  --chart-5: oklch(0.65 0.20 15);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.965 0.006 95);
-  --sidebar-foreground: oklch(0.22 0.012 95);
-  --sidebar-primary: oklch(0.55 0.14 150);
-  --sidebar-primary-foreground: oklch(0.985 0.002 95);
-  --sidebar-accent: oklch(0.94 0.01 95);
-  --sidebar-accent-foreground: oklch(0.30 0.014 95);
-  --sidebar-border: oklch(0.91 0.005 95);
-  --sidebar-ring: oklch(0.55 0.14 150);
+  /* "Editorial newspaper" — paper white + ink black + red accent.
+     Sự ấm của paper (#f9f9f7) quan trọng — không phải zinc, không phải cream.
+     Border mặc định = ink (#111111) — đây là device cấu trúc chính. */
+
+  --background: #f9f9f7;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #f9f9f7;
+  --secondary: #efefea;
+  --secondary-foreground: #111111;
+  --muted: #efefea;
+  --muted-foreground: oklch(0.45 0.009 95);
+  --accent: #efefea;
+  --accent-foreground: #111111;
+
+  /* Tight semantic palette: red = destructive/warning/miss, blue = success/hit/result. */
+  --destructive: #d32f2f;
+  --destructive-foreground: #ffffff;
+  --success: #2b5797;
+  --success-foreground: #ffffff;
+  --editorial-red: #d32f2f;
+  --editorial-blue: #2b5797;
+  --paper-dark: #efefea;
+  --line: #cccccc;
+
+  --border: #111111;
+  --input: #111111;
+  --ring: #d32f2f;
+
+  --radius: 0;
+
+  /* Offset hard shadows — không blur. Shadow = device nhấn mạnh widget, không phải elevation. */
+  --shadow-hard: 4px 4px 0 #111111;
+  --shadow-hard-sm: 2px 2px 0 #111111;
+  --shadow-hard-xs: 3px 3px 0 #111111;
+
+  --chart-1: #d32f2f;
+  --chart-2: #2b5797;
+  --chart-3: #111111;
+  --chart-4: #6b6b6b;
+  --chart-5: #b8860b;
+
+  --sidebar: #f9f9f7;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #d32f2f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efefea;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #111111;
+  --sidebar-ring: #d32f2f;
 }
 
 .dark {
-  /* Dark = cool graphite. Text stays faintly warm so it reads as "ink on
-     slate", not dead-black terminal. Hue 260 = blue-gray axis for surfaces. */
-  --background: oklch(0.16 0.006 260);
-  --foreground: oklch(0.93 0.004 95);
-  --card: oklch(0.195 0.007 260);
-  --card-foreground: oklch(0.93 0.004 95);
-  --popover: oklch(0.195 0.007 260);
-  --popover-foreground: oklch(0.93 0.004 95);
-  --primary: oklch(0.92 0.003 95);
-  --primary-foreground: oklch(0.16 0.006 260);
-  --secondary: oklch(0.255 0.008 260);
-  --secondary-foreground: oklch(0.93 0.004 95);
-  --muted: oklch(0.235 0.008 260);
-  --muted-foreground: oklch(0.66 0.006 95);
-  --accent: oklch(0.30 0.08 150);
-  --accent-foreground: oklch(0.90 0.04 150);
-  --destructive: oklch(0.68 0.18 25);
-  --destructive-foreground: oklch(0.985 0.002 95);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.60 0.14 150);
-  --viridian: oklch(0.68 0.14 150);
-  --viridian-soft: oklch(0.30 0.08 150);
-  --chart-1: oklch(0.68 0.14 150);
-  --chart-2: oklch(0.65 0.13 220);
-  --chart-3: oklch(0.72 0.15 70);
-  --chart-4: oklch(0.65 0.18 300);
-  --chart-5: oklch(0.68 0.20 15);
-  --sidebar: oklch(0.135 0.007 260);
-  --sidebar-foreground: oklch(0.93 0.004 95);
-  --sidebar-primary: oklch(0.68 0.14 150);
-  --sidebar-primary-foreground: oklch(0.16 0.006 260);
-  --sidebar-accent: oklch(0.24 0.008 260);
-  --sidebar-accent-foreground: oklch(0.93 0.004 95);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.60 0.14 150);
+  /* "Tonight's edition" — same grammar, inverted. Warm-graphite chứ không phải dead-black.
+     Text giữ warmth nhỏ để đọc như "ink on slate", không phải terminal. */
+  --background: oklch(0.18 0.005 60);
+  --foreground: oklch(0.93 0.005 80);
+  --card: oklch(0.21 0.006 60);
+  --card-foreground: oklch(0.93 0.005 80);
+  --popover: oklch(0.21 0.006 60);
+  --popover-foreground: oklch(0.93 0.005 80);
+  --primary: oklch(0.93 0.005 80);
+  --primary-foreground: oklch(0.18 0.005 60);
+  --secondary: oklch(0.26 0.006 60);
+  --secondary-foreground: oklch(0.93 0.005 80);
+  --muted: oklch(0.26 0.006 60);
+  --muted-foreground: oklch(0.66 0.006 80);
+  --accent: oklch(0.26 0.006 60);
+  --accent-foreground: oklch(0.93 0.005 80);
+
+  --destructive: #ef5350;
+  --destructive-foreground: #ffffff;
+  --success: #5b9bd5;
+  --success-foreground: #0a1828;
+  --editorial-red: #ef5350;
+  --editorial-blue: #5b9bd5;
+  --paper-dark: oklch(0.26 0.006 60);
+  --line: oklch(0.35 0.006 60);
+
+  --border: var(--foreground);
+  --input: var(--foreground);
+  --ring: #ef5350;
+
+  --shadow-hard: 4px 4px 0 var(--foreground);
+  --shadow-hard-sm: 2px 2px 0 var(--foreground);
+  --shadow-hard-xs: 3px 3px 0 var(--foreground);
+
+  --chart-1: #ef5350;
+  --chart-2: #5b9bd5;
+  --chart-3: oklch(0.93 0.005 80);
+  --chart-4: oklch(0.66 0.006 80);
+  --chart-5: #d4a847;
+
+  --sidebar: oklch(0.16 0.006 60);
+  --sidebar-foreground: oklch(0.93 0.005 80);
+  --sidebar-primary: #ef5350;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(0.26 0.006 60);
+  --sidebar-accent-foreground: oklch(0.93 0.005 80);
+  --sidebar-border: var(--foreground);
+  --sidebar-ring: #ef5350;
 }
 
 @theme inline {
@@ -100,6 +128,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-editorial-red: var(--editorial-red);
+  --color-editorial-blue: var(--editorial-blue);
+  --color-paper-dark: var(--paper-dark);
+  --color-line: var(--line);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -108,10 +142,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Sharp corners — radius 0 cascade. */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  /* Three font voices. */
+  --font-sans: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono: 'Courier Prime', 'Courier New', ui-monospace, monospace;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -128,8 +168,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    /* Body = "reading voice" mặc định — Lora serif. UI chrome override per-component khi cần mono. */
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -148,7 +188,7 @@
   }
   ::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 9999px;
+    border-radius: 0;
     border: 2px solid var(--background);
   }
   ::-webkit-scrollbar-thumb:hover {
@@ -157,55 +197,77 @@
 }
 
 @layer components {
-  /* Preview prose = "reading voice": serif, generous measure, relaxed rhythm.
-     This deliberately differs from the editor's mono "writing voice". */
+  /* Preview prose = "reading voice": Lora body, Playfair headline, Courier Prime code.
+     Đây là heart của editorial style — đậm nhất app. */
   .mdx-preview {
-    color: var(--foreground);
-    font-family: 'Iowan Old Style', 'Charter', 'Georgia', 'Source Serif Pro',
-      'Times New Roman', serif;
-    font-size: 1.0625rem;
-    line-height: 1.75;
+    color: #222;
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    line-height: 1.85;
     font-feature-settings: 'kern', 'liga', 'onum';
   }
 
   .mdx-preview > * + * {
-    margin-top: 1.15rem;
+    margin-top: 0.9rem;
   }
 
+  /* Headlines — Playfair Display, weight 900 cho H1 (thesis), 700 cho H2 (section beat).
+     H1 có border-bottom 2px ink, H2 có border-top 2px ink — page có nhịp mở/đóng rõ ràng. */
   .mdx-preview h1,
   .mdx-preview h2,
   .mdx-preview h3,
   .mdx-preview h4 {
     color: var(--foreground);
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 650;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
+    font-family: var(--font-display);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
   }
 
-  /* H1: the thesis. Larger, tighter, with a hairline rule beneath —
-     gives the page a clear opening beat. */
   .mdx-preview h1 {
     margin-top: 0;
-    margin-bottom: 0.25rem;
-    font-size: 2.15rem;
-    font-weight: 700;
+    margin-bottom: 0.4rem;
+    font-size: 2.5rem;
+    font-weight: 900;
     padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--foreground);
   }
 
   .mdx-preview h2 {
-    margin-top: 2.5rem;
-    font-size: 1.4rem;
+    margin-top: 3rem;
+    padding-top: 1rem;
+    font-size: 1.7rem;
+    font-weight: 700;
+    border-top: 2px solid var(--foreground);
+    /* scroll-margin để anchor link không bị masthead che. */
+    scroll-margin-top: 56px;
   }
 
   .mdx-preview h3 {
     margin-top: 1.75rem;
-    font-size: 1.15rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .mdx-preview h4 {
+    margin-top: 1.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
   }
 
   .mdx-preview p {
     margin-top: 0.9rem;
+    color: #222;
+  }
+
+  .mdx-preview strong {
+    color: var(--foreground);
+    font-weight: 700;
+  }
+
+  .mdx-preview mark {
+    background: color-mix(in srgb, var(--chart-5) 24%, transparent);
+    color: var(--foreground);
+    padding: 0 0.18em;
   }
 
   .mdx-preview ul,
@@ -221,8 +283,8 @@
     position: relative;
   }
 
-  /* Custom list marker — a small viridian dash, not a default bullet.
-     Subtle way the accent leaks into the reading surface. */
+  /* Custom list marker — small red square dash, không phải bullet tròn.
+     Đây là cách accent red leak vào prose surface một cách kín đáo. */
   .mdx-preview ul > li::before {
     content: '';
     position: absolute;
@@ -230,9 +292,7 @@
     top: 0.72em;
     width: 0.4rem;
     height: 0.4rem;
-    border-radius: 1px;
-    background: var(--viridian);
-    opacity: 0.85;
+    background: var(--editorial-red);
   }
 
   .mdx-preview ol {
@@ -243,49 +303,220 @@
     margin-top: 0.35rem;
   }
 
+  /* Link = result blue, underline 40% mix → hover lên full blue.
+     Wikilink resolved cũng theo blue này (sync với mdx-components.tsx). */
   .mdx-preview a {
-    color: var(--viridian);
+    color: var(--editorial-blue);
     text-decoration: underline;
-    text-decoration-color: color-mix(in oklch, var(--viridian) 40%, transparent);
-    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--editorial-blue) 40%, transparent);
+    text-decoration-thickness: 2px;
     text-underline-offset: 3px;
+    font-weight: 600;
     transition: text-decoration-color 0.15s ease;
   }
 
   .mdx-preview a:hover {
-    text-decoration-color: var(--viridian);
+    text-decoration-color: var(--editorial-blue);
   }
 
-  /* Inline code: monospace pill, slightly recessed. Reads as "machine in prose". */
+  /* Inline code: Courier Prime, INVERTED (black bg, paper text).
+     Đọc như "machine in prose" — khác hẳn serif xung quanh. */
   .mdx-preview code {
-    border-radius: 0.3rem;
-    background: var(--secondary);
-    padding: 0.1rem 0.32rem;
-    font-size: 0.84em;
-    font-family: 'JetBrains Mono', 'Cascadia Code', ui-monospace, monospace;
-    font-feature-settings: 'calt', 'zero';
+    font-family: var(--font-mono);
+    background: var(--foreground);
+    color: var(--background);
+    padding: 2px 7px;
+    font-size: 0.85em;
+    font-weight: 400;
   }
 
   .mdx-preview pre {
     overflow: auto;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    background: var(--secondary);
+    background: var(--paper-dark);
+    border: 2px solid var(--foreground);
+    box-shadow: 3px 3px 0 var(--foreground);
     padding: 1rem 1.15rem;
-    font-size: 0.875rem;
-    line-height: 1.6;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
   }
 
   .mdx-preview pre code {
     background: transparent;
+    color: var(--foreground);
     padding: 0;
     font-size: inherit;
   }
 
+  .mdx-preview pre code.hljs {
+    display: block;
+  }
+
+  .mdx-preview .hljs-comment,
+  .mdx-preview .hljs-quote {
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  .mdx-preview .hljs-keyword,
+  .mdx-preview .hljs-selector-tag,
+  .mdx-preview .hljs-subst {
+    color: var(--editorial-red);
+    font-weight: 700;
+  }
+
+  .mdx-preview .hljs-title,
+  .mdx-preview .hljs-section,
+  .mdx-preview .hljs-function .hljs-title,
+  .mdx-preview .hljs-title.function_ {
+    color: var(--editorial-blue);
+    font-weight: 700;
+  }
+
+  .mdx-preview .hljs-string,
+  .mdx-preview .hljs-attr,
+  .mdx-preview .hljs-attribute,
+  .mdx-preview .hljs-symbol,
+  .mdx-preview .hljs-template-variable,
+  .mdx-preview .hljs-variable {
+    color: #8a5a00;
+  }
+
+  .dark .mdx-preview .hljs-string,
+  .dark .mdx-preview .hljs-attr,
+  .dark .mdx-preview .hljs-attribute,
+  .dark .mdx-preview .hljs-symbol,
+  .dark .mdx-preview .hljs-template-variable,
+  .dark .mdx-preview .hljs-variable {
+    color: #d4a847;
+  }
+
+  .mdx-preview .hljs-number,
+  .mdx-preview .hljs-literal,
+  .mdx-preview .hljs-built_in,
+  .mdx-preview .hljs-builtin-name,
+  .mdx-preview .hljs-type,
+  .mdx-preview .hljs-meta {
+    color: #6b3fa0;
+  }
+
+  .dark .mdx-preview .hljs-number,
+  .dark .mdx-preview .hljs-literal,
+  .dark .mdx-preview .hljs-built_in,
+  .dark .mdx-preview .hljs-builtin-name,
+  .dark .mdx-preview .hljs-type,
+  .dark .mdx-preview .hljs-meta {
+    color: #c3a6ff;
+  }
+
+  .mdx-preview .hljs-deletion {
+    color: var(--editorial-red);
+  }
+
+  .mdx-preview .hljs-addition {
+    color: var(--editorial-blue);
+  }
+
+  .mdx-preview .mdx-callout {
+    --callout-accent: var(--foreground);
+    --callout-bg: color-mix(in srgb, var(--callout-accent) 8%, var(--background));
+    margin: 1.35rem 0;
+    border: 2px solid var(--callout-accent);
+    border-left-width: 8px;
+    background: var(--callout-bg);
+    box-shadow: var(--shadow-hard-xs);
+    padding: 0.9rem 1rem 1rem;
+    color: var(--foreground);
+    font-style: normal;
+  }
+
+  .mdx-preview .mdx-callout[data-callout='info'] {
+    --callout-accent: #6b6b6b;
+  }
+
+  .dark .mdx-preview .mdx-callout[data-callout='info'] {
+    --callout-accent: oklch(0.72 0.006 80);
+  }
+
+  .mdx-preview .mdx-callout[data-callout='tip'] {
+    --callout-accent: var(--editorial-blue);
+  }
+
+  .mdx-preview .mdx-callout[data-callout='warning'] {
+    --callout-accent: #b8860b;
+  }
+
+  .dark .mdx-preview .mdx-callout[data-callout='warning'] {
+    --callout-accent: #d4a847;
+  }
+
+  .mdx-preview .mdx-callout[data-callout='danger'] {
+    --callout-accent: var(--editorial-red);
+  }
+
+  .mdx-preview .mdx-callout-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    color: var(--callout-accent);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .mdx-preview .mdx-callout-title::before {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--callout-accent);
+    background: var(--background);
+    color: var(--callout-accent);
+    box-shadow: 2px 2px 0 var(--callout-accent);
+    content: 'N';
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+
+  .mdx-preview .mdx-callout[data-callout='info'] .mdx-callout-title::before {
+    content: 'i';
+  }
+
+  .mdx-preview .mdx-callout[data-callout='tip'] .mdx-callout-title::before {
+    content: '+';
+  }
+
+  .mdx-preview .mdx-callout[data-callout='warning'] .mdx-callout-title::before {
+    content: '!';
+  }
+
+  .mdx-preview .mdx-callout[data-callout='danger'] .mdx-callout-title::before {
+    content: 'X';
+  }
+
+  .mdx-preview .mdx-callout > * + * {
+    margin-top: 0.65rem;
+  }
+
+  .mdx-preview .mdx-callout > p {
+    color: var(--foreground);
+  }
+
+  .mdx-preview .mdx-callout ul > li::before {
+    background: var(--callout-accent);
+  }
+
+  /* Blockquote = red left bar, không phải viridian. */
   .mdx-preview blockquote {
     margin: 1.25rem 0;
     padding: 0.2rem 0 0.2rem 1.1rem;
-    border-left: 2px solid var(--viridian);
+    border-left: 4px solid var(--editorial-red);
     color: var(--muted-foreground);
     font-style: italic;
   }
@@ -293,44 +524,56 @@
   .mdx-preview hr {
     margin: 2rem 0;
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--foreground);
   }
 
+  /* Editorial table — Courier Prime uppercase header (black bg, paper text),
+     ink cell border, zebra stripe paper-dark. */
   .mdx-preview table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
-    font-family: 'Inter', system-ui, sans-serif;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
   }
 
   .mdx-preview th,
   .mdx-preview td {
-    border-bottom: 1px solid var(--border);
-    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--foreground);
+    padding: 0.55rem 0.7rem;
     text-align: left;
+    vertical-align: top;
   }
 
   .mdx-preview th {
-    border-bottom: 2px solid var(--foreground);
-    font-weight: 600;
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--muted-foreground);
+    letter-spacing: 1px;
+    background: var(--foreground);
+    color: var(--background);
+    border: 1px solid var(--foreground);
+  }
+
+  .mdx-preview tr:nth-child(even) td {
+    background: var(--paper-dark);
   }
 
   .mdx-preview details {
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
+    border: 2px solid var(--foreground);
+    box-shadow: var(--shadow-hard-xs);
     padding: 0.85rem 1.1rem;
     background: var(--card);
   }
 
   .mdx-preview summary {
     cursor: pointer;
-    font-weight: 600;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   .mdx-preview svg {
@@ -338,7 +581,7 @@
   }
 
   .mdx-preview img {
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
+    border: 2px solid var(--foreground);
+    box-shadow: var(--shadow-hard-xs);
   }
 }

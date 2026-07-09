@@ -2,6 +2,8 @@ import rehypeSanitize from 'rehype-sanitize'
 import type { Options as SanitizeSchema } from 'rehype-sanitize'
 import type { Element, Root, RootContent } from 'hast'
 
+import { calloutTypes } from '../../../shared/remark-callouts'
+
 type SafeHtmlNode = Root | RootContent | MdxJsxNode | MdxExpressionNode
 
 interface MdxJsxNode {
@@ -43,9 +45,16 @@ const safeHtmlSchema: SanitizeSchema = {
   attributes: {
     '*': ['ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy', 'title'],
     a: ['href', 'title'],
+    aside: [
+      ['className', 'mdx-callout'],
+      ['dataCallout', ...calloutTypes]
+    ],
     blockquote: ['cite'],
-    code: [['className', /^language-[\w-]+$/]],
+    // Math code classes are emitted by remark-math and consumed by trusted rehype-katex
+    // after sanitize; keep this allowlist narrow.
+    code: [['className', /^language-[\w-]+$/, 'math-inline', 'math-display']],
     del: ['cite'],
+    div: [['className', 'mdx-callout-title']],
     img: ['alt', 'title', 'width', 'height'],
     ol: ['start', ['type', '1', 'a', 'A', 'i', 'I']],
     th: ['align'],
@@ -73,6 +82,7 @@ const safeHtmlSchema: SanitizeSchema = {
   tagNames: [
     'a',
     'abbr',
+    'aside',
     'b',
     'blockquote',
     'br',
@@ -100,6 +110,7 @@ const safeHtmlSchema: SanitizeSchema = {
     'img',
     'li',
     'line',
+    'mark',
     'ol',
     'p',
     'path',
