@@ -7,7 +7,7 @@ import rehypeKatex from 'rehype-katex'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { remarkCallouts } from '../../../shared/remark-callouts'
@@ -23,6 +23,10 @@ interface MdxPreviewProps {
   source: string
   selectedPath: string | null
   notes: IndexedNoteSummary[]
+  revealHeadingRequest?: {
+    position: number
+    requestId: number
+  } | null
   onNavigate: (relativePath: string) => void
   onRevealLine: (line: number) => void
 }
@@ -39,9 +43,11 @@ export function MdxPreview({
   source,
   selectedPath,
   notes,
+  revealHeadingRequest,
   onNavigate,
   onRevealLine
 }: MdxPreviewProps): React.JSX.Element {
+  const scrollRootRef = useRef<HTMLDivElement | null>(null)
   const [Content, setContent] = useState<MDXContent | null>(null)
   const [compileError, setCompileError] = useState<PreviewDiagnostic | null>(null)
   const [isCompiling, setIsCompiling] = useState(false)
@@ -85,6 +91,22 @@ export function MdxPreview({
     }
   }, [source])
 
+  useEffect(() => {
+    if (!revealHeadingRequest) {
+      return
+    }
+
+    const scrollRoot = scrollRootRef.current
+    const headings = scrollRoot?.querySelectorAll<HTMLElement>(
+      '.mdx-preview h1, .mdx-preview h2, .mdx-preview h3, .mdx-preview h4, .mdx-preview h5, .mdx-preview h6'
+    )
+    const target = headings?.[revealHeadingRequest.position]
+
+    if (target) {
+      target.scrollIntoView({ block: 'start' })
+    }
+  }, [Content, revealHeadingRequest])
+
   if (!selectedPath) {
     return (
       <div className="flex h-full items-center justify-center px-8 text-center text-sm text-muted-foreground">
@@ -94,7 +116,7 @@ export function MdxPreview({
   }
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto">
+    <div ref={scrollRootRef} className="h-full min-h-0 overflow-y-auto">
       <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b-2 border-foreground bg-background/95 px-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground backdrop-blur">
         <span className="truncate">{selectedPath}</span>
         <span className={isCompiling ? 'text-muted-foreground' : 'text-[var(--editorial-red)]'}>

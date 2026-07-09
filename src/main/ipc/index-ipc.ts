@@ -2,7 +2,13 @@ import { ipcMain } from 'electron'
 import { z } from 'zod'
 
 import { getCurrentIndex } from '../services/vault-session'
-import type { BacklinkResult, IndexedNoteSummary, SearchResult } from '../services/db-service'
+import type {
+  BacklinkResult,
+  IndexedNoteSummary,
+  NoteHeadingResult,
+  SearchResult,
+  TagSummary
+} from '../services/db-service'
 import type { IpcFailure, IpcResult } from './vault-ipc'
 
 interface RegisterIndexIpcOptions {
@@ -16,6 +22,12 @@ const searchPayloadSchema = z.object({
 })
 const backlinksPayloadSchema = z.object({
   relativePath: z.string().min(1)
+})
+const headingsPayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
+const notesByTagPayloadSchema = z.object({
+  tag: z.string().min(1)
 })
 
 export function registerIndexIpc(options: RegisterIndexIpcOptions = {}): void {
@@ -39,6 +51,33 @@ export function registerIndexIpc(options: RegisterIndexIpcOptions = {}): void {
       return getCurrentIndex().database.listNotes()
     })
   })
+
+  ipcMain.handle(
+    'index:headings-of-note',
+    (_event, payload): Promise<IpcResult<NoteHeadingResult[]>> => {
+      return handleIndexRequest(async () => {
+        const input = headingsPayloadSchema.parse(payload)
+        return getCurrentIndex().database.getHeadings(input.relativePath)
+      })
+    }
+  )
+
+  ipcMain.handle('index:all-tags', (_event, payload): Promise<IpcResult<TagSummary[]>> => {
+    return handleIndexRequest(async () => {
+      emptyPayloadSchema.parse(payload)
+      return getCurrentIndex().database.listTags()
+    })
+  })
+
+  ipcMain.handle(
+    'index:notes-by-tag',
+    (_event, payload): Promise<IpcResult<IndexedNoteSummary[]>> => {
+      return handleIndexRequest(async () => {
+        const input = notesByTagPayloadSchema.parse(payload)
+        return getCurrentIndex().database.getNotesByTag(input.tag)
+      })
+    }
+  )
 
   ipcMain.handle('index:rebuild', (_event, payload): Promise<IpcResult<void>> => {
     return handleIndexRequest(async () => {

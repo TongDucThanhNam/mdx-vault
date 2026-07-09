@@ -30,3 +30,15 @@ export interface BacklinkResult {
   target: string
   display: string
 }
+
+export interface NoteHeadingResult {
+  depth: number
+  text: string
+  slug: string
+  position: number
+}
+
+export interface TagSummary {
+  tag: string
+  count: number
+}

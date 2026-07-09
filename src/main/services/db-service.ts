@@ -32,6 +32,18 @@ export interface BacklinkResult {
   display: string
 }
 
+export interface NoteHeadingResult {
+  depth: number
+  text: string
+  slug: string
+  position: number
+}
+
+export interface TagSummary {
+  tag: string
+  count: number
+}
+
 interface NoteRow {
   id: string
   relative_path: string
@@ -53,6 +65,18 @@ interface SearchRow extends NoteRow {
 interface BacklinkRow extends NoteRow {
   target: string
   display: string | null
+}
+
+interface HeadingRow {
+  depth: number
+  text: string
+  slug: string
+  position: number
+}
+
+interface TagSummaryRow {
+  tag: string
+  count: number
 }
 
 const SCHEMA_VERSION = 1
@@ -241,6 +265,60 @@ export class DbService {
       target: row.target,
       display: row.display ?? row.target
     }))
+  }
+
+  getHeadings(relativePath: string): NoteHeadingResult[] {
+    const note = this.getNoteByRelativePath(relativePath)
+
+    if (!note) {
+      return []
+    }
+
+    const rows = this.db
+      .prepare(
+        `SELECT depth, text, slug, position
+         FROM note_headings
+         WHERE note_id = ?
+         ORDER BY position ASC`
+      )
+      .all(note.id) as HeadingRow[]
+
+    return rows.map((row) => ({
+      depth: row.depth,
+      text: row.text,
+      slug: row.slug,
+      position: row.position
+    }))
+  }
+
+  listTags(): TagSummary[] {
+    const rows = this.db
+      .prepare(
+        `SELECT tag, COUNT(*) AS count
+         FROM note_tags
+         GROUP BY tag
+         ORDER BY tag COLLATE NOCASE`
+      )
+      .all() as TagSummaryRow[]
+
+    return rows.map((row) => ({
+      tag: row.tag,
+      count: row.count
+    }))
+  }
+
+  getNotesByTag(tag: string): IndexedNoteSummary[] {
+    const rows = this.db
+      .prepare(
+        `SELECT n.id, n.relative_path, n.title, n.mtime_ms, n.content_hash
+         FROM note_tags t
+         JOIN notes n ON n.id = t.note_id
+         WHERE t.tag = ?
+         ORDER BY n.title COLLATE NOCASE, n.relative_path COLLATE NOCASE`
+      )
+      .all(tag) as NoteRow[]
+
+    return this.attachAliases(rows)
   }
 
   clearAll(): void {

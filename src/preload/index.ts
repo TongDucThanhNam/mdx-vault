@@ -64,6 +64,18 @@ interface BacklinkResult {
   display: string
 }
 
+interface NoteHeadingResult {
+  depth: number
+  text: string
+  slug: string
+  position: number
+}
+
+interface TagSummary {
+  tag: string
+  count: number
+}
+
 interface IpcSuccess<T> {
   ok: true
   data: T
@@ -125,6 +137,11 @@ const indexApi = {
   backlinks: (relativePath: string): Promise<BacklinkResult[]> =>
     invokeIndex('index:backlinks', { relativePath }),
   notes: (): Promise<IndexedNoteSummary[]> => invokeIndex('index:notes'),
+  headingsOfNote: (relativePath: string): Promise<NoteHeadingResult[]> =>
+    invokeIndex('index:headings-of-note', { relativePath }),
+  tags: (): Promise<TagSummary[]> => invokeIndex('index:all-tags'),
+  notesByTag: (tag: string): Promise<IndexedNoteSummary[]> =>
+    invokeIndex('index:notes-by-tag', { tag }),
   rebuild: (): Promise<void> => invokeIndex('index:rebuild'),
   onDidChange: (callback: () => void): (() => void) => {
     const listener = (): void => callback()

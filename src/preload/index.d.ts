@@ -39,6 +39,18 @@ interface BacklinkResult {
   display: string
 }
 
+interface NoteHeadingResult {
+  depth: number
+  text: string
+  slug: string
+  position: number
+}
+
+interface TagSummary {
+  tag: string
+  count: number
+}
+
 type SandboxKind = 'html' | 'interactive'
 type SandboxPermissionDecision = 'allow' | 'deny'
 type SandboxPermissionStatus = 'allowed' | 'denied' | 'prompt'
@@ -311,6 +323,9 @@ interface IndexApi {
   search: (query: string, limit?: number) => Promise<SearchResult[]>
   backlinks: (relativePath: string) => Promise<BacklinkResult[]>
   notes: () => Promise<IndexedNoteSummary[]>
+  headingsOfNote: (relativePath: string) => Promise<NoteHeadingResult[]>
+  tags: () => Promise<TagSummary[]>
+  notesByTag: (tag: string) => Promise<IndexedNoteSummary[]>
   rebuild: () => Promise<void>
   onDidChange: (callback: () => void) => () => void
 }

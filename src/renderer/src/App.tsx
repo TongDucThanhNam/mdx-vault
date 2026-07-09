@@ -12,7 +12,10 @@ import {
   Download,
   SquareCode,
   Trash2,
-  ArrowDownUp
+  ArrowDownUp,
+  ListTree,
+  Hash,
+  Link2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -25,9 +28,17 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { BacklinksPanel } from '@/panels/BacklinksPanel'
+import { OutlinePanel } from '@/panels/OutlinePanel'
+import { TagsPanel } from '@/panels/TagsPanel'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { SearchPane } from '@/search/SearchPane'
-import type { BacklinkResult, IndexedNoteSummary, VaultInfo } from '@/vault/types'
+import type {
+  BacklinkResult,
+  IndexedNoteSummary,
+  NoteHeadingResult,
+  TagSummary,
+  VaultInfo
+} from '@/vault/types'
 
 import { ExportDialog } from '@/export/ExportDialog'
 import {
@@ -38,9 +49,15 @@ import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { SelectionRange } from '../../shared/ai'
 
 type ViewMode = 'source' | 'split' | 'preview'
+type NavigationPanel = 'outline' | 'tags' | 'backlinks'
 
 interface DeleteRequest {
   relativePath: string
+}
+
+interface PreviewHeadingRequest {
+  position: number
+  requestId: number
 }
 
 interface ToastState {
@@ -60,10 +77,22 @@ function App(): React.JSX.Element {
     relativePath: null,
     backlinks: []
   })
+  const [outlineState, setOutlineState] = useState<{
+    relativePath: string | null
+    headings: NoteHeadingResult[]
+  }>({
+    relativePath: null,
+    headings: []
+  })
+  const [tags, setTags] = useState<TagSummary[]>([])
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [taggedNotes, setTaggedNotes] = useState<IndexedNoteSummary[]>([])
+  const [isLoadingTaggedNotes, setIsLoadingTaggedNotes] = useState(false)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [content, setContent] = useState('')
   const [savedContent, setSavedContent] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('split')
+  const [navigationPanel, setNavigationPanel] = useState<NavigationPanel>('outline')
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
@@ -75,6 +104,9 @@ function App(): React.JSX.Element {
   const [createNoteOpen, setCreateNoteOpen] = useState(false)
   const [editorSelection, setEditorSelection] = useState<EditorSelectionSnapshot | null>(null)
   const [revealLineRequest, setRevealLineRequest] = useState<RevealLineRequest | null>(null)
+  const [previewHeadingRequest, setPreviewHeadingRequest] = useState<PreviewHeadingRequest | null>(
+    null
+  )
   const [indexRevision, setIndexRevision] = useState(0)
   const [isOpening, setIsOpening] = useState(false)
   const [isLoadingFile, setIsLoadingFile] = useState(false)
@@ -286,16 +318,13 @@ function App(): React.JSX.Element {
     [loadFile, refreshVaultSnapshot, showToast]
   )
 
-  const handleRevealInExplorer = useCallback(
-    async (relativePath: string): Promise<void> => {
-      try {
-        await window.vaultApi.revealInExplorer(relativePath)
-      } catch (revealError) {
-        setError(formatError(revealError))
-      }
-    },
-    []
-  )
+  const handleRevealInExplorer = useCallback(async (relativePath: string): Promise<void> => {
+    try {
+      await window.vaultApi.revealInExplorer(relativePath)
+    } catch (revealError) {
+      setError(formatError(revealError))
+    }
+  }, [])
 
   const handleCopyPath = useCallback(
     async (relativePath: string): Promise<void> => {
@@ -534,6 +563,120 @@ function App(): React.JSX.Element {
   }, [indexRevision, selectedPath])
 
   useEffect(() => {
+    if (!selectedPath) {
+      queueMicrotask(() => {
+        setOutlineState({
+          relativePath: null,
+          headings: []
+        })
+      })
+      return
+    }
+
+    let cancelled = false
+
+    void window.indexApi
+      .headingsOfNote(selectedPath)
+      .then((headings) => {
+        if (!cancelled) {
+          setOutlineState({
+            relativePath: selectedPath,
+            headings
+          })
+        }
+      })
+      .catch((outlineError: unknown) => {
+        if (!cancelled) {
+          setOutlineState({
+            relativePath: selectedPath,
+            headings: []
+          })
+          setError(formatError(outlineError))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [indexRevision, selectedPath])
+
+  useEffect(() => {
+    if (!vault) {
+      queueMicrotask(() => {
+        setTags([])
+        setSelectedTag(null)
+        setTaggedNotes([])
+      })
+      return
+    }
+
+    let cancelled = false
+
+    void window.indexApi
+      .tags()
+      .then((nextTags) => {
+        if (cancelled) {
+          return
+        }
+
+        setTags(nextTags)
+        setSelectedTag((currentTag) =>
+          currentTag && nextTags.some((tag) => tag.tag === currentTag) ? currentTag : null
+        )
+      })
+      .catch((tagsError: unknown) => {
+        if (!cancelled) {
+          setTags([])
+          setError(formatError(tagsError))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [indexRevision, vault])
+
+  useEffect(() => {
+    if (!selectedTag) {
+      queueMicrotask(() => {
+        setTaggedNotes([])
+        setIsLoadingTaggedNotes(false)
+      })
+      return
+    }
+
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setIsLoadingTaggedNotes(true)
+      }
+    })
+
+    void window.indexApi
+      .notesByTag(selectedTag)
+      .then((notes) => {
+        if (!cancelled) {
+          setTaggedNotes(notes)
+        }
+      })
+      .catch((tagNotesError: unknown) => {
+        if (!cancelled) {
+          setTaggedNotes([])
+          setError(formatError(tagNotesError))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingTaggedNotes(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [indexRevision, selectedTag])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase()
 
@@ -600,6 +743,22 @@ function App(): React.JSX.Element {
     })
   }, [])
 
+  const revealHeading = useCallback(
+    (heading: NoteHeadingResult) => {
+      const editorLine = findHeadingLine(contentRef.current, heading.position)
+
+      if (editorLine !== null) {
+        revealEditorLine(editorLine)
+      }
+
+      setPreviewHeadingRequest({
+        position: heading.position,
+        requestId: Date.now()
+      })
+    },
+    [revealEditorLine]
+  )
+
   const handleEditorSelectionChange = useCallback((snapshot: EditorSelectionSnapshot) => {
     setEditorSelection(snapshot)
     // Auto-close the floating palette when the selection is cleared.
@@ -647,30 +806,38 @@ function App(): React.JSX.Element {
   })
   const wordCount = useMemo(() => computeWordCount(content), [content])
   const backlinks = backlinksState.relativePath === selectedPath ? backlinksState.backlinks : []
+  const outlineHeadings = outlineState.relativePath === selectedPath ? outlineState.headings : []
   const showEditor = viewMode !== 'preview'
   const showPreview = viewMode !== 'source'
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+      <header className="sticky top-0 z-50 flex h-11 shrink-0 items-center justify-between border-b-2 border-foreground bg-foreground px-4 text-background">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="text-[15px] font-semibold tracking-tight">
-            mdx-vault<span className="text-[var(--viridian)]">.</span>
+          <div className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-background">
+            mdx-vault<span className="text-[var(--editorial-red)]">.</span>
           </div>
           {vault ? (
             <>
-              <span className="text-muted-foreground/40">/</span>
-              <span className="truncate text-[13px] text-muted-foreground">{vault.name}</span>
+              <span className="font-mono text-[11px] uppercase tracking-widest text-background/40">
+                /
+              </span>
+              <span className="truncate font-mono text-[11px] uppercase tracking-widest text-background/70">
+                {vault.name}
+              </span>
             </>
           ) : null}
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden text-xs text-muted-foreground sm:block">{saveLabel}</div>
+          <div className="hidden font-mono text-[11px] uppercase tracking-widest text-background/60 sm:block">
+            {saveLabel}
+          </div>
           <Button
             type="button"
             size="icon-sm"
-            variant="outline"
+            variant="ghost"
+            className="text-background/80 hover:bg-background hover:text-foreground"
             title="Open note"
             aria-label="Open note"
             disabled={!vault}
@@ -681,7 +848,8 @@ function App(): React.JSX.Element {
           <Button
             type="button"
             size="icon-sm"
-            variant="outline"
+            variant="ghost"
+            className="text-background/80 hover:bg-background hover:text-foreground"
             title="Search notes"
             aria-label="Search notes"
             disabled={!vault}
@@ -692,7 +860,8 @@ function App(): React.JSX.Element {
           <Button
             type="button"
             size="sm"
-            variant="outline"
+            variant="ghost"
+            className="border-2 border-background text-background hover:bg-background hover:text-foreground"
             disabled={!selectedPath || isSaving || !isDirty}
             onClick={() => void saveCurrentFile()}
           >
@@ -702,7 +871,8 @@ function App(): React.JSX.Element {
           <Button
             type="button"
             size="icon-sm"
-            variant="outline"
+            variant="ghost"
+            className="text-background/80 hover:bg-background hover:text-foreground"
             title="Export note (Ctrl+Shift+E)"
             aria-label="Export note"
             disabled={!selectedPath}
@@ -713,7 +883,12 @@ function App(): React.JSX.Element {
           <Button
             type="button"
             size="icon-sm"
-            variant={aiPanelOpen ? 'default' : 'outline'}
+            variant={aiPanelOpen ? 'default' : 'ghost'}
+            className={
+              aiPanelOpen
+                ? 'bg-[var(--editorial-red)] text-white hover:bg-[var(--editorial-red)]/90'
+                : 'text-background/80 hover:bg-background hover:text-foreground'
+            }
             title="AI assistant (Ctrl+Shift+A)"
             aria-label="Toggle AI assistant"
             aria-pressed={aiPanelOpen}
@@ -722,11 +897,12 @@ function App(): React.JSX.Element {
           >
             <Sparkles className="size-4" aria-hidden="true" />
           </Button>
-          <ViewModeToggle value={viewMode} onChange={setViewMode} disabled={!selectedPath} />
+          <ViewModeToggle value={viewMode} onChange={setViewMode} disabled={!selectedPath} dark />
           <Button
             type="button"
             size="icon-sm"
-            variant="outline"
+            variant="ghost"
+            className="text-background/80 hover:bg-background hover:text-foreground"
             title={
               theme === 'system'
                 ? `Theme: follow system (currently ${resolvedTheme})`
@@ -741,7 +917,14 @@ function App(): React.JSX.Element {
               <Moon className="size-4" aria-hidden="true" />
             )}
           </Button>
-          <Button type="button" size="sm" onClick={() => void openVault()} disabled={isOpening}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="border-2 border-background bg-background text-foreground hover:bg-[var(--editorial-red)] hover:text-white hover:border-[var(--editorial-red)]"
+            onClick={() => void openVault()}
+            disabled={isOpening}
+          >
             <FolderOpen className="size-4" aria-hidden="true" />
             {isOpening ? 'Opening' : 'Open vault'}
           </Button>
@@ -749,7 +932,7 @@ function App(): React.JSX.Element {
       </header>
 
       {error ? (
-        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+        <div className="border-b-2 border-destructive bg-destructive/10 px-4 py-2 font-mono text-[12px] font-bold uppercase tracking-wider text-destructive">
           {error}
         </div>
       ) : null}
@@ -760,9 +943,9 @@ function App(): React.JSX.Element {
           gridTemplateColumns(viewMode, aiPanelOpen)
         )}
       >
-        <aside className="min-h-0 min-w-0 border-r bg-sidebar">
-          <div className="flex h-9 items-center justify-between border-b px-3">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <aside className="min-h-0 min-w-0 border-r-2 border-foreground bg-sidebar">
+          <div className="flex h-9 items-center justify-between border-b-2 border-foreground px-3">
+            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Vault
             </div>
             <div className="flex items-center gap-1">
@@ -833,12 +1016,12 @@ function App(): React.JSX.Element {
         </aside>
 
         {showEditor ? (
-          <section className="min-h-0 min-w-0 border-r bg-card/50">
-            <div className="flex h-9 items-center justify-between border-b px-4">
-              <div className="min-w-0 truncate text-[13px] font-medium tracking-tight">
+          <section className="min-h-0 min-w-0 border-r-2 border-foreground bg-card/50">
+            <div className="flex h-9 items-center justify-between border-b-2 border-foreground px-4">
+              <div className="min-w-0 truncate font-mono text-[12px] font-medium tracking-tight">
                 {selectedPath ?? 'No file selected'}
               </div>
-              <div className="flex shrink-0 items-center gap-3 text-[11px] tabular-nums text-muted-foreground/70">
+              <div className="flex shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums text-muted-foreground">
                 {selectedPath ? (
                   <span title="Word / character count and estimated reading time">
                     {wordCount.words} words · {wordCount.chars} chars · {wordCount.readingMinutes}{' '}
@@ -887,34 +1070,84 @@ function App(): React.JSX.Element {
 
         {showPreview ? (
           <aside className="min-h-0 min-w-0 bg-card/30">
-            <div className="flex h-9 items-center border-b px-4">
-              <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground/50">
+            <div className="flex h-9 items-center justify-between border-b-2 border-foreground px-4">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 Preview
               </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant={navigationPanel === 'outline' ? 'outline' : 'ghost'}
+                  title="Outline"
+                  aria-label="Outline"
+                  onClick={() => setNavigationPanel('outline')}
+                >
+                  <ListTree className="size-3.5" aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant={navigationPanel === 'tags' ? 'outline' : 'ghost'}
+                  title="Tags"
+                  aria-label="Tags"
+                  onClick={() => setNavigationPanel('tags')}
+                >
+                  <Hash className="size-3.5" aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant={navigationPanel === 'backlinks' ? 'outline' : 'ghost'}
+                  title="Backlinks"
+                  aria-label="Backlinks"
+                  onClick={() => setNavigationPanel('backlinks')}
+                >
+                  <Link2 className="size-3.5" aria-hidden="true" />
+                </Button>
+              </div>
             </div>
-            <div className="grid h-[calc(100%-2.25rem)] min-h-0 grid-rows-[minmax(0,1fr)_180px]">
+            <div className="grid h-[calc(100%-2.25rem)] min-h-0 grid-rows-[minmax(0,1fr)_220px]">
               <div className="min-h-0 overflow-hidden">
                 <MdxPreview
                   source={content}
                   selectedPath={selectedPath}
                   notes={indexNotes}
+                  revealHeadingRequest={previewHeadingRequest}
                   onNavigate={navigateToNote}
                   onRevealLine={revealEditorLine}
                 />
               </div>
-              <div className="min-h-0 overflow-hidden border-t bg-muted/10">
-                <BacklinksPanel
-                  backlinks={backlinks}
-                  selectedPath={selectedPath}
-                  onSelectNote={navigateToNote}
-                />
+              <div className="min-h-0 overflow-hidden border-t-2 border-foreground bg-muted/10">
+                {navigationPanel === 'outline' ? (
+                  <OutlinePanel
+                    headings={outlineHeadings}
+                    selectedPath={selectedPath}
+                    onSelectHeading={revealHeading}
+                  />
+                ) : navigationPanel === 'tags' ? (
+                  <TagsPanel
+                    tags={tags}
+                    selectedTag={selectedTag}
+                    taggedNotes={taggedNotes}
+                    isLoading={isLoadingTaggedNotes}
+                    onSelectTag={setSelectedTag}
+                    onSelectNote={navigateToNote}
+                  />
+                ) : (
+                  <BacklinksPanel
+                    backlinks={backlinks}
+                    selectedPath={selectedPath}
+                    onSelectNote={navigateToNote}
+                  />
+                )}
               </div>
             </div>
           </aside>
         ) : null}
 
         {aiPanelOpen ? (
-          <aside className="min-h-0 min-w-0 border-l bg-card/30">
+          <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-card/30">
             <AiSidePanel
               noteRelativePath={selectedPath}
               noteTitle={selectedPath ? deriveNoteTitle(selectedPath) : 'No note'}
@@ -970,9 +1203,11 @@ function App(): React.JSX.Element {
         description={
           <>
             The note will be moved to{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-[11px]">{'.trash/'}</code>. You can
-            recover it from there with your file manager, or use “Empty trash” to remove it
-            permanently.
+            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+              {'.trash/'}
+            </code>
+            . You can recover it from there with your file manager, or use “Empty trash” to remove
+            it permanently.
           </>
         }
         confirmLabel="Move to trash"
@@ -994,8 +1229,11 @@ function App(): React.JSX.Element {
             <strong className="text-foreground">
               {trashCount} item{trashCount === 1 ? '' : 's'}
             </strong>{' '}
-            from <code className="rounded bg-muted px-1 py-0.5 text-[11px]">{'.trash/'}</code>. This
-            cannot be undone.
+            from{' '}
+            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+              {'.trash/'}
+            </code>
+            . This cannot be undone.
           </>
         }
         confirmLabel="Empty trash"
@@ -1003,9 +1241,7 @@ function App(): React.JSX.Element {
         isPending={vaultOpsPending}
         onConfirm={() => void handleEmptyTrash()}
       />
-      {toast ? (
-        <ToastView key={toast.key} message={toast.message} variant={toast.variant} />
-      ) : null}
+      {toast ? <ToastView key={toast.key} message={toast.message} variant={toast.variant} /> : null}
     </div>
   )
 }
@@ -1045,7 +1281,7 @@ function SortMenu({
         <ArrowDownUp className="size-3.5" aria-hidden="true" />
       </Button>
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-1 min-w-[180px] overflow-hidden rounded-md border bg-popover p-1 text-[13px] text-popover-foreground shadow-md">
+        <div className="absolute right-0 top-full z-40 mt-1 min-w-[180px] border-2 border-foreground bg-popover p-1 text-[13px] text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]">
           {options.map((option) => (
             <button
               key={option.mode}
@@ -1056,15 +1292,17 @@ function SortMenu({
                 setOpen(false)
               }}
               className={cn(
-                'flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left hover:bg-accent',
-                sortMode === option.mode && 'bg-accent/60 font-medium'
+                'flex w-full items-center justify-between px-2 py-1.5 text-left hover:bg-foreground hover:text-background',
+                sortMode === option.mode && 'bg-foreground text-background font-bold'
               )}
             >
               <span>{option.label}</span>
-              {sortMode === option.mode ? <span className="text-[var(--viridian)]">✓</span> : null}
+              {sortMode === option.mode ? (
+                <span className="text-[var(--editorial-red)]">✓</span>
+              ) : null}
             </button>
           ))}
-          <p className="px-2 pt-1 text-[10px] text-muted-foreground">
+          <p className="px-2 pt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             *Created time is not yet tracked; falls back to Name.
           </p>
         </div>
@@ -1084,10 +1322,8 @@ function ToastView({
     <div
       role="status"
       className={cn(
-        'pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border px-3 py-1.5 text-[13px] shadow-md',
-        variant === 'destructive'
-          ? 'border-destructive/40 bg-destructive/10 text-destructive'
-          : 'border-border bg-popover text-popover-foreground'
+        'pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 border-2 border-foreground px-3 py-1.5 font-mono text-[12px] font-bold uppercase tracking-wider shadow-[4px_4px_0_0_var(--foreground)]',
+        variant === 'destructive' ? 'bg-destructive text-white' : 'bg-foreground text-background'
       )}
     >
       {message}
@@ -1098,11 +1334,13 @@ function ToastView({
 function ViewModeToggle({
   value,
   onChange,
-  disabled
+  disabled,
+  dark = false
 }: {
   value: ViewMode
   onChange: (mode: ViewMode) => void
   disabled?: boolean
+  dark?: boolean
 }): React.JSX.Element {
   const modes: Array<{ mode: ViewMode; label: string; icon: React.ReactNode }> = [
     {
@@ -1118,7 +1356,10 @@ function ViewModeToggle({
     <div
       role="group"
       aria-label="View mode"
-      className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5"
+      className={cn(
+        'flex items-center gap-0.5 border-2 p-0.5',
+        dark ? 'border-background' : 'border-foreground'
+      )}
     >
       {modes.map(({ mode, label, icon }) => {
         const isActive = value === mode
@@ -1132,10 +1373,14 @@ function ViewModeToggle({
             disabled={disabled}
             onClick={() => onChange(mode)}
             className={cn(
-              'flex h-7 items-center gap-1 rounded-sm px-2 text-xs font-medium transition-colors',
+              'flex h-7 items-center gap-1 px-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors',
               isActive
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+                ? dark
+                  ? 'bg-background text-foreground'
+                  : 'bg-foreground text-background'
+                : dark
+                  ? 'text-background/70 hover:bg-background hover:text-foreground'
+                  : 'text-muted-foreground hover:bg-foreground hover:text-background',
               disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
             )}
           >
@@ -1159,12 +1404,12 @@ function EmptyState({
 }): React.JSX.Element {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground shadow-sm">
+      <div className="flex size-12 items-center justify-center border-2 border-foreground bg-card text-muted-foreground shadow-[3px_3px_0_0_var(--foreground)]">
         {icon}
       </div>
       <div>
         <p className="text-[15px] font-medium text-foreground">{title}</p>
-        <p className="mt-1 text-[13px] text-muted-foreground/60">
+        <p className="mt-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground/60">
           Open a vault folder to start writing.
         </p>
       </div>
@@ -1189,6 +1434,23 @@ function gridTemplateColumns(viewMode: ViewMode, aiPanelOpen: boolean): string {
   }
   // Only one pane (source-only or preview-only).
   return 'grid-cols-[280px_minmax(0,1fr)]'
+}
+
+function findHeadingLine(source: string, headingPosition: number): number | null {
+  const lines = source.split(/\r?\n/)
+  let currentHeadingPosition = 0
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (/^\s{0,3}#{1,6}\s+\S/.test(lines[index])) {
+      if (currentHeadingPosition === headingPosition) {
+        return index + 1
+      }
+
+      currentHeadingPosition += 1
+    }
+  }
+
+  return null
 }
 
 function deriveNoteTitle(relativePath: string): string {
