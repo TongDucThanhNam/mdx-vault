@@ -8,7 +8,7 @@ import {
 } from 'electron'
 import { z } from 'zod'
 
-import type { TrashEntry, VaultInfo, VaultFile } from '../services/vault-service'
+import type { NoteTemplate, TrashEntry, VaultInfo, VaultFile } from '../services/vault-service'
 import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 import type { AppSettingsService } from '../services/app-settings'
 
@@ -61,6 +61,13 @@ const renameFilePayloadSchema = z.object({
 })
 const duplicateFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
+})
+const fileExistsPayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
+const renderTemplatePayloadSchema = z.object({
+  relativePath: z.string().min(1),
+  title: z.string().min(1)
 })
 const revealInExplorerPayloadSchema = z.object({
   relativePath: z.string().min(1)
@@ -189,6 +196,13 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
     })
   })
 
+  ipcMain.handle('vault:file-exists', (_event, payload): Promise<IpcResult<boolean>> => {
+    return handleVaultRequest(async () => {
+      const input = fileExistsPayloadSchema.parse(payload)
+      return getCurrentVault().exists(input.relativePath)
+    })
+  })
+
   /** Permanently remove all entries from `<vault>/.trash/`. */
   ipcMain.handle('vault:empty-trash', (): Promise<IpcResult<void>> => {
     return handleVaultRequest(async () => {
@@ -200,6 +214,20 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
   ipcMain.handle('vault:list-trash', (): Promise<IpcResult<TrashEntry[]>> => {
     return handleVaultRequest(async () => {
       return getCurrentVault().listTrash()
+    })
+  })
+
+  ipcMain.handle('vault:list-templates', (_event, payload): Promise<IpcResult<NoteTemplate[]>> => {
+    return handleVaultRequest(async () => {
+      emptyPayloadSchema.parse(payload)
+      return getCurrentVault().listTemplates()
+    })
+  })
+
+  ipcMain.handle('vault:render-template', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = renderTemplatePayloadSchema.parse(payload)
+      return getCurrentVault().renderTemplate(input.relativePath, input.title)
     })
   })
 

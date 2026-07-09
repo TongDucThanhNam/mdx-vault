@@ -10,6 +10,11 @@ export interface VaultInfo {
   files: VaultFile[]
 }
 
+export interface NoteTemplate {
+  relativePath: string
+  name: string
+}
+
 export interface IndexedNoteSummary {
   id: string
   relativePath: string

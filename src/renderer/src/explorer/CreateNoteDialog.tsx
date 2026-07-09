@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import type { NoteTemplate } from '@/vault/types'
 
 interface CreateNoteDialogProps {
   open: boolean
@@ -45,6 +46,9 @@ function CreateNoteForm({
 }): React.JSX.Element {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<NoteTemplate[]>([])
+  const [templatesError, setTemplatesError] = useState<string | null>(null)
+  const [selectedTemplatePath, setSelectedTemplatePath] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -54,6 +58,31 @@ function CreateNoteForm({
     const timer = window.setTimeout(() => inputRef.current?.focus(), 0)
     return () => {
       window.clearTimeout(timer)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void window.vaultApi
+      .listTemplates()
+      .then((nextTemplates) => {
+        if (cancelled) {
+          return
+        }
+        setTemplates(nextTemplates)
+        setTemplatesError(null)
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) {
+          return
+        }
+        setTemplates([])
+        setTemplatesError(formatError(loadError))
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -70,7 +99,11 @@ function CreateNoteForm({
     setIsCreating(true)
 
     try {
-      await onCreate(validation.relativePath, buildNoteScaffold(validation.baseTitle))
+      const content = selectedTemplatePath
+        ? await window.vaultApi.renderTemplate(selectedTemplatePath, validation.baseTitle)
+        : buildNoteScaffold(validation.baseTitle)
+
+      await onCreate(validation.relativePath, content)
       onOpenChange(false)
     } catch (createError) {
       setError(formatError(createError))
@@ -98,7 +131,7 @@ function CreateNoteForm({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -115,9 +148,33 @@ function CreateNoteForm({
           />
           <span className="shrink-0 text-xs text-muted-foreground">.mdx</span>
         </div>
+        {templates.length > 0 ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Template
+            </span>
+            <select
+              value={selectedTemplatePath}
+              disabled={isCreating}
+              className="h-9 w-full border-2 border-foreground bg-background px-2 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+              onChange={(event) => setSelectedTemplatePath(event.target.value)}
+            >
+              <option value="">Blank note</option>
+              {templates.map((template) => (
+                <option key={template.relativePath} value={template.relativePath}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {error ? (
           <p className="text-xs text-destructive" role="alert">
             {error}
+          </p>
+        ) : templatesError ? (
+          <p className="font-mono text-xs text-muted-foreground">
+            Templates unavailable: {templatesError}
           </p>
         ) : validation.ok ? (
           <p className="truncate text-xs text-muted-foreground">

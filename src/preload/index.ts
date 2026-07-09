@@ -43,6 +43,11 @@ interface TrashEntry {
   mtimeMs: number
 }
 
+interface NoteTemplate {
+  relativePath: string
+  name: string
+}
+
 interface IndexedNoteSummary {
   id: string
   relativePath: string
@@ -121,8 +126,13 @@ const vaultApi = {
     invokeVault('vault:rename-file', { fromRelativePath, toRelativePath }),
   duplicateFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:duplicate-file', { relativePath }),
+  fileExists: (relativePath: string): Promise<boolean> =>
+    invokeVault('vault:file-exists', { relativePath }),
   emptyTrash: (): Promise<void> => invokeVault('vault:empty-trash'),
   listTrash: (): Promise<TrashEntry[]> => invokeVault('vault:list-trash'),
+  listTemplates: (): Promise<NoteTemplate[]> => invokeVault('vault:list-templates'),
+  renderTemplate: (relativePath: string, title: string): Promise<string> =>
+    invokeVault('vault:render-template', { relativePath, title }),
   revealInExplorer: (relativePath: string): Promise<void> =>
     invokeVault('vault:reveal-in-explorer', { relativePath }),
   resolveAbsolutePath: (relativePath: string): Promise<string> =>

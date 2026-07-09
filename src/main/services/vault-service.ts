@@ -27,6 +27,11 @@ export interface TrashEntry {
   mtimeMs: number
 }
 
+export interface NoteTemplate {
+  relativePath: string
+  name: string
+}
+
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
@@ -278,6 +283,43 @@ export class VaultService {
     return result.sort((left, right) => left.relativePath.localeCompare(right.relativePath))
   }
 
+  async listTemplates(): Promise<NoteTemplate[]> {
+    const entries = await fg(['templates/*.mdx'], {
+      cwd: this.root,
+      dot: false,
+      ignore: IGNORED_DIRECTORIES,
+      onlyFiles: true,
+      unique: true,
+      followSymbolicLinks: false
+    })
+
+    return entries
+      .map((entry) => {
+        const relativePath = normalizeVaultPath(entry)
+        return {
+          relativePath,
+          name: basename(relativePath, extname(relativePath))
+        }
+      })
+      .sort((left, right) => left.name.localeCompare(right.name))
+  }
+
+  async renderTemplate(relativePath: string, title: string): Promise<string> {
+    const normalizedPath = normalizeVaultPath(relativePath)
+
+    if (
+      dirname(normalizedPath) !== 'templates' ||
+      extname(normalizedPath).toLowerCase() !== '.mdx'
+    ) {
+      throw new Error('Templates must be .mdx files under templates/')
+    }
+
+    const target = safeJoin(this.root, normalizedPath)
+    await assertFile(target)
+
+    return renderTemplateVariables(await readFile(target, 'utf8'), title, new Date())
+  }
+
   /** Resolve a relative path to its absolute form inside the vault. Used by
    * `shell.showItemInFolder` and any caller that needs the on-disk path. */
   resolveAbsolutePath(relativePath: string): string {
@@ -450,6 +492,32 @@ function parseOriginalPathFromTrashName(trashRelativePath: string): string {
 
   const prefix = directory && directory !== '.' ? `${directory}/` : ''
   return `${prefix}${stripped}${extension}`
+}
+
+function renderTemplateVariables(content: string, title: string, now: Date): string {
+  const variables: Record<string, string> = {
+    date: formatLocalDate(now),
+    time: formatLocalTime(now),
+    title
+  }
+
+  return content.replace(
+    /\{\{\s*(date|time|title)\s*\}\}/g,
+    (_match, key: string) => variables[key] ?? ''
+  )
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatLocalTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
 }
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])

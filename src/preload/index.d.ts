@@ -18,6 +18,11 @@ interface TrashEntry {
   mtimeMs: number
 }
 
+interface NoteTemplate {
+  relativePath: string
+  name: string
+}
+
 interface IndexedNoteSummary {
   id: string
   relativePath: string
@@ -312,8 +317,11 @@ interface VaultApi {
   deleteFile: (relativePath: string) => Promise<string>
   renameFile: (fromRelativePath: string, toRelativePath: string) => Promise<string>
   duplicateFile: (relativePath: string) => Promise<string>
+  fileExists: (relativePath: string) => Promise<boolean>
   emptyTrash: () => Promise<void>
   listTrash: () => Promise<TrashEntry[]>
+  listTemplates: () => Promise<NoteTemplate[]>
+  renderTemplate: (relativePath: string, title: string) => Promise<string>
   revealInExplorer: (relativePath: string) => Promise<void>
   resolveAbsolutePath: (relativePath: string) => Promise<string>
   saveAsset: (suggestedName: string, base64: string) => Promise<string>

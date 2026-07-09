@@ -15,10 +15,13 @@ import {
   ArrowDownUp,
   ListTree,
   Hash,
-  Link2
+  Link2,
+  Command
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { CommandPalette } from '@/commands/CommandPalette'
+import type { CommandAction } from '@/commands/actions'
 import { MdxEditor, type EditorSelectionSnapshot, type RevealLineRequest } from '@/editor/MdxEditor'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { FileTree, type FileTreeSortMode } from '@/explorer/FileTree'
@@ -94,6 +97,7 @@ function App(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>('split')
   const [navigationPanel, setNavigationPanel] = useState<NavigationPanel>('outline')
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const [aiPaletteOpen, setAiPaletteOpen] = useState(false)
@@ -228,6 +232,38 @@ function App(): React.JSX.Element {
     },
     []
   )
+
+  const openDailyNote = useCallback(async (): Promise<void> => {
+    if (!vault) {
+      return
+    }
+
+    await saveCurrentFile()
+    setError(null)
+
+    try {
+      const date = formatLocalDate(new Date())
+      const relativePath = `journal/${date}.mdx`
+
+      if (await window.vaultApi.fileExists(relativePath)) {
+        await loadFile(relativePath, false)
+        showToast(`Opened ${relativePath}`)
+        return
+      }
+
+      const templatePath = 'templates/daily.mdx'
+      const content = (await window.vaultApi.fileExists(templatePath))
+        ? await window.vaultApi.renderTemplate(templatePath, date)
+        : buildDailyNoteScaffold(date)
+      const createdPath = await window.vaultApi.createFile(relativePath, content)
+
+      await refreshVaultSnapshot()
+      await loadFile(createdPath, false)
+      showToast(`Created ${createdPath}`)
+    } catch (dailyNoteError) {
+      setError(formatError(dailyNoteError))
+    }
+  }, [loadFile, refreshVaultSnapshot, saveCurrentFile, showToast, vault])
 
   // Auto-dismiss toast after a short delay.
   useEffect(() => {
@@ -686,6 +722,12 @@ function App(): React.JSX.Element {
         return
       }
 
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && key === 'p') {
+        event.preventDefault()
+        setCommandPaletteOpen(true)
+        return
+      }
+
       if ((event.ctrlKey || event.metaKey) && key === 'p') {
         event.preventDefault()
         setQuickSwitcherOpen(true)
@@ -809,6 +851,126 @@ function App(): React.JSX.Element {
   const outlineHeadings = outlineState.relativePath === selectedPath ? outlineState.headings : []
   const showEditor = viewMode !== 'preview'
   const showPreview = viewMode !== 'source'
+  const commandActions = useMemo<CommandAction[]>(
+    () => [
+      {
+        id: 'note.new',
+        title: 'New note',
+        description: 'Create a blank MDX note.',
+        category: 'Notes',
+        keywords: ['create', 'file'],
+        disabled: vault === null,
+        run: () => setCreateNoteOpen(true)
+      },
+      {
+        id: 'note.new-template',
+        title: 'New note from template',
+        description: 'Create a note and choose a vault template.',
+        category: 'Notes',
+        keywords: ['insert', 'template'],
+        disabled: vault === null,
+        run: () => setCreateNoteOpen(true)
+      },
+      {
+        id: 'note.daily',
+        title: "Open today's daily note",
+        description: 'Open or create the journal note for today.',
+        category: 'Notes',
+        keywords: ['journal', 'today'],
+        disabled: vault === null,
+        run: openDailyNote
+      },
+      {
+        id: 'note.open',
+        title: 'Open note',
+        description: 'Jump to a note in the current vault.',
+        category: 'Navigation',
+        keywords: ['quick switcher'],
+        disabled: vault === null,
+        run: () => setQuickSwitcherOpen(true)
+      },
+      {
+        id: 'note.search',
+        title: 'Search notes',
+        description: 'Search indexed note content.',
+        category: 'Navigation',
+        keywords: ['find'],
+        disabled: vault === null,
+        run: () => setSearchOpen(true)
+      },
+      {
+        id: 'view.source',
+        title: 'Source view',
+        description: 'Show the MDX editor only.',
+        category: 'View',
+        keywords: ['editor'],
+        disabled: selectedPath === null,
+        run: () => setViewMode('source')
+      },
+      {
+        id: 'view.split',
+        title: 'Split view',
+        description: 'Show editor and preview together.',
+        category: 'View',
+        keywords: ['editor', 'preview'],
+        disabled: selectedPath === null,
+        run: () => setViewMode('split')
+      },
+      {
+        id: 'view.preview',
+        title: 'Preview view',
+        description: 'Show the rendered MDX preview only.',
+        category: 'View',
+        keywords: ['rendered'],
+        disabled: selectedPath === null,
+        run: () => setViewMode('preview')
+      },
+      {
+        id: 'note.export',
+        title: 'Export current note',
+        description: 'Open export options for the selected note.',
+        category: 'Notes',
+        keywords: ['static', 'html', 'snapshot'],
+        disabled: selectedPath === null,
+        run: () => setExportDialogOpen(true)
+      },
+      {
+        id: 'ai.toggle',
+        title: 'Toggle AI assistant',
+        description: 'Show or hide the assistant panel.',
+        category: 'AI',
+        keywords: ['assistant'],
+        disabled: vault === null,
+        run: () => setAiPanelOpen((current) => !current)
+      },
+      {
+        id: 'theme.toggle',
+        title: 'Toggle theme',
+        description: 'Switch between light and dark appearance.',
+        category: 'App',
+        keywords: ['dark', 'light'],
+        run: toggleTheme
+      },
+      {
+        id: 'vault.open',
+        title: 'Open vault',
+        description: 'Choose a vault folder from disk.',
+        category: 'Vault',
+        keywords: ['folder', 'workspace'],
+        run: openVault
+      },
+      {
+        id: 'vault.empty-trash',
+        title: 'Empty trash',
+        description: 'Permanently remove notes currently in trash.',
+        category: 'Vault',
+        keywords: ['delete', 'remove'],
+        disabled: vault === null || trashCount === 0,
+        run: () => setEmptyTrashOpen(true)
+      }
+    ],
+    [openDailyNote, openVault, selectedPath, toggleTheme, trashCount, vault]
+  )
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -833,6 +995,17 @@ function App(): React.JSX.Element {
           <div className="hidden font-mono text-[11px] uppercase tracking-widest text-background/60 sm:block">
             {saveLabel}
           </div>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            className="text-background/80 hover:bg-background hover:text-foreground"
+            title="Command palette"
+            aria-label="Command palette"
+            onClick={() => setCommandPaletteOpen(true)}
+          >
+            <Command className="size-4" aria-hidden="true" />
+          </Button>
           <Button
             type="button"
             size="icon-sm"
@@ -1180,6 +1353,12 @@ function App(): React.JSX.Element {
         onOpenChange={setQuickSwitcherOpen}
         onSelectNote={navigateToNote}
       />
+      <CommandPalette
+        open={commandPaletteOpen}
+        actions={commandActions}
+        onOpenChange={setCommandPaletteOpen}
+        onError={setError}
+      />
       <SearchPane open={searchOpen} onOpenChange={setSearchOpen} onSelectNote={navigateToNote} />
       <ExportDialog
         open={exportDialogOpen}
@@ -1451,6 +1630,17 @@ function findHeadingLine(source: string, headingPosition: number): number | null
   }
 
   return null
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function buildDailyNoteScaffold(date: string): string {
+  return `---\ntitle: ${date}\ndate: ${date}\n---\n\n# ${date}\n\n## Notes\n\n## Links\n\n`
 }
 
 function deriveNoteTitle(relativePath: string): string {
