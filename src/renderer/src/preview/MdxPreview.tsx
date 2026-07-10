@@ -2,6 +2,7 @@ import { evaluate } from '@mdx-js/mdx'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
 import type { MDXContent } from 'mdx/types'
+import { Highlighter } from 'lucide-react'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import remarkFrontmatter from 'remark-frontmatter'
@@ -14,7 +15,9 @@ import { remarkCallouts } from '../../../shared/remark-callouts'
 import { remarkMarks } from '../../../shared/remark-mark'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
 import { createMdxComponents } from './mdx-components'
+import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
 import { readPreviewMetadata } from './preview-metadata'
+import { rehypePreviewSourceMap } from './rehype-preview-source-map'
 import { PreviewRuntimeContext } from './runtime'
 import { rehypeSafeHtml } from './safe-html'
 import type { IndexedNoteSummary } from '@/vault/types'
@@ -29,6 +32,7 @@ interface MdxPreviewProps {
   } | null
   onNavigate: (relativePath: string) => void
   onRevealLine: (line: number) => void
+  onSourceChange: (source: string) => void
 }
 
 interface PreviewDiagnostic {
@@ -39,21 +43,31 @@ interface PreviewDiagnostic {
   ruleId?: string
 }
 
+interface PreviewTextSelection extends PreviewHighlightSelection {
+  source: string
+  left: number
+  top: number
+}
+
 export function MdxPreview({
   source,
   selectedPath,
   notes,
   revealHeadingRequest,
   onNavigate,
-  onRevealLine
+  onRevealLine,
+  onSourceChange
 }: MdxPreviewProps): React.JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null)
+  const previewContentRef = useRef<HTMLDivElement | null>(null)
   const [Content, setContent] = useState<MDXContent | null>(null)
   const [compileError, setCompileError] = useState<PreviewDiagnostic | null>(null)
   const [isCompiling, setIsCompiling] = useState(false)
+  const [previewSelection, setPreviewSelection] = useState<PreviewTextSelection | null>(null)
   const components = useMemo(() => createMdxComponents({ notes, onNavigate }), [notes, onNavigate])
   const previewMetadata = useMemo(() => readPreviewMetadata(source), [source])
   const runtimeValue = useMemo(() => ({ selectedPath }), [selectedPath])
+  const activeSelection = previewSelection?.source === source ? previewSelection : null
 
   useEffect(() => {
     let isCancelled = false
@@ -107,6 +121,27 @@ export function MdxPreview({
     }
   }, [Content, revealHeadingRequest])
 
+  const capturePreviewSelection = (): void => {
+    const previewRoot = previewContentRef.current
+    setPreviewSelection(previewRoot ? readPreviewSelection(source, previewRoot) : null)
+  }
+
+  const togglePreviewHighlight = (): void => {
+    if (!activeSelection) {
+      return
+    }
+
+    const nextSource = applyPreviewHighlight(source, activeSelection)
+    if (!nextSource) {
+      setPreviewSelection(null)
+      return
+    }
+
+    window.getSelection()?.removeAllRanges()
+    setPreviewSelection(null)
+    onSourceChange(nextSource)
+  }
+
   if (!selectedPath) {
     return (
       <div className="flex h-full items-center justify-center px-8 text-center text-sm text-muted-foreground">
@@ -116,14 +151,18 @@ export function MdxPreview({
   }
 
   return (
-    <div ref={scrollRootRef} className="h-full min-h-0 overflow-y-auto">
-      <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b-2 border-foreground bg-background/95 px-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground backdrop-blur">
+    <div ref={scrollRootRef} className="h-full min-h-0 overflow-y-auto bg-background">
+      <div className="sticky top-0 z-10 flex h-9 items-center justify-between border-b-2 border-foreground bg-[var(--paper-dark)] px-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
         <span className="truncate">{selectedPath}</span>
         <span className={isCompiling ? 'text-muted-foreground' : 'text-[var(--editorial-red)]'}>
           {isCompiling ? 'Compiling' : '● Live'}
         </span>
       </div>
-      <div className="mdx-preview mx-auto max-w-3xl px-6 py-8">
+      <div
+        ref={previewContentRef}
+        className="mdx-preview mx-auto max-w-[820px] px-5 py-10 sm:px-8"
+        onMouseUp={capturePreviewSelection}
+      >
         <PreviewWarnings warnings={previewMetadata.warnings} />
         <FrontmatterPropertiesBlock properties={previewMetadata.frontmatter} />
         {compileError ? (
@@ -149,6 +188,31 @@ export function MdxPreview({
           </div>
         )}
       </div>
+      {activeSelection ? (
+        <div
+          role="toolbar"
+          aria-label="Preview text formatting"
+          className="fixed z-[70] -translate-x-1/2 -translate-y-full border-2 border-foreground bg-background p-1 shadow-[3px_3px_0_0_var(--foreground)]"
+          style={{ left: activeSelection.left, top: activeSelection.top }}
+        >
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="default"
+            data-testid="preview-highlight-toggle"
+            title={
+              activeSelection.markStart === undefined ? 'Highlight selection' : 'Remove highlight'
+            }
+            aria-label={
+              activeSelection.markStart === undefined ? 'Highlight selection' : 'Remove highlight'
+            }
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={togglePreviewHighlight}
+          >
+            <Highlighter className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -175,10 +239,109 @@ async function compileMdx(source: string): Promise<MDXContent> {
       remarkMarks,
       remarkCallouts
     ],
-    rehypePlugins: [rehypeSafeHtml, rehypeKatex, [rehypeHighlight, { plainText: ['mermaid'] }]]
+    rehypePlugins: [
+      [rehypePreviewSourceMap, { source }],
+      rehypeSafeHtml,
+      rehypeKatex,
+      [rehypeHighlight, { plainText: ['mermaid'] }]
+    ]
   })
 
   return mdxModule.default
+}
+
+function readPreviewSelection(
+  source: string,
+  previewRoot: HTMLElement
+): PreviewTextSelection | null {
+  const selection = window.getSelection()
+
+  if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) {
+    return null
+  }
+
+  const range = selection.getRangeAt(0)
+  if (
+    !previewRoot.contains(range.commonAncestorContainer) ||
+    range.startContainer !== range.endContainer ||
+    range.startContainer.nodeType !== Node.TEXT_NODE
+  ) {
+    return null
+  }
+
+  const sourceSpan = findSourceSpan(range.startContainer)
+  const sourceStart = readDataOffset(sourceSpan, 'previewSourceStart')
+  const sourceEnd = readDataOffset(sourceSpan, 'previewSourceEnd')
+
+  if (
+    !sourceSpan ||
+    sourceStart === null ||
+    sourceEnd === null ||
+    sourceEnd - sourceStart !== (range.startContainer.textContent?.length ?? -1)
+  ) {
+    return null
+  }
+
+  const start = sourceStart + range.startOffset
+  const end = sourceStart + range.endOffset
+  const selectedText = source.slice(start, end)
+
+  if (
+    start >= end ||
+    selectedText !== selection.toString() ||
+    selectedText.trim() !== selectedText ||
+    selectedText.includes('\n')
+  ) {
+    return null
+  }
+
+  const mark = sourceSpan.closest<HTMLElement>(
+    'mark[data-preview-mark-start][data-preview-mark-end]'
+  )
+  const markStart = readDataOffset(mark, 'previewMarkStart')
+  const markEnd = readDataOffset(mark, 'previewMarkEnd')
+
+  if (
+    mark &&
+    (markStart === null ||
+      markEnd === null ||
+      source.slice(markStart, markStart + 2) !== '==' ||
+      source.slice(markEnd - 2, markEnd) !== '==')
+  ) {
+    return null
+  }
+
+  const rect = range.getBoundingClientRect()
+  if (rect.width === 0 && rect.height === 0) {
+    return null
+  }
+
+  return {
+    source,
+    start,
+    end,
+    left: Math.min(Math.max(rect.left + rect.width / 2, 28), window.innerWidth - 28),
+    top: Math.max(rect.top - 8, 48),
+    ...(markStart !== null && markEnd !== null ? { markStart, markEnd } : {})
+  }
+}
+
+function findSourceSpan(node: Node): HTMLElement | null {
+  return (
+    node.parentElement?.closest<HTMLElement>(
+      'span[data-preview-source-start][data-preview-source-end]'
+    ) ?? null
+  )
+}
+
+function readDataOffset(element: HTMLElement | null, key: string): number | null {
+  const value = element?.dataset[key]
+  if (value === undefined) {
+    return null
+  }
+
+  const offset = Number(value)
+  return Number.isInteger(offset) && offset >= 0 ? offset : null
 }
 
 function PreviewWarnings({
@@ -219,7 +382,7 @@ function FrontmatterPropertiesBlock({
   }
 
   return (
-    <section className="mb-6 border-2 border-foreground bg-paper-dark p-3 text-sm shadow-[3px_3px_0_0_var(--foreground)]">
+    <section className="mb-10 overflow-x-auto border-2 border-foreground bg-paper-dark px-5 py-4 text-sm">
       <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
         Properties
       </div>

@@ -974,17 +974,17 @@ function App(): React.JSX.Element {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="sticky top-0 z-50 flex h-11 shrink-0 items-center justify-between border-b-2 border-foreground bg-foreground px-4 text-background">
+      <header className="sticky top-0 z-50 flex h-11 shrink-0 items-center justify-between border-b-2 border-foreground bg-background px-4 text-foreground">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-background">
+          <div className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-foreground">
             mdx-vault<span className="text-[var(--editorial-red)]">.</span>
           </div>
           {vault ? (
             <>
-              <span className="font-mono text-[11px] uppercase tracking-widest text-background/40">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground/60">
                 /
               </span>
-              <span className="truncate font-mono text-[11px] uppercase tracking-widest text-background/70">
+              <span className="truncate font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {vault.name}
               </span>
             </>
@@ -992,14 +992,14 @@ function App(): React.JSX.Element {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden font-mono text-[11px] uppercase tracking-widest text-background/60 sm:block">
+          <div className="hidden font-mono text-[11px] uppercase tracking-widest text-muted-foreground sm:block">
             {saveLabel}
           </div>
           <Button
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="text-background/80 hover:bg-background hover:text-foreground"
+            className="text-muted-foreground"
             title="Command palette"
             aria-label="Command palette"
             onClick={() => setCommandPaletteOpen(true)}
@@ -1010,7 +1010,7 @@ function App(): React.JSX.Element {
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="text-background/80 hover:bg-background hover:text-foreground"
+            className="text-muted-foreground"
             title="Open note"
             aria-label="Open note"
             disabled={!vault}
@@ -1022,7 +1022,7 @@ function App(): React.JSX.Element {
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="text-background/80 hover:bg-background hover:text-foreground"
+            className="text-muted-foreground"
             title="Search notes"
             aria-label="Search notes"
             disabled={!vault}
@@ -1034,7 +1034,7 @@ function App(): React.JSX.Element {
             type="button"
             size="sm"
             variant="ghost"
-            className="border-2 border-background text-background hover:bg-background hover:text-foreground"
+            className="border-2 border-foreground text-foreground"
             disabled={!selectedPath || isSaving || !isDirty}
             onClick={() => void saveCurrentFile()}
           >
@@ -1045,7 +1045,7 @@ function App(): React.JSX.Element {
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="text-background/80 hover:bg-background hover:text-foreground"
+            className="text-muted-foreground"
             title="Export note (Ctrl+Shift+E)"
             aria-label="Export note"
             disabled={!selectedPath}
@@ -1060,7 +1060,7 @@ function App(): React.JSX.Element {
             className={
               aiPanelOpen
                 ? 'bg-[var(--editorial-red)] text-white hover:bg-[var(--editorial-red)]/90'
-                : 'text-background/80 hover:bg-background hover:text-foreground'
+                : 'text-muted-foreground'
             }
             title="AI assistant (Ctrl+Shift+A)"
             aria-label="Toggle AI assistant"
@@ -1070,12 +1070,12 @@ function App(): React.JSX.Element {
           >
             <Sparkles className="size-4" aria-hidden="true" />
           </Button>
-          <ViewModeToggle value={viewMode} onChange={setViewMode} disabled={!selectedPath} dark />
+          <ViewModeToggle value={viewMode} onChange={setViewMode} disabled={!selectedPath} />
           <Button
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="text-background/80 hover:bg-background hover:text-foreground"
+            className="text-muted-foreground"
             title={
               theme === 'system'
                 ? `Theme: follow system (currently ${resolvedTheme})`
@@ -1093,8 +1093,7 @@ function App(): React.JSX.Element {
           <Button
             type="button"
             size="sm"
-            variant="ghost"
-            className="border-2 border-background bg-background text-foreground hover:bg-[var(--editorial-red)] hover:text-white hover:border-[var(--editorial-red)]"
+            className="hover:bg-[var(--editorial-red)] hover:text-white"
             onClick={() => void openVault()}
             disabled={isOpening}
           >
@@ -1242,8 +1241,8 @@ function App(): React.JSX.Element {
         ) : null}
 
         {showPreview ? (
-          <aside className="min-h-0 min-w-0 bg-card/30">
-            <div className="flex h-9 items-center justify-between border-b-2 border-foreground px-4">
+          <aside className="min-h-0 min-w-0 bg-background">
+            <div className="flex h-9 items-center justify-between border-b-2 border-foreground bg-[var(--paper-dark)] px-4">
               <span className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 Preview
               </span>
@@ -1289,9 +1288,10 @@ function App(): React.JSX.Element {
                   revealHeadingRequest={previewHeadingRequest}
                   onNavigate={navigateToNote}
                   onRevealLine={revealEditorLine}
+                  onSourceChange={setContent}
                 />
               </div>
-              <div className="min-h-0 overflow-hidden border-t-2 border-foreground bg-muted/10">
+              <div className="min-h-0 overflow-hidden border-t-2 border-foreground bg-[var(--paper-dark)]">
                 {navigationPanel === 'outline' ? (
                   <OutlinePanel
                     headings={outlineHeadings}
@@ -1320,7 +1320,7 @@ function App(): React.JSX.Element {
         ) : null}
 
         {aiPanelOpen ? (
-          <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-card/30">
+          <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-[var(--paper-dark)]">
             <AiSidePanel
               noteRelativePath={selectedPath}
               noteTitle={selectedPath ? deriveNoteTitle(selectedPath) : 'No note'}

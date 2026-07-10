@@ -26,10 +26,10 @@ export function AiContextBanner({
   safeStorageAvailable
 }: AiContextBannerProps): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-1 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+    <div className="flex flex-col gap-1 border-b-2 border-foreground bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground">
       <div className="flex items-center gap-1.5 truncate">
         <FileText className="size-3.5 shrink-0" aria-hidden="true" />
-        <span className="truncate font-medium text-foreground">
+        <span className="truncate font-bold text-foreground">
           {noteRelativePath ? noteTitle : 'No note open'}
         </span>
         {noteRelativePath ? (

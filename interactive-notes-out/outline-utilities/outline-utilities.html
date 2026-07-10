@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Outline Utilities (Tailwind) — Interactive Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper); color:var(--ink); font-family:"Lora",serif}
+.masthead{position:sticky; top:0; z-index:50; height:40px; padding:0 1.5rem; background:var(--ink); border-bottom:2px solid var(--ink); display:flex; align-items:center; justify-content:space-between}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+.page{max-width:820px;margin:0 auto;padding:2.5rem 2rem 6rem}
+.frontmatter{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.7; background:var(--paper-dark);border:2px solid var(--ink); padding:1rem 1.2rem;margin-bottom:2.5rem;white-space:pre;overflow-x:auto}
+.frontmatter .k{color:var(--accent);font-weight:700}
+.frontmatter .v{color:var(--result)}
+h1{font-family:"Playfair Display",serif;font-size:2.5rem;font-weight:900;line-height:1.15;margin-bottom:.4rem}
+.subtitle{font-family:"Courier Prime",monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:2rem}
+h2{font-family:"Playfair Display",serif;font-size:1.7rem;font-weight:700;margin:3rem 0 1rem;padding-top:1rem;border-top:2px solid var(--ink);scroll-margin-top:56px}
+h2 .tag{font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700; vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.6rem; background:var(--ink);color:var(--paper);text-transform:uppercase}
+h2 .tag.w{background:var(--accent)}
+h2 .tag.e{background:var(--result)}
+h3{font-family:"Playfair Display",serif;font-size:1.25rem;font-weight:700;margin:1.8rem 0 .6rem;scroll-margin-top:56px}
+p{font-size:1rem;line-height:1.85;margin-bottom:.9rem;color:#222}
+strong{color:var(--ink)}
+code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:2px 7px;font-size:.85rem}
+.highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem;line-height:1.65}
+.highlight-box strong{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;text-align:left;background:var(--ink);color:var(--paper);padding:.5rem .7rem}
+td{border:1px solid var(--ink);padding:.55rem .7rem;line-height:1.55;vertical-align:top}
+tr:nth-child(even) td{background:var(--paper-dark)}
+.mm-grid{display:grid;grid-template-columns:130px 1fr;border:2px solid var(--ink);margin:1rem 0}
+.mm-grid>div{padding:.6rem .9rem;font-size:.9rem;line-height:1.6;border-bottom:1px solid var(--line)}
+.mm-grid>div:nth-last-child(-n+2){border-bottom:none}
+.mm-key{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;background:var(--paper-dark);border-right:2px solid var(--ink);display:flex;align-items:center}
+.mm-key.conflict{color:var(--accent)}
+.trace{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.9;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.3rem;margin:1rem 0;white-space:pre;overflow-x:auto}
+.trace .hit{color:var(--result);font-weight:700}
+.trace .miss{color:var(--accent);font-weight:700}
+.note{font-size:.85rem;opacity:.8;font-style:italic;margin:.6rem 0}
+pre{margin:.8rem 0}
+pre code{display:block;background:var(--ink);color:var(--paper);padding:.9rem 1.1rem;font-size:.8rem;line-height:1.7;white-space:pre;overflow-x:auto}
+
+/* Widget frame */
+.widget{border:2px solid var(--ink);box-shadow:var(--shadow);margin:1.4rem 0 2rem;background:var(--paper)}
+.widget-head{display:flex;justify-content:space-between;align-items:center;padding:.55rem 1rem;background:var(--paper-dark);border-bottom:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.widget-status{background:var(--ink);color:var(--paper);padding:.15rem .6rem;font-size:.7rem}
+.widget-body{padding:1.3rem}
+.widget-misconception{font-family:"Courier Prime",monospace;font-size:.75rem;padding:.45rem 1rem;border-bottom:2px dashed var(--line);background:var(--paper)}
+.widget-misconception b{color:var(--accent)}
+.gate{border:2px dashed var(--accent);padding:1rem 1.2rem;margin-bottom:1.2rem;background:var(--paper)}
+.gate-q{font-family:"Lora",serif;font-size:.95rem;margin-bottom:.8rem;line-height:1.6}
+.gate-q b{color:var(--accent)}
+.gate-opts{display:flex;gap:.6rem;flex-wrap:wrap}
+.gate-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.8rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.gate-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.gate-btn.chosen{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:none;transform:translate(2px,2px)}
+.gate-verdict{margin-top:.9rem;font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.7;display:none;padding:.7rem 1rem;border:2px solid var(--ink);background:var(--paper-dark)}
+.gate-verdict.show{display:block}
+.gate-verdict .right{color:var(--result);font-weight:700}
+.gate-verdict .wrong{color:var(--accent);font-weight:700}
+.lab-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.82rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.lab-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.lab-btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.lab-btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.lab-slider{-webkit-appearance:none;width:200px;height:4px;background:var(--ink);outline:none;cursor:pointer}
+.lab-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);border:2px solid var(--ink);cursor:pointer}
+.lab-slider:disabled{opacity:.3;cursor:not-allowed}
+.slider-label{font-family:"Courier Prime",monospace;font-size:.82rem;text-transform:uppercase;letter-spacing:1px}
+.controls-row{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--ink)}
+.viz-label{font-family:"Courier Prime",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-top:.5rem}
+
+/* Tier-2: outline vs border comparison */
+.cmp-table{border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.cmp-row{display:grid;grid-template-columns:140px 1fr 1fr;border-bottom:1px solid var(--line);font-family:"Courier Prime",monospace;font-size:.78rem}
+.cmp-row:last-child{border-bottom:none}
+.cmp-h{background:var(--ink);color:var(--paper);padding:.5rem .7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.72rem}
+.cmp-h.border{background:var(--accent)}
+.cmp-h.outline{background:var(--result)}
+.cmp-cell{padding:.55rem .7rem;border-right:1px solid var(--line);line-height:1.55}
+.cmp-cell:last-child{border-right:none}
+.cmp-cell.label{background:var(--paper-dark);font-weight:700}
+.cmp-yes{color:var(--accent);font-weight:700}
+.cmp-no{color:var(--result);font-weight:700}
+
+/* Tier-2: outline anatomy */
+.anatomy-wrap{display:flex;justify-content:center;margin:1.4rem 0}
+.anatomy-box{position:relative;padding:22px;outline:4px solid var(--accent);outline-offset:10px;background:var(--paper-dark);border:3px solid var(--ink)}
+.anatomy-inner{padding:14px 22px;background:#dce6f5;border:1px solid var(--result);font-family:"Courier Prime",monospace;font-size:.7rem;color:var(--ink);min-width:90px;text-align:center}
+.anatomy-legend{display:flex;justify-content:center;gap:1.4rem;flex-wrap:wrap;font-family:"Courier Prime",monospace;font-size:.7rem;margin-top:.7rem}
+.anatomy-legend .leg{display:flex;align-items:center;gap:.4rem}
+.anatomy-legend .sw{width:14px;height:14px;border:1px solid var(--ink)}
+.sw-outline{background:var(--accent)}
+.sw-offset{background:var(--paper);border-style:dashed}
+.sw-border{background:var(--ink)}
+.sw-padding{background:#dce6f5;border-color:var(--result)}
+
+/* Tier-2: style preview row */
+.style-row{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin:1.2rem 0}
+.style-cell{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.style-demo{width:80px;height:50px;background:var(--paper-dark);outline-width:3px;outline-color:var(--accent);outline-style:solid;outline-offset:0}
+.style-demo.dashed{outline-style:dashed}
+.style-demo.dotted{outline-style:dotted}
+.style-demo.double{outline-style:double;outline-width:5px}
+.style-demo.none{outline-style:none}
+.style-demo.hidden{outline-style:solid;outline-color:transparent}
+.style-name{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
+/* Tier-2: width ladder */
+.width-ladder{border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;background:var(--paper-dark)}
+.width-row{display:grid;grid-template-columns:90px 1fr 50px;gap:.8rem;align-items:center;margin:.4rem 0;font-family:"Courier Prime",monospace;font-size:.76rem}
+.width-demo{height:34px;background:var(--paper);outline-style:solid;outline-color:var(--ink);outline-offset:0}
+
+/* Tier-2: offset ladder */
+.offset-ladder{border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;background:var(--paper)}
+.offset-row{display:flex;align-items:center;gap:1rem;margin:.5rem 0;font-family:"Courier Prime",monospace;font-size:.76rem}
+.offset-demo{width:70px;height:40px;background:var(--paper-dark);outline-width:3px;outline-style:solid;outline-color:var(--accent)}
+.offset-lbl{width:120px;font-weight:700}
+
+/* Demo boxes for widgets */
+.demo-flex{display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;align-items:center;margin:1rem 0}
+.demo-box{background:#dce6f5;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.7rem;color:var(--ink)}
+
+/* Recap static block */
+.cmp-block{border:2px solid var(--ink);padding:.8rem 1rem;margin:.7rem 0 0;background:var(--paper-dark)}
+.cmp-block .cmp-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+
+.evidence-empty{font-family:"Courier Prime",monospace;font-size:.82rem;color:var(--accent);font-weight:700}
+.cmd{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--ink);color:var(--paper);padding:.6rem .9rem;display:block;margin:.4rem 0;white-space:pre;overflow-x:auto}
+.q-item{border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.q-head{padding:.8rem 1rem;font-size:.95rem;line-height:1.6;display:flex;gap:.8rem;align-items:baseline}
+.q-level{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;background:var(--ink);color:var(--paper);padding:.15rem .5rem;white-space:nowrap;text-transform:uppercase;letter-spacing:1px}
+.q-actions{padding:0 1rem .8rem}
+.q-answer{display:none;border-top:2px dashed var(--line);padding:.8rem 1rem;font-size:.9rem;line-height:1.7;background:var(--paper-dark)}
+.q-answer.show{display:block}
+.links-list{list-style:none}
+.links-list li{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:2}
+.links-list a,.wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+.note-meta{font-family:"Courier Prime",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:4rem;padding-top:1rem;border-top:2px solid var(--ink)}
+.primer{border:2px dashed var(--ink);padding:.8rem 1.1rem;margin:0 0 2.2rem;background:var(--paper)}
+.primer-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.primer-row{font-size:.88rem;line-height:1.7;margin:.3rem 0}
+.primer-row b{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--paper-dark);padding:1px 6px;border:1px solid var(--ink)}
+.primer-row a{color:var(--result);font-weight:700;text-decoration:none;font-family:"Courier Prime",monospace;font-size:.72rem;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">Frontend · Tailwind_CSS · Outline</span>
+  <span class="brand-sub">Interactive Note · Format B</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">tailwind-outline-utilities</span>
+<span class="k">type:</span> <span class="v">concept</span>   <span class="k">layer:</span> <span class="v">frontend</span>   <span class="k">priority:</span> <span class="v">P1</span>
+<span class="k">maturity_target:</span> <span class="v">L3</span>   <span class="k">current_maturity:</span> <span class="v">L1</span>
+<span class="k">labs:</span> <span class="v">—</span>
+<span class="k">prerequisites:</span> <span class="v">[[tailwind-border-utilities]]</span>
+<span class="k">review_interval_days:</span> <span class="v">14</span>   <span class="k">next_review:</span> <span class="v">2026-07-22</span></div>
+
+<h1>Outline Utilities trong Tailwind CSS</h1>
+<div class="subtitle">Note 2/2 · Concept Note · width · color · style · offset</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa — lần đầu: đọc 30 giây · đọc lại: bỏ qua</div>
+  <div class="primer-row"><b>outline</b> — viền ngoài, vẽ <em>đè</em>, không thuộc box model, <em>không ăn layout</em>. <a href="#what-is-outline">↓ Outline là gì</a></div>
+  <div class="primer-row"><b>outline-offset</b> — khoảng cách giữa outline và cạnh phần tử; dương đẩy ra, âm kéo vào. <a href="#offset">↓ Offset</a></div>
+  <div class="primer-row"><b>outline-width</b> — độ dày của outline. <a href="#width">↓ Width</a></div>
+  <div class="primer-row"><b>outline-color</b> — màu của outline. <a href="#color">↓ Color</a></div>
+  <div class="primer-row"><b>outline-style</b> — kiểu nét outline: solid, dashed, dotted, double. <a href="#style">↓ Style</a></div>
+  <div class="primer-row"><b>forced-colors mode</b> — chế độ tương phản cao của OS (vd Windows High Contrast). <a href="#accessibility">↓ Accessibility</a></div>
+  <div class="primer-row"><b>focus ring</b> — vòng quanh phần tử khi focus, thường thay thế outline mặc định. <a href="#accessibility">↓ Accessibility</a></div>
+  <div class="primer-row"><b>focus-visible</b> — pseudo-class chỉ hiện focus cho tương tác bàn phím. <a href="#accessibility">↓ Accessibility</a></div>
+  <div class="primer-row"><b>accessibility (WCAG)</b> — tiêu chuẩn truy cập; focus phải nhìn thấy được. <a href="#accessibility">↓ Accessibility</a></div>
+  <div class="primer-row" style="font-size:.78rem;opacity:.7;font-family:'Courier Prime',monospace">Kiến thức nền assume sẵn (không giải thích lại): box model, border vs outline cơ bản, Tailwind grammar, arbitrary value/token/CSS variable, opacity modifier, cascade/specificity → [[tailwind-border-utilities]] (Note 1)</div>
+</div>
+
+<h2 id="one-liner">One-liner <span class="tag">[T]</span></h2>
+<p><strong>Outline là viền vẽ <em>bên ngoài</em> border, KHÔNG thuộc box model, KHÔNG ăn layout. Bốn nhóm utility <code>outline-*</code> (width, color, style, offset) mô tả nó — cùng grammar Tailwind, nhưng khác border ở chỗ không đẩy gì cả.</strong></p>
+
+<h2 id="mental-model">Mental Model <span class="tag">[T]</span></h2>
+<div class="mm-grid">
+  <div class="mm-key">Extends</div><div>Định nghĩa border ở Note 1: "viền trong box model, ăn layout". Outline là <em>phần ngoài</em> — vẽ đè, không đẩy.</div>
+  <div class="mm-key conflict">Conflicts</div>
+  <div>"Outline cũng là viền, chắc giống border — cùng bo góc, cùng ăn kích thước." — sai ở cả hai điểm. Outline luôn hình chữ nhật (không theo <code>border-radius</code>) và không thay đổi kích thước box.</div>
+  <div class="mm-key">Requires</div><div>Box model (Note 1), accessibility cơ bản (focus visible), Tailwind grammar.</div>
+  <div class="mm-key">Misapplication</div><div>Dùng <code>outline-none</code> "cho gọn" mà không thêm focus ring thay thế → người dùng bàn phím mất cue; hoặc tưởng <code>outline-offset</code> chỉ đẩy ra (không biết giá trị âm).</div>
+</div>
+
+<h2 id="what-is-outline">Outline là gì — và khác border chỗ nào <span class="tag">[T]</span></h2>
+<p>Nếu bạn chưa đọc Note 1: border nằm giữa padding và margin, <em>ăn</em> kích thước box. Outline vẽ <em>ngoài</em> border edge — overlay, không thuộc box model. Hệ quả quyết định mọi hành vi của <code>outline-*</code>:</p>
+<div class="cmp-table">
+  <div class="cmp-row">
+    <div class="cmp-h"></div><div class="cmp-h border">border</div><div class="cmp-h outline">outline</div>
+  </div>
+  <div class="cmp-row">
+    <div class="cmp-cell label">Thuộc box model?</div>
+    <div class="cmp-cell"><span class="cmp-yes">Có</span> — nằm giữa padding và margin</div>
+    <div class="cmp-cell"><span class="cmp-no">Không</span> — vẽ ngoài, overlay</div>
+  </div>
+  <div class="cmp-row">
+    <div class="cmp-cell label">Ảnh hưởng layout?</div>
+    <div class="cmp-cell"><span class="cmp-yes">Có</span> — tăng kích thước box</div>
+    <div class="cmp-cell"><span class="cmp-no">Không</span> — không đẩy gì</div>
+  </div>
+  <div class="cmp-row">
+    <div class="cmp-cell label">Tuân theo border-radius?</div>
+    <div class="cmp-cell"><span class="cmp-yes">Có</span> — bo theo góc</div>
+    <div class="cmp-cell"><span class="cmp-no">Không</span> — luôn hình chữ nhật</div>
+  </div>
+  <div class="cmp-row">
+    <div class="cmp-cell label">Có theo từng cạnh?</div>
+    <div class="cmp-cell"><span class="cmp-yes">Có</span> — <code>border-t</code>, <code>border-l</code>...</div>
+    <div class="cmp-cell"><span class="cmp-no">Không</span> — bao quanh cả box</div>
+  </div>
+  <div class="cmp-row">
+    <div class="cmp-cell label">Có offset riêng?</div>
+    <div class="cmp-cell"><span class="cmp-no">Không</span> — dính padding edge</div>
+    <div class="cmp-cell"><span class="cmp-yes">Có</span> — <code>outline-offset</code></div>
+  </div>
+</div>
+
+<h2 id="mechanism">Mechanism — vì sao "không ăn layout" quan trọng <span class="tag">[T]</span></h2>
+<div class="trace">Phần tử với outline
+  → content → padding → <strong>border</strong> (ăn layout, tăng kích thước box)
+  → margin (khoảng cách ngoài, đẩy box khác)
+  → <em>outline</em> (vẽ đè ngoài margin edge — KHÔNG thêm pixel nào vào box, không đẩy box kế bên)
+  → layout xung quanh KHÔNG đổi <span class="hit">kể cả khi outline dày 20px</span></div>
+<p>Hệ quả thực tiễn: outline <em>có thể dày bao nhiêu cũng được</em> mà không làm vỡ layout. Đó là lý do nó được dùng cho <strong>focus indicator</strong> — cần nổi bật nhưng không được đẩy nội dung xung quanh khi phần tử được tab tới.</p>
+
+<div class="anatomy-wrap">
+  <div class="anatomy-box">
+    <div class="anatomy-inner">content</div>
+  </div>
+</div>
+<div class="anatomy-legend">
+  <div class="leg"><span class="sw sw-outline"></span> outline (vẽ đè ngoài)</div>
+  <div class="leg"><span class="sw sw-offset"></span> outline-offset (khoảng đệm)</div>
+  <div class="leg"><span class="sw sw-border"></span> border</div>
+  <div class="leg"><span class="sw sw-padding"></span> padding + content</div>
+</div>
+<p class="note">Anatomy: content → padding → border → <em>khoảng offset</em> → outline. Offset là phần "đệm" giữa border-edge và outline — property mà border không có.</p>
+
+<!-- ===================== WIDTH ===================== -->
+<h2 id="width">Outline-width — độ dày viền ngoài <span class="tag">[T]</span></h2>
+<p>Ánh xạ tới CSS <code>outline-width</code>. Cùng 4 kiểu giá trị như mọi property Tailwind:</p>
+<table>
+  <tr><th>Kiểu</th><th>Cú pháp</th><th>Ví dụ</th><th>Output</th></tr>
+  <tr><td>Mặc định</td><td><code>outline</code></td><td><code>outline</code></td><td><code>outline-width: 1px</code></td></tr>
+  <tr><td>Số</td><td><code>outline-{number}</code></td><td><code>outline-2</code>, <code>outline-4</code></td><td><code>outline-width: {n}px</code></td></tr>
+  <tr><td>Arbitrary</td><td><code>outline-[value]</code></td><td><code>outline-[5px]</code>, <code>outline-[0.5rem]</code></td><td>raw value</td></tr>
+  <tr><td>CSS variable</td><td><code>outline-(length:--var)</code></td><td><code>outline-(length:--my-w)</code></td><td><code>var(--my-w)</code></td></tr>
+</table>
+<p class="note">Giống <code>border-width</code> về cú pháp, nhưng không có <code>divide-*</code> tương đương (outline là thuộc tính của 1 phần tử, không "chia cách" con). Logical property cũng không áp dụng (outline là hình chữ nhật, không có "logical side").</p>
+<div class="width-ladder">
+  <div class="width-row"><span><code>outline</code></span><div class="width-demo" style="outline-width:1px"></div><span>1px</span></div>
+  <div class="width-row"><span><code>outline-2</code></span><div class="width-demo" style="outline-width:2px"></div><span>2px</span></div>
+  <div class="width-row"><span><code>outline-4</code></span><div class="width-demo" style="outline-width:4px"></div><span>4px</span></div>
+  <div class="width-row"><span><code>outline-8</code></span><div class="width-demo" style="outline-width:8px"></div><span>8px</span></div>
+</div>
+<p class="note">Lưu ý: các box trên có sẵn <code>outline-style: solid</code> để hiện. Nếu thiếu style, <code>outline-width</code> vẫn = 0 hiển thị — xem failure mode.</p>
+<p>Ví dụ thực tế — use case chính là focus state:</p>
+<pre><code>&lt;!-- Outline chỉ hiện khi focus (tab vào) --&gt;
+&lt;button class="outline-offset-2 outline-sky-500 focus:outline-2"&gt;
+  Save Changes
+&lt;/button&gt;</code></pre>
+
+<!-- ===================== COLOR ===================== -->
+<h2 id="color">Outline-color — màu viền ngoài <span class="tag">[T]</span></h2>
+<p>Cùng grammar màu Tailwind: theme color, opacity modifier, arbitrary, CSS variable.</p>
+<table>
+  <tr><th>Kiểu</th><th>Cú pháp</th><th>Ví dụ</th><th>Đặc điểm</th></tr>
+  <tr><td>Giá trị chức năng</td><td><code>outline-{keyword}</code></td><td><code>outline-inherit</code>, <code>outline-current</code>, <code>outline-transparent</code></td><td>Kế thừa / currentColor / trong suốt.</td></tr>
+  <tr><td>Theme color</td><td><code>outline-{color}-{shade}</code></td><td><code>outline-red-500</code>, <code>outline-emerald-300</code></td><td>Từ design tokens.</td></tr>
+  <tr><td>Opacity modifier</td><td><code>outline-{color}-{shade}/{op}</code></td><td><code>outline-blue-500/50</code></td><td><code>rgb(... / 0.5)</code> — JIT sinh alpha channel.</td></tr>
+  <tr><td>Arbitrary</td><td><code>outline-[hex/rgb/hsl]</code></td><td><code>outline-[#243c5a]</code></td><td>Raw value.</td></tr>
+  <tr><td>CSS variable</td><td><code>outline-(--var)</code></td><td><code>outline-(--accent)</code></td><td><code>var(--accent)</code>.</td></tr>
+</table>
+<div class="highlight-box"><strong>Specificity:</strong> giống border-color — các class <code>outline-color</code> có cùng specificity, class khai báo <em>sau</em> thắng. Nhưng outline <em>không có scope theo cạnh</em> (không có <code>outline-t-*</code>) vì outline luôn bao quanh cả box. Đây là khác biệt cấu trúc với border.</div>
+
+<!-- ===================== STYLE ===================== -->
+<h2 id="style">Outline-style — kiểu nét viền ngoài <span class="tag">[T]</span></h2>
+<p>Ánh xạ tới CSS <code>outline-style</code>. Quyết định hình dáng nét. Có 2 lớp đặc biệt cho trạng thái focus:</p>
+<table>
+  <tr><th>Lớp</th><th>Thuộc tính CSS</th><th>Mô tả</th></tr>
+  <tr><td><code>outline-solid</code></td><td><code>outline-style: solid</code></td><td>Nét liền.</td></tr>
+  <tr><td><code>outline-dashed</code></td><td><code>outline-style: dashed</code></td><td>Nét đứt.</td></tr>
+  <tr><td><code>outline-dotted</code></td><td><code>outline-style: dotted</code></td><td>Chấm.</td></tr>
+  <tr><td><code>outline-double</code></td><td><code>outline-style: double</code></td><td>Nét kép (cần width lớn).</td></tr>
+  <tr><td><code>outline-none</code></td><td><code>outline-style: none</code></td><td>Xóa hoàn toàn.</td></tr>
+  <tr><td><code>outline-hidden</code></td><td><code>outline: 2px solid transparent; outline-offset: 2px</code></td><td>Ẩn outline thường, nhưng vẫn hiện trong forced-colors mode.</td></tr>
+</table>
+<div class="style-row">
+  <div class="style-cell"><div class="style-demo"></div><div class="style-name">solid</div></div>
+  <div class="style-cell"><div class="style-demo dashed"></div><div class="style-name">dashed</div></div>
+  <div class="style-cell"><div class="style-demo dotted"></div><div class="style-name">dotted</div></div>
+  <div class="style-cell"><div class="style-demo double"></div><div class="style-name">double</div></div>
+  <div class="style-cell"><div class="style-demo none"></div><div class="style-name">none</div></div>
+  <div class="style-cell"><div class="style-demo hidden"></div><div class="style-name">hidden</div></div>
+</div>
+<p class="note">6 ô trên outline-style khác nhau, width 3px (double là 5px). <code>none</code> và <code>hidden</code> trông như nhau ở chế độ thường — khác biệt chỉ lộ trong forced-colors mode.</p>
+<p>Ví dụ focus state thay thế trình duyệt bằng style tùy chỉnh:</p>
+<pre><code>&lt;!-- Ẩn outline mặc định, thay bằng border khi focus --&gt;
+&lt;input class="border border-gray-300 focus:border-indigo-600 focus:outline-hidden" /&gt;</code></pre>
+
+<h2 id="accessibility">Accessibility — outline-none là cạm bẫy <span class="tag">[T]</span></h2>
+<p><strong>Quy tắc WCAG:</strong> mọi phần tử tương tác phải có focus <em>nhìn thấy được</em>. Người dùng bàn phím (không có chuột) dựa vào focus ring để biết đang ở đâu. Khi bạn dùng <code>outline-none</code> hoặc <code>outline-hidden</code>, bạn <em>phải</em> cung cấp kiểu focus thay thế — nếu không, phần tử trở nên vô hình với người dùng bàn phím.</p>
+<div class="highlight-box"><strong>Cơ chế <code>outline-hidden</code>:</strong> đặt <code>outline-color: transparent</code> trong chế độ thường → outline vô hình. Nhưng trong <strong>forced-colors mode</strong> (vd Windows High Contrast), trình duyệt tự đặt lại màu hệ thống → outline hiện ra. Đây là lý do <code>outline-hidden</code> an toàn hơn <code>outline-none</code>: nó giữ accessibility cho người dùng OS high-contrast.</div>
+
+<div class="widget" id="w2">
+  <div class="widget-head"><span>W2 · outline-none — đẹp hay phá accessibility?</span><span class="widget-status" id="w2-status">LOCKED</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "outline-none là đủ cho style — xóa outline là đẹp."</div>
+  <div class="widget-body">
+    <div class="gate" id="w2-gate">
+      <div class="gate-q">Một nút có <code>outline-none</code> (xóa outline focus mặc định). Bạn nghĩ kết quả là gì cho người dùng <strong>bàn phím</strong>?</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="ok">OK, gọn đẹp rồi</button>
+        <button class="gate-btn" data-pred="wrong">Sai — mất cue, cần focus thay thế</button>
+      </div>
+      <div class="gate-verdict" id="w2-verdict"></div>
+    </div>
+    <div id="w2-demo-wrap" style="opacity:.4;transition:opacity .2s">
+      <p style="font-size:.82rem;font-family:'Courier Prime',monospace;margin-bottom:.5rem">Tab (hoặc click nút "Mô phỏng focus") qua hai nút:</p>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem">
+        <button id="w2-btn-bad" style="padding:.6rem 1rem;font-family:'Courier Prime',monospace;font-size:.75rem;background:var(--paper);border:2px solid var(--ink);outline:none">outline-none — không ring</button>
+        <button id="w2-btn-good" style="padding:.6rem 1rem;font-family:'Courier Prime',monospace;font-size:.75rem;background:var(--paper);border:2px solid var(--ink)">+ focus-visible ring</button>
+      </div>
+      <div class="viz-label" id="w2-demo-label">Chọn gate để unlock demo</div>
+    </div>
+  </div>
+</div>
+<div class="cmp-block">
+  <div class="cmp-head">Recap tĩnh — cho lần đọc thứ N (sau gate)</div>
+  <p style="font-size:.88rem;line-height:1.7;margin:0"><code>outline-none</code> xóa outline focus mặc định của trình duyệt. Nếu không thêm focus ring thay thế (vd <code>focus-visible:ring-2 focus-visible:ring-indigo-500</code>, hoặc <code>focus-visible:outline-2</code>), người dùng bàn phím <strong>không thấy</strong> mình đang ở phần tử nào → fail WCAG 2.4.7 (Focus Visible). Quy tắc: xóa outline bao giờ cũng đi kèm với một visual cue khác.</p>
+</div>
+
+<h3>Best practice: <code>focus-visible</code> thay vì <code>focus</code></h3>
+<p>Pseudo-class <code>focus-visible</code> chỉ hiện focus ring cho <em>tương tác bàn phím</em>, ẩn với chuột. Tailwind có variant <code>focus-visible:</code>. Dùng nó khi bạn muốn gọn gàng cho người chuột mà vẫn giữ accessibility cho người bàn phím:</p>
+<pre><code>&lt;button class="focus-visible:outline-2 focus-visible:outline-offset-2 outline-indigo-500"&gt;
+  Nút — ring chỉ hiện khi tab, không hiện khi click
+&lt;/button&gt;</code></pre>
+
+<!-- ===================== OFFSET ===================== -->
+<h2 id="offset">Outline-offset — khoảng cách outline ↔ phần tử <span class="tag">[T]</span></h2>
+<p>Property <em>đặc trưng riêng</em> của outline — border không có tương đương (vì border dính vào padding edge). <code>outline-offset</code> xác định khoảng giữa outline và cạnh phần tử. <strong>Đây là điểm dễ nhầm nhất</strong>: giá trị có thể âm.</p>
+<table>
+  <tr><th>Pattern</th><th>CSS output</th><th>Mô tả</th></tr>
+  <tr><td><code>outline-offset-{number}</code></td><td><code>outline-offset: {n}px</code></td><td>Dương — đẩy outline ra xa.</td></tr>
+  <tr><td><code>-outline-offset-{number}</code></td><td><code>outline-offset: calc({n}px * -1)</code></td><td><strong>Âm</strong> — kéo outline vào trong (che nội dung).</td></tr>
+  <tr><td><code>outline-offset-[value]</code></td><td><code>outline-offset: {value}</code></td><td>Arbitrary (vd <code>2vw</code>).</td></tr>
+  <tr><td><code>outline-offset-(--var)</code></td><td><code>outline-offset: var(--var)</code></td><td>CSS variable.</td></tr>
+</table>
+<div class="highlight-box"><strong>Cơ chế (derive tool):</strong> outline bình thường vẽ sát border edge. <code>outline-offset</code> dương chèn khoảng trống giữa border và outline (đẩy outline ra). <strong>Âm</strong> thì outline đi <em>ngược vào trong</em> phần tử — có thể che nội dung. Border không có tính năng này vì border cố định ở padding edge.</div>
+<div class="offset-ladder">
+  <div class="offset-row"><span class="offset-lbl"><code>-outline-offset-4</code></span><div class="offset-demo" style="outline-offset:-4px"></div><span>âm — kéo vào trong</span></div>
+  <div class="offset-row"><span class="offset-lbl"><code>outline-offset-0</code></span><div class="offset-demo" style="outline-offset:0"></div><span>sát border edge</span></div>
+  <div class="offset-row"><span class="offset-lbl"><code>outline-offset-2</code></span><div class="offset-demo" style="outline-offset:2px"></div><span>dương nhẹ</span></div>
+  <div class="offset-row"><span class="offset-lbl"><code>outline-offset-4</code></span><div class="offset-demo" style="outline-offset:4px"></div><span>dương — đẩy ra xa</span></div>
+</div>
+<p class="note">Thanh trên là tĩnh. Widget dưới cho phép kéo slider để khám phá dải giá trị (kể cả âm).</p>
+
+<div class="widget" id="w1">
+  <div class="widget-head"><span>W1 · outline-offset explorer</span><span class="widget-status" id="w1-status">READY</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "outline-offset chỉ đẩy outline ra xa — không có chiều ngược lại."</div>
+  <div class="widget-body">
+    <p style="font-size:.9rem;margin-bottom:.8rem"><strong>Tự dự đoán trước khi kéo:</strong> khi kéo slider sang âm (bên trái), outline sẽ đi về phía nào? Sẽ che gì?</p>
+    <div class="demo-flex">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem">
+        <div id="w1-box" class="demo-box" style="width:140px;height:80px;outline:3px solid var(--accent);outline-offset:0">offset = 0px</div>
+        <div class="viz-label" id="w1-label">outline-offset: 0px</div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="slider-label">-8px</span>
+      <input type="range" min="-8" max="8" step="1" value="0" class="lab-slider" id="w1-slider"/>
+      <span class="slider-label">+8px</span>
+      <span style="font-family:'Courier Prime',monospace;font-size:.78rem;margin-left:.6rem" id="w1-val">0</span>
+    </div>
+    <p style="font-size:.85rem;margin-top:.8rem;font-style:italic;opacity:.8">Kéo sang trái (âm): outline đi vào trong, <strong>che nội dung box</strong>. Kéo sang phải (dương): outline đẩy ra xa, tạo "ring nổi". Đây là chiều mà misconception bỏ qua.</p>
+  </div>
+</div>
+
+<h2 id="outline-radius">Outline vs border-radius — vì sao outline không bo góc <span class="tag">[T]</span></h2>
+<p>Đây là khác biệt cấu trúc dễ bị bỏ qua: outline luôn vẽ thành <strong>hình chữ nhật</strong> bao quanh box, <em>không tuân theo</em> <code>border-radius</code>. Một phần tử <code>rounded-full</code> + <code>outline-4</code> sẽ có border tròn nhưng outline là hình chữ nhật vuông bao quanh. (Lưu ý: một số trình duyệt mới bắt đầu hỗ trợ <code>outline-follows-border-radius</code>, nhưng đó là tính năng thử nghiệm — model mặc định vẫn là chữ nhật.)</p>
+
+<div class="widget" id="w3">
+  <div class="widget-head"><span>W3 · outline có bo theo border-radius?</span><span class="widget-status" id="w3-status">LOCKED</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "Outline bo theo border-radius — cùng là viền mà."</div>
+  <div class="widget-body">
+    <div class="gate" id="w3-gate">
+      <div class="gate-q">Một div có <code>rounded-full</code> (border tròn) + <code>outline-4</code>. Hình dáng của outline là gì?</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="round">Tròn — bo theo border-radius</button>
+        <button class="gate-btn" data-pred="rect">Hình chữ nhật — vuông bao quanh</button>
+      </div>
+      <div class="gate-verdict" id="w3-verdict"></div>
+    </div>
+    <div class="demo-flex" id="w3-demo-wrap" style="opacity:.4;transition:opacity .2s">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem">
+        <div style="width:120px;height:80px;background:#dce6f5;border:3px solid var(--ink);outline:4px solid var(--accent);outline-offset:2px;display:flex;align-items:center;justify-content:center;font-family:'Courier Prime',monospace;font-size:.7rem">rounded-full<br>+ outline-4</div>
+        <div class="viz-label">border bo tròn (rounded-full)<br>outline vẫn vuông</div>
+        <div style="font-family:'Courier Prime',monospace;font-size:.6rem;opacity:.55;margin-top:.3rem;text-align:center">box có border-radius:9999px → thấy border tròn, outline vuông</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cmp-block">
+  <div class="cmp-head">Recap tĩnh — cho lần đọc thứ N (sau gate)</div>
+  <p style="font-size:.88rem;line-height:1.7;margin:0">Outline mặc định luôn vẽ thành <strong>hình chữ nhật</strong> bao quanh box, <em>bỏ qua</em> <code>border-radius</code>. Vì vậy trên nút <code>rounded-full</code>, outline sẽ là hình chữ nhật vuông bao quanh vòng tròn — trông lệch. Đây là lý do nhiều design system dùng <code>box-shadow</code> (có tuân theo radius) thay outline cho focus ring. CSS mới <code>outline-style: auto</code> và <code>outline-follows-border-radius</code> (thử nghiệm) bắt đầu thu hẹp khoảng cách này.</p>
+</div>
+
+<h2 id="tradeoffs">Tradeoffs <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Quyết định</th><th>Được gì</th><th>Trả giá gì</th></tr>
+  <tr><td>Outline (thay border) cho focus ring</td><td>Không ăn layout — ring dày bao nhiêu cũng không vỡ grid.</td><td>Không bo theo <code>border-radius</code> — trông vuông trên nút tròn.</td></tr>
+  <tr><td><code>outline-hidden</code> vs <code>outline-none</code></td><td><code>hidden</code> giữ accessibility trong forced-colors; <code>none</code> xóa sạch.</td><td><code>hidden</code> thêm rule transparent, tinh tế hơn — nhưng cả hai đều <em>yêu cầu</em> focus thay thế.</td></tr>
+  <tr><td><code>outline-offset</code> âm cho hiệu ứng "ring trong"</td><td>Ring nằm trong phần tử, không tràn ra — gọn cho card nhỏ.</td><td>Che nội dung — phải test kỹ.</td></tr>
+  <tr><td><code>focus:</code> vs <code>focus-visible:</code></td><td><code>focus-visible</code> gọn cho người chuột.</td><td>Cần trình duyệt hỗ trợ (đa số hiện nay OK).</td></tr>
+</table>
+
+<h2 id="failure-modes">Failure Modes <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Failure</th><th>Cơ chế</th><th>Symptom production</th></tr>
+  <tr><td><code>outline-2</code> không hiện dù class đúng</td><td>Thiếu <code>outline-style</code> (mặc định <code>none</code>) — khác border mặc định <code>solid</code> khi có width.</td><td>Phần tử không có outline; dev tưởng width class hỏng.</td></tr>
+  <tr><td>Outline "vuông" trên nút tròn</td><td>Outline không tuân theo <code>border-radius</code> (mặc định).</td><td>Ring focus trông lệch với bo góc của nút.</td></tr>
+  <tr><td>Phần tử "mất" khi tab</td><td>Dùng <code>outline-none</code> không kèm focus thay thế.</td><td>Người dùng bàn phím không biết đang ở phần tử nào — fail WCAG.</td></tr>
+  <tr><td><code>outline-offset-4</code> không có tác dụng</td><td>Phần tử chưa có outline (thiếu width + style).</td><td>Offset chết — không có gì để offset.</td></tr>
+  <tr><td>Outline che nội dung bên trong</td><td><code>-outline-offset</code> (âm) kéo outline vào trong.</td><td>Nội dung bị ring đè lên — có thể cố ý (hiệu ứng) hoặc bug.</td></tr>
+</table>
+<div class="highlight-box"><strong>Chú ý:</strong> failure "outline không hiện" <em>không</em> có widget — phụ thuộc DOM + CSS cụ thể, cần kiểm trên code thật (xem Evidence Log).</div>
+
+<h2 id="evidence">Evidence Log — máy của tôi <span class="tag e">[E]</span></h2>
+<p>Con số thật là thứ neo trí nhớ. <strong>Note chưa đạt L3 khi bảng này còn trống.</strong></p>
+<table>
+  <tr><th>Benchmark</th><th>Lệnh</th><th>Kết quả (điền sau khi chạy)</th></tr>
+  <tr><td>Outline không ăn layout</td><td><span class="cmd">DevTools: phần tử có <code>outline-width:20px</code>, kiểm <code>getBoundingClientRect()</code> trước/sau</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td>Outline không tuân theo border-radius</td><td><span class="cmd">Div <code>rounded-full</code> + <code>outline-4</code>, inspect hình dạng outline</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td><code>outline-offset</code> âm che content</td><td><span class="cmd">Div có text + <code>-outline-offset-4</code>, chụp screenshot</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td><code>outline-hidden</code> trong forced-colors</td><td><span class="cmd">Bật Windows High Contrast Mode, kiểm phần tử có <code>outline-hidden</code></span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td><code>outline-2</code> không hiện thiếu style</td><td><span class="cmd">Div chỉ có <code>outline-2</code> (không <code>outline-style</code>), DevTools computed <code>outline-style</code></span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+</table>
+
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Trả lời từ trí nhớ <em>trước</em> khi bấm reveal. Sai → quay lại đúng section được link.</p>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>Một phần tử có <code>outline-4 outline-indigo-500</code> nhưng outline không hiện. Nguyên nhân?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Thiếu <code>outline-style</code>. Khác border (mặc định <code>solid</code> khi có width), outline-style mặc định là <code>none</code> → outline vô hình dù có width và color. Cần thêm <code>outline-solid</code> hoặc dùng <code>outline</code> (shorthand tự đặt style). (→ <a href="#failure-modes" class="wikilink">Failure Modes</a>, <a href="#style" class="wikilink">Style</a>)</div>
+</div>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 4</span><span><code>outline-none</code> vs <code>outline-hidden</code> — khác nhau gì? Khi nào cái nào an toàn hơn?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><code>outline-none</code> đặt <code>outline-style: none</code> — xóa sạch outline ở mọi chế độ. <code>outline-hidden</code> đặt <code>outline: 2px solid transparent</code> — ẩn trong chế độ thường nhưng <em>vẫn hiện</em> trong forced-colors mode (Windows High Contrast). <code>outline-hidden</code> an toàn hơn cho accessibility, nhưng cả hai đều yêu cầu focus ring thay thế (vd <code>focus-visible:ring-2</code>). (→ <a href="#accessibility" class="wikilink">Accessibility</a>, <a href="#style" class="wikilink">Style</a>)</div>
+</div>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 5</span><span>Một form input trong card hẹp cần focus ring nhưng không được tràn ra ngoài card. Dùng <code>outline-offset</code> dương hay âm? Hệ quả?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Dùng <em>âm</em> (<code>-outline-offset-2</code> hoặc tương tự) để ring đi vào trong input, không tràn ra card. Hệ quả: ring có thể che một phần nội dung input (placeholder/text) — phải test padding để bù. Đây là tradeoff: tiết kiệm không gian ↔ nguy cơ che content. (→ <a href="#offset" class="wikilink">Offset</a>, <a href="#tradeoffs" class="wikilink">Tradeoffs</a>)</div>
+</div>
+
+<h2 id="links">Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>Prereq: <span class="wikilink">[[tailwind-border-utilities]]</span> (Note 1 — box model, border vs outline cơ bản, grammar Tailwind)</li>
+  <li>Sibling: <span class="wikilink">[[border-vs-outline-tailwind]]</span> (bridge — khi nào dùng cái nào)</li>
+  <li>Downstream: <span class="wikilink">[[wcag-focus-visible-deep-dive]]</span>, <span class="wikilink">[[forced-colors-testing]]</span></li>
+  <li>Source: <a href="https://tailwindcss.com/docs/outline-width">Tailwind docs — outline-width</a>, <a href="https://tailwindcss.com/docs/outline-color">outline-color</a>, <a href="https://tailwindcss.com/docs/outline-style">outline-style</a>, <a href="https://tailwindcss.com/docs/outline-offset">outline-offset</a></li>
+</ul>
+
+<div class="note-meta">Format B · 3 tầng medium: text / static visual / widget · 3/3 widget budget · prerequisite closure · spoiler ordering · body scrolls</div>
+
+</main>
+<script>
+/* ============================================================
+   WIDGET 1 — outline-offset explorer (Pattern PARAM, honor-system)
+   ============================================================ */
+(function(){
+  const slider = document.getElementById('w1-slider');
+  const boxEl = document.getElementById('w1-box');
+  const labelEl = document.getElementById('w1-label');
+  const valEl = document.getElementById('w1-val');
+
+  function render(offset){
+    boxEl.style.outlineOffset = offset + 'px';
+    const sign = offset > 0 ? '+' : '';
+    labelEl.textContent = 'outline-offset: ' + sign + offset + 'px';
+    valEl.textContent = (offset > 0 ? '+' : '') + offset;
+    boxEl.textContent = 'offset = ' + sign + offset + 'px';
+  }
+
+  slider.addEventListener('input', () => {
+    render(parseInt(slider.value, 10));
+  });
+  render(0);
+})();
+
+/* ============================================================
+   WIDGET 2 — outline-none + focus ring (Pattern GATE)
+   ============================================================ */
+(function(){
+  const W = { prediction:null };
+  const statusEl = document.getElementById('w2-status');
+  const demoWrap = document.getElementById('w2-demo-wrap');
+  const demoLabel = document.getElementById('w2-demo-label');
+  const btnBad = document.getElementById('w2-btn-bad');
+  const btnGood = document.getElementById('w2-btn-good');
+  const verdictEl = document.getElementById('w2-verdict');
+
+  document.querySelectorAll('#w2-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      statusEl.textContent = 'READY';
+      demoWrap.style.opacity = '1';
+      demoLabel.textContent = 'Tab/click nút để thấy khác biệt';
+      // Thêm focus ring cho nút good — chỉ sau khi gate commit (không spoil trước)
+      btnGood.addEventListener('focus', applyRing);
+      btnGood.addEventListener('focusout', removeRing);
+      btnGood.addEventListener('click', () => { btnGood.focus(); });
+      btnBad.addEventListener('click', () => { btnBad.focus(); });
+    });
+  });
+
+  function applyRing(){
+    btnGood.style.boxShadow = '0 0 0 3px var(--result)';
+    btnGood.style.borderColor = 'var(--result)';
+  }
+  function removeRing(){
+    btnGood.style.boxShadow = '';
+    btnGood.style.borderColor = 'var(--ink)';
+  }
+
+  function finish(){
+    const actual = 'wrong';
+    const correct = (W.prediction === actual);
+    verdictEl.innerHTML = correct
+      ? `Đúng: <span class="right">cần focus thay thế</span>. <code>outline-none</code> xóa cue mặc định — người dùng bàn phím mất khả năng nhận diện phần tử đang focus. Bắt buộc thêm <code>focus-visible:ring-*</code> hoặc tương đương.`
+      : `Bạn đoán <span class="wrong">"gọn đẹp rồi"</span>. Thực tế: <span class="right">phá accessibility</span>. <code>outline-none</code> không phải lỗi thẩm mỹ — nó là fail WCAG 2.4.7 nếu không có focus ring thay thế. Thử tab qua hai nút trên để thấy khác biệt.`;
+    verdictEl.classList.add('show');
+    statusEl.textContent = 'DONE';
+  }
+
+  // Finish khi user đã tương tác demo (focus vào nút good)
+  // Ta expose finish qua gate click thứ 2 không cần — chỉ cần verdict hiện sau commit.
+  // Nhưng pattern đòi hỏi verdict sau "run". Ở đây "run" = focus nút good.
+  // Đơn giản hoá: verdict hiện ngay khi commit (widget đơn bước).
+  document.querySelectorAll('#w2-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction && !verdictEl.classList.contains('show')) {
+        // cho user chơi demo 1 nhịp rồi mới verdict? Pattern: commit = run.
+        finish();
+      }
+    });
+  });
+})();
+
+/* ============================================================
+   WIDGET 3 — outline tuân theo border-radius? (Pattern GATE)
+   ============================================================ */
+(function(){
+  const W = { prediction:null };
+  const statusEl = document.getElementById('w3-status');
+  const demoWrap = document.getElementById('w3-demo-wrap');
+  const verdictEl = document.getElementById('w3-verdict');
+  const demoBox = demoWrap.querySelector('div[style]');
+
+  // Apply border-radius at runtime so border tròn hiển thị, outline vẫn vuông.
+  // (dùng JS để text "rounded-full" không bị nhầm là class thật)
+  if (demoBox) demoBox.style.borderRadius = '9999px';
+
+  document.querySelectorAll('#w3-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      statusEl.textContent = 'DONE';
+      demoWrap.style.opacity = '1';
+      finish();
+    });
+  });
+
+  function finish(){
+    const actual = 'rect';
+    const correct = (W.prediction === actual);
+    verdictEl.innerHTML = correct
+      ? `Đúng: <span class="right">hình chữ nhật</span>. Outline bỏ qua <code>border-radius</code>. Nhìn box trên: border bo tròn (<code>rounded-full</code>), nhưng outline là chữ nhật vuông bao quanh — chênh rõ.`
+      : `Bạn đoán <span class="wrong">"bo theo radius"</span>. Thực tế: <span class="right">luôn hình chữ nhật</span>. Outline không tuân theo <code>border-radius</code> — đây là khác biệt cấu trúc với border. Nhiều design system dùng <code>box-shadow</code> thay outline cho focus ring vì lý do này.`;
+    verdictEl.classList.add('show');
+  }
+})();
+</script>
+</body>
+</html>

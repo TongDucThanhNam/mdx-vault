@@ -20,6 +20,7 @@
 - **Ngày tạo**: 2026-07-04.
 
 ### Nguồn phát hiện gap
+
 - Audit codebase mdx-vault (45 features check, chỉ ~6 IMPLEMENTED/PARTIAL).
 - Research GitHub 4 đối thủ (Obsidian, SiYuan, Logseq, AppFlowy) về polish features.
 - Top 15 missing features đã xếp hạng ở báo cáo research (xem References).
@@ -28,24 +29,25 @@
 
 ## Current State
 
-| Item | Giá trị |
-|------|---------|
-| Framework | Electron 39 + React 19 + electron-vite, TypeScript |
-| Editor | CodeMirror 6 (`basicSetup`) với `@codemirror/lang-markdown` + `mdx-highlight.ts` (custom Lezer extension cho JSX + brace) |
-| Preview | `@mdx-js/mdx` `evaluate()` trong renderer |
-| IPC pattern | `domain:action` channels, zod validation ở main, `safeJoin()` cho mọi path |
-| File I/O | `vault:read-file`, `vault:write-file`, `vault:list-files`, `vault:create-file`, `vault:open`, `vault:open-path`, `vault:last-open` — **KHÔNG có delete/rename/move** |
-| Settings | `AppSettingsService` ở `app.getPath('userData')/app-settings.json` (lastVaultPath, theme). `AiSettingsService` vault-scoped encrypt. |
-| FileTree | Read-only, hardcoded name sort (`FileTree.tsx:158-165`). `mtimeMs` đã có trong index nhưng unused. |
-| Search | `index:search(query, limit)` — single textbox, no filters, no replace, no highlighting. |
-| Fuzzy matching | `scoreNote`/`isSubsequence` ở `QuickSwitcher.tsx:114-148` — **chỉ dùng trong QuickSwitcher, chưa wire vào editor completion**. |
-| Package manager | `bun` (KHÔNG npm/pnpm/yarn) |
+| Item            | Giá trị                                                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | Electron 39 + React 19 + electron-vite, TypeScript                                                                                                                   |
+| Editor          | CodeMirror 6 (`basicSetup`) với `@codemirror/lang-markdown` + `mdx-highlight.ts` (custom Lezer extension cho JSX + brace)                                            |
+| Preview         | `@mdx-js/mdx` `evaluate()` trong renderer                                                                                                                            |
+| IPC pattern     | `domain:action` channels, zod validation ở main, `safeJoin()` cho mọi path                                                                                           |
+| File I/O        | `vault:read-file`, `vault:write-file`, `vault:list-files`, `vault:create-file`, `vault:open`, `vault:open-path`, `vault:last-open` — **KHÔNG có delete/rename/move** |
+| Settings        | `AppSettingsService` ở `app.getPath('userData')/app-settings.json` (lastVaultPath, theme). `AiSettingsService` vault-scoped encrypt.                                 |
+| FileTree        | Read-only, hardcoded name sort (`FileTree.tsx:158-165`). `mtimeMs` đã có trong index nhưng unused.                                                                   |
+| Search          | `index:search(query, limit)` — single textbox, no filters, no replace, no highlighting.                                                                              |
+| Fuzzy matching  | `scoreNote`/`isSubsequence` ở `QuickSwitcher.tsx:114-148` — **chỉ dùng trong QuickSwitcher, chưa wire vào editor completion**.                                       |
+| Package manager | `bun` (KHÔNG npm/pnpm/yarn)                                                                                                                                          |
 
 ### 2 regression bug đã xác định root cause
 
 #### Bug A — "Mỗi lần mở app phải chọn lại vault folder"
 
 **Code đã có full pipeline** nhưng không hoạt động runtime:
+
 - `app-settings.ts:55` `getLastVaultPath()` đọc từ userData ✓
 - `vault-ipc.ts:69,78` lưu path khi open ✓
 - `vault-ipc.ts:83-86` `vault:last-open` IPC handler ✓
@@ -53,6 +55,7 @@
 - `index.ts:60-67` `appSettings = new AppSettingsService()` truyền vào `registerVaultIpc({appSettings})` ✓
 
 **`[cần xác nhận]`** — Agent phải runtime-debug để tìm root cause. Hypotheses (theo thứ tự khả thi):
+
 1. File `app-settings.json` không được ghi (atomic write fail silently, hoặc path khác `app.getPath('userData')`).
 2. `directoryExists` check fail vì Windows path / encoding.
 3. `lastOpenVault()` resolve trước khi IPC handler register (race).
@@ -73,20 +76,20 @@
 
 ## Target State
 
-| Phase | Item | Mô tả |
-|-------|------|-------|
-| 1 | Vault reopen hoạt động | Đóng app sau khi mở vault X → mở lại → tự mở vault X không dialog |
-| 1 | MDX highlight visible | JSX tag `<Foo />`, attr `bar="x"`, brace `{x}` có color khác prose trong editor |
-| 2 | Delete note + trash | Right-click note in tree → Delete → move vào `<vault>/.trash/` (không xóa thẳng). Empty trash command. |
-| 2 | Rename/move note | Right-click → Rename → update filename + reindex + (optional) update wikilinks/backlinks tham chiếu |
-| 2 | File tree context menu | Right-click → New note / Rename / Duplicate / Delete / Copy path / Reveal in explorer |
-| 2 | File tree sort | Sort dropdown: Name / Modified (desc) / Created (desc). Persist preference. |
-| 3 | In-note Find & Replace | `Ctrl+F` (find) + `Ctrl+H` (replace) — hiện đang silently broken (keymap có nhưng thiếu `search()` extension) |
-| 3 | Word/char count status bar | Hiển thị word/char/reading-time ở editor header hoặc status bar, update real-time |
-| 3 | `[[` inline autocomplete | Gõ `[[` trong editor → fuzzy dropdown notes (reuse `scoreNote`/`isSubsequence` từ QuickSwitcher) → Enter insert `[[note]]` |
-| 3 | Image paste + drag-drop | Paste ảnh từ clipboard → save vào `<vault>/assets/` → insert `![](assets/...)`. Drag-drop file ảnh vào editor cũng vậy. |
-| 3 | Inline formatting toolbar | Bôi đen text → floating bar với Bold/Italic/Code/Link → wrap selection |
-| — | Thứ KHÔNG thay đổi | File-first invariant, sandbox model (Level 4 iframe), security hardening, IPC validation pattern, MDX preview/render pipeline, AI services, export pipeline, registry |
+| Phase | Item                       | Mô tả                                                                                                                                                                 |
+| ----- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Vault reopen hoạt động     | Đóng app sau khi mở vault X → mở lại → tự mở vault X không dialog                                                                                                     |
+| 1     | MDX highlight visible      | JSX tag `<Foo />`, attr `bar="x"`, brace `{x}` có color khác prose trong editor                                                                                       |
+| 2     | Delete note + trash        | Right-click note in tree → Delete → move vào `<vault>/.trash/` (không xóa thẳng). Empty trash command.                                                                |
+| 2     | Rename/move note           | Right-click → Rename → update filename + reindex + (optional) update wikilinks/backlinks tham chiếu                                                                   |
+| 2     | File tree context menu     | Right-click → New note / Rename / Duplicate / Delete / Copy path / Reveal in explorer                                                                                 |
+| 2     | File tree sort             | Sort dropdown: Name / Modified (desc) / Created (desc). Persist preference.                                                                                           |
+| 3     | In-note Find & Replace     | `Ctrl+F` (find) + `Ctrl+H` (replace) — hiện đang silently broken (keymap có nhưng thiếu `search()` extension)                                                         |
+| 3     | Word/char count status bar | Hiển thị word/char/reading-time ở editor header hoặc status bar, update real-time                                                                                     |
+| 3     | `[[` inline autocomplete   | Gõ `[[` trong editor → fuzzy dropdown notes (reuse `scoreNote`/`isSubsequence` từ QuickSwitcher) → Enter insert `[[note]]`                                            |
+| 3     | Image paste + drag-drop    | Paste ảnh từ clipboard → save vào `<vault>/assets/` → insert `![](assets/...)`. Drag-drop file ảnh vào editor cũng vậy.                                               |
+| 3     | Inline formatting toolbar  | Bôi đen text → floating bar với Bold/Italic/Code/Link → wrap selection                                                                                                |
+| —     | Thứ KHÔNG thay đổi         | File-first invariant, sandbox model (Level 4 iframe), security hardening, IPC validation pattern, MDX preview/render pipeline, AI services, export pipeline, registry |
 
 ---
 
@@ -115,38 +118,38 @@
 
 ### Phase 1 — Bug fixes (P0)
 
-| # | Tiêu chí | Verification | Expected Signal |
-|---|----------|--------------|-----------------|
-| 1.1 | App nhớ vault: đóng app sau khi mở vault X, mở lại → tự mở vault X không dialog | `bun run dev`, mở vault, đóng window, chạy lại → app state `vault` non-null, không hiện open dialog | Manual smoke test + screenshot/log |
-| 1.2 | `app-settings.json` được ghi đúng chỗ | Mở `%APPDATA%/mdx-vault/app-settings.json` sau khi open vault 1 lần | File tồn tại, có field `lastVaultPath: "..."` trỏ đúng vault |
-| 1.3 | MDX highlight visible | Mở `example-vault/notes/React Interactive Demo.mdx` (có JSX) | JSX tags (`<QuizBlock />` etc.) có color khác prose — visual proof (screenshot hoặc CM inspector dump showing `cm-jsx-tag-name` class) |
-| 1.4 | Highlight không break markdown hiện có | Mở note thuần markdown | Headings/bold/code fence/yaml frontmatter vẫn tô màu |
-| 1.5 | `bun run typecheck` pass | `bun run typecheck` | Exit code 0 |
-| 1.6 | `bun run lint` pass | `bun run lint` | Exit code 0 |
+| #   | Tiêu chí                                                                        | Verification                                                                                        | Expected Signal                                                                                                                        |
+| --- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1 | App nhớ vault: đóng app sau khi mở vault X, mở lại → tự mở vault X không dialog | `bun run dev`, mở vault, đóng window, chạy lại → app state `vault` non-null, không hiện open dialog | Manual smoke test + screenshot/log                                                                                                     |
+| 1.2 | `app-settings.json` được ghi đúng chỗ                                           | Mở `%APPDATA%/mdx-vault/app-settings.json` sau khi open vault 1 lần                                 | File tồn tại, có field `lastVaultPath: "..."` trỏ đúng vault                                                                           |
+| 1.3 | MDX highlight visible                                                           | Mở `example-vault/notes/React Interactive Demo.mdx` (có JSX)                                        | JSX tags (`<QuizBlock />` etc.) có color khác prose — visual proof (screenshot hoặc CM inspector dump showing `cm-jsx-tag-name` class) |
+| 1.4 | Highlight không break markdown hiện có                                          | Mở note thuần markdown                                                                              | Headings/bold/code fence/yaml frontmatter vẫn tô màu                                                                                   |
+| 1.5 | `bun run typecheck` pass                                                        | `bun run typecheck`                                                                                 | Exit code 0                                                                                                                            |
+| 1.6 | `bun run lint` pass                                                             | `bun run lint`                                                                                      | Exit code 0                                                                                                                            |
 
 ### Phase 2 — Vault operations
 
-| # | Tiêu chí | Verification | Expected Signal |
-|---|----------|--------------|-----------------|
-| 2.1 | Delete note: right-click → Delete → confirm → note move vào `<vault>/.trash/` | `grep -n "vault:delete-file\|trash" src/main/ipc/vault-ipc.ts src/main/services/vault-service.ts` + smoke test | File biến khỏi FileTree, xuất hiện trong `.trash/`, không còn trong index |
-| 2.2 | Empty trash command | UI button hoặc menu "Empty trash" → xóa `.trash/` content | `.trash/` empty sau khi click |
-| 2.3 | Rename note: right-click → Rename → update filename + reindex | Smoke test rename `Foo.mdx` → `Bar.mdx` | File renamed trên disk, FileTree update, note re-indexed (backlinks panel refresh) |
-| 2.4 | File tree context menu: New/Rename/Duplicate/Delete/Copy path | Right-click note in FileTree | Menu xuất hiện với ≥4 actions, mỗi action hoạt động |
-| 2.5 | File tree sort: Name/Modified/Created, persist preference | Sort dropdown trong sidebar, đổi sort, restart app | Sort persist qua restart; `mtimeMs` từ index được dùng |
-| 2.6 | `vault:delete-file`, `vault:rename-file` IPC có zod validation + `safeJoin` | `grep` IPC handlers | Schema validate, path qua `safeJoin`, không cho path traversal |
-| 2.7 | typecheck + lint pass | `bun run typecheck && bun run lint` | Exit code 0 |
+| #   | Tiêu chí                                                                      | Verification                                                                                                   | Expected Signal                                                                    |
+| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 2.1 | Delete note: right-click → Delete → confirm → note move vào `<vault>/.trash/` | `grep -n "vault:delete-file\|trash" src/main/ipc/vault-ipc.ts src/main/services/vault-service.ts` + smoke test | File biến khỏi FileTree, xuất hiện trong `.trash/`, không còn trong index          |
+| 2.2 | Empty trash command                                                           | UI button hoặc menu "Empty trash" → xóa `.trash/` content                                                      | `.trash/` empty sau khi click                                                      |
+| 2.3 | Rename note: right-click → Rename → update filename + reindex                 | Smoke test rename `Foo.mdx` → `Bar.mdx`                                                                        | File renamed trên disk, FileTree update, note re-indexed (backlinks panel refresh) |
+| 2.4 | File tree context menu: New/Rename/Duplicate/Delete/Copy path                 | Right-click note in FileTree                                                                                   | Menu xuất hiện với ≥4 actions, mỗi action hoạt động                                |
+| 2.5 | File tree sort: Name/Modified/Created, persist preference                     | Sort dropdown trong sidebar, đổi sort, restart app                                                             | Sort persist qua restart; `mtimeMs` từ index được dùng                             |
+| 2.6 | `vault:delete-file`, `vault:rename-file` IPC có zod validation + `safeJoin`   | `grep` IPC handlers                                                                                            | Schema validate, path qua `safeJoin`, không cho path traversal                     |
+| 2.7 | typecheck + lint pass                                                         | `bun run typecheck && bun run lint`                                                                            | Exit code 0                                                                        |
 
 ### Phase 3 — Editor polish
 
-| # | Tiêu chí | Verification | Expected Signal |
-|---|----------|--------------|-----------------|
-| 3.1 | In-note Find & Replace (`Ctrl+F`/`Ctrl+H`) hoạt động | Mở note, Ctrl+F → search panel, Ctrl+H → replace panel | `@codemirror/search` wired vào extensions; find/replace/replaceAll hoạt động |
-| 3.2 | Word/char/reading-time count ở editor header hoặc status bar | Mở note, gõ text | Counter update real-time, format "123 words · 2 min read" |
-| 3.3 | `[[` inline autocomplete: gõ `[[` → fuzzy dropdown → Enter insert `[[note]]` | Trong editor, gõ `[[ Welcome` | Dropdown hiện fuzzy-matched notes (reuse `scoreNote`), arrow keys navigate, Enter insert |
-| 3.4 | Image paste từ clipboard → save `assets/` → insert markdown link | Copy ảnh (screenshot), paste vào editor | File `<vault>/assets/<sanitized-name>.png` tồn tại, `![](assets/...)` insert vào buffer |
-| 3.5 | Image drag-drop import | Kéo file ảnh từ explorer vào editor | Same as 3.4 |
-| 3.6 | Inline formatting toolbar: bôi đen → B/I/Code/Link floating bar | Bôi đen text | Toolbar xuất hiện near selection; click B → wrap `**selection**` |
-| 3.7 | typecheck + lint pass | `bun run typecheck && bun run lint` | Exit code 0 |
+| #   | Tiêu chí                                                                     | Verification                                           | Expected Signal                                                                          |
+| --- | ---------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| 3.1 | In-note Find & Replace (`Ctrl+F`/`Ctrl+H`) hoạt động                         | Mở note, Ctrl+F → search panel, Ctrl+H → replace panel | `@codemirror/search` wired vào extensions; find/replace/replaceAll hoạt động             |
+| 3.2 | Word/char/reading-time count ở editor header hoặc status bar                 | Mở note, gõ text                                       | Counter update real-time, format "123 words · 2 min read"                                |
+| 3.3 | `[[` inline autocomplete: gõ `[[` → fuzzy dropdown → Enter insert `[[note]]` | Trong editor, gõ `[[ Welcome`                          | Dropdown hiện fuzzy-matched notes (reuse `scoreNote`), arrow keys navigate, Enter insert |
+| 3.4 | Image paste từ clipboard → save `assets/` → insert markdown link             | Copy ảnh (screenshot), paste vào editor                | File `<vault>/assets/<sanitized-name>.png` tồn tại, `![](assets/...)` insert vào buffer  |
+| 3.5 | Image drag-drop import                                                       | Kéo file ảnh từ explorer vào editor                    | Same as 3.4                                                                              |
+| 3.6 | Inline formatting toolbar: bôi đen → B/I/Code/Link floating bar              | Bôi đen text                                           | Toolbar xuất hiện near selection; click B → wrap `**selection**`                         |
+| 3.7 | typecheck + lint pass                                                        | `bun run typecheck && bun run lint`                    | Exit code 0                                                                              |
 
 ### Completion Condition
 
@@ -186,11 +189,11 @@ Agent kết thúc khi và chỉ khi:
    import { tags as t } from '@lezer/highlight'
 
    const mdxHighlightStyle = HighlightStyle.define([
-     { tag: t.tagName, color: 'var(--viridian)' },          // JSXTagName
-     { tag: t.attributeName, color: 'var(--chart-3)' },     // JSXAttrName
-     { tag: t.string, color: 'var(--chart-2)' },            // JSXAttrValue
+     { tag: t.tagName, color: 'var(--viridian)' }, // JSXTagName
+     { tag: t.attributeName, color: 'var(--chart-3)' }, // JSXAttrName
+     { tag: t.string, color: 'var(--chart-2)' }, // JSXAttrValue
      { tag: t.angleBracket, color: 'var(--muted-foreground)' }, // JSXPunct
-     { tag: t.brace, color: 'var(--viridian)' }             // MDXBraceMark
+     { tag: t.brace, color: 'var(--viridian)' } // MDXBraceMark
    ])
    ```
    Verify exact token var names từ `globals.css` (`--viridian`, `--chart-1..5`, etc.).

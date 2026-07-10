@@ -123,10 +123,10 @@ export function AiSettingsPanel({
         </AlertDialogHeader>
 
         {!settings.safeStorageAvailable ? (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
             <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
             <div className="min-w-0">
-              <div className="font-medium">safeStorage unavailable</div>
+              <div className="font-bold">safeStorage unavailable</div>
               <div>
                 This OS does not provide a keychain/credential vault. Saving keys is disabled until
                 it is. You can still review the assistant UI — sending a chat will not work.
@@ -199,7 +199,7 @@ export function AiSettingsPanel({
           </label>
 
           {error ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
+            <div className="border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
               {error}
             </div>
           ) : null}

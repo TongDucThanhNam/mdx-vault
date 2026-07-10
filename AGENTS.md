@@ -75,6 +75,7 @@ Chi tiết + gotchas từng lib: [docs/tech-stack.md](docs/tech-stack.md)
 | [docs/tech-stack.md](docs/tech-stack.md)           | Từng lib: lý do chọn, version, gotchas                    |
 | [docs/roadmap.md](docs/roadmap.md)                 | Các phase MVP ↔ goal files                                |
 | [docs/mcp-setup.md](docs/mcp-setup.md)             | MCP servers cho agent (context7, shadcn)                  |
+| [DESIGN.md](DESIGN.md)                             | Design system: editorial style, palette, typography       |
 
 ## Skills
 

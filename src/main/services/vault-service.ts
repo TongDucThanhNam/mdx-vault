@@ -36,12 +36,7 @@ const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
 const TRASH_DIR = '.trash'
-const IGNORED_DIRECTORIES = [
-  '**/node_modules/**',
-  '**/.git/**',
-  '**/.app/**',
-  '**/.trash/**'
-]
+const IGNORED_DIRECTORIES = ['**/node_modules/**', '**/.git/**', '**/.app/**', '**/.trash/**']
 
 export class VaultService {
   private readonly root: string

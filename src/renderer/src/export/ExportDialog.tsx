@@ -327,16 +327,20 @@ function ModeButton({
     <button
       type="button"
       onClick={() => onSelect(mode)}
-      className={`rounded-md border p-3 text-left transition-colors ${
-        isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+      className={`border-2 border-foreground p-3 text-left transition-colors ${
+        isSelected
+          ? 'bg-foreground text-background'
+          : 'bg-background text-foreground hover:bg-foreground hover:text-background'
       }`}
       aria-pressed={isSelected}
     >
-      <div className="flex items-center gap-2 font-medium">
+      <div className="flex items-center gap-2 font-mono text-[12px] font-bold uppercase tracking-wider">
         {icon}
         {title}
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{description}</div>
+      <div className="mt-1 font-mono text-[11px] uppercase tracking-wider opacity-70">
+        {description}
+      </div>
     </button>
   )
 }
@@ -348,9 +352,11 @@ function ScanSummary({ scan }: { scan: ExportScanResult }): React.JSX.Element {
   )
 
   return (
-    <div className="rounded-md border bg-muted/30 p-3 text-sm">
-      <div className="text-xs font-medium uppercase text-muted-foreground">Note contents</div>
-      <ul className="mt-2 space-y-1 text-xs">
+    <div className="border-2 border-foreground bg-muted/30 p-3 text-sm">
+      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        Note contents
+      </div>
+      <ul className="mt-2 space-y-1 font-mono text-[11px]">
         <li>
           <strong>{scan.usedComponents.length}</strong> registry component
           {scan.usedComponents.length === 1 ? '' : 's'}: {scan.usedComponents.join(', ') || 'none'}
@@ -358,7 +364,7 @@ function ScanSummary({ scan }: { scan: ExportScanResult }): React.JSX.Element {
         <li>
           <strong>{totalIslands}</strong> sandbox island{totalIslands === 1 ? '' : 's'}
           {unapprovedIslands.length > 0 ? (
-            <span className="ml-1 inline-flex items-center gap-1 text-amber-700">
+            <span className="ml-1 inline-flex items-center gap-1 font-bold uppercase text-destructive">
               <TriangleAlert className="size-3" aria-hidden="true" />
               {unapprovedIslands.length} not approved
             </span>
@@ -390,24 +396,28 @@ function ProgressLine({ event }: { event: ExportProgressEvent | null }): React.J
   } else if (event.phase === 'size-warning') {
     label = `size-warning: ${formatBytes(event.totalBytes)}`
   }
-  return <div className="text-xs text-muted-foreground">{label}</div>
+  return (
+    <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+      {label}
+    </div>
+  )
 }
 
 function ResultPanel({ result }: { result: ExportRunResult }): React.JSX.Element {
   return (
-    <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
-      <div className="font-medium text-emerald-900 dark:text-emerald-200">
+    <div className="border-2 border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)] p-3 text-sm">
+      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--success)]">
         Exported · {formatBytes(result.size)}
       </div>
       {result.warnings.length > 0 ? (
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-900 dark:text-amber-100">
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-foreground/80">
           {result.warnings.map((warning, index) => (
             <li key={index}>{warning}</li>
           ))}
         </ul>
       ) : null}
       {result.sandboxSkipped.length > 0 ? (
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-muted-foreground">
           {result.sandboxSkipped.map((entry, index) => (
             <li key={index}>
               Skipped {entry.resolvedPath} — {entry.reason}
@@ -421,7 +431,7 @@ function ResultPanel({ result }: { result: ExportRunResult }): React.JSX.Element
 
 function ErrorBanner({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+    <div className="border-2 border-destructive bg-destructive/10 p-3 font-mono text-[12px] uppercase tracking-wider text-destructive">
       {message}
     </div>
   )
@@ -439,12 +449,12 @@ function SizeWarningBanner({
   onCancel: () => void
 }): React.JSX.Element {
   return (
-    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      <div className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-200">
+    <div className="border-2 border-destructive bg-destructive/10 p-3 text-sm">
+      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
         <TriangleAlert className="size-4" aria-hidden="true" />
         Inlined assets are large ({formatBytes(totalBytes)})
       </div>
-      <p className="mt-1 text-xs text-amber-900/90 dark:text-amber-100/85">
+      <p className="mt-1 font-mono text-[11px] text-foreground/80">
         The export will embed assets as base64 data URIs. Files over 25 MB are blocked entirely.
         Continue?
       </p>

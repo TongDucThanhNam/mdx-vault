@@ -139,14 +139,14 @@ function CreateNoteForm({
             placeholder="Note title"
             aria-label="Note title"
             disabled={isCreating}
-            className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-full min-w-0 border-2 border-foreground bg-transparent px-3 py-1 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) => {
               setName(event.target.value)
               setError(null)
             }}
             onKeyDown={handleKeyDown}
           />
-          <span className="shrink-0 text-xs text-muted-foreground">.mdx</span>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">.mdx</span>
         </div>
         {templates.length > 0 ? (
           <label className="flex flex-col gap-1.5">
@@ -169,7 +169,7 @@ function CreateNoteForm({
           </label>
         ) : null}
         {error ? (
-          <p className="text-xs text-destructive" role="alert">
+          <p className="font-mono text-xs text-destructive" role="alert">
             {error}
           </p>
         ) : templatesError ? (
@@ -177,7 +177,7 @@ function CreateNoteForm({
             Templates unavailable: {templatesError}
           </p>
         ) : validation.ok ? (
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate font-mono text-xs text-muted-foreground">
             Will create: {validation.relativePath}
           </p>
         ) : null}

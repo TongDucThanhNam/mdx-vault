@@ -21,12 +21,12 @@ export function QuizBlock({
   const selectedCorrect = selectedIndex === answerIndex
 
   return (
-    <section className="my-5 rounded-md border bg-background p-4 shadow-xs">
+    <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-3">
-        <div className="text-xs font-medium uppercase text-muted-foreground">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
           Check understanding
         </div>
-        <div className="mt-1 text-base font-semibold leading-snug">{question}</div>
+        <div className="mt-1 font-display text-lg font-bold leading-snug">{question}</div>
       </div>
 
       <div role="radiogroup" aria-label={question} className="grid gap-2">
@@ -43,10 +43,14 @@ export function QuizBlock({
               role="radio"
               aria-checked={isSelected}
               className={cn(
-                'flex w-full items-start gap-3 rounded-md border bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                isSelected && 'border-primary bg-primary/5',
-                shouldShowCorrect && 'border-emerald-500/60 bg-emerald-500/10',
-                shouldShowWrong && 'border-destructive/60 bg-destructive/10'
+                'flex w-full items-start gap-3 border-2 border-foreground bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                isSelected &&
+                  !shouldShowCorrect &&
+                  !shouldShowWrong &&
+                  'border-[var(--editorial-blue)] bg-[color-mix(in_srgb,var(--editorial-blue)_10%,transparent)]',
+                shouldShowCorrect &&
+                  'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_15%,transparent)]',
+                shouldShowWrong && 'border-destructive bg-destructive/15'
               )}
               onClick={() => setSelectedIndex(index)}
             >
@@ -64,13 +68,13 @@ export function QuizBlock({
       {hasAnswered ? (
         <div
           className={cn(
-            'mt-3 rounded-md border px-3 py-2 text-sm',
+            'mt-3 border-2 px-3 py-2 text-sm',
             selectedCorrect
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100'
-              : 'border-destructive/35 bg-destructive/10 text-destructive'
+              ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-foreground'
+              : 'border-destructive bg-destructive/10 text-destructive'
           )}
         >
-          <div className="flex items-center gap-2 font-medium">
+          <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider">
             {selectedCorrect ? (
               <CheckCircle2 className="size-4" aria-hidden="true" />
             ) : (
@@ -78,10 +82,12 @@ export function QuizBlock({
             )}
             {selectedCorrect ? 'Correct' : `Not quite. Correct answer: ${options[answerIndex]}`}
           </div>
-          {explanation ? <div className="mt-1 text-sm opacity-90">{explanation}</div> : null}
+          {explanation ? (
+            <div className="mt-1 text-sm italic text-foreground/80">{explanation}</div>
+          ) : null}
         </div>
       ) : (
-        <div className="mt-3 text-xs text-muted-foreground">
+        <div className="mt-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
           Pick an answer to get immediate feedback.
         </div>
       )}
@@ -99,7 +105,9 @@ function QuizOptionIcon({
   wrong: boolean
 }): React.JSX.Element {
   if (correct) {
-    return <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+    return (
+      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[var(--success)]" aria-hidden="true" />
+    )
   }
 
   if (wrong) {
@@ -108,7 +116,10 @@ function QuizOptionIcon({
 
   return (
     <Circle
-      className={cn('mt-0.5 size-4 shrink-0 text-muted-foreground', selected && 'text-primary')}
+      className={cn(
+        'mt-0.5 size-4 shrink-0 text-muted-foreground',
+        selected && 'text-[var(--editorial-blue)]'
+      )}
       aria-hidden="true"
     />
   )

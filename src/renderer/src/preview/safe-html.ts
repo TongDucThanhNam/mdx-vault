@@ -68,7 +68,9 @@ const safeHtmlSchema: SanitizeSchema = {
     path: ['d', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin'],
     polygon: ['points', 'fill', 'stroke', 'strokeWidth'],
     polyline: ['points', 'fill', 'stroke', 'strokeWidth'],
+    mark: ['dataPreviewMarkStart', 'dataPreviewMarkEnd'],
     rect: ['x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'stroke', 'strokeWidth'],
+    span: ['dataPreviewSourceStart', 'dataPreviewSourceEnd'],
     text: ['x', 'y', 'dx', 'dy', 'fill', 'fontSize', 'textAnchor']
   },
   clobber: ['id', 'name'],

@@ -261,9 +261,14 @@ export function SandboxHost({
   )
 
   return (
-    <section className={cn('my-5 overflow-hidden rounded-md border bg-background', className)}>
+    <section
+      className={cn(
+        'my-5 overflow-hidden border-2 border-foreground bg-background shadow-[3px_3px_0_0_var(--foreground)]',
+        className
+      )}
+    >
       {state.status === 'loading' ? (
-        <div className="flex min-h-40 items-center justify-center px-4 text-sm text-muted-foreground">
+        <div className="flex min-h-40 items-center justify-center px-4 font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
           Preparing sandbox.
         </div>
       ) : state.status === 'ready' ? (
@@ -344,7 +349,7 @@ function SandboxErrorCard({
         <AlertTriangle className="size-4" aria-hidden="true" />
         {title}
       </div>
-      <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-sm bg-muted p-3 font-mono text-xs text-foreground">
+      <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap border-2 border-foreground bg-muted p-3 font-mono text-xs text-foreground">
         {message}
       </pre>
     </div>
@@ -400,16 +405,18 @@ function PermissionSummary({
   resolvedPath: string
 }): React.JSX.Element {
   return (
-    <div className="rounded-md border bg-muted/30 p-3 text-sm">
-      <dl className="grid gap-x-3 gap-y-2 sm:grid-cols-[7rem_minmax(0,1fr)]">
-        <dt className="text-xs font-medium uppercase text-muted-foreground">Source</dt>
-        <dd className="min-w-0 truncate font-mono text-xs">{resolvedPath}</dd>
-        <dt className="text-xs font-medium uppercase text-muted-foreground">Runtime</dt>
-        <dd>{manifest.runtime}</dd>
-        <dt className="text-xs font-medium uppercase text-muted-foreground">Network</dt>
-        <dd>{manifest.permissions.network ? 'Requested, blocked by CSP' : 'No access'}</dd>
-        <dt className="text-xs font-medium uppercase text-muted-foreground">Dataset</dt>
-        <dd>
+    <div className="border-2 border-foreground bg-muted/30 p-3 text-sm">
+      <dl className="grid gap-x-3 gap-y-2 font-mono text-xs sm:grid-cols-[7rem_minmax(0,1fr)]">
+        <dt className="font-bold uppercase tracking-wider text-[var(--editorial-red)]">Source</dt>
+        <dd className="min-w-0 truncate text-[var(--editorial-blue)]">{resolvedPath}</dd>
+        <dt className="font-bold uppercase tracking-wider text-[var(--editorial-red)]">Runtime</dt>
+        <dd className="text-[var(--editorial-blue)]">{manifest.runtime}</dd>
+        <dt className="font-bold uppercase tracking-wider text-[var(--editorial-red)]">Network</dt>
+        <dd className="text-[var(--editorial-blue)]">
+          {manifest.permissions.network ? 'Requested, blocked by CSP' : 'No access'}
+        </dd>
+        <dt className="font-bold uppercase tracking-wider text-[var(--editorial-red)]">Dataset</dt>
+        <dd className="text-[var(--editorial-blue)]">
           {manifest.permissions.filesystem
             ? manifest.permissions.dataPaths.join(', ') || 'No paths listed'
             : 'No access'}

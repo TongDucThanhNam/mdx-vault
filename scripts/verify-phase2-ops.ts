@@ -38,7 +38,10 @@ async function main(): Promise<void> {
 
     // 2) deleteFile moves note into .trash/.
     const trashPath = await vault.deleteFile('notes/Alpha.mdx')
-    assert(trashPath.startsWith('.trash/'), `trash path should start with .trash/, got ${trashPath}`)
+    assert(
+      trashPath.startsWith('.trash/'),
+      `trash path should start with .trash/, got ${trashPath}`
+    )
     const afterDelete = await vault.listFiles()
     assert(afterDelete.length === 2, `expected 2 files after delete, got ${afterDelete.length}`)
     assert(

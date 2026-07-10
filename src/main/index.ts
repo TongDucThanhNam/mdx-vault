@@ -126,11 +126,7 @@ function registerAppSettingsIpc(appSettings: AppSettingsService): void {
   })
 
   ipcMain.handle('app:set-file-tree-sort', async (_event, payload: unknown) => {
-    if (
-      payload === 'name' ||
-      payload === 'modified-desc' ||
-      payload === 'created-desc'
-    ) {
+    if (payload === 'name' || payload === 'modified-desc' || payload === 'created-desc') {
       await appSettings.setFileTreeSort(payload)
       return payload
     }

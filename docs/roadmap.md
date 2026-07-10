@@ -16,6 +16,16 @@
 
 AI-generated component theo trust model phải chạy Level 3/4. Nếu AI assistant ra đời trước sandbox, code AI sinh ra sẽ phải chạy trong renderer chính (vi phạm docs/security.md) hoặc phải chờ. Sandbox trước → AI output có chỗ chạy an toàn ngay từ ngày đầu.
 
+## Next candidates
+
+Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):
+
+- **GOAL-11 — Editor enrichment**: KaTeX math, code block syntax highlight (Shiki/lowlight), Mermaid diagrams, callouts/admonitions — quick-win score cao, fit MDX.
+- **GOAL-12 — Organization & navigation shell**: outline/TOC panel, tags browser, daily notes + templates, command palette tổng quát. Đa số data đã có từ GOAL-02.
+- **GOAL-13 — Learning loop**: spaced repetition (FSRS link QuizBlock) + properties/frontmatter editor UI — khuếch đại moat islands.
+
+Xem chi tiết phân tích, feature matrix 49×8, top-10 + rejected features tại báo cáo research.
+
 ## Ngoài roadmap (chưa có goal — đừng tự làm)
 
 - Graph view

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Border vs Outline — Bridge Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper); color:var(--ink); font-family:"Lora",serif}
+.masthead{position:sticky; top:0; z-index:50; height:40px; padding:0 1.5rem; background:var(--ink); border-bottom:2px solid var(--ink); display:flex; align-items:center; justify-content:space-between}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+.page{max-width:820px;margin:0 auto;padding:2.5rem 2rem 6rem}
+.frontmatter{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.7; background:var(--paper-dark);border:2px solid var(--ink); padding:1rem 1.2rem;margin-bottom:2.5rem;white-space:pre;overflow-x:auto}
+.frontmatter .k{color:var(--accent);font-weight:700}
+.frontmatter .v{color:var(--result)}
+h1{font-family:"Playfair Display",serif;font-size:2.3rem;font-weight:900;line-height:1.15;margin-bottom:.4rem}
+.subtitle{font-family:"Courier Prime",monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:2rem}
+h2{font-family:"Playfair Display",serif;font-size:1.6rem;font-weight:700;margin:2.5rem 0 1rem;padding-top:1rem;border-top:2px solid var(--ink);scroll-margin-top:56px}
+h2 .tag{font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700; vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.6rem; background:var(--ink);color:var(--paper);text-transform:uppercase}
+p{font-size:1rem;line-height:1.85;margin-bottom:.9rem;color:#222}
+strong{color:var(--ink)}
+code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:2px 7px;font-size:.85rem}
+.highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem;line-height:1.65}
+.highlight-box strong{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;text-align:left;background:var(--ink);color:var(--paper);padding:.5rem .7rem}
+td{border:1px solid var(--ink);padding:.55rem .7rem;line-height:1.55;vertical-align:top}
+tr:nth-child(even) td{background:var(--paper-dark)}
+.links-list{list-style:none}
+.links-list li{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:2}
+.links-list a,.wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+.note-meta{font-family:"Courier Prime",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:4rem;padding-top:1rem;border-top:2px solid var(--ink)}
+.primer{border:2px dashed var(--ink);padding:.8rem 1.1rem;margin:0 0 2.2rem;background:var(--paper)}
+.primer-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.primer-row{font-size:.88rem;line-height:1.7;margin:.3rem 0}
+.primer-row b{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--paper-dark);padding:1px 6px;border:1px solid var(--ink)}
+
+/* Decision matrix */
+.decision-grid{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.decision-col{padding:1rem;border-right:2px solid var(--ink)}
+.decision-col:last-child{border-right:none}
+.decision-head{font-family:"Courier Prime",monospace;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;padding:.4rem;margin-bottom:.7rem}
+.decision-head.border{background:var(--accent);color:#fff}
+.decision-head.outline{background:var(--result);color:#fff}
+.decision-item{font-size:.85rem;line-height:1.6;margin:.4rem 0;padding-left:1.1rem;position:relative}
+.decision-item::before{content:'▸';position:absolute;left:0;color:var(--accent);font-weight:700}
+.decision-col.outline .decision-item::before{color:var(--result)}
+
+/* Side-by-side demo */
+.cmp-demo{display:flex;gap:1.4rem;flex-wrap:wrap;justify-content:center;margin:1.2rem 0;align-items:flex-start}
+.cmp-cell{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.cmp-box-b{width:110px;height:64px;background:#dce6f5;border:4px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.68rem;text-align:center}
+.cmp-box-o{width:110px;height:64px;background:#dce6f5;border:2px solid var(--ink);outline:4px solid var(--accent);outline-offset:0;display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.68rem;text-align:center}
+.cmp-cap{font-family:"Courier Prime",monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">Frontend · Tailwind_CSS · Bridge</span>
+  <span class="brand-sub">Bridge Note</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">border-vs-outline-tailwind</span>
+<span class="k">type:</span> <span class="v">bridge</span>   <span class="k">layer:</span> <span class="v">frontend</span>   <span class="k">priority:</span> <span class="v">P2</span>
+<span class="k">connects:</span> <span class="v">[[tailwind-border-utilities]] ↔ [[tailwind-outline-utilities]]</span>
+<span class="k">review_interval_days:</span> <span class="v">30</span>   <span class="k">next_review:</span> <span class="v">2026-08-07</span></div>
+
+<h1>Border vs Outline — khi nào dùng cái nào?</h1>
+<div class="subtitle">Bridge Note · kết nối Note 1 ↔ Note 2</div>
+
+<div class="primer">
+  <div class="primer-head">Bridge — 30 giây</div>
+  <div class="primer-row"><b>border</b> — viền trong box model, <em>ăn layout</em>, bo theo radius, chia được từng cạnh. Cho thiết kế cấu trúc.</div>
+  <div class="primer-row"><b>outline</b> — viền ngoài vẽ đè, <em>không ăn layout</em>, luôn hình chữ nhật, bao quanh cả box. Cho focus indicator và highlight tạm.</div>
+</div>
+
+<h2>Quy tắc quyết định <span class="tag">[T]</span></h2>
+<p>Không phải "border tốt hơn outline" hay ngược lại — chúng giải bài toán khác nhau. Hỏi 1 câu:</p>
+<div class="highlight-box"><strong>"Đường viền này có phải là một phần của thiết kế cấu trúc, hay là một lớp phủ tạm thời?"</strong></div>
+
+<div class="decision-grid">
+  <div class="decision-col">
+    <div class="decision-head border">Dùng border khi...</div>
+    <div class="decision-item">Viền là <strong>thiết kế</strong> của phần tử (card, nút, input, bảng).</div>
+    <div class="decision-item">Cần bo góc theo <code>rounded-*</code>.</div>
+    <div class="decision-item">Cần viền từng cạnh riêng (<code>border-t</code>, <code>border-x</code>...).</div>
+    <div class="decision-item">Cần chia cách con (<code>divide-*</code>).</div>
+    <div class="decision-item">Muốn viền ảnh hưởng kích thước/spacing (box model nhất quán).</div>
+  </div>
+  <div class="decision-col outline">
+    <div class="decision-head outline">Dùng outline khi...</div>
+    <div class="decision-item">Làm <strong>focus ring</strong> — cần nổi bật nhưng không đẩy layout.</div>
+    <div class="decision-item">Highlight tạm thời (error state, selection) không muốn vỡ grid.</div>
+    <div class="decision-item">Cần ring dày tùy ý mà không tính vào kích thước box.</div>
+    <div class="decision-item">Cần khoảng đệm giữa viền và ring (<code>outline-offset</code>).</div>
+    <div class="decision-item">Phải giữ accessibility trong forced-colors mode (<code>outline-hidden</code>).</div>
+  </div>
+</div>
+
+<h2>Vì sao không thể thay thế nhau <span class="tag">[T]</span></h2>
+<div class="cmp-demo">
+  <div class="cmp-cell">
+    <div class="cmp-box-b">border-4<br>(ăn layout)</div>
+    <div class="cmp-cap">border dày → box to ra</div>
+  </div>
+  <div class="cmp-cell">
+    <div class="cmp-box-o">outline-4<br>(không ăn layout)</div>
+    <div class="cmp-cap">outline dày → ring đè ngoài</div>
+  </div>
+</div>
+<table>
+  <tr><th>Tình huống</th><th>Border</th><th>Outline</th></tr>
+  <tr><td>Nút bo tròn (<code>rounded-full</code>)</td><td>✓ Bo theo radius</td><td>✗ Vuông bao quanh — trông lệch</td></tr>
+  <tr><td>Focus ring trên grid dày</td><td>✗ Đẩy nội dung xung quanh</td><td>✓ Không động layout</td></tr>
+  <tr><td>Chia 2 cột bằng đường kẻ</td><td>✓ <code>divide-x</code></td><td>✗ Không có tương đương</td></tr>
+  <tr><td>Ring dày 8px+ cho accessibility</td><td>✗ Phá layout</td><td>✓ Vẫn ổn</td></tr>
+  <tr><td>Viền từng cạnh (top-only)</td><td>✓ <code>border-t-4</code></td><td>✗ Không có scope cạnh</td></tr>
+  <tr><td>Ring có khoảng đệm</td><td>✗ Dính padding edge</td><td>✓ <code>outline-offset</code></td></tr>
+</table>
+
+<h2>Pattern phổ biến: phối hợp cả hai <span class="tag">[T]</span></h2>
+<p>Trong thực tế, focus ring chất lượng cao thường dùng <em>cả hai</em>: border làm thiết kế nút, outline (hoặc box-shadow) làm ring:</p>
+<pre style="background:var(--ink);color:var(--paper);padding:.9rem 1.1rem;font-family:'Courier Prime',monospace;font-size:.8rem;overflow-x:auto"><code>&lt;!-- Nút: border cho thiết kế, outline cho focus --&gt;
+&lt;button class="
+  border-2 border-indigo-500 rounded-lg
+  focus-visible:outline-2 focus-visible:outline-offset-2
+  focus-visible:outline-indigo-700
+"&gt;
+  Nút bo góc + focus ring
+&lt;/button&gt;</code></pre>
+<div class="highlight-box"><strong>Lưu ý:</strong> trên nút <code>rounded-*</code>, outline vuông sẽ lệch với bo góc. Pattern production thường thay outline bằng <code>focus-visible:ring-*</code> (dùng <code>box-shadow</code>, có tuân theo radius) — nhưng vẫn cần hiểu outline vì nó là mặc định của trình duyệt và base của accessibility.</div>
+
+<h2>Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>← Note 1: <span class="wikilink">[[tailwind-border-utilities]]</span> — radius, width, color, style</li>
+  <li>→ Note 2: <span class="wikilink">[[tailwind-outline-utilities]]</span> — width, color, style, offset</li>
+  <li>Downstream: <span class="wikilink">[[wcag-focus-visible-deep-dive]]</span>, <span class="wikilink">[[focus-ring-patterns-tailwind]]</span></li>
+  <li>Source: <a href="https://tailwindcss.com/docs/border-style">Tailwind border docs</a> · <a href="https://tailwindcss.com/docs/outline-style">Tailwind outline docs</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/outline">MDN — outline</a></li>
+</ul>
+
+<div class="note-meta">Bridge Note · Format B rút gọn · kết nối 2 concept note · không widget (job = quyết định, không phải khám phá) · body scrolls</div>
+
+</main>
+</body>
+</html>

@@ -101,6 +101,7 @@ Agent kết thúc khi và chỉ khi:
 
 > **Pre-existing blockers fixed during GOAL-08 smoke test** (all goal-02/06/07
 > packaging bugs, not GOAL-08 logic):
+>
 > 1. `electron.vite.config.ts`: main config had no `@/` alias → Rollup failed
 >    on `export-static-snapshot.ts` importing `preview/Counter.tsx`. Added
 >    shared aliases to `main`.

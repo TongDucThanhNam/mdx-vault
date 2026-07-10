@@ -33,7 +33,7 @@ Day 2 · Hardware Layer · Concept Note
 | **Extends** | "Memory là mảng phẳng, truy cập đều nhau" — cache _phá_ giả định đều nhau: L1 ~1ns, RAM ~100ns. Chi phí truy cập phụ thuộc **vị trí dữ liệu**, không phụ thuộc phép toán. |
 | **Conflicts** | Big-O model: "cùng số phép toán = cùng chi phí". **Sai ở tầng memory hierarchy** — hai vòng lặp cùng O(N²) có thể chênh nhau nhiều lần chỉ vì thứ tự truy cập. Đây là misconception mà Widget 1 bên dưới nhắm vào. |
 | **Requires** | Cache line là **đơn vị transfer** (không phải byte, không phải variable). Hiểu điều này trước, mọi thứ khác suy ra được. |
-| **Misapplication** | Đơn luồng: line = unit of _transfer_ → tận dụng. Đa luồng: line = unit of _ownership_ (MESI) → chia sẻ line giữa 2 core ghi là thảm họa (false sharing). **Cùng mechanism, dấu ngược nhau tùy context** → `[[bridge-cache-line-transfer-vs-ownership]]` |
+| **Misapplication** | Đơn luồng: line = unit of _transfer_ → tận dụng. Đa luồng: line = unit of _ownership_ (MESI) → chia sẻ line giữa 2 core ghi là thảm họa (false sharing). **Cùng mechanism, dấu ngược nhau tùy context** → [[bridge-cache-line-transfer-vs-ownership]] |
 
 ## Mechanism
 

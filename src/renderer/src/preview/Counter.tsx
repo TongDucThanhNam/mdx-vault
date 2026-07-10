@@ -11,7 +11,7 @@ export function Counter({ initial = 0 }: CounterProps): React.JSX.Element {
   const [count, setCount] = useState(initial)
 
   return (
-    <div className="my-4 flex w-full max-w-xs items-center justify-between rounded-md border bg-background p-2 shadow-xs">
+    <div className="my-4 flex w-full max-w-xs items-center justify-between border-2 border-foreground bg-background p-2 shadow-[3px_3px_0_0_var(--foreground)]">
       <Button
         type="button"
         size="icon-sm"
@@ -22,8 +22,10 @@ export function Counter({ initial = 0 }: CounterProps): React.JSX.Element {
         <Minus className="size-4" aria-hidden="true" />
       </Button>
       <div className="min-w-16 text-center">
-        <div className="text-[11px] font-medium uppercase text-muted-foreground">Counter</div>
-        <div className="text-2xl font-semibold tabular-nums">{count}</div>
+        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          Counter
+        </div>
+        <div className="font-mono text-2xl font-bold tabular-nums">{count}</div>
       </div>
       <Button
         type="button"

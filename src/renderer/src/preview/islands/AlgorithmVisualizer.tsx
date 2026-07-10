@@ -81,17 +81,17 @@ export function AlgorithmVisualizer({
   }, [])
 
   return (
-    <section className="my-5 rounded-md border bg-background p-4 shadow-xs">
+    <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase text-muted-foreground">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
             Algorithm visualizer
           </div>
-          <div className="mt-1 text-base font-semibold">
+          <div className="mt-1 font-display text-lg font-bold">
             {algorithm === 'binary-search' ? 'Binary search' : 'Bubble sort'}
           </div>
         </div>
-        <div className="rounded-md border bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground">
+        <div className="border-2 border-foreground bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground">
           Step {safeStepIndex + 1} / {steps.length}
         </div>
       </div>
@@ -121,7 +121,7 @@ export function AlgorithmVisualizer({
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card p-3">
+      <div className="border-2 border-foreground bg-card p-3">
         {currentStep.algorithm === 'binary-search' ? (
           <BinarySearchView step={currentStep} target={target} />
         ) : (
@@ -129,7 +129,7 @@ export function AlgorithmVisualizer({
         )}
       </div>
 
-      <div className="mt-3 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+      <div className="mt-3 border-2 border-foreground bg-muted/30 px-3 py-2 text-sm italic">
         {currentStep.description}
       </div>
     </section>
@@ -145,8 +145,8 @@ function BinarySearchView({
 }): React.JSX.Element {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="rounded-md border bg-background px-2 py-1">
+      <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
+        <span className="border-2 border-foreground bg-background px-2 py-1">
           target: {target ?? 'not set'}
         </span>
         <PointerBadge label="low" value={step.low} />
@@ -161,17 +161,18 @@ function BinarySearchView({
             <div
               key={`${value}-${index}`}
               className={cn(
-                'min-w-12 flex-1 basis-12 rounded-md border bg-background px-2 py-2 text-center',
+                'min-w-12 flex-1 basis-12 border-2 border-foreground bg-background px-2 py-2 text-center',
                 index < step.low || index > step.high
                   ? 'opacity-35'
-                  : 'border-primary/40 bg-primary/5',
-                step.mid === index && 'border-chart-1 bg-chart-1/10'
+                  : 'bg-[color-mix(in_srgb,var(--editorial-blue)_8%,transparent)]',
+                step.mid === index &&
+                  'border-[var(--editorial-red)] bg-[color-mix(in_srgb,var(--editorial-red)_15%,transparent)]'
               )}
             >
-              <div className="min-h-4 text-[10px] font-medium uppercase text-muted-foreground">
+              <div className="min-h-4 font-mono text-[10px] font-bold uppercase text-muted-foreground">
                 {labels.join(' ')}
               </div>
-              <div className="font-mono text-base font-semibold tabular-nums">{value}</div>
+              <div className="font-mono text-base font-bold tabular-nums">{value}</div>
               <div className="mt-1 font-mono text-[10px] text-muted-foreground">{index}</div>
             </div>
           )
@@ -199,9 +200,11 @@ function BubbleSortView({
           >
             <div
               className={cn(
-                'w-full rounded-md border bg-background px-2 py-2 text-center font-mono text-sm font-semibold tabular-nums',
-                comparing && 'border-chart-1 bg-chart-1/10',
-                sorted && 'border-emerald-500/60 bg-emerald-500/10'
+                'w-full border-2 border-foreground bg-background px-2 py-2 text-center font-mono text-sm font-bold tabular-nums',
+                comparing &&
+                  'border-[var(--editorial-red)] bg-[color-mix(in_srgb,var(--editorial-red)_15%,transparent)]',
+                sorted &&
+                  'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_15%,transparent)]'
               )}
               style={{ minHeight: `${Math.max(36, Math.min(120, Math.abs(value) * 4))}px` }}
             >
@@ -223,7 +226,7 @@ function PointerBadge({
   value: number | null
 }): React.JSX.Element {
   return (
-    <span className="rounded-md border bg-background px-2 py-1">
+    <span className="border-2 border-foreground bg-background px-2 py-1">
       {label}: {value ?? '-'}
     </span>
   )

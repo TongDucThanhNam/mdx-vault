@@ -1,5 +1,14 @@
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
-import { ChevronRight, Copy, FileText, FolderOpen, Pencil, Trash2, Files, ExternalLink } from 'lucide-react'
+import {
+  ChevronRight,
+  Copy,
+  FileText,
+  FolderOpen,
+  Pencil,
+  Trash2,
+  Files,
+  ExternalLink
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -104,7 +113,7 @@ function TreeNodeItem({
     return (
       <div>
         <div
-          className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground"
+          className="flex h-7 items-center gap-1.5 px-2 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
           style={{ paddingLeft: `${level * 14 + 8}px` }}
           title={node.path}
         >
@@ -186,10 +195,10 @@ function FileNodeButton({
           <button
             type="button"
             className={cn(
-              'flex h-8 w-full items-center gap-2 rounded-[4px] px-2 text-left text-[13px] transition-colors',
+              'flex h-8 w-full items-center gap-2 border-l-2 px-2 text-left text-[13px] transition-colors',
               isSelected
-                ? 'bg-[var(--viridian-soft)] text-accent-foreground font-medium shadow-[inset_2px_0_0_0_var(--viridian)]'
-                : 'text-foreground/80 hover:bg-accent hover:text-foreground'
+                ? 'border-l-[var(--editorial-red)] bg-[var(--paper-dark)] text-foreground font-medium'
+                : 'border-l-transparent text-foreground/80 hover:bg-foreground hover:text-background'
             )}
             style={{ paddingLeft: `${level * 14 + 8}px` }}
             title={node.file.relativePath}
@@ -203,7 +212,7 @@ function FileNodeButton({
       </ContextMenuPrimitive.Trigger>
       <ContextMenuPrimitive.Portal>
         <ContextMenuPrimitive.Content
-          className="z-50 min-w-[180px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+          className="z-50 min-w-[180px] border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
           data-slot="context-menu-content"
         >
           <ContextMenuItem
@@ -226,7 +235,7 @@ function FileNodeButton({
             icon={<ExternalLink className="size-3.5" aria-hidden="true" />}
             label="Reveal in explorer"
           />
-          <ContextMenuPrimitive.Separator className="my-1 h-px bg-border" />
+          <ContextMenuPrimitive.Separator className="my-1 h-0 border-t border-foreground" />
           <ContextMenuItem
             onSelect={() => onDeleteFile(node.file.relativePath)}
             icon={<Trash2 className="size-3.5" aria-hidden="true" />}
@@ -254,8 +263,8 @@ function ContextMenuItem({
     <ContextMenuPrimitive.Item
       onSelect={onSelect}
       className={cn(
-        'flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        destructive && 'text-destructive focus:bg-destructive/10 focus:text-destructive'
+        'flex cursor-default select-none items-center gap-2 px-2 py-1.5 text-[13px] outline-none focus:bg-foreground focus:text-background data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        destructive && 'text-destructive focus:bg-destructive focus:text-white'
       )}
     >
       {icon}
@@ -319,7 +328,7 @@ function RenameInput({
         }
       }}
       onClick={(event) => event.stopPropagation()}
-      className="h-8 w-full rounded-[4px] border border-[var(--viridian)] bg-background px-2 text-[13px] outline-none ring-2 ring-[var(--viridian-soft)]"
+      className="h-8 w-full border-2 border-[var(--editorial-red)] bg-background px-2 text-[13px] outline-none ring-2 ring-[color-mix(in_srgb,var(--editorial-red)_25%,transparent)]"
       style={{ marginLeft: `${level * 14 + 8}px` }}
     />
   )

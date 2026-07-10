@@ -123,14 +123,16 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
         : null
 
   return (
-    <section className="my-5 rounded-md border bg-background p-4 shadow-xs">
+    <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase text-muted-foreground">Data chart</div>
-          <div className="mt-1 text-base font-semibold">{title ?? `${y} by ${x}`}</div>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            Data chart
+          </div>
+          <div className="mt-1 font-display text-lg font-bold">{title ?? `${y} by ${x}`}</div>
         </div>
         {src ? (
-          <div className="max-w-full truncate rounded-md border bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground">
+          <div className="max-w-full truncate border-2 border-foreground bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground">
             {src}
           </div>
         ) : null}
@@ -141,7 +143,7 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
       ) : validationError ? (
         <DataChartError message={validationError} />
       ) : chartData ? (
-        <div className="h-72 min-w-0 rounded-md border bg-card p-3">
+        <div className="h-72 min-w-0 border-2 border-foreground bg-card p-3">
           {renderChart({
             type,
             data: chartData,
@@ -150,7 +152,7 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
           })}
         </div>
       ) : src && datasetResolution.status === 'ready' ? (
-        <div className="flex h-64 items-center justify-center rounded-md border bg-card text-sm text-muted-foreground">
+        <div className="flex h-64 items-center justify-center border-2 border-foreground bg-card font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
           Loading {datasetResolution.path}
         </div>
       ) : (
@@ -162,7 +164,7 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
 
 function DataChartError({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="flex min-h-40 items-center justify-center rounded-md border border-destructive/35 bg-destructive/10 px-4 py-6 text-center text-sm text-destructive">
+    <div className="flex min-h-40 items-center justify-center border-2 border-destructive bg-destructive/10 px-4 py-6 text-center font-mono text-[12px] uppercase tracking-wider text-destructive">
       <div>
         <AlertTriangle className="mx-auto mb-2 size-5" aria-hidden="true" />
         <div className="font-medium">Chart unavailable</div>

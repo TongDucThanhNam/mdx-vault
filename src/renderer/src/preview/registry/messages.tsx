@@ -11,12 +11,12 @@ export function ComponentValidationWarning({
   issues
 }: ComponentValidationWarningProps): React.JSX.Element {
   return (
-    <div className="my-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      <div className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-200">
+    <div className="my-4 border-2 border-destructive bg-destructive/10 p-3 text-sm">
+      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
         <AlertTriangle className="size-4" aria-hidden="true" />
         Invalid props for {componentName}
       </div>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-950/80 dark:text-amber-100/85">
+      <ul className="mt-2 space-y-1 pl-5 text-xs text-foreground/80">
         {issues.map((issue, index) => (
           <li key={`${issue.path.join('.')}-${index}`}>
             <span className="font-mono">{formatIssuePath(issue.path)}</span>: {issue.message}
@@ -33,12 +33,12 @@ export function UnknownComponentPlaceholder({
   componentName: string
 }): React.JSX.Element {
   return (
-    <div className="my-4 rounded-md border border-dashed bg-muted/50 p-3 text-sm text-muted-foreground">
-      <div className="flex items-center gap-2 font-medium text-foreground">
+    <div className="my-4 border-2 border-dashed border-foreground bg-muted/50 p-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
         <CircleHelp className="size-4" aria-hidden="true" />
         Unknown component: {componentName}
       </div>
-      <div className="mt-1 text-xs">
+      <div className="mt-1 font-mono text-[11px] uppercase tracking-wider">
         Register this component before using it as a trusted MDX island.
       </div>
     </div>

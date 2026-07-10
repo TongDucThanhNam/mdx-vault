@@ -136,15 +136,19 @@ export function EquationSlider({
   )
 
   return (
-    <section className="my-5 rounded-md border bg-background p-4 shadow-xs">
+    <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase text-muted-foreground">Equation slider</div>
-          <div className="mt-1 font-mono text-lg font-semibold">{formula}</div>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            Equation slider
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold">{formula}</div>
         </div>
-        <div className="rounded-md border bg-muted/40 px-3 py-2 text-right">
-          <div className="text-xs font-medium uppercase text-muted-foreground">Result</div>
-          <div className="font-mono text-2xl font-semibold tabular-nums">
+        <div className="border-2 border-foreground bg-muted/40 px-3 py-2 text-right shadow-[2px_2px_0_0_var(--foreground)]">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            Result
+          </div>
+          <div className="font-mono text-2xl font-bold tabular-nums text-[var(--editorial-blue)]">
             {result.ok ? numberFormatter.format(result.value) : 'Error'}
           </div>
         </div>
@@ -155,10 +159,10 @@ export function EquationSlider({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(260px,1.1fr)]">
         <div className="space-y-3">
           {variableEntries.map(([name, config]) => (
-            <label key={name} className="block rounded-md border bg-card px-3 py-2.5">
+            <label key={name} className="block border-2 border-foreground bg-card px-3 py-2.5">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="font-mono text-sm font-semibold">{name}</span>
-                <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                <span className="font-mono text-sm font-bold">{name}</span>
+                <span className="font-mono text-sm tabular-nums text-[var(--editorial-red)]">
                   {numberFormatter.format(values[name] ?? config.default)}
                 </span>
               </div>
@@ -168,7 +172,7 @@ export function EquationSlider({
                 max={config.max}
                 step={config.step}
                 value={values[name] ?? config.default}
-                className="w-full accent-primary"
+                className="w-full accent-[var(--editorial-red)]"
                 onChange={(event) => handleVariableChange(name, Number(event.currentTarget.value))}
               />
               <div className="mt-1 flex justify-between font-mono text-[11px] text-muted-foreground">
@@ -179,8 +183,8 @@ export function EquationSlider({
           ))}
         </div>
 
-        <div className="min-w-0 rounded-md border bg-card p-3">
-          <div className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+        <div className="min-w-0 border-2 border-foreground bg-card p-3">
+          <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
             {chartVariable ? `Result as ${chartVariable[0]} changes` : 'Mini chart'}
           </div>
           <div className="h-56 min-w-0">
@@ -231,7 +235,7 @@ export function EquationSlider({
 
 function EquationError({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <div className="mb-3 flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-[12px] uppercase tracking-wider text-destructive">
       <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div>{message}</div>
     </div>

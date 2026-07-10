@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Border Utilities (Tailwind) — Interactive Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper); color:var(--ink); font-family:"Lora",serif}
+.masthead{position:sticky; top:0; z-index:50; height:40px; padding:0 1.5rem; background:var(--ink); border-bottom:2px solid var(--ink); display:flex; align-items:center; justify-content:space-between}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+.page{max-width:820px;margin:0 auto;padding:2.5rem 2rem 6rem}
+.frontmatter{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.7; background:var(--paper-dark);border:2px solid var(--ink); padding:1rem 1.2rem;margin-bottom:2.5rem;white-space:pre;overflow-x:auto}
+.frontmatter .k{color:var(--accent);font-weight:700}
+.frontmatter .v{color:var(--result)}
+h1{font-family:"Playfair Display",serif;font-size:2.5rem;font-weight:900;line-height:1.15;margin-bottom:.4rem}
+.subtitle{font-family:"Courier Prime",monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:2rem}
+h2{font-family:"Playfair Display",serif;font-size:1.7rem;font-weight:700;margin:3rem 0 1rem;padding-top:1rem;border-top:2px solid var(--ink);scroll-margin-top:56px}
+h2 .tag{font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700; vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.6rem; background:var(--ink);color:var(--paper);text-transform:uppercase}
+h2 .tag.w{background:var(--accent)}
+h2 .tag.e{background:var(--result)}
+h3{font-family:"Playfair Display",serif;font-size:1.25rem;font-weight:700;margin:1.8rem 0 .6rem;scroll-margin-top:56px}
+p{font-size:1rem;line-height:1.85;margin-bottom:.9rem;color:#222}
+strong{color:var(--ink)}
+code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:2px 7px;font-size:.85rem}
+.highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem;line-height:1.65}
+.highlight-box strong{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;text-align:left;background:var(--ink);color:var(--paper);padding:.5rem .7rem}
+td{border:1px solid var(--ink);padding:.55rem .7rem;line-height:1.55;vertical-align:top}
+tr:nth-child(even) td{background:var(--paper-dark)}
+.mm-grid{display:grid;grid-template-columns:130px 1fr;border:2px solid var(--ink);margin:1rem 0}
+.mm-grid>div{padding:.6rem .9rem;font-size:.9rem;line-height:1.6;border-bottom:1px solid var(--line)}
+.mm-grid>div:nth-last-child(-n+2){border-bottom:none}
+.mm-key{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;background:var(--paper-dark);border-right:2px solid var(--ink);display:flex;align-items:center}
+.mm-key.conflict{color:var(--accent)}
+.trace{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.9;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.3rem;margin:1rem 0;white-space:pre;overflow-x:auto}
+.trace .hit{color:var(--result);font-weight:700}
+.trace .miss{color:var(--accent);font-weight:700}
+.note{font-size:.85rem;opacity:.8;font-style:italic;margin:.6rem 0}
+pre{margin:.8rem 0}
+pre code{display:block;background:var(--ink);color:var(--paper);padding:.9rem 1.1rem;font-size:.8rem;line-height:1.7;white-space:pre;overflow-x:auto}
+
+/* Widget frame */
+.widget{border:2px solid var(--ink);box-shadow:var(--shadow);margin:1.4rem 0 2rem;background:var(--paper)}
+.widget-head{display:flex;justify-content:space-between;align-items:center;padding:.55rem 1rem;background:var(--paper-dark);border-bottom:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.widget-status{background:var(--ink);color:var(--paper);padding:.15rem .6rem;font-size:.7rem}
+.widget-body{padding:1.3rem}
+.widget-misconception{font-family:"Courier Prime",monospace;font-size:.75rem;padding:.45rem 1rem;border-bottom:2px dashed var(--line);background:var(--paper)}
+.widget-misconception b{color:var(--accent)}
+.gate{border:2px dashed var(--accent);padding:1rem 1.2rem;margin-bottom:1.2rem;background:var(--paper)}
+.gate-q{font-family:"Lora",serif;font-size:.95rem;margin-bottom:.8rem;line-height:1.6}
+.gate-q b{color:var(--accent)}
+.gate-opts{display:flex;gap:.6rem;flex-wrap:wrap}
+.gate-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.8rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.gate-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.gate-btn.chosen{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:none;transform:translate(2px,2px)}
+.gate-verdict{margin-top:.9rem;font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.7;display:none;padding:.7rem 1rem;border:2px solid var(--ink);background:var(--paper-dark)}
+.gate-verdict.show{display:block}
+.gate-verdict .right{color:var(--result);font-weight:700}
+.gate-verdict .wrong{color:var(--accent);font-weight:700}
+.lab-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.82rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.lab-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.lab-btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.lab-btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lab-btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.controls-row{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--ink)}
+.toggle-group{display:flex;gap:0;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.toggle-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;padding:.4rem .9rem;border:none;background:var(--paper);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.toggle-btn+.toggle-btn{border-left:2px solid var(--ink)}
+.toggle-btn.active{background:var(--ink);color:var(--paper)}
+.toggle-btn:disabled{opacity:.3;cursor:not-allowed}
+.viz-label{font-family:"Courier Prime",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-top:.5rem}
+
+/* Tier-2: nested box model rings */
+.boxmodel{margin:1.2rem 0;display:flex;justify-content:center}
+.bm-ring{position:relative;font-family:"Courier Prime",monospace}
+.bm-ring > .bm-label{position:absolute;top:4px;left:6px;font-size:.6rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
+/* ngoài cùng: outline — overlay, KHÔNG thuộc box model, vẽ đè qua CSS outline thật */
+.bm-outline{padding:18px;outline:3px dashed var(--line);outline-offset:0}
+.bm-outline > .bm-label{color:var(--line)}
+/* margin */
+.bm-margin{padding:16px;background:var(--paper-dark);border:1px dashed var(--ink)}
+.bm-margin > .bm-label{color:var(--ink)}
+/* border */
+.bm-border{padding:10px;background:var(--accent);border:1px solid var(--ink)}
+.bm-border > .bm-label{color:#fff}
+/* padding */
+.bm-padding{padding:18px;background:#dce6f5;border:1px solid var(--result)}
+.bm-padding > .bm-label{color:var(--result)}
+/* content */
+.bm-content{padding:18px 26px;background:var(--ink);color:var(--paper);min-width:120px;text-align:center;font-size:.72rem;letter-spacing:1px}
+.bm-content > .bm-label{color:var(--accent)}
+.bm-legend{font-family:"Courier Prime",monospace;font-size:.7rem;text-align:center;margin-top:.6rem;opacity:.7;letter-spacing:.5px}
+
+/* Tier-2: grammar 3-axis */
+.grammar-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.grammar-axis{padding:.8rem;border-right:2px solid var(--ink)}
+.grammar-axis:last-child{border-right:none}
+.grammar-axis-head{font-family:"Courier Prime",monospace;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:var(--ink);color:var(--paper);padding:.3rem .5rem;margin-bottom:.6rem;text-align:center}
+.grammar-chip{font-family:"Courier Prime",monospace;font-size:.72rem;padding:.25rem .5rem;border:1px solid var(--ink);margin:.25rem 0;background:var(--paper-dark)}
+.grammar-chip code{background:transparent;color:var(--ink);padding:0;font-size:.72rem}
+
+/* Tier-2: scope ladder */
+.scope-ladder{border:2px solid var(--ink);padding:.9rem 1.1rem;margin:1rem 0;background:var(--paper-dark)}
+.scope-row{display:grid;grid-template-columns:110px 1fr;font-family:"Courier Prime",monospace;font-size:.74rem;margin:.3rem 0;gap:.6rem;align-items:baseline}
+.scope-row .scope-lbl{font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
+/* Tier-2: width tree */
+.tree{font-family:"Courier Prime",monospace;font-size:.74rem;line-height:1.8;border:2px solid var(--ink);padding:.9rem 1.1rem;margin:1rem 0;background:var(--paper);white-space:pre;overflow-x:auto}
+.tree .b{color:var(--accent);font-weight:700}
+.tree .r{color:var(--result);font-weight:700}
+
+/* Tier-2: specificity override diagram */
+.spec-demo{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
+.spec-box{width:60px;height:60px;border:4px solid var(--result);border-top-color:var(--accent)}
+
+/* DEMO boxes — element đang được DEMO border-radius (content, không phải note chrome) */
+.demo-box{background:#dce6f5;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.7rem;color:var(--ink);transition:all .2s}
+.demo-flex{display:flex;gap:1.6rem;flex-wrap:wrap;justify-content:center;align-items:flex-start;margin:1rem 0}
+.demo-col{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+
+/* Divide demo */
+.divide-container{display:flex;background:var(--paper);border:2px dashed var(--line)}
+.divide-child{padding:.7rem 1.2rem;font-family:"Courier Prime",monospace;font-size:.72rem;background:#dce6f5;border:2px solid var(--ink);margin:4px}
+
+/* Recap static block */
+.cmp-block{border:2px solid var(--ink);padding:.8rem 1rem;margin:.7rem 0 0;background:var(--paper-dark)}
+.cmp-block .cmp-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+
+.evidence-empty{font-family:"Courier Prime",monospace;font-size:.82rem;color:var(--accent);font-weight:700}
+.cmd{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--ink);color:var(--paper);padding:.6rem .9rem;display:block;margin:.4rem 0;white-space:pre;overflow-x:auto}
+.q-item{border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.q-head{padding:.8rem 1rem;font-size:.95rem;line-height:1.6;display:flex;gap:.8rem;align-items:baseline}
+.q-level{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;background:var(--ink);color:var(--paper);padding:.15rem .5rem;white-space:nowrap;text-transform:uppercase;letter-spacing:1px}
+.q-actions{padding:0 1rem .8rem}
+.q-answer{display:none;border-top:2px dashed var(--line);padding:.8rem 1rem;font-size:.9rem;line-height:1.7;background:var(--paper-dark)}
+.q-answer.show{display:block}
+.links-list{list-style:none}
+.links-list li{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:2}
+.links-list a,.wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+.note-meta{font-family:"Courier Prime",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:4rem;padding-top:1rem;border-top:2px solid var(--ink)}
+.primer{border:2px dashed var(--ink);padding:.8rem 1.1rem;margin:0 0 2.2rem;background:var(--paper)}
+.primer-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.primer-row{font-size:.88rem;line-height:1.7;margin:.3rem 0}
+.primer-row b{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--paper-dark);padding:1px 6px;border:1px solid var(--ink)}
+.primer-row a{color:var(--result);font-weight:700;text-decoration:none;font-family:"Courier Prime",monospace;font-size:.72rem;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">Frontend · Tailwind_CSS · Border</span>
+  <span class="brand-sub">Interactive Note · Format B</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">tailwind-border-utilities</span>
+<span class="k">type:</span> <span class="v">concept</span>   <span class="k">layer:</span> <span class="v">frontend</span>   <span class="k">priority:</span> <span class="v">P1</span>
+<span class="k">maturity_target:</span> <span class="v">L3</span>   <span class="k">current_maturity:</span> <span class="v">L1</span>
+<span class="k">labs:</span> <span class="v">—</span>
+<span class="k">review_interval_days:</span> <span class="v">14</span>   <span class="k">next_review:</span> <span class="v">2026-07-22</span></div>
+
+<h1>Border Utilities trong Tailwind CSS</h1>
+<div class="subtitle">Note 1/2 · Concept Note · radius · width · color · style</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa — lần đầu: đọc 30 giây · đọc lại: bỏ qua</div>
+  <div class="primer-row"><b>border (vs outline)</b> — viền nằm trong box model, <em>ảnh hưởng kích thước phần tử</em>, khác outline ở ngoài không ăn layout. <a href="#mechanism">↓ Mechanism</a></div>
+  <div class="primer-row"><b>box model</b> — mô hình hộp: content → padding → border → margin. <a href="#mechanism">↓ Mechanism</a></div>
+  <div class="primer-row"><b>border-radius</b> — độ bo cong của góc phần tử. <a href="#radius">↓ Radius</a></div>
+  <div class="primer-row"><b>border-width</b> — độ dày của viền. <a href="#width">↓ Width</a></div>
+  <div class="primer-row"><b>border-color</b> — màu của viền. <a href="#color">↓ Color</a></div>
+  <div class="primer-row"><b>border-style</b> — kiểu nét viền: solid, dashed, dotted, double. <a href="#style">↓ Style</a></div>
+  <div class="primer-row"><b>logical property</b> — thuộc tính logic (start/end) phụ thuộc hướng văn bản, không cố định trái/phải. <a href="#logical">↓ Logical</a></div>
+  <div class="primer-row"><b>physical property</b> — thuộc tính vật lý cố định: top/right/bottom/left. <a href="#logical">↓ Logical</a></div>
+  <div class="primer-row"><b>LTR / RTL</b> — hướng viết trái→phải / phải→trái. <a href="#logical">↓ Logical</a></div>
+  <div class="primer-row"><b>arbitrary value</b> — giá trị tùy chỉnh trong ngoặc vuông <code>[...]</code>. <a href="#value-types">↓ Value types</a></div>
+  <div class="primer-row"><b>token</b> — giá trị định nghĩa sẵn trong theme, vd <code>rounded-lg</code>. <a href="#value-types">↓ Value types</a></div>
+  <div class="primer-row"><b>opacity modifier</b> — bộ điều chỉnh độ mờ <code>/50</code>. <a href="#color">↓ Color</a></div>
+  <div class="primer-row"><b>divide utility</b> — thêm viền <em>giữa</em> các phần tử con, không phải viền container. <a href="#width">↓ Width</a></div>
+  <div class="primer-row"><b>start / end</b> — đầu / cuối theo hướng văn bản (logical side). <a href="#logical">↓ Logical</a></div>
+  <div class="primer-row"><b>cascade / specificity</b> — quy tắc CSS: cùng specificity thì class khai báo <em>sau</em> thắng. <a href="#color">↓ Color</a></div>
+  <div class="primer-row"><b>dir attribute</b> — thuộc tính HTML (<code>dir="ltr|rtl"</code>) đặt hướng văn bản. <a href="#logical">↓ Logical</a></div>
+  <div class="primer-row" style="font-size:.78rem;opacity:.7;font-family:'Courier Prime',monospace">Kiến thức nền assume sẵn (không giải thích lại): Tailwind utility class, JIT engine, CSS variable, responsive breakpoint (<code>md:</code>), state variant (<code>focus:</code>) → prerequisites trong frontmatter/Links</div>
+</div>
+
+<h2 id="one-liner">One-liner <span class="tag">[T]</span></h2>
+<p><strong>Bốn nhóm utility <code>border-*</code> (radius, width, color, style) chia chung một grammar: mỗi cái phân rã theo ba trục — property CSS × phạm vi cạnh (tất cả / cạnh / góc / logical) × kiểu giá trị (token / số / arbitrary / CSS variable).</strong></p>
+
+<h2 id="mental-model">Mental Model <span class="tag">[T]</span></h2>
+<div class="mm-grid">
+  <div class="mm-key">Extends</div><div>Mở rộng grammar <code>bg-*</code>, <code>text-*</code> đã quen: cùng mẫu <code>{property}-{scope}-{value}</code>, chỉ đổi tiền tố và bộ giá trị.</div>
+  <div class="mm-key conflict">Conflicts</div>
+  <div>"Mỗi utility <code>border-*</code> là một thế giới riêng, phải học thuộc từng class." — sai. Grammar lặp lại, học cấu trúc một lần rồi áp dụng cho cả bốn nhóm.
+    <!-- TIER2: grammar 3 trục — vẽ ở Phase 2 -->
+  </div>
+  <div class="mm-key">Requires</div><div>Box model (border nằm giữa padding và margin, <em>ăn</em> kích thước phần tử), CSS variable, Tailwind JIT.</div>
+  <div class="mm-key">Misapplication</div><div>Dùng <code>border-s-4</code> rồi lạ lẫm vì viền "nhảy sang bên phải" khi <code>dir="rtl"</code>; hoặc tưởng <code>divide-y-2</code> cũng viền cho container cha.</div>
+</div>
+
+<h2 id="mechanism">Mechanism — Border sống trong box model <span class="tag">[T]</span></h2>
+<p>Border là lớp giữa padding và margin. Đặc điểm quyết định mọi hành vi của <code>border-*</code> utilities:</p>
+<div class="trace">Phần tử HTML
+  → content (nội dung, có kích thước)
+  → padding (đệm trong, đẩy content ra)
+  → <strong>border</strong> (viền — <em>tăng kích thước hiển thị</em> theo <code>box-sizing</code>)
+  → margin (khoảng cách ngoài, đẩy box khác)
+  → ngoài cùng: <em>outline</em> (không thuộc box model, không ăn layout — note riêng)</div>
+<p>Hệ quả: <code>border-width-4</code> làm phần tử to thêm 4px mỗi cạnh (trừ khi <code>box-sizing: border-box</code>); còn outline-width thì không. Đây là lý do note này tách khỏi outline.</p>
+<div class="boxmodel">
+  <div class="bm-ring bm-outline">
+    <span class="bm-label">outline (overlay — không ăn layout)</span>
+    <div class="bm-ring bm-margin">
+      <span class="bm-label">margin</span>
+      <div class="bm-ring bm-border">
+        <span class="bm-label">border</span>
+        <div class="bm-ring bm-padding">
+          <span class="bm-label">padding</span>
+          <div class="bm-ring bm-content">
+            <span class="bm-label">content</span>
+            nội dung
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="bm-legend">Box model = các vòng lồng nhau (content → padding → border → margin). Outline vẽ <strong>đè ngoài rìa</strong>, không phải lớp lồng.</p>
+
+<h3>Ví dụ minh hoạ — outline "vẽ đè" thực sự nghĩa là gì</h3>
+<p>Hai box đặt cạnh nhau (flex). Box dưới có thêm <code>outline: 6px solid</code>. Quan sát: outline <em>đè</em> lên box kế bên, không đẩy nó đi.</p>
+<div style="display:flex;gap:6px;align-items:flex-start;margin:1rem 0">
+  <div style="border:3px solid var(--ink);background:#dce6f5;padding:1.5rem 1.8rem;font-family:'Courier Prime',monospace;font-size:.72rem">Box A<br>border 3px</div>
+  <div style="border:3px solid var(--ink);outline:6px solid var(--accent);outline-offset:0;background:#dce6f5;padding:1.5rem 1.8rem;font-family:'Courier Prime',monospace;font-size:.72rem">Box B<br>border 3px<br><strong>+ outline 6px</strong></div>
+  <div style="border:3px solid var(--ink);background:#dce6f5;padding:1.5rem 1.8rem;font-family:'Courier Prime',monospace;font-size:.72rem">Box C<br>border 3px</div>
+</div>
+<p class="note">Nếu outline là "lớp" thuộc box model, Box C phải bị đẩy sang phải ít nhất 6px. Nhưng nó <em>không</em> bị đẩy — outline của Box B đè lên khoảng trống giữa B và C. Đây là điểm khác cốt lõi với border: border <strong>đẩy</strong> layout, outline <strong>không</strong>.</p>
+<p class="note">Note 2/2 bàn riêng outline (width/color/style/offset). Trở lại border — note này tập trung vào phần <em>ăn</em> layout.</p>
+
+<h2 id="grammar">Grammar 3 trục — cấu trúc chung của <code>border-*</code> <span class="tag">[T]</span></h2>
+<p>Mỗi utility <code>border-*</code> là tích của ba trục lựa chọn. Học cấu trúc một lần, dùng cho cả bốn nhóm:</p>
+<div class="grammar-grid">
+  <div class="grammar-axis">
+    <div class="grammar-axis-head">Trục 1 · property</div>
+    <div class="grammar-chip"><code>border-radius</code> — bo góc</div>
+    <div class="grammar-chip"><code>border-width</code> — độ dày</div>
+    <div class="grammar-chip"><code>border-color</code> — màu</div>
+    <div class="grammar-chip"><code>border-style</code> — kiểu nét</div>
+  </div>
+  <div class="grammar-axis">
+    <div class="grammar-axis-head">Trục 2 · scope</div>
+    <div class="grammar-chip">tất cả cạnh <code>(none)</code></div>
+    <div class="grammar-chip">một cạnh <code>-t -r -b -l</code></div>
+    <div class="grammar-chip">một góc <code>-tl -tr -br -bl</code></div>
+    <div class="grammar-chip">logical <code>-s -e</code></div>
+  </div>
+  <div class="grammar-axis">
+    <div class="grammar-axis-head">Trục 3 · value-type</div>
+    <div class="grammar-chip">token <code>rounded-lg</code></div>
+    <div class="grammar-chip">số <code>border-2</code></div>
+    <div class="grammar-chip">arbitrary <code>[4px]</code></div>
+    <div class="grammar-chip">CSS var <code>(--x)</code></div>
+  </div>
+</div>
+<p class="note">Ví dụ: <code>rounded-t-lg</code> = radius × cạnh-trên × token-lg. <code>border-s-[3px]</code> = width × logical-start × arbitrary-3px. Cùng grammar, chỉ đổi tiền tố.</p>
+
+<h3 id="scope">Trục 2 — Phạm vi cạnh (scope axis)</h3>
+<p>Bán kính/độ dày/màu/kiểu có thể áp cho: tất cả cạnh · một cạnh · một góc · hoặc dùng logical property. Bảng dưới cho thấy radius có nhiều cấp nhất (4 cấp), width/color có <code>divide-*</code> thay thế cho "corner".</p>
+<div class="scope-ladder">
+  <div class="scope-row"><span class="scope-lbl">radius</span><span>all → side (t/r/b/l) → corner (tl/tr/br/bl) → logical (s/e, ss/se/es/ee)</span></div>
+  <div class="scope-row"><span class="scope-lbl">width</span><span>all → side (t/r/b/l) → axis (x/y) → logical (s/e) → <strong style="color:var(--accent)">divide (x/y)</strong></span></div>
+  <div class="scope-row"><span class="scope-lbl">color</span><span>all → side (t/r/b/l) → axis (x/y) → logical (s/e) → <strong style="color:var(--accent)">divide</strong></span></div>
+  <div class="scope-row"><span class="scope-lbl">style</span><span>all → <strong style="color:var(--accent)">divide</strong> (style áp cả cụm, ít cần scope hẹp)</span></div>
+</div>
+<p class="note"><code>corner</code> chỉ tồn tại cho radius (vì góc = giao 2 cạnh). <code>divide</code> tồn tại cho width/color/style (vì chia cách = viền giữa con). Hai scope này <em>không</em> giao hoán.</p>
+
+<h2 id="value-types">Trục 3 — Kiểu giá trị (value-type axis) <span class="tag">[T]</span></h2>
+<p>Bốn cách viết giá trị, lặp lại cho mọi property. Đây là phần dễ nhầm nhất:</p>
+<table>
+  <tr><th>Kiểu</th><th>Cú pháp</th><th>Ví dụ</th><th>Đặc điểm</th></tr>
+  <tr><td><strong>Token</strong> (theme)</td><td><code>{prop}-{name}</code></td><td><code>rounded-lg</code>, <code>border-4</code></td><td>Giá trị định nghĩa sẵn trong theme; nhất quán, dễ đổi theme.</td></tr>
+  <tr><td><strong>Số</strong></td><td><code>{prop}-{number}</code></td><td><code>border-2</code>, <code>outline-4</code></td><td>Số nguyên → pixel. Chỉ một số property hỗ trợ (width/outline-width).</td></tr>
+  <tr><td><strong>Arbitrary</strong></td><td><code>{prop}-[value]</code></td><td><code>rounded-[4px]</code>, <code>border-[#243c5a]</code></td><td>Bất kỳ giá trị CSS hợp lệ nào trong ngoặc vuông. JIT sinh class.</td></tr>
+  <tr><td><strong>CSS variable</strong></td><td><code>{prop}-(--var)</code></td><td><code>rounded-(--my-radius)</code></td><td>Viết tắt của <code>[var(--my-radius)]</code>. Tham chiếu biến CSS.</td></tr>
+</table>
+<p class="note"><strong>Gotcha:</strong> <code>border-(length:--my-var)</code> và <code>border-(--my-var)</code> là hai cú pháp viết tắt hợp lệ — cái trước kiểu cũ (explicit data-type), cái sau kiểu mới gọn hơn. Cùng sinh ra <code>var(--my-var)</code>.</p>
+
+<!-- ===================== RADIUS ===================== -->
+<h2 id="radius">Border-radius — bo góc <span class="tag">[T]</span></h2>
+<p><code>border-radius</code> xác định độ cong của góc phần tử. Là nhóm có <em>nhiều cấp scope nhất</em>: tất cả cạnh, một cạnh, một góc, hoặc logical. Bốn cú pháp:</p>
+<table>
+  <tr><th>Phạm vi</th><th>Cú pháp</th><th>Ví dụ</th><th>CSS ánh xạ</th></tr>
+  <tr><td>Tất cả góc</td><td><code>rounded-{size}</code></td><td><code>rounded-lg</code></td><td>4 góc đồng đều</td></tr>
+  <tr><td>Một cạnh (2 góc)</td><td><code>rounded-{side}-{size}</code></td><td><code>rounded-t-lg</code></td><td>border-top-left + top-right radius</td></tr>
+  <tr><td>Một góc</td><td><code>rounded-{corner}-{size}</code></td><td><code>rounded-br-xl</code></td><td>1 góc duy nhất (tl/tr/br/bl)</td></tr>
+  <tr><td>Logical</td><td><code>rounded-{logical}-{size}</code></td><td><code>rounded-s-lg</code></td><td>Phụ thuộc <code>dir</code> — xem dưới</td></tr>
+</table>
+<p>Giá trị đặc biệt: <code>rounded-none</code> (0px), <code>rounded-full</code> (hình tròn hoàn hảo — cơ chế đặc biệt, xem widget W2).</p>
+
+<h3 id="logical">Logical property — vì sao <code>rounded-s-lg</code> không cố định bên trái</h3>
+<p><strong>Physical property</strong> (top/right/bottom/left) cố định: <code>rounded-l-lg</code> luôn là góc trái. <strong>Logical property</strong> (start/end) <em>phụ thuộc hướng văn bản</em>: khi <code>dir="ltr"</code> thì <code>start = left</code>; khi <code>dir="rtl"</code> thì <code>start = right</code>. Logical side: <code>s</code> (start), <code>e</code> (end). Logical corner: <code>ss</code>, <code>se</code>, <code>es</code>, <code>ee</code>.</p>
+<div class="highlight-box"><strong>Cơ chế (derive tool, không phải đáp án):</strong> trình duyệt đọc <code>dir</code> của phần tử (kế thừa từ ancestor), rồi ánh xạ <code>start</code> → <code>left</code> (LTR) hoặc <code>right</code> (RTL). Logical property = "bảo trình duyệt tự chọn phía theo ngữ cảnh hướng viết".</div>
+
+<div class="widget" id="w1">
+  <div class="widget-head"><span>W1 · Logical Property Explorer</span><span class="widget-status" id="w1-status">LOCKED</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "rounded-s-lg luôn bo góc bên trái — vì 's' = 'start' = trái."</div>
+  <div class="widget-body">
+    <div class="gate" id="w1-gate">
+      <div class="gate-q">Một phần tử có class <code>rounded-s-lg</code>, đặt trong container <code>dir="rtl"</code>. Hai góc nào được bo?</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="left">Góc trái (top-left + bottom-left)</button>
+        <button class="gate-btn" data-pred="right">Góc phải (top-right + bottom-right)</button>
+        <button class="gate-btn" data-pred="both">Cả hai bên</button>
+      </div>
+      <div class="gate-verdict" id="w1-verdict"></div>
+    </div>
+    <div class="demo-flex">
+      <div class="demo-col">
+        <div id="w1-box" class="demo-box" style="width:120px;height:80px;border-top-left-radius:.5rem;border-bottom-left-radius:.5rem">rounded-s-lg</div>
+        <div class="viz-label" id="w1-label">dir = ltr → start = left</div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="w1-ltr" disabled>LTR</button>
+        <button class="toggle-btn" id="w1-rtl" disabled>RTL</button>
+      </div>
+      <span style="font-family:'Courier Prime',monospace;font-size:.72rem;opacity:.7">Toggle để xem 'start' đổi phía — chọn gate trước để unlock</span>
+    </div>
+  </div>
+</div>
+<div class="cmp-block">
+  <div class="cmp-head">Recap tĩnh — cho lần đọc thứ N (sau gate)</div>
+  <p style="font-size:.88rem;line-height:1.7;margin:0"><code>rounded-s-*</code> bo <strong>2 góc ở phía start</strong>. Khi <code>dir="ltr"</code> → start = left → bo góc trên-trái + dưới-trái. Khi <code>dir="rtl"</code> → start = right → bo góc trên-phải + dưới-phải. Tương tự <code>rounded-e-*</code> cho phía end. Đây là lý do logical property tồn tại: một class, tự thích ứng hướng viết.</p>
+</div>
+
+<h3><code>rounded-full</code> vs <code>rounded-[50%]</code> — hai class tưởng giống</h3>
+<p>Cả hai đều "trông có vẻ tròn", nhưng cơ chế khác nhau:</p>
+<ul>
+  <li><strong><code>rounded-full</code></strong> — dùng <code>calc(infinity * 1px)</code>. Luôn tạo hình tròn/elip hoàn hảo <em>bất kể</em> tỷ lệ width/height.</li>
+  <li><strong><code>rounded-[50%]</code></strong> — dùng giá trị phần trăm. Khi width ≠ height, bo góc theo % sẽ <em>méo</em> (thành elip bẹp, không phải tròn đều).</li>
+</ul>
+
+<div class="widget" id="w2">
+  <div class="widget-head"><span>W2 · rounded-full vs rounded-[50%]</span><span class="widget-status" id="w2-status">LOCKED</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "Hai class này giống nhau — đều ra hình tròn."</div>
+  <div class="widget-body">
+    <div class="gate" id="w2-gate">
+      <div class="gate-q">Một box kích thước <strong>200×100px</strong> (rộng gấp đôi cao). Dùng <code>rounded-full</code> vs <code>rounded-[50%]</code> — kết quả giống hay khác nhau?</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="same">Giống nhau (cả hai tròn)</button>
+        <button class="gate-btn" data-pred="different">Khác nhau</button>
+      </div>
+      <div class="gate-verdict" id="w2-verdict"></div>
+    </div>
+    <div class="demo-flex">
+      <div class="demo-col">
+        <div id="w2-full" class="demo-box" style="width:160px;height:80px;border-radius:9999px">rounded-full</div>
+        <div class="viz-label">rounded-full</div>
+      </div>
+      <div class="demo-col">
+        <div id="w2-half" class="demo-box" style="width:160px;height:80px;border-radius:50%">rounded-[50%]</div>
+        <div class="viz-label">rounded-[50%]</div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="w2-rect" disabled>200×100 (w≠h)</button>
+        <button class="toggle-btn" id="w2-sq" disabled>100×100 (w=h)</button>
+      </div>
+      <span style="font-family:'Courier Prime',monospace;font-size:.72rem;opacity:.7">Đổi tỷ lệ để thấy差别 — chọn gate trước</span>
+    </div>
+  </div>
+</div>
+<div class="cmp-block">
+  <div class="cmp-head">Recap tĩnh — cho lần đọc thứ N (sau gate)</div>
+  <p style="font-size:.88rem;line-height:1.7;margin:0"><code>rounded-full</code> dùng <code>calc(infinity * 1px)</code> → bo đến mức tối đa có thể <em>theo từng trục độc lập</em>, nên luôn ra elip khớp box (với w≠h là elip dài, với w=h là tròn). <code>rounded-[50%]</code> bo 50% width <strong>và</strong> 50% height — khi w≠h, hai bán kính khác nhau tạo elip bẹp trông khác biệt tinh tế; và ở góc nhìn certain ratio sẽ méo rõ. Khi w=h thì hai class cho kết quả giống hệt nhau.</p>
+</div>
+
+<!-- ===================== WIDTH ===================== -->
+<h2 id="width">Border-width — độ dày viền <span class="tag">[T]</span></h2>
+<p>Ánh xạ trực tiếp tới CSS <code>border-width</code> (và logical: <code>border-inline-start-width</code>...). Mặc định <code>border</code> = 1px. Ba cấp scope:</p>
+<div class="tree">border-width utilities
+├─ <span class="b">All sides</span>
+│  ├─ <code>border</code>            → 1px (mặc định)
+│  ├─ <code>border-{0,2,4,8}</code>  → pixel từ theme
+│  ├─ <code>border-[value]</code>    → arbitrary (vd 2vw)
+│  └─ <code>border-(length:--var)</code> → CSS variable
+├─ <span class="b">Directional (vật lý)</span>
+│  └─ <code>border-{t|r|b|l}-*</code>  → top/right/bottom/left
+├─ <span class="r">Logical</span> (phụ thuộc <code>dir</code>)
+│  ├─ <code>border-{s|e}-*</code>      → inline-start / inline-end
+│  └─ <code>border-{x|y}-*</code>      → trục ngang (l+r) / dọc (t+b)
+└─ <span class="b">Divide</span> (giữa phần tử con)
+   └─ <code>divide-{x|y}-*</code>      → selector <code>& > :not(:last-child)</code></div>
+<table>
+  <tr><th>Loại</th><th>Pattern</th><th>CSS output</th><th>Mô tả</th></tr>
+  <tr><td>Tất cả cạnh</td><td><code>border</code>, <code>border-{0,2,4,8}</code>, <code>border-[v]</code></td><td><code>border-width</code></td><td>Mặc định 1px. Token số từ theme.</td></tr>
+  <tr><td>Cạnh vật lý</td><td><code>border-{t|r|b|l}-*</code></td><td><code>border-{top|right|bottom|left}-width</code></td><td>Cố định phía.</td></tr>
+  <tr><td>Cạnh logic</td><td><code>border-{s|e}-*</code></td><td><code>border-inline-{start|end}-width</code></td><td>Phụ thuộc <code>dir</code>.</td></tr>
+  <tr><td>Trục</td><td><code>border-{x|y}-*</code></td><td>inline/block-width</td><td>x = trái+phải, y = trên+dưới.</td></tr>
+  <tr><td><strong>Divide</strong></td><td><code>divide-{x|y}-*</code></td><td><code>& > :not(:last-child)</code></td><td>Viền <em>giữa</em> phần tử con.</td></tr>
+</table>
+
+<div class="highlight-box"><strong>Rule-Based Debugging:</strong>
+<ul style="margin:.3em 0">
+<li><strong><code>divide-*</code> chỉ áp dụng cho phần tử con</strong> — selector là <code>& > :not(:last-child)</code>. <em>Không</em> ảnh hưởng viền của container cha.</li>
+<li><strong>Logical <code>s</code>/<code>e</code></strong> — khi <code>dir="ltr"</code>, <code>border-s</code> = <code>border-left</code>; khi <code>dir="rtl"</code>, <code>border-s</code> = <code>border-right</code>.</li>
+<li><strong>Custom property shorthand</strong> — <code>border-(length:--my-var)</code> biên dịch thành <code>border-width: var(--my-var)</code>.</li>
+</ul>
+</div>
+<!-- WIDGET-3: Divide vs Border — Phase 3. Selector & > :not(:last-child) đặt công khai phía trên (đã có). -->
+<div class="widget" id="w3">
+  <div class="widget-head"><span>W3 · Divide vs Border — ai được viền?</span><span class="widget-status" id="w3-status">LOCKED</span></div>
+  <div class="widget-misconception"><b>Misconception nhắm tới:</b> "divide-y-2 cũng thêm viền cho chính container."</div>
+  <div class="widget-body">
+    <div class="gate" id="w3-gate">
+      <div class="gate-q">Một <code>&lt;div&gt;</code> có class <code>divide-y-2</code> và 3 phần tử con. <strong>Những đâu nào có viền?</strong> (gợi ý: selector là <code>& > :not(:last-child)</code>)</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="container">Container + 3 con</button>
+        <button class="gate-btn" data-pred="children">Chỉ giữa các con (con 1 & 2 có viền dưới, con 3 không)</button>
+      </div>
+      <div class="gate-verdict" id="w3-verdict"></div>
+    </div>
+    <div id="w3-demo-wrap" style="opacity:.35;transition:opacity .2s">
+      <div class="divide-container" style="flex-direction:column">
+        <div class="divide-child" style="border-bottom:2px solid var(--accent)">Con 1 — có viền dưới ✓</div>
+        <div class="divide-child" style="border-bottom:2px solid var(--accent)">Con 2 — có viền dưới ✓</div>
+        <div class="divide-child">Con 3 — KHÔNG có viền (last-child)</div>
+      </div>
+      <div class="viz-label" style="margin-top:.6rem">Container: không viền · Selector nhắm con 1 & 2</div>
+    </div>
+    <div class="controls-row">
+      <button class="lab-btn" id="w3-reveal" disabled>Hiện viền</button>
+      <span style="font-family:'Courier Prime',monospace;font-size:.72rem;opacity:.7">Chọn gate trước để unlock demo</span>
+    </div>
+  </div>
+</div>
+<div class="cmp-block">
+  <div class="cmp-head">Recap tĩnh — cho lần đọc thứ N (sau gate)</div>
+  <p style="font-size:.88rem;line-height:1.7;margin:0"><code>divide-y-2</code> dịch ra <code>& > :not(:last-child) { border-bottom-width: 2px }</code>. Nó thêm viền <strong>dưới mỗi con trừ con cuối</strong>. Container cha không bao giờ được viền. Khi dùng <code>flex-col-reverse</code> hoặc <code>flex-row-reverse</code>, thứ tự hiển thị đảo → viền nằm "sai phía" về mặt thị giác → cần thêm <code>divide-y-reverse</code> (hoặc <code>divide-x-reverse</code>).</p>
+</div>
+
+<p>Ví dụ thực tế:</p>
+<pre><code>&lt;!-- Viền trái+phải 4px --&gt;
+&lt;div class="border-x-4 border-x-purple-500"&gt;&lt;/div&gt;
+
+&lt;!-- Divide dọc giữa các cột --&gt;
+&lt;div class="flex divide-x-2 divide-gray-300"&gt;
+  &lt;div&gt;Item 1&lt;/div&gt;&lt;div&gt;Item 2&lt;/div&gt;&lt;div&gt;Item 3&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+<!-- ===================== COLOR ===================== -->
+<h2 id="color">Border-color — màu viền <span class="tag">[T]</span></h2>
+<p>Ánh xạ tới <code>border-color</code>. Cùng grammar nhưng value là màu. Có thêm <strong>opacity modifier</strong>.</p>
+<table>
+  <tr><th>Kiểu</th><th>Cú pháp</th><th>Ví dụ</th><th>Output</th></tr>
+  <tr><td>Theme color</td><td><code>border-{color}-{shade}</code></td><td><code>border-indigo-500</code></td><td><code>var(--color-indigo-500)</code></td></tr>
+  <tr><td>Opacity modifier</td><td><code>border-{color}-{shade}/{op}</code></td><td><code>border-indigo-500/50</code></td><td><code>rgb(99 102 241 / 0.5)</code></td></tr>
+  <tr><td>Arbitrary</td><td><code>border-[hex/rgb/hsl]</code></td><td><code>border-[#243c5a]</code></td><td>raw value</td></tr>
+  <tr><td>CSS variable</td><td><code>border-(--var)</code></td><td><code>border-(--accent)</code></td><td><code>var(--accent)</code></td></tr>
+</table>
+
+<h3>Cascade &amp; specificity — class nào thắng?</h3>
+<p>Các class <code>border-color</code> có <em>cùng specificity</em>. Quy tắc CSS: cùng specificity → class khai báo <em>sau</em> thắng. Hệ quả hữu dụng: đặt <code>border-indigo-500</code> cho cả 4 cạnh, rồi <code>border-t-rose-500</code> để <em>ghi đè</em> riêng cạnh trên.</p>
+<pre><code>&lt;!-- 4 cạnh indigo, riêng cạnh trên rose --&gt;
+&lt;div class="border-2 border-indigo-500 border-t-rose-500"&gt;&lt;/div&gt;</code></pre>
+<div class="spec-demo">
+  <div class="spec-box" title="border-2 border-indigo-500 border-t-rose-500"></div>
+  <div style="font-family:'Courier Prime',monospace;font-size:.75rem;line-height:1.6">
+    <div>3 cạnh = <span style="color:var(--result);font-weight:700">indigo</span> (var(--color-indigo-500))</div>
+    <div>1 cạnh trên = <span style="color:var(--accent);font-weight:700">rose</span> (border-top-color đè lên)</div>
+    <div style="opacity:.6;margin-top:.3rem">cùng specificity → class sau (<code>border-t-*</code>) thắng riêng cạnh đó</div>
+  </div>
+</div>
+<p>Logical color: <code>border-s-indigo-500</code> → <code>border-inline-start-color</code>, đổi phía theo <code>dir</code>. Tương tự cho <code>divide-{color}</code> (màu viền giữa các con).</p>
+
+<!-- ===================== STYLE ===================== -->
+<h2 id="style">Border-style — kiểu nét viền <span class="tag">[T]</span></h2>
+<p>Ánh xạ tới <code>border-style</code>. Quyết định <em>hình dáng</em> nét (khác width = dày, color = màu). Giá trị hợp lệ: <code>solid</code>, <code>dashed</code>, <code>dotted</code>, <code>double</code>, <code>hidden</code> (ẩn nhưng còn chiếm), <code>none</code> (xoá hẳn).</p>
+<table>
+  <tr><th>Lớp</th><th>Thuộc tính CSS</th><th>Mô tả</th></tr>
+  <tr><td><code>border-solid</code></td><td><code>border-style: solid</code></td><td>Nét liền (mặc định trình duyệt khi có width).</td></tr>
+  <tr><td><code>border-dashed</code></td><td><code>border-style: dashed</code></td><td>Nét đứt.</td></tr>
+  <tr><td><code>border-dotted</code></td><td><code>border-style: dotted</code></td><td>Chấm.</td></tr>
+  <tr><td><code>border-double</code></td><td><code>border-style: double</code></td><td>Nét kép (cần width lớn hơn).</td></tr>
+  <tr><td><code>border-none</code></td><td><code>border-style: none</code></td><td>Xoá hoàn toàn, không còn chiếm.</td></tr>
+</table>
+<p><code>divide-{style}</code> (vd <code>divide-dashed</code>) áp kiểu cho đường phân cách giữa phần tử con. Phối hợp với <code>divide-{x|y}-{width}</code> và <code>divide-{color}</code>.</p>
+<pre><code>&lt;!-- 3 cột, phân cách nét đứt --&gt;
+&lt;div class="grid grid-cols-3 divide-x-2 divide-dashed divide-gray-400"&gt;
+  &lt;div&gt;01&lt;/div&gt;&lt;div&gt;02&lt;/div&gt;&lt;div&gt;03&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+<h2 id="tradeoffs">Tradeoffs <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Quyết định</th><th>Được gì</th><th>Trả giá gì</th></tr>
+  <tr><td>Dùng logical (<code>s</code>/<code>e</code>) thay physical (<code>l</code>/<code>r</code>)</td><td>Tự thích ứng RTL/LTR, đỡ code đôi.</td><td>Khó reasoning khi debug trên LTR-only — phải nhớ <code>dir</code> mới biết phía.</td></tr>
+  <tr><td>Token (<code>rounded-lg</code>) vs arbitrary (<code>rounded-[7px]</code>)</td><td>Token: nhất quán, đổi theme một chỗ. Arbitrary: chính xác pixel.</td><td>Arbitrary phá vỡ design system, dễ "magic number".</td></tr>
+  <tr><td><code>divide-*</code> vs viền từng con thủ công</td><td>Ít class, tự bỏ con cuối.</td><td>Chỉ hoạt động với selector <code>:not(:last-child)</code> — flex-reverse cần <code>divide-reverse</code>.</td></tr>
+  <tr><td><code>border-none</code> vs không viết gì</td><td>Reset tường minh ở breakpoint/state.</td><td>Phải nhớ <code>border</code> mặc định <em>không</em> hiển thị nếu thiếu width — dễ nhầm "đã có viền".</td></tr>
+</table>
+
+<h2 id="failure-modes">Failure Modes <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Failure</th><th>Cơ chế</th><th>Symptom production</th></tr>
+  <tr><td>Viền không hiện dù có <code>border-indigo-500</code></td><td>Thiếu <code>border-width</code> (mặc định 0) hoặc <code>border-style: none</code>.</td><td>Phần tử trần, không có viền — dev tưởng class màu bị hỏng.</td></tr>
+  <tr><td>Viền <code>border-s-4</code> "nhảy" phía khi deploy</td><td>Logical property theo <code>dir</code> kế thừa; ancestor có <code>dir="rtl"</code>.</td><td>Viền xuất hiện bên phải thay trái (hoặc ngược lại) — không phải bug.</td></tr>
+  <tr><td><code>divide-y-2</code> không viền container</td><td>Selector chỉ <code>& > :not(:last-child)</code>.</td><td>Container mép ngoài trần; dev tưởng divide bị bỏ qua.</td></tr>
+  <tr><td><code>rounded-[50%]</code> ra elip méo</td><td>% scale theo width/height khác nhau.</td><td>Avatar méo thay vì tròn đều — cần <code>rounded-full</code>.</td></tr>
+  <tr><td>Class color "không có tác dụng"</td><td>Cùng specificity, class khác khai báo sau (hoặc trong layer sau) đè lên.</td><td>Màu viền không đúng token — phải kiểm thứ tự CSS, không phải tên class.</td></tr>
+</table>
+<div class="highlight-box"><strong>Chú ý:</strong> failure "viền không hiện" <em>không</em> có widget và VÌ SAO — đây là vấn đề cần kiểm trên code thật (xem Evidence Log), không thể simulate vì phụ thuộc DOM + CSS cụ thể của dự án.</div>
+
+<h2 id="evidence">Evidence Log — máy của tôi <span class="tag e">[E]</span></h2>
+<p>Con số thật là thứ neo trí nhớ. <strong>Note chưa đạt L3 khi bảng này còn trống.</strong></p>
+<table>
+  <tr><th>Benchmark</th><th>Lệnh</th><th>Kết quả (điền sau khi chạy)</th></tr>
+  <tr><td>Radius — logical property theo <code>dir</code></td><td><span class="cmd">DevTools: toggle <code>dir</code> trên element có <code>rounded-s-lg</code>, inspect computed <code>border-*-radius</code></span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td>Radius — <code>rounded-full</code> vs <code>rounded-[50%]</code> trên box w≠h</td><td><span class="cmd">Tạo div 200×100px, so sánh hai class, đo bo góc computed</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td>Width — <code>divide-y-2</code> có viền container không</td><td><span class="cmd">DevTools: inspect container + children, check <code>border-*-width</code> của cha</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+  <tr><td>Color — override từng cạnh (<code>border-t-*</code> đè <code>border-*</code>)</td><td><span class="cmd">DevTools: element có cả hai class, check <code>border-top-color</code> computed</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+</table>
+
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Trả lời từ trí nhớ <em>trước</em> khi bấm reveal. Sai → quay lại đúng section được link.</p>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>Một phần tử có <code>border-indigo-500</code> nhưng viền không hiện. Nguyên nhân nào <em>không</em> liên quan?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Nguyên nhân không liên quan: <em>màu class sai tên</em>. Lý do thực: <code>border-color</code> chỉ là màu — cần <code>border-width</code> (mặc định 0) và <code>border-style</code> (mặc định <code>none</code>) viền mới hiện. (→ <a href="#failure-modes" class="wikilink">Failure Modes</a>)</div>
+</div>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 4</span><span>Khi nào nên chọn <code>rounded-s-lg</code> (logical) thay <code>rounded-l-lg</code> (physical)? Đánh đổi?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Khi UI phải hỗ trợ cả LTR lẫn RTL (vd Arabic, Hebrew). Logical tự đảo phía theo <code>dir</code>, đỡ duplicate code. Đánh đổi: debug khó hơn — phải biết <code>dir</code> của ancestor mới đoán được phía thực. (→ <a href="#logical" class="wikilink">Logical</a>, <a href="#tradeoffs" class="wikilink">Tradeoffs</a>)</div>
+</div>
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 5</span><span>Một list dọc dùng <code>flex-col-reverse</code> và <code>divide-y-2</code>. Đường phân cách xuất hiện ở đâu? Cần thêm class nào?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><code>divide-y-2</code> selector <code>& > :not(:last-child)</code> vẫn thêm viền <em>dưới</em> mỗi con theo DOM — nhưng <code>flex-col-reverse</code> đảo thứ tự hiển thị, nên viền визуально nằm "sai phía". Cần thêm <code>divide-y-reverse</code> để đảo phía áp dụng. (→ <a href="#width" class="wikilink">Width</a>, <a href="#failure-modes" class="wikilink">Failure Modes</a>)</div>
+</div>
+
+<h2 id="links">Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>Prereq: <span class="wikilink">[[tailwind-utility-grammar]]</span>, <span class="wikilink">[[css-box-model]]</span>, <span class="wikilink">[[css-variables]]</span></li>
+  <li>Sibling (Note 2/2): <span class="wikilink">[[outline-utilities-tailwind]]</span> — width/color/style/offset, không ăn layout</li>
+  <li>Bridge: <span class="wikilink">[[border-vs-outline-tailwind]]</span> — khi nào dùng cái nào</li>
+  <li>Downstream: <span class="wikilink">[[tailwind-divide-deep-dive]]</span>, <span class="wikilink">[[rtl-i18n-tailwind]]</span></li>
+  <li>Source: <a href="https://tailwindcss.com/docs/border-radius">Tailwind docs — border-radius</a>, <a href="https://tailwindcss.com/docs/border-width">border-width</a>, <a href="https://tailwindcss.com/docs/border-color">border-color</a>, <a href="https://tailwindcss.com/docs/border-style">border-style</a></li>
+</ul>
+
+<div class="note-meta">Format B · 3 tầng medium: text / static visual / widget · 3/3 widget budget · prerequisite closure · spoiler ordering · body scrolls</div>
+
+</main>
+<script>
+/* ============================================================
+   WIDGET 1 — Logical Property Explorer (Pattern GATE + TOGGLE)
+   ============================================================ */
+(function(){
+  const W = { prediction:null, dir:'ltr' };
+  const statusEl = document.getElementById('w1-status');
+  const boxEl = document.getElementById('w1-box');
+  const labelEl = document.getElementById('w1-label');
+  const btnLtr = document.getElementById('w1-ltr');
+  const btnRtl = document.getElementById('w1-rtl');
+  const verdictEl = document.getElementById('w1-verdict');
+
+  function render(){
+    // start = left (LTR) | right (RTL). Bo 2 góc ở phía start.
+    if (W.dir === 'rtl'){
+      boxEl.style.borderTopLeftRadius = '0';
+      boxEl.style.borderBottomLeftRadius = '0';
+      boxEl.style.borderTopRightRadius = '.5rem';
+      boxEl.style.borderBottomRightRadius = '.5rem';
+      labelEl.textContent = 'dir = rtl → start = right';
+      btnLtr.classList.remove('active'); btnRtl.classList.add('active');
+    } else {
+      boxEl.style.borderTopLeftRadius = '.5rem';
+      boxEl.style.borderBottomLeftRadius = '.5rem';
+      boxEl.style.borderTopRightRadius = '0';
+      boxEl.style.borderBottomRightRadius = '0';
+      labelEl.textContent = 'dir = ltr → start = left';
+      btnLtr.classList.add('active'); btnRtl.classList.remove('active');
+    }
+  }
+
+  // Gate commit MỘT LẦN
+  document.querySelectorAll('#w1-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      btnLtr.disabled = false; btnRtl.disabled = false;
+      statusEl.textContent = 'READY';
+      render(); // hiển thị trạng thái LTR ban đầu khi unlock
+    });
+  });
+
+  btnLtr.addEventListener('click', () => { if(W.prediction===null) return; W.dir='ltr'; render(); });
+  btnRtl.addEventListener('click', () => {
+    if(W.prediction===null) return;
+    W.dir='rtl'; render();
+    // Verdict chỉ hiện sau khi user đã toggle sang RTL (chế độ gate hỏi)
+    finish();
+  });
+
+  function finish(){
+    const actual = 'right'; // gate hỏi RTL → đáp án đúng = góc phải
+    const correct = (W.prediction === actual);
+    verdictEl.innerHTML = correct
+      ? `Bạn đoán <span class="right">góc phải</span> — đúng. Logical 'start' không cố định trái; nó đổi theo <code>dir</code>.`
+      : `Bạn đoán <span class="wrong">${predLabel(W.prediction)}</span> — thực tế trong RTL: <span class="right">góc phải</span>. 's' = 'start' là thuộc tính logic, không phải vật lý — đừng dịch máy móc 'start = trái'.`;
+    verdictEl.classList.add('show');
+    statusEl.textContent = 'DONE';
+  }
+  function predLabel(p){
+    return p==='left' ? 'góc trái' : p==='right' ? 'góc phải' : 'cả hai bên';
+  }
+})();
+
+/* ============================================================
+   WIDGET 2 — rounded-full vs rounded-[50%] (Pattern GATE + TOGGLE)
+   ============================================================ */
+(function(){
+  const W = { prediction:null, shape:'rect' }; // rect = w≠h, sq = w=h
+  const statusEl = document.getElementById('w2-status');
+  const fullEl = document.getElementById('w2-full');
+  const halfEl = document.getElementById('w2-half');
+  const btnRect = document.getElementById('w2-rect');
+  const btnSq = document.getElementById('w2-sq');
+  const verdictEl = document.getElementById('w2-verdict');
+
+  function render(){
+    if (W.shape === 'sq'){
+      fullEl.style.width = '90px'; fullEl.style.height = '90px';
+      halfEl.style.width = '90px'; halfEl.style.height = '90px';
+      btnRect.classList.remove('active'); btnSq.classList.add('active');
+    } else {
+      fullEl.style.width = '160px'; fullEl.style.height = '80px';
+      halfEl.style.width = '160px'; halfEl.style.height = '80px';
+      btnRect.classList.add('active'); btnSq.classList.remove('active');
+    }
+  }
+
+  document.querySelectorAll('#w2-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      btnRect.disabled = false; btnSq.disabled = false;
+      statusEl.textContent = 'READY';
+      render();
+    });
+  });
+
+  btnRect.addEventListener('click', () => {
+    if(W.prediction===null) return;
+    W.shape='rect'; render();
+    finish();
+  });
+  btnSq.addEventListener('click', () => {
+    if(W.prediction===null) return;
+    W.shape='sq'; render();
+    finish();
+  });
+
+  function finish(){
+    // gate hỏi trên w≠h (rect) → đáp án 'different'. Khi w=h (sq) → 'same'.
+    const actualForCurrentShape = W.shape === 'sq' ? 'same' : 'different';
+    const correct = (W.prediction === actualForCurrentShape);
+    verdictEl.innerHTML = correct
+      ? `Đúng cho hình hiện tại (<span class="right">${W.shape==='sq'?'w=h':W.shape==='rect'?'w≠h':''}</span>).`
+      : `Bạn đoán <span class="wrong">${W.prediction==='same'?'giống':'khác'}</span>. Ở tỷ lệ <strong>${W.shape==='sq'?'w=h → giống nhau':W.shape==='rect'?'w≠h → khác nhau':''}</strong>. Bật/tắt hai chế độ để so sánh trực tiếp.`;
+    verdictEl.classList.add('show');
+    statusEl.textContent = 'DONE';
+  }
+})();
+
+/* ============================================================
+   WIDGET 3 — Divide vs Border (Pattern GATE, no toggle)
+   ============================================================ */
+(function(){
+  const W = { prediction:null, revealed:false };
+  const statusEl = document.getElementById('w3-status');
+  const demoWrap = document.getElementById('w3-demo-wrap');
+  const btnReveal = document.getElementById('w3-reveal');
+  const verdictEl = document.getElementById('w3-verdict');
+
+  document.querySelectorAll('#w3-gate .gate-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      btnReveal.disabled = false;
+      statusEl.textContent = 'READY';
+      // Auto-reveal demo nhẹ khi đã commit (chỉ highlight, không spoil trước gate vì gate đã commit)
+      demoWrap.style.opacity = '1';
+    });
+  });
+
+  btnReveal.addEventListener('click', () => {
+    if (W.prediction === null) return;
+    W.revealed = true;
+    finish();
+  });
+
+  function finish(){
+    const actual = 'children';
+    const correct = (W.prediction === actual);
+    verdictEl.innerHTML = correct
+      ? `Đúng: <span class="right">chỉ giữa các con</span>. Selector <code>& > :not(:last-child)</code> nhắm con, container không bao giờ có viền.`
+      : `Bạn đoán <span class="wrong">${W.prediction==='container'?'container + con':'sai'}</span>. Thực tế: <span class="right">chỉ viền giữa các con</span>. 'divide' ≠ 'border' — nó là selector nhắm children, không phải property của cha.`;
+    verdictEl.classList.add('show');
+    statusEl.textContent = 'DONE';
+  }
+})();
+</script>
+</body>
+</html>

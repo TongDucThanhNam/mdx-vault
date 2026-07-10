@@ -15,7 +15,7 @@ export function remarkMarks() {
         return
       }
 
-      const replacement = splitMarkText(node.value)
+      const replacement = splitMarkText(node)
 
       if (replacement.length === 1 && isSameTextNode(replacement[0], node.value)) {
         return
@@ -27,7 +27,8 @@ export function remarkMarks() {
   }
 }
 
-function splitMarkText(value: string): PhrasingContent[] {
+function splitMarkText(node: Text): PhrasingContent[] {
+  const { value } = node
   const nodes: PhrasingContent[] = []
   let cursor = 0
 
@@ -35,12 +36,12 @@ function splitMarkText(value: string): PhrasingContent[] {
     const open = value.indexOf('==', cursor)
 
     if (open === -1) {
-      appendText(nodes, value.slice(cursor))
+      appendText(nodes, node, cursor, value.length)
       break
     }
 
     if (isEscaped(value, open)) {
-      appendText(nodes, value.slice(cursor, open + 2))
+      appendText(nodes, node, cursor, open + 2)
       cursor = open + 2
       continue
     }
@@ -48,24 +49,24 @@ function splitMarkText(value: string): PhrasingContent[] {
     const close = findClosingMark(value, open + 2)
 
     if (close === -1) {
-      appendText(nodes, value.slice(cursor))
+      appendText(nodes, node, cursor, value.length)
       break
     }
 
     const markedText = value.slice(open + 2, close)
 
     if (!isValidMarkedText(markedText)) {
-      appendText(nodes, value.slice(cursor, open + 2))
+      appendText(nodes, node, cursor, open + 2)
       cursor = open + 2
       continue
     }
 
-    appendText(nodes, value.slice(cursor, open))
-    nodes.push(createMarkNode(markedText))
+    appendText(nodes, node, cursor, open)
+    nodes.push(createMarkNode(node, open, close))
     cursor = close + 2
   }
 
-  return nodes.length > 0 ? nodes : [{ type: 'text', value }]
+  return nodes.length > 0 ? nodes : [node]
 }
 
 function findClosingMark(value: string, from: number): number {
@@ -86,28 +87,100 @@ function isValidMarkedText(value: string): boolean {
   return value.length > 0 && value.trim().length === value.length
 }
 
-function createMarkNode(value: string): Emphasis {
+function createMarkNode(node: Text, open: number, close: number): Emphasis {
+  const value = node.value.slice(open + 2, close)
+  const position = createRelativePosition(node, open, close + 2)
+  const startOffset = position?.start.offset
+  const endOffset = position?.end.offset
+
   return {
     type: 'emphasis',
     data: {
-      hName: 'mark'
+      hName: 'mark',
+      ...(startOffset !== undefined && endOffset !== undefined
+        ? {
+            hProperties: {
+              dataPreviewMarkStart: String(startOffset),
+              dataPreviewMarkEnd: String(endOffset)
+            }
+          }
+        : {})
     },
-    children: [{ type: 'text', value }]
+    children: [
+      {
+        type: 'text',
+        value,
+        position: createRelativePosition(node, open + 2, close)
+      }
+    ],
+    position
   }
 }
 
-function appendText(nodes: PhrasingContent[], value: string): void {
+function appendText(nodes: PhrasingContent[], node: Text, start: number, end: number): void {
+  const value = node.value.slice(start, end)
+
   if (!value) {
     return
   }
 
+  const position = createRelativePosition(node, start, end)
   const last = nodes.at(-1)
-  if (last?.type === 'text') {
+  if (
+    last?.type === 'text' &&
+    last.position?.end.offset !== undefined &&
+    last.position.end.offset === position?.start.offset
+  ) {
     last.value += value
+    last.position.end = position.end
     return
   }
 
-  nodes.push({ type: 'text', value })
+  nodes.push({ type: 'text', value, position })
+}
+
+function createRelativePosition(node: Text, start: number, end: number): Text['position'] {
+  const position = node.position
+  const startOffset = position?.start.offset
+  const endOffset = position?.end.offset
+
+  if (
+    !position ||
+    startOffset === undefined ||
+    endOffset === undefined ||
+    endOffset - startOffset !== node.value.length
+  ) {
+    return undefined
+  }
+
+  return {
+    start: advancePoint(position.start, node.value, start),
+    end: advancePoint(position.start, node.value, end)
+  }
+}
+
+function advancePoint(
+  point: NonNullable<Text['position']>['start'],
+  value: string,
+  length: number
+): NonNullable<Text['position']>['start'] {
+  let line = point.line
+  let column = point.column
+
+  for (let index = 0; index < length; index += 1) {
+    if (value.charCodeAt(index) === NEWLINE) {
+      line += 1
+      column = 1
+    } else {
+      column += 1
+    }
+  }
+
+  return {
+    line,
+    column,
+    ...(point.offset !== undefined ? { offset: point.offset + length } : {})
+  }
 }
 
 function isEscaped(value: string, index: number): boolean {
@@ -133,3 +206,4 @@ function hasPhrasingChildren(parent: unknown): parent is { children: PhrasingCon
 }
 
 const BACKSLASH = 92
+const NEWLINE = 10

@@ -93,7 +93,7 @@ export function InlineFormatToolbar({
     <div
       role="toolbar"
       aria-label="Format selection"
-      className="pointer-events-auto absolute z-40 flex items-center gap-0.5 rounded-md border bg-popover p-0.5 text-popover-foreground shadow-md"
+      className="pointer-events-auto absolute z-40 flex items-center gap-0.5 border-2 border-foreground bg-popover p-0.5 text-popover-foreground shadow-[3px_3px_0_0_var(--foreground)]"
       style={{ top: position.top, left: position.left }}
       // Prevent the toolbar clicks from blurring the editor.
       onMouseDown={(event) => event.preventDefault()}
@@ -104,7 +104,7 @@ export function InlineFormatToolbar({
           type="button"
           title={button.title}
           aria-label={button.title}
-          className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-foreground hover:text-background"
           onClick={button.onClick}
         >
           {button.icon}
@@ -124,7 +124,11 @@ function wrapSelection(view: EditorView, prefix: string, suffix: string): void {
   const selected = view.state.sliceDoc(from, to)
 
   // Idempotent: strip an existing wrap.
-  if (selected.startsWith(prefix) && selected.endsWith(suffix) && selected.length >= prefix.length + suffix.length) {
+  if (
+    selected.startsWith(prefix) &&
+    selected.endsWith(suffix) &&
+    selected.length >= prefix.length + suffix.length
+  ) {
     const unwrapped = selected.slice(prefix.length, selected.length - suffix.length)
     view.dispatch({
       changes: { from, to, insert: unwrapped },

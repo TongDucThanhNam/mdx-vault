@@ -329,9 +329,9 @@ export function AiSidePanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b px-3 text-xs font-medium uppercase text-muted-foreground">
+      <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-3 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
         <div className="inline-flex items-center gap-1.5">
-          <Sparkles className="size-3.5" aria-hidden="true" />
+          <Sparkles className="size-3.5 text-[var(--editorial-red)]" aria-hidden="true" />
           AI assistant
         </div>
         <div className="flex items-center gap-1">
@@ -432,8 +432,8 @@ function DraftFilesList({
   busy: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-2 border-t bg-muted/20 px-3 py-2">
-      <div className="text-xs font-medium text-foreground">
+    <div className="flex flex-col gap-2 border-t-2 border-foreground bg-muted/20 px-3 py-2">
+      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
         New interactive component ({files.length} files)
       </div>
       <ul className="space-y-1 text-xs text-muted-foreground">

@@ -44,13 +44,13 @@ export function ComponentInsertPalette({
   }, [])
 
   return (
-    <div className="absolute top-3 right-3 left-3 z-20 max-w-xl rounded-md border bg-popover p-2 text-popover-foreground shadow-lg">
-      <div className="flex items-center gap-2 border-b px-2 pb-2">
+    <div className="absolute top-3 right-3 left-3 z-20 max-w-xl border-2 border-foreground bg-popover p-2 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]">
+      <div className="flex items-center gap-2 border-b-2 border-foreground px-2 pb-2">
         <Search className="size-4 text-muted-foreground" aria-hidden="true" />
         <input
           ref={inputRef}
           value={query}
-          className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="h-8 min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
           placeholder="Insert interactive component"
           onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -91,19 +91,23 @@ export function ComponentInsertPalette({
               key={template.name}
               type="button"
               className={cn(
-                'flex w-full items-start gap-3 rounded-md px-2 py-2 text-left text-sm outline-none',
-                index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/70'
+                'flex w-full items-start gap-3 px-2 py-2 text-left text-sm outline-none',
+                index === activeIndex
+                  ? 'bg-foreground text-background'
+                  : 'hover:bg-foreground hover:text-background'
               )}
               onMouseEnter={() => setSelectedIndex(index)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelect(template)}
             >
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-background">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background">
                 <CircleHelp className="size-4" aria-hidden="true" />
               </span>
               <span className="min-w-0">
-                <span className="block font-medium">{template.name}</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
+                <span className="block font-mono text-[12px] font-bold uppercase tracking-wider">
+                  {template.name}
+                </span>
+                <span className="mt-0.5 block font-mono text-[11px] uppercase tracking-wider opacity-70">
                   {template.description}
                 </span>
               </span>
