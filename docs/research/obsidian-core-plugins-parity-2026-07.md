@@ -115,7 +115,7 @@ The first-pass tables have been superseded by the dedicated [Obsidian interactio
 
 Highest-risk verified findings:
 
-1. **Rename data integrity:** Obsidian rewrote five incoming wikilinks in two fixture notes after a prompt-mode rename; mdx-vault renamed and reindexed the file but left every incoming target stale.
+1. **Rename data integrity:** ~~mdx-vault renamed and reindexed the file but left every incoming target stale~~ — **RESOLVED in GOAL-15** (`681bea2`): transactional rename with AST-based wikilink/Markdown-link rewrite, Update/Don't-update prompt, byte-identical rollback, F-01 fixture in `bun test`. Auto-mode settings toggle still belongs to the future link-policy goal.
 2. **Clipboard conflict:** `Ctrl+Shift+V` pasted the plain representation in Obsidian; mdx-vault consumes the chord globally and cycles source/split/preview instead.
 3. **Attachment loss of intent:** Obsidian imported both PNG and PDF fixtures and honored destination settings; mdx-vault imported only allowlisted images, silently ignored the PDF, and hard-coded `assets/` plus Markdown image syntax.
 4. **Explorer interaction gap:** the mdx-vault file row has five useful actions, but folder rows have no context menu/disclosure behavior, result panels have no alternate actions, and there is no multi-select or move/drop transaction model.
@@ -137,7 +137,7 @@ The deep audit keeps non-customizable CodeMirror/OS editing shortcuts separate f
 6. **Random note + Unique note creator** — GOAL-13 đã implement
 7. **Command palette: pinned + recent + hiện hotkey** — GOAL-13 đã implement
 8. **Editor context menu** (right-click: cut/copy/paste, add link, format) — hiện right-click không ra gì, cảm giác "app chưa xong" rõ nhất
-9. **Auto-update wikilinks khi rename** — verified MISSING, rename đang làm gãy link toàn vault. **Data-integrity, ưu tiên cao nhất nhóm A**
+9. **Auto-update wikilinks khi rename** — ✅ **DONE trong GOAL-15** (`681bea2`)
 
 ### Nhóm B — Panel/feature mới độc lập (effort trung bình)
 8. **Page preview (hover)** — reuse MdxPreview render trong popover; tăng cảm giác "knowledge app" nhiều nhất trên mỗi effort
