@@ -31,6 +31,8 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-11-editor-enrichment.md       | Math, code highlight, Mermaid, callouts          | 09, 10    |
 | GOAL-12-organization-and-navigation.md | Editor highlighter, navigation panels, commands | 11        |
 | GOAL-13-obsidian-parity-microfeatures.md | Close Obsidian Group A parity microfeatures | 12        |
+| GOAL-14-interaction-behavior-research.md | Interaction-behavior deep audit (research-only) | 13        |
+| GOAL-15-transactional-rename.md    | Transactional rename + wikilink rewrite (fix F-01) | 12, 14    |
 
 ## Trạng thái ký hiệu trong goal
 

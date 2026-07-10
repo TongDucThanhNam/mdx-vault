@@ -100,56 +100,27 @@ Từ [obsidian.md/help/settings](https://obsidian.md/help/settings) — mdx-vaul
 
 ---
 
-## 4. Interaction-level micro-behaviors — Lớp 5
+## 4. Interaction-level micro-behaviors — Layer 5
 
-> Nguồn: grep `obsidian-help/en` (right-click / drag / drop / paste / hold) + đối chiếu code. Đây là lớp làm nên cảm giác "app hoàn chỉnh" mà bảng plugin không thể hiện được.
+The first-pass tables have been superseded by the dedicated [Obsidian interaction-behavior deep audit](obsidian-interaction-behaviors-2026-07.md). That audit pins official help commit `f9b17275eade57af64d545bb057a791548dc91e9`, accounts for all 152 lexicon-matching help files with zero unaccounted sources, and records 145 independently testable behavior rows.
 
-### 4.1 Context menu theo surface (Obsidian: mỗi nơi một menu khác nhau)
+| Current deep-audit result | Count |
+|---|---:|
+| `FULL` | 53 |
+| `PARTIAL` | 15 |
+| `MISSING` | 41 |
+| `CONFLICT` | 5 |
+| `PREREQUISITE` — missing containing surface, kept separate from ordinary gaps | 27 |
+| `NOT_APPLICABLE` — explicit product-vision reason | 4 |
 
-| Surface | Obsidian có | mdx-vault |
-|---|---|:---:|
-| **Editor (text/selection)** | Add link, Add external link, Format ▸, Paragraph ▸, Insert ▸, Cut/Copy/Paste, Paste as plain text, Select all | ❌ **không có menu nào** — Electron không tự sinh context menu, hiện right-click trong editor không ra gì |
-| **File (File explorer)** | New note here, Open in new tab/window, Rename, Delete, Duplicate, **Bookmark**, **Merge với note khác** (Note composer), Copy path, Reveal | ⚠️ 5 items: Duplicate/Rename/Copy path/Reveal/Delete ([FileTree.tsx:221-242](../../src/renderer/src/explorer/FileTree.tsx)) |
-| **Folder (File explorer)** | New note, New folder, New canvas, Rename, Delete, Bookmark | ⚠️ [cần xác nhận] — kiểm tra folder có menu riêng chưa |
-| **Multi-select files** (`Alt`/`Shift` chọn nhiều) | Bookmark all, thao tác hàng loạt | ❌ chưa có multi-select |
-| **Internal link trong editor** | Open in new tab / new window / split, follow | ❌ |
-| **Tab header** | Split right/down, **Pin/Unpin**, Close others, Move/Open in new window, Bookmark tab | ❌ chưa có tabs |
-| **Heading trong editor** | Bookmark this heading | ❌ |
-| **Property** (All properties view) | Rename globally | ❌ |
-| **Sidebar tab / Ribbon** | Close tab, hide actions, hide ribbon | ❌ |
+Highest-risk verified findings:
 
-### 4.2 Drag & drop matrix (từ `User interface/Drag and drop.md`)
+1. **Rename data integrity:** Obsidian rewrote five incoming wikilinks in two fixture notes after a prompt-mode rename; mdx-vault renamed and reindexed the file but left every incoming target stale.
+2. **Clipboard conflict:** `Ctrl+Shift+V` pasted the plain representation in Obsidian; mdx-vault consumes the chord globally and cycles source/split/preview instead.
+3. **Attachment loss of intent:** Obsidian imported both PNG and PDF fixtures and honored destination settings; mdx-vault imported only allowlisted images, silently ignored the PDF, and hard-coded `assets/` plus Markdown image syntax.
+4. **Explorer interaction gap:** the mdx-vault file row has five useful actions, but folder rows have no context menu/disclosure behavior, result panels have no alternate actions, and there is no multi-select or move/drop transaction model.
 
-| Thao tác | Obsidian | mdx-vault |
-|---|---|:---:|
-| Kéo file trong explorer → thả vào folder = move | ✅ | ❌ FileTree không có `draggable` |
-| Kéo file từ Search result / Backlinks / link trong preview | ✅ | ❌ |
-| Thả file vào tab header = mở; `Alt` = thả tự do | ✅ | ❌ (chưa có tabs) |
-| Thả file vào editor = chèn link (theo setting link format) | ✅ | ⚠️ chỉ **ảnh** → `assets/` ([MdxEditor.tsx:398](../../src/renderer/src/editor/MdxEditor.tsx)) |
-| Kéo tab để sắp xếp / split pane | ✅ | ❌ |
-| Kéo **HTML từ browser** vào → tự convert Markdown | ✅ | ❌ |
-| Kéo file từ OS vào → copy vào attachment folder + embed; giữ `Ctrl` = link `file:///` không copy | ✅ | ⚠️ chỉ ảnh |
-| Kéo note **ra ngoài app** → sinh `obsidian://` URL | ✅ | ❌ (chưa có URI scheme) |
-
-### 4.3 Paste & attachment behaviors (từ `Attachments.md` + Settings → Files & links)
-
-| Behavior | Obsidian | mdx-vault |
-|---|---|:---:|
-| Paste ảnh/file → tạo file trong **attachment location cấu hình được** (4 chế độ: vault root / folder chỉ định / cùng folder với note / subfolder cạnh note) | ✅ | ⚠️ hardcode `assets/` ([MdxEditor.tsx:54-56](../../src/renderer/src/editor/MdxEditor.tsx)) |
-| Paste HTML → tự convert Markdown (toggle Editor setting) | ✅ | ❌ |
-| Paste without formatting `Ctrl+Shift+V` | ✅ | ❌ [cần xác nhận] |
-| Paste attachment ngoài ảnh (PDF, audio…) → embed | ✅ | ❌ chặn theo MIME, chỉ ảnh |
-| Link format khi auto-generate (shortest/relative/absolute, wikilink vs markdown) — setting áp cho mọi chỗ sinh link | ✅ | ❌ không có setting, format cứng |
-| Auto-update links khi rename file (+ prompt mode) | ✅ | ❌ **verified**: [vault-service.ts:176-196](../../src/main/services/vault-service.ts) chỉ `rename()` file, không rewrite wikilink ở note khác → **rename hiện làm gãy link toàn vault** |
-
-### 4.4 Hotkeys — hai tầng riêng biệt (từ `Hotkeys.md` + `Editing shortcuts.md`)
-
-- **Tầng 1 — Hotkeys (customizable)**: mọi command gán được phím trong Settings → Hotkeys; một command nhiều tổ hợp; search + filter "đã gán"; hiển thị theo US layout. mdx-vault: ❌ toàn bộ hardcode, chưa có UI.
-- **Tầng 2 — Editing shortcuts (OS-level, không customize)**: bảng ~40 shortcut mặc định trong `Editing shortcuts.md` — delete word/line (`Ctrl+Shift+K`), copy/cut **cả paragraph khi không select gì**, navigation từng cấp. mdx-vault dùng CM6 nên có sẵn phần lớn navigation, nhưng cần audit từng dòng của bảng đó — đặc biệt: copy-paragraph-khi-không-select, `Ctrl+Shift+K`, multiple cursors (`Alt+Click` — CM6 cần bật extension) [cần xác nhận].
-
-### 4.5 Editor niceties còn lại (mỗi cái một trang help riêng)
-
-`Folding.md` (fold heading/indent + lệnh fold all), `Multiple cursors.md` (`Alt+Click`), auto-pair brackets/markdown, smart lists (Enter tự thêm bullet, Tab indent), readable line length, strict line breaks, RTL, spellcheck — tất cả là **Editor settings toggle** (Section 3) đi kèm behavior. mdx-vault chưa có cái nào trong nhóm này trừ những gì CM6 mặc định cho không.
+The deep audit keeps non-customizable CodeMirror/OS editing shortcuts separate from application hotkeys, includes a 14-surface live Obsidian right-click pass, and groups later work into link/asset integrity, editor ingress, explorer transactions, and workspace/hotkey infrastructure.
 
 ---
 
