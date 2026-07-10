@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { extname } from 'path'
+import { extname, posix as pathPosix } from 'path'
 import matter from 'gray-matter'
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
 import type { Heading, Link, Nodes, Root } from 'mdast'
@@ -76,7 +76,7 @@ export function buildNoteIndex({ relativePath, source, mtimeMs }: BuildNoteIndex
     title,
     aliases: readStringArray(parsedMatter.data.aliases),
     headings,
-    wikilinks: extractWikilinks(tree),
+    wikilinks: extractWikilinks(tree, relativePath),
     tags: readStringArray(parsedMatter.data.tags),
     components: extractComponents(tree),
     body: extractSearchBody(tree),
@@ -128,11 +128,12 @@ function extractHeadings(tree: Root): NoteHeading[] {
   return headings
 }
 
-function extractWikilinks(tree: Root): NoteWikilink[] {
+function extractWikilinks(tree: Root, sourceRelativePath: string): NoteWikilink[] {
   const wikilinks: NoteWikilink[] = []
 
   visit(tree, 'link', (node: Link) => {
-    const target = getWikilinkTarget(node)
+    const target =
+      getWikilinkTarget(node) ?? resolveMarkdownLinkTarget(sourceRelativePath, node.url)
 
     if (!target) {
       return
@@ -148,6 +149,32 @@ function extractWikilinks(tree: Root): NoteWikilink[] {
   })
 
   return wikilinks
+}
+
+function resolveMarkdownLinkTarget(sourceRelativePath: string, url: string): string | null {
+  const rawPath = url.split(/[?#]/, 1)[0]
+
+  if (!rawPath || rawPath.startsWith('//') || /^[a-z][a-z\d+.-]*:/i.test(rawPath)) {
+    return null
+  }
+
+  let decodedPath: string
+
+  try {
+    decodedPath = decodeURIComponent(rawPath).replaceAll('\\', '/')
+  } catch {
+    return null
+  }
+
+  const resolvedPath = decodedPath.startsWith('/')
+    ? pathPosix.normalize(decodedPath.slice(1))
+    : pathPosix.normalize(pathPosix.join(pathPosix.dirname(sourceRelativePath), decodedPath))
+
+  if (!resolvedPath || resolvedPath === '..' || resolvedPath.startsWith('../')) {
+    return null
+  }
+
+  return resolvedPath
 }
 
 function extractComponents(tree: Root): string[] {
@@ -259,7 +286,7 @@ export function isMarkdownPath(relativePath: string): boolean {
   return extension === '.md' || extension === '.mdx'
 }
 
-function parseSourceAst(source: string): Root {
+export function parseSourceAst(source: string): Root {
   try {
     return markdownProcessor.runSync(markdownProcessor.parse(source)) as Root
   } catch {

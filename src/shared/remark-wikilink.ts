@@ -10,6 +10,10 @@ declare module 'mdast' {
     wikilink?: boolean
     target?: string
     display?: string
+    targetRange?: {
+      start: number
+      end: number
+    }
     hProperties?: Record<string, string>
   }
 }
@@ -21,7 +25,7 @@ export function remarkWikilink() {
         return
       }
 
-      const replacement = parseWikilinkText(node.value)
+      const replacement = parseWikilinkText(node.value, node.position?.start.offset)
 
       if (!replacement) {
         return
@@ -33,7 +37,10 @@ export function remarkWikilink() {
   }
 }
 
-export function parseWikilinkText(value: string): PhrasingContent[] | null {
+export function parseWikilinkText(
+  value: string,
+  sourceStartOffset?: number
+): PhrasingContent[] | null {
   const nodes: PhrasingContent[] = []
   let lastIndex = 0
 
@@ -52,7 +59,25 @@ export function parseWikilinkText(value: string): PhrasingContent[] | null {
       nodes.push(createTextNode(value.slice(lastIndex, matchIndex)))
     }
 
-    nodes.push(createWikilinkNode(parts.target, parts.display))
+    const rawTarget = match[1].split('|', 1)[0]
+    const leadingWhitespace = rawTarget.length - rawTarget.trimStart().length
+    const targetStart =
+      sourceStartOffset === undefined
+        ? undefined
+        : sourceStartOffset + matchIndex + 2 + leadingWhitespace
+
+    nodes.push(
+      createWikilinkNode(
+        parts.target,
+        parts.display,
+        targetStart === undefined
+          ? undefined
+          : {
+              start: targetStart,
+              end: targetStart + rawTarget.trim().length
+            }
+      )
+    )
     lastIndex = matchIndex + matchValue.length
   }
 
@@ -74,7 +99,11 @@ function createTextNode(value: string): Text {
   }
 }
 
-function createWikilinkNode(target: string, display: string): Link {
+function createWikilinkNode(
+  target: string,
+  display: string,
+  targetRange?: { start: number; end: number }
+): Link {
   return {
     type: 'link',
     url: createWikilinkUrl(target),
@@ -84,6 +113,7 @@ function createWikilinkNode(target: string, display: string): Link {
       wikilink: true,
       target,
       display,
+      targetRange,
       hProperties: {
         'data-wikilink-target': target,
         'data-wikilink-display': display

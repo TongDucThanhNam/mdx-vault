@@ -140,6 +140,33 @@ export class VaultIndexRuntime {
     this.onDidChange?.()
   }
 
+  async reindexRename(
+    oldRelativePath: string,
+    newRelativePath: string,
+    rewrittenFiles: string[]
+  ): Promise<void> {
+    const normalizedOldPath = normalizeVaultPath(oldRelativePath)
+    const normalizedNewPath = normalizeVaultPath(newRelativePath)
+    const originalPaths = new Set([
+      normalizedOldPath,
+      ...rewrittenFiles.map((path) => normalizeVaultPath(path))
+    ])
+
+    for (const path of originalPaths) {
+      this.db.deleteNote(path)
+    }
+
+    const finalPaths = new Set(
+      [...originalPaths].map((path) => (path === normalizedOldPath ? normalizedNewPath : path))
+    )
+
+    for (const path of finalPaths) {
+      await this.indexFile(path, false)
+    }
+
+    this.onDidChange?.()
+  }
+
   private startWatcher(): Promise<void> {
     return new Promise((resolveReady, rejectReady) => {
       const watcher = watch(WATCH_TARGET, {

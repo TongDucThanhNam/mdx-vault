@@ -1,3 +1,5 @@
+import type { RenamePlanPreview, RenameResult } from '../shared/rename'
+
 interface VaultFile {
   relativePath: string
   name: string
@@ -319,7 +321,12 @@ interface VaultApi {
   writeFile: (relativePath: string, content: string) => Promise<void>
   createFile: (relativePath: string, content: string) => Promise<string>
   deleteFile: (relativePath: string) => Promise<string>
-  renameFile: (fromRelativePath: string, toRelativePath: string) => Promise<string>
+  planRename: (fromRelativePath: string, toRelativePath: string) => Promise<RenamePlanPreview>
+  renameFile: (
+    fromRelativePath: string,
+    toRelativePath: string,
+    updateLinks: boolean
+  ) => Promise<RenameResult>
   duplicateFile: (relativePath: string) => Promise<string>
   fileExists: (relativePath: string) => Promise<boolean>
   emptyTrash: () => Promise<void>

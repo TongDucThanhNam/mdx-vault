@@ -89,7 +89,7 @@ interface TagSummaryRow {
   count: number
 }
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 const MAX_SEARCH_QUERY_LENGTH = 300
 const MAX_SEARCH_LIMIT = 100
 const MAX_REGEX_PATTERN_LENGTH = 160
@@ -206,6 +206,27 @@ export class DbService {
       .all() as NoteRow[]
 
     return this.attachAliases(rows)
+  }
+
+  findLinkSourcePaths(targetKeys: string[]): string[] {
+    const uniqueKeys = uniqueNonEmpty(targetKeys.map((key) => normalizeLinkKey(key)))
+
+    if (uniqueKeys.length === 0) {
+      return []
+    }
+
+    const placeholders = uniqueKeys.map(() => '?').join(', ')
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT n.relative_path
+         FROM note_links l
+         JOIN notes n ON n.id = l.source_note_id
+         WHERE l.target_normalized IN (${placeholders})
+         ORDER BY n.relative_path COLLATE NOCASE`
+      )
+      .all(...uniqueKeys) as Array<{ relative_path: string }>
+
+    return rows.map((row) => row.relative_path)
   }
 
   search(query: string, limit: number): SearchResult[] {
@@ -412,6 +433,22 @@ export class DbService {
     const version = this.db.pragma('user_version', { simple: true }) as number
 
     if (version === SCHEMA_VERSION) {
+      return
+    }
+
+    if (version === 1) {
+      this.db.exec(`
+        BEGIN;
+        DELETE FROM notes_fts;
+        DELETE FROM note_aliases;
+        DELETE FROM note_headings;
+        DELETE FROM note_links;
+        DELETE FROM note_tags;
+        DELETE FROM note_components;
+        DELETE FROM notes;
+        PRAGMA user_version = ${SCHEMA_VERSION};
+        COMMIT;
+      `)
       return
     }
 

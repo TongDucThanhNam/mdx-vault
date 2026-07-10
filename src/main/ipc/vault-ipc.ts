@@ -8,6 +8,8 @@ import {
 } from 'electron'
 import { z } from 'zod'
 
+import type { RenamePlanPreview, RenameResult } from '../../shared/rename'
+import { planVaultRename } from '../services/rename-service'
 import type { NoteTemplate, TrashEntry, VaultInfo, VaultFile } from '../services/vault-service'
 import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 import type { AppSettingsService } from '../services/app-settings'
@@ -56,6 +58,11 @@ const deleteFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
 const renameFilePayloadSchema = z.object({
+  fromRelativePath: z.string().min(1),
+  toRelativePath: z.string().min(1),
+  updateLinks: z.boolean()
+})
+const planRenamePayloadSchema = z.object({
   fromRelativePath: z.string().min(1),
   toRelativePath: z.string().min(1)
 })
@@ -167,20 +174,49 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
     })
   })
 
+  ipcMain.handle('vault:plan-rename', (_event, payload): Promise<IpcResult<RenamePlanPreview>> => {
+    return handleVaultRequest(async () => {
+      const input = planRenamePayloadSchema.parse(payload)
+      const vault = getCurrentVault()
+      const index = getCurrentIndex()
+      const plan = await planVaultRename(vault, index, input.fromRelativePath, input.toRelativePath)
+
+      return {
+        oldRelativePath: plan.oldRelativePath,
+        newRelativePath: plan.newRelativePath,
+        affectedFiles: plan.files.map((file) => file.relativePath),
+        linkCount: plan.linkCount,
+        noteCount: plan.noteCount
+      }
+    })
+  })
+
   /**
-   * Atomic rename/move. The new path is reindexed; the old path is unindexed.
-   * Both pass through safeJoin so traversal attempts are rejected before any
-   * filesystem op happens.
+   * Transactional rename/move. When requested, incoming links are reparsed
+   * immediately before apply; reindexing is part of the rollback boundary.
    */
-  ipcMain.handle('vault:rename-file', (_event, payload): Promise<IpcResult<string>> => {
+  ipcMain.handle('vault:rename-file', (_event, payload): Promise<IpcResult<RenameResult>> => {
     return handleVaultRequest(async () => {
       const input = renameFilePayloadSchema.parse(payload)
       const vault = getCurrentVault()
       const index = getCurrentIndex()
-      const newPath = await vault.renameFile(input.fromRelativePath, input.toRelativePath)
-      index.deleteFile(input.fromRelativePath)
-      await index.indexFile(newPath)
-      return newPath
+      const plan = input.updateLinks
+        ? await planVaultRename(vault, index, input.fromRelativePath, input.toRelativePath)
+        : undefined
+
+      return vault.renameFile(input.fromRelativePath, input.toRelativePath, {
+        plan,
+        onApplied: async (result) => {
+          await index.reindexRename(
+            input.fromRelativePath,
+            result.newRelativePath,
+            result.rewrittenFiles
+          )
+        },
+        onRolledBack: async () => {
+          await index.rebuild()
+        }
+      })
     })
   })
 

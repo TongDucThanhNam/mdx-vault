@@ -1,7 +1,9 @@
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
+import { mkdir, readFile, rename, rmdir, rm, stat, writeFile } from 'fs/promises'
 import { basename, dirname, extname, resolve } from 'path'
 import fg from 'fast-glob'
 
+import type { RenameResult } from '../../shared/rename'
+import { applyRenameEdits, type RenamePlan } from './rename-plan'
 import { safeJoin } from './safe-path'
 
 export interface VaultFile {
@@ -32,6 +34,24 @@ export interface NoteTemplate {
   name: string
 }
 
+export type RenameTransactionResult = RenameResult
+
+export interface RenameFileOptions {
+  plan?: RenamePlan
+  onApplied?: (result: RenameTransactionResult) => Promise<void>
+  onRolledBack?: () => Promise<void>
+}
+
+type AtomicWriteOverride = (
+  absolutePath: string,
+  data: string | Uint8Array,
+  writeDefault: () => Promise<void>
+) => Promise<void>
+
+interface VaultServiceOptions {
+  atomicWrite?: AtomicWriteOverride
+}
+
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
@@ -40,9 +60,12 @@ const IGNORED_DIRECTORIES = ['**/node_modules/**', '**/.git/**', '**/.app/**', '
 
 export class VaultService {
   private readonly root: string
+  private readonly atomicWriteOverride?: AtomicWriteOverride
+  private tempSequence = 0
 
-  constructor(root: string) {
+  constructor(root: string, options: VaultServiceOptions = {}) {
     this.root = resolve(root)
+    this.atomicWriteOverride = options.atomicWrite
   }
 
   get rootPath(): string {
@@ -97,11 +120,7 @@ export class VaultService {
 
   async writeFile(relativePath: string, content: string): Promise<void> {
     const target = this.resolveMarkdownPath(relativePath)
-    const tempPath = `${target}.tmp-${process.pid}-${Date.now()}`
-
-    await mkdir(dirname(target), { recursive: true })
-    await writeFile(tempPath, content, 'utf8')
-    await rename(tempPath, target)
+    await this.writeFileAtomic(target, content)
   }
 
   /**
@@ -173,7 +192,106 @@ export class VaultService {
    * should check {@link exists} first. The atomic `rename` is what makes this
    * crash-safe: either the move happens or it doesn't.
    */
-  async renameFile(oldRelativePath: string, newRelativePath: string): Promise<string> {
+  async renameFile(oldRelativePath: string, newRelativePath: string): Promise<string>
+  async renameFile(
+    oldRelativePath: string,
+    newRelativePath: string,
+    options: RenameFileOptions
+  ): Promise<RenameTransactionResult>
+  async renameFile(
+    oldRelativePath: string,
+    newRelativePath: string,
+    options?: RenameFileOptions
+  ): Promise<string | RenameTransactionResult> {
+    const { oldRelativePath: normalizedOld, newRelativePath: normalizedNew } =
+      await this.validateRename(oldRelativePath, newRelativePath)
+    const source = safeJoin(this.root, normalizedOld)
+    const target = safeJoin(this.root, normalizedNew)
+
+    if (!options) {
+      await mkdir(dirname(target), { recursive: true })
+      await rename(source, target)
+      return normalizedNew
+    }
+
+    const plan = options.plan ?? createEmptyRenamePlan(normalizedOld, normalizedNew)
+    this.validateRenamePlan(plan, normalizedOld, normalizedNew)
+
+    const snapshots = new Map<string, Uint8Array>()
+    const rewrites = new Map<string, string>()
+
+    for (const plannedFile of plan.files) {
+      const relativePath = normalizeVaultPath(plannedFile.relativePath)
+      const absolutePath = this.resolveMarkdownPath(relativePath)
+      await assertFile(absolutePath)
+
+      if (snapshots.has(relativePath)) {
+        throw new Error(`Rename plan contains duplicate file: ${relativePath}`)
+      }
+
+      const snapshot = await readFile(absolutePath)
+      snapshots.set(relativePath, snapshot)
+      rewrites.set(relativePath, applyRenameEdits(snapshot.toString('utf8'), plannedFile.edits))
+    }
+
+    const createdParentDirectories = await findMissingParentDirectories(this.root, dirname(target))
+    let renameCompleted = false
+
+    try {
+      for (const [relativePath, rewrittenContent] of rewrites) {
+        await this.writeFileAtomic(this.resolveMarkdownPath(relativePath), rewrittenContent)
+      }
+
+      await mkdir(dirname(target), { recursive: true })
+      await rename(source, target)
+      renameCompleted = true
+
+      const result: RenameTransactionResult = {
+        newRelativePath: normalizedNew,
+        rewrittenFiles: [...rewrites.keys()],
+        updatedLinks: plan.linkCount
+      }
+
+      await options.onApplied?.(result)
+      return result
+    } catch (error) {
+      const rollbackErrors: unknown[] = []
+
+      if (renameCompleted) {
+        await rename(target, source).catch((rollbackError: unknown) => {
+          rollbackErrors.push(rollbackError)
+        })
+      }
+
+      for (const [relativePath, snapshot] of snapshots) {
+        await this.writeFileAtomic(this.resolveMarkdownPath(relativePath), snapshot).catch(
+          (rollbackError: unknown) => {
+            rollbackErrors.push(rollbackError)
+          }
+        )
+      }
+
+      await options.onRolledBack?.().catch((rollbackError: unknown) => {
+        rollbackErrors.push(rollbackError)
+      })
+
+      await removeCreatedParentDirectories(createdParentDirectories, rollbackErrors)
+
+      if (rollbackErrors.length > 0) {
+        throw new AggregateError(
+          [error, ...rollbackErrors],
+          'Rename failed and rollback could not restore the vault completely'
+        )
+      }
+
+      throw error
+    }
+  }
+
+  async validateRename(
+    oldRelativePath: string,
+    newRelativePath: string
+  ): Promise<{ oldRelativePath: string; newRelativePath: string }> {
     const normalizedOld = normalizeVaultPath(oldRelativePath)
     const normalizedNew = normalizeVaultPath(newRelativePath)
 
@@ -191,9 +309,10 @@ export class VaultService {
       throw new Error('A file with this name already exists')
     }
 
-    await mkdir(dirname(target), { recursive: true })
-    await rename(source, target)
-    return normalizedNew
+    return {
+      oldRelativePath: normalizedOld,
+      newRelativePath: normalizedNew
+    }
   }
 
   /**
@@ -395,6 +514,47 @@ export class VaultService {
 
     return safeJoin(this.root, normalizedPath)
   }
+
+  private validateRenamePlan(
+    plan: RenamePlan,
+    oldRelativePath: string,
+    newRelativePath: string
+  ): void {
+    if (
+      normalizeVaultPath(plan.oldRelativePath) !== oldRelativePath ||
+      normalizeVaultPath(plan.newRelativePath) !== newRelativePath
+    ) {
+      throw new Error('Rename plan does not match the requested paths')
+    }
+  }
+
+  private async writeFileAtomic(target: string, data: string | Uint8Array): Promise<void> {
+    const sequence = this.tempSequence + 1
+    this.tempSequence = sequence
+    const tempPath = `${target}.tmp-${process.pid}-${Date.now()}-${sequence}`
+    const writeDefault = async (): Promise<void> => {
+      await mkdir(dirname(target), { recursive: true })
+
+      try {
+        if (typeof data === 'string') {
+          await writeFile(tempPath, data, 'utf8')
+        } else {
+          await writeFile(tempPath, data)
+        }
+
+        await rename(tempPath, target)
+      } finally {
+        await rm(tempPath, { force: true })
+      }
+    }
+
+    if (this.atomicWriteOverride) {
+      await this.atomicWriteOverride(target, data, writeDefault)
+      return
+    }
+
+    await writeDefault()
+  }
 }
 
 function toVaultFile(relativePath: string): VaultFile {
@@ -418,6 +578,54 @@ function toVaultFile(relativePath: string): VaultFile {
 
 function normalizeVaultPath(relativePath: string): string {
   return relativePath.replaceAll('\\', '/')
+}
+
+function createEmptyRenamePlan(oldRelativePath: string, newRelativePath: string): RenamePlan {
+  return {
+    oldRelativePath,
+    newRelativePath,
+    files: [],
+    linkCount: 0,
+    noteCount: 0
+  }
+}
+
+async function findMissingParentDirectories(
+  root: string,
+  targetDirectory: string
+): Promise<string[]> {
+  const directories: string[] = []
+  let current = targetDirectory
+
+  while (current !== root && !(await pathExists(current))) {
+    directories.push(current)
+    const parent = dirname(current)
+
+    if (parent === current) {
+      break
+    }
+
+    current = parent
+  }
+
+  return directories
+}
+
+async function removeCreatedParentDirectories(
+  directories: string[],
+  rollbackErrors: unknown[]
+): Promise<void> {
+  for (const directory of directories) {
+    try {
+      await rmdir(directory)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+
+      if (code !== 'ENOENT' && code !== 'ENOTEMPTY') {
+        rollbackErrors.push(error)
+      }
+    }
+  }
 }
 
 function isAssetPath(relativePath: string): boolean {

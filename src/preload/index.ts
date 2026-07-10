@@ -22,6 +22,7 @@ import type {
   AssistantEvent,
   PatchOperation
 } from '../shared/ai'
+import type { RenamePlanPreview, RenameResult } from '../shared/rename'
 
 interface VaultFile {
   relativePath: string
@@ -126,8 +127,14 @@ const vaultApi = {
     invokeVault('vault:create-file', { relativePath, content }),
   deleteFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:delete-file', { relativePath }),
-  renameFile: (fromRelativePath: string, toRelativePath: string): Promise<string> =>
-    invokeVault('vault:rename-file', { fromRelativePath, toRelativePath }),
+  planRename: (fromRelativePath: string, toRelativePath: string): Promise<RenamePlanPreview> =>
+    invokeVault('vault:plan-rename', { fromRelativePath, toRelativePath }),
+  renameFile: (
+    fromRelativePath: string,
+    toRelativePath: string,
+    updateLinks: boolean
+  ): Promise<RenameResult> =>
+    invokeVault('vault:rename-file', { fromRelativePath, toRelativePath, updateLinks }),
   duplicateFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:duplicate-file', { relativePath }),
   fileExists: (relativePath: string): Promise<boolean> =>

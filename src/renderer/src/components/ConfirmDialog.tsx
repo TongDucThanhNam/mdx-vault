@@ -19,10 +19,12 @@ interface ConfirmDialogProps {
   title: string
   description: ReactNode
   confirmLabel?: string
+  secondaryLabel?: string
   cancelLabel?: string
   destructive?: boolean
   isPending?: boolean
   onConfirm: () => Promise<void> | void
+  onSecondary?: () => Promise<void> | void
 }
 
 /**
@@ -37,14 +39,16 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Confirm',
+  secondaryLabel,
   cancelLabel = 'Cancel',
   destructive = false,
   isPending = false,
-  onConfirm
+  onConfirm,
+  onSecondary
 }: ConfirmDialogProps): React.JSX.Element {
-  const handleConfirm = async (): Promise<void> => {
+  const handleAction = async (action: () => Promise<void> | void): Promise<void> => {
     try {
-      await onConfirm()
+      await action()
     } finally {
       onOpenChange(false)
     }
@@ -61,12 +65,24 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>{cancelLabel}</AlertDialogCancel>
+          {secondaryLabel && onSecondary ? (
+            <AlertDialogAction
+              className={cn(buttonVariants({ variant: 'outline' }))}
+              disabled={isPending}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleAction(onSecondary)
+              }}
+            >
+              {secondaryLabel}
+            </AlertDialogAction>
+          ) : null}
           <AlertDialogAction
             className={cn(buttonVariants({ variant: destructive ? 'destructive' : 'default' }))}
             disabled={isPending}
             onClick={(event) => {
               event.preventDefault()
-              void handleConfirm()
+              void handleAction(onConfirm)
             }}
           >
             {isPending ? 'Working…' : confirmLabel}

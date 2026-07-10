@@ -56,12 +56,19 @@ import {
 } from '@/ai/panels/AiSelectionActionPalette'
 import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { SelectionRange } from '../../shared/ai'
+import type { RenamePlanPreview } from '../../shared/rename'
 
 type ViewMode = 'source' | 'split' | 'preview'
 type NavigationPanel = 'outline' | 'tags' | 'backlinks'
 
 interface DeleteRequest {
   relativePath: string
+}
+
+interface RenameRequest {
+  fromRelativePath: string
+  toRelativePath: string
+  plan: RenamePlanPreview
 }
 
 interface PreviewHeadingRequest {
@@ -128,6 +135,7 @@ function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [sortMode, setSortMode] = useState<FileTreeSortMode>('name')
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
+  const [renameRequest, setRenameRequest] = useState<RenameRequest | null>(null)
   const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
   const [vaultOpsPending, setVaultOpsPending] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -137,6 +145,7 @@ function App(): React.JSX.Element {
   const contentRef = useRef(content)
   const savedContentRef = useRef(savedContent)
   const saveRequestRef = useRef(0)
+  const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true))
   const insertRequestRef = useRef(0)
 
   const isDirty = selectedPath !== null && content !== savedContent
@@ -173,34 +182,42 @@ function App(): React.JSX.Element {
     saveRecentNotePaths(recentNotePaths)
   }, [recentNotePaths])
 
-  const saveCurrentFile = useCallback(async () => {
-    const path = selectedPathRef.current
-    const value = contentRef.current
+  const saveCurrentFile = useCallback((): Promise<boolean> => {
+    const operation = saveQueueRef.current.then(async () => {
+      const path = selectedPathRef.current
+      const value = contentRef.current
 
-    if (!path || value === savedContentRef.current) {
-      return
-    }
-
-    const requestId = saveRequestRef.current + 1
-    saveRequestRef.current = requestId
-    setIsSaving(true)
-    setError(null)
-
-    try {
-      await window.vaultApi.writeFile(path, value)
-
-      if (selectedPathRef.current === path) {
-        savedContentRef.current = value
-        setSavedContent(value)
-        setLastSavedAt(new Date())
+      if (!path || value === savedContentRef.current) {
+        return true
       }
-    } catch (saveError) {
-      setError(formatError(saveError))
-    } finally {
-      if (saveRequestRef.current === requestId) {
-        setIsSaving(false)
+
+      const requestId = saveRequestRef.current + 1
+      saveRequestRef.current = requestId
+      setIsSaving(true)
+      setError(null)
+
+      try {
+        await window.vaultApi.writeFile(path, value)
+
+        if (selectedPathRef.current === path) {
+          savedContentRef.current = value
+          setSavedContent(value)
+          setLastSavedAt(new Date())
+        }
+
+        return true
+      } catch (saveError) {
+        setError(formatError(saveError))
+        return false
+      } finally {
+        if (saveRequestRef.current === requestId) {
+          setIsSaving(false)
+        }
       }
-    }
+    })
+
+    saveQueueRef.current = operation
+    return operation
   }, [])
 
   const loadFile = useCallback(
@@ -325,30 +342,88 @@ function App(): React.JSX.Element {
     [refreshTrashCount, refreshVaultSnapshot, showToast]
   )
 
-  const handleRename = useCallback(
-    async (fromRelativePath: string, toRelativePath: string): Promise<void> => {
-      if (fromRelativePath === toRelativePath) {
-        return
+  const applyRename = useCallback(
+    async (
+      fromRelativePath: string,
+      toRelativePath: string,
+      updateLinks: boolean
+    ): Promise<void> => {
+      const result = await window.vaultApi.renameFile(fromRelativePath, toRelativePath, updateLinks)
+      const activePath = selectedPathRef.current
+      const reloadPath =
+        activePath === fromRelativePath
+          ? result.newRelativePath
+          : activePath && result.rewrittenFiles.includes(activePath)
+            ? activePath
+            : null
+
+      if (reloadPath) {
+        await loadFile(reloadPath, false)
       }
+
+      await refreshVaultSnapshot()
+      showToast(
+        result.updatedLinks > 0
+          ? `Renamed and updated ${result.updatedLinks} link${result.updatedLinks === 1 ? '' : 's'}`
+          : `Renamed to "${deriveNoteTitle(result.newRelativePath)}"`
+      )
+    },
+    [loadFile, refreshVaultSnapshot, showToast]
+  )
+
+  const commitRename = useCallback(
+    async (
+      fromRelativePath: string,
+      toRelativePath: string,
+      updateLinks: boolean
+    ): Promise<void> => {
       setVaultOpsPending(true)
       setError(null)
+
       try {
-        const newPath = await window.vaultApi.renameFile(fromRelativePath, toRelativePath)
-        // If we were editing the renamed note, switch to the new path so the
-        // editor state (selection, save label) tracks the rename.
-        if (selectedPathRef.current === fromRelativePath) {
-          selectedPathRef.current = newPath
-          setSelectedPath(newPath)
+        if (!(await saveCurrentFile())) {
+          return
         }
-        await refreshVaultSnapshot()
-        showToast(`Renamed to "${deriveNoteTitle(newPath)}"`)
+
+        await applyRename(fromRelativePath, toRelativePath, updateLinks)
+        setRenameRequest(null)
       } catch (renameError) {
         setError(formatError(renameError))
       } finally {
         setVaultOpsPending(false)
       }
     },
-    [refreshVaultSnapshot, showToast]
+    [applyRename, saveCurrentFile]
+  )
+
+  const handleRename = useCallback(
+    async (fromRelativePath: string, toRelativePath: string): Promise<void> => {
+      if (fromRelativePath === toRelativePath) {
+        return
+      }
+
+      setVaultOpsPending(true)
+      setError(null)
+
+      try {
+        if (!(await saveCurrentFile())) {
+          return
+        }
+
+        const plan = await window.vaultApi.planRename(fromRelativePath, toRelativePath)
+
+        if (plan.linkCount > 0) {
+          setRenameRequest({ fromRelativePath, toRelativePath, plan })
+        } else {
+          await applyRename(fromRelativePath, toRelativePath, true)
+        }
+      } catch (renameError) {
+        setError(formatError(renameError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [applyRename, saveCurrentFile]
   )
 
   const handleDuplicate = useCallback(
@@ -1574,6 +1649,38 @@ function App(): React.JSX.Element {
         open={createNoteOpen}
         onOpenChange={setCreateNoteOpen}
         onCreate={createNote}
+      />
+      <ConfirmDialog
+        open={renameRequest !== null}
+        onOpenChange={(open) => {
+          if (!open && !vaultOpsPending) {
+            setRenameRequest(null)
+          }
+        }}
+        title={`Update ${renameRequest?.plan.linkCount ?? 0} link${renameRequest?.plan.linkCount === 1 ? '' : 's'} in ${renameRequest?.plan.noteCount ?? 0} note${renameRequest?.plan.noteCount === 1 ? '' : 's'}?`}
+        description={
+          <>
+            Renaming to{' '}
+            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+              {renameRequest?.toRelativePath ?? ''}
+            </code>{' '}
+            can update every link that currently resolves to this note. Display aliases will stay
+            unchanged.
+          </>
+        }
+        confirmLabel="Update links"
+        secondaryLabel="Don't update"
+        isPending={vaultOpsPending}
+        onConfirm={async () => {
+          if (renameRequest) {
+            await commitRename(renameRequest.fromRelativePath, renameRequest.toRelativePath, true)
+          }
+        }}
+        onSecondary={async () => {
+          if (renameRequest) {
+            await commitRename(renameRequest.fromRelativePath, renameRequest.toRelativePath, false)
+          }
+        }}
       />
       <ConfirmDialog
         open={deleteRequest !== null}
