@@ -4,6 +4,7 @@ export interface CommandAction {
   description: string
   category: string
   keywords?: string[]
+  hotkeys?: string[]
   disabled?: boolean
   run: () => void | Promise<void>
 }

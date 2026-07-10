@@ -36,12 +36,16 @@ interface SearchResult {
   note: IndexedNoteSummary
   snippet: string
   rank: number
+  matches: string[]
 }
 
 interface BacklinkResult {
+  kind: 'linked' | 'unlinked'
   source: IndexedNoteSummary
   target: string
   display: string
+  snippet: string
+  matchedText: string
 }
 
 interface NoteHeadingResult {

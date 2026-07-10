@@ -1,4 +1,4 @@
-import { Command as CommandIcon, CornerDownLeft, Search } from 'lucide-react'
+import { Command as CommandIcon, CornerDownLeft, Pin, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 
@@ -16,6 +16,8 @@ interface CommandPaletteProps {
 interface ScoredCommandAction {
   action: CommandAction
   score: number
+  pinned: boolean
+  recent: boolean
 }
 
 export function CommandPalette({
@@ -26,8 +28,13 @@ export function CommandPalette({
 }: CommandPaletteProps): React.JSX.Element | null {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [pinnedActionIds, setPinnedActionIds] = useState<string[]>(() => loadPinnedActionIds())
+  const [recentActionIds, setRecentActionIds] = useState<string[]>(() => loadRecentActionIds())
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const results = useMemo(() => getScoredActions(actions, query), [actions, query])
+  const results = useMemo(
+    () => getScoredActions(actions, query, pinnedActionIds, recentActionIds),
+    [actions, pinnedActionIds, query, recentActionIds]
+  )
   const activeIndex = Math.min(selectedIndex, Math.max(0, results.length - 1))
 
   useEffect(() => {
@@ -41,6 +48,10 @@ export function CommandPalette({
     }
   }, [open])
 
+  useEffect(() => {
+    saveCommandPaletteState(pinnedActionIds, recentActionIds)
+  }, [pinnedActionIds, recentActionIds])
+
   if (!open) {
     return null
   }
@@ -52,10 +63,19 @@ export function CommandPalette({
 
     try {
       await action.run()
+      setRecentActionIds((current) => recordRecentActionId(current, action.id))
       onOpenChange(false)
     } catch (runError) {
       onError(formatError(runError))
     }
+  }
+
+  const togglePin = (actionId: string): void => {
+    setPinnedActionIds((current) =>
+      current.includes(actionId)
+        ? current.filter((candidate) => candidate !== actionId)
+        : [actionId, ...current].slice(0, 20)
+    )
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
@@ -120,7 +140,7 @@ export function CommandPalette({
               No commands found.
             </div>
           ) : (
-            results.map(({ action }, index) => {
+            results.map(({ action, pinned, recent }, index) => {
               const isActive = index === activeIndex
               return (
                 <button
@@ -147,10 +167,49 @@ export function CommandPalette({
                       <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {action.category}
                       </span>
+                      {pinned ? (
+                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Pinned
+                        </span>
+                      ) : recent ? (
+                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Recent
+                        </span>
+                      ) : null}
                     </span>
                     <span className="block truncate font-mono text-xs text-muted-foreground">
                       {action.description}
                     </span>
+                  </span>
+                  {action.hotkeys && action.hotkeys.length > 0 ? (
+                    <span className="hidden shrink-0 gap-1 sm:flex">
+                      {action.hotkeys.map((hotkey) => (
+                        <span
+                          key={hotkey}
+                          className="border border-current px-1 py-0.5 font-mono text-[10px] leading-none"
+                        >
+                          {hotkey}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    title={pinned ? 'Unpin command' : 'Pin command'}
+                    aria-label={pinned ? 'Unpin command' : 'Pin command'}
+                    className={cn(
+                      'flex size-7 shrink-0 items-center justify-center border border-current',
+                      pinned ? 'opacity-100' : 'opacity-45'
+                    )}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      togglePin(action.id)
+                    }}
+                  >
+                    <Pin className="size-3.5" aria-hidden="true" />
                   </span>
                   {isActive && !action.disabled ? (
                     <CornerDownLeft className="size-3.5 shrink-0" aria-hidden="true" />
@@ -165,22 +224,48 @@ export function CommandPalette({
   )
 }
 
-function getScoredActions(actions: CommandAction[], query: string): ScoredCommandAction[] {
+function getScoredActions(
+  actions: CommandAction[],
+  query: string,
+  pinnedActionIds: string[],
+  recentActionIds: string[]
+): ScoredCommandAction[] {
   const normalizedQuery = query.trim().toLocaleLowerCase()
+  const pinnedRanks = new Map(pinnedActionIds.map((id, index) => [id, index]))
+  const recentRanks = new Map(recentActionIds.map((id, index) => [id, index]))
 
   return actions
     .map((action, index) => ({
       action,
       index,
+      pinnedRank: pinnedRanks.get(action.id) ?? Number.POSITIVE_INFINITY,
+      recentRank: recentRanks.get(action.id) ?? Number.POSITIVE_INFINITY,
       score: normalizedQuery ? scoreAction(action, normalizedQuery) : 1
     }))
     .filter((candidate) => candidate.score > 0)
-    .sort(
-      (left, right) =>
-        Number(left.action.disabled) - Number(right.action.disabled) ||
-        right.score - left.score ||
-        left.index - right.index
-    )
+    .sort((left, right) => {
+      const disabledSort = Number(left.action.disabled) - Number(right.action.disabled)
+
+      if (disabledSort !== 0) {
+        return disabledSort
+      }
+
+      if (!normalizedQuery) {
+        return (
+          left.pinnedRank - right.pinnedRank ||
+          left.recentRank - right.recentRank ||
+          left.index - right.index
+        )
+      }
+
+      return right.score - left.score || left.index - right.index
+    })
+    .map((candidate) => ({
+      action: candidate.action,
+      score: candidate.score,
+      pinned: Number.isFinite(candidate.pinnedRank),
+      recent: Number.isFinite(candidate.recentRank)
+    }))
     .slice(0, 30)
 }
 
@@ -211,3 +296,62 @@ function formatError(error: unknown): string {
   }
   return String(error)
 }
+
+function loadPinnedActionIds(): string[] {
+  return loadCommandPaletteState().pinnedActionIds
+}
+
+function loadRecentActionIds(): string[] {
+  return loadCommandPaletteState().recentActionIds
+}
+
+function loadCommandPaletteState(): {
+  pinnedActionIds: string[]
+  recentActionIds: string[]
+} {
+  try {
+    const value = window.localStorage.getItem(COMMAND_PALETTE_STORAGE_KEY)
+    const parsed = value ? (JSON.parse(value) as unknown) : null
+
+    if (!parsed || typeof parsed !== 'object') {
+      return { pinnedActionIds: [], recentActionIds: [] }
+    }
+
+    const record = parsed as { pinnedActionIds?: unknown; recentActionIds?: unknown }
+
+    return {
+      pinnedActionIds: readStringArray(record.pinnedActionIds),
+      recentActionIds: readStringArray(record.recentActionIds)
+    }
+  } catch {
+    return { pinnedActionIds: [], recentActionIds: [] }
+  }
+}
+
+function saveCommandPaletteState(pinnedActionIds: string[], recentActionIds: string[]): void {
+  try {
+    window.localStorage.setItem(
+      COMMAND_PALETTE_STORAGE_KEY,
+      JSON.stringify({
+        pinnedActionIds: pinnedActionIds.slice(0, 20),
+        recentActionIds: recentActionIds.slice(0, 20)
+      })
+    )
+  } catch {
+    // Palette ordering is a convenience, not required for command execution.
+  }
+}
+
+function recordRecentActionId(currentIds: string[], actionId: string): string[] {
+  return [actionId, ...currentIds.filter((candidate) => candidate !== actionId)].slice(0, 20)
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((item): item is string => typeof item === 'string').slice(0, 20)
+}
+
+const COMMAND_PALETTE_STORAGE_KEY = 'mdx-vault.command-palette.v1'

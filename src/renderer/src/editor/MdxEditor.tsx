@@ -17,8 +17,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ComponentInsertPalette } from './ComponentInsertPalette'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
+import { SlashCommandPalette } from './SlashCommandPalette'
 import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
 import { getNoteLinkKeys } from '../../../shared/wikilinks'
+import type { CommandAction } from '@/commands/actions'
 import { getScoredNotes } from '@/lib/fuzzy-match'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 import type { IndexedNoteSummary } from '@/vault/types'
@@ -43,13 +45,22 @@ export interface EditorSelectionSnapshot {
   text: string
 }
 
+export interface EditorInsertRequest {
+  requestId: number
+  text: string
+  placement: 'block' | 'inline'
+}
+
 interface MdxEditorProps {
   value: string
   onChange: (value: string) => void
   /** Indexed notes used as the source for `[[` wikilink autocomplete. */
   notes?: IndexedNoteSummary[]
+  commandActions?: CommandAction[]
+  insertRequest?: EditorInsertRequest | null
   revealLineRequest?: RevealLineRequest | null
   onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
+  onCommandError?: (message: string) => void
   /**
    * Called when the user pastes or drops an image. The handler should persist
    * the image under `<vault>/assets/` and return the vault-relative path so
@@ -76,6 +87,18 @@ const codeLanguages = [
     alias: ['yaml', 'yml'],
     extensions: ['yaml', 'yml'],
     support: yaml()
+  }),
+  LanguageDescription.of({
+    name: 'Python',
+    alias: ['python', 'py'],
+    extensions: ['py'],
+    load: () => import('@codemirror/lang-python').then(({ python }) => python())
+  }),
+  LanguageDescription.of({
+    name: 'JSON',
+    alias: ['json', 'jsonc'],
+    extensions: ['json', 'jsonc'],
+    load: () => import('@codemirror/lang-json').then(({ json }) => json())
   })
 ]
 
@@ -152,22 +175,43 @@ const editorTheme = EditorView.theme({
 })
 
 /**
- * Highlight style mapping the Lezer tags produced by `mdx-highlight.ts` (and
- * the standard markdown/JS tags already used by `@codemirror/lang-markdown`)
- * to actual editor colors. Without this, the parser tags the tokens but no
- * color is applied — JSX/braces render as plain prose. The CSS variables match
- * the design tokens defined in `globals.css` and adapt to light/dark themes.
- *
- * Editorial palette: red = JSX tag/brace (the "live" markup), blue = string
- * value (the data), muted = punctuation.
+ * Complete source-editor palette for standard Markdown, fenced languages, and
+ * the custom tags produced by `mdx-highlight.ts`. `basicSetup` installs the
+ * default palette as a fallback, so registering a partial non-fallback palette
+ * would otherwise leave every unlisted standard token unstyled.
  */
-const mdxHighlightStyle = HighlightStyle.define([
+const editorHighlightStyle = HighlightStyle.define([
+  { tag: t.meta, color: 'var(--muted-foreground)' },
+  { tag: t.heading, color: 'var(--editorial-red)', fontWeight: '700' },
+  { tag: t.emphasis, fontStyle: 'italic' },
+  { tag: t.strong, fontWeight: '700' },
+  { tag: t.strikethrough, textDecoration: 'line-through' },
+  { tag: [t.keyword, t.modifier, t.operatorKeyword], color: 'var(--editorial-red)' },
+  {
+    tag: [t.atom, t.bool, t.number, t.contentSeparator],
+    color: 'var(--chart-3)'
+  },
+  { tag: [t.literal, t.url], color: 'var(--chart-5)' },
+  { tag: t.string, color: 'var(--editorial-blue)' },
+  { tag: [t.regexp, t.escape, t.special(t.string)], color: 'var(--chart-5)' },
+  { tag: t.definition(t.variableName), color: 'var(--editorial-blue)' },
+  { tag: t.local(t.variableName), color: 'var(--chart-3)' },
+  { tag: [t.typeName, t.namespace], color: 'var(--chart-5)', fontWeight: '700' },
+  { tag: t.className, color: 'var(--editorial-blue)', fontWeight: '700' },
+  { tag: [t.special(t.variableName), t.macroName], color: 'var(--chart-3)' },
+  { tag: t.definition(t.propertyName), color: 'var(--editorial-blue)' },
+  { tag: t.propertyName, color: 'var(--chart-3)' },
+  { tag: t.operator, color: 'var(--editorial-red)' },
+  { tag: t.comment, color: 'var(--muted-foreground)', fontStyle: 'italic' },
+  {
+    tag: t.invalid,
+    color: 'var(--destructive)',
+    textDecoration: 'underline wavy'
+  },
   // JSX tag name (e.g. the `QuizBlock` in `<QuizBlock />`).
   { tag: t.tagName, color: 'var(--editorial-red)', fontWeight: '700' },
   // JSX attribute name (e.g. `bar` in `bar="x"`).
   { tag: t.attributeName, color: 'var(--chart-3)' },
-  // JSX attribute string value (e.g. `"x"` in `bar="x"`).
-  { tag: t.string, color: 'var(--editorial-blue)' },
   // JSX angle brackets, `/`, `=`, etc.
   { tag: t.angleBracket, color: 'var(--muted-foreground)' },
   // MDX brace expression marks (`{` and `}`).
@@ -183,17 +227,25 @@ const mdxHighlightStyle = HighlightStyle.define([
     color: 'var(--foreground)'
   },
   // Wikilinks (`[[Note]]`) and tags (`#project`).
-  { tag: t.link, color: 'var(--editorial-blue)', fontWeight: '700' },
+  {
+    tag: t.link,
+    color: 'var(--editorial-blue)',
+    fontWeight: '700',
+    textDecoration: 'underline'
+  },
   { tag: t.labelName, color: 'var(--chart-5)', fontWeight: '700' },
-  { tag: t.squareBracket, color: 'var(--muted-foreground)' }
+  { tag: [t.punctuation, t.squareBracket], color: 'var(--muted-foreground)' }
 ])
 
 export function MdxEditor({
   value,
   onChange,
   notes,
+  commandActions = [],
+  insertRequest,
   revealLineRequest,
   onSelectionChange,
+  onCommandError,
   onSaveImage
 }: MdxEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -202,9 +254,14 @@ export function MdxEditor({
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
   const onSelectionChangeRef = useRef(onSelectionChange)
+  const onCommandErrorRef = useRef(onCommandError)
   const onSaveImageRef = useRef(onSaveImage)
+  const lastInsertRequestRef = useRef<number | null>(null)
   const insertTemplates = useMemo(() => getRegistryInsertTemplates(), [])
   const [insertPaletteOpen, setInsertPaletteOpen] = useState(false)
+  const [slashTriggerRange, setSlashTriggerRange] = useState<{ from: number; to: number } | null>(
+    null
+  )
   const [hasInlineSelection, setHasInlineSelection] = useState(false)
   const [inlineDocLength, setInlineDocLength] = useState(0)
 
@@ -219,6 +276,10 @@ export function MdxEditor({
   useEffect(() => {
     onSaveImageRef.current = onSaveImage
   }, [onSaveImage])
+
+  useEffect(() => {
+    onCommandErrorRef.current = onCommandError
+  }, [onCommandError])
 
   const openInsertPalette = useCallback((view: EditorView): boolean => {
     viewRef.current = view
@@ -238,10 +299,76 @@ export function MdxEditor({
       return
     }
 
-    view.dispatch(view.state.replaceSelection(createSnippetInsertion(view, template.snippet)))
+    view.dispatch(view.state.replaceSelection(createInsertion(view, template.snippet, 'block')))
     setInsertPaletteOpen(false)
     view.focus()
   }, [])
+
+  const openSlashPalette = useCallback((view: EditorView): boolean => {
+    if (!shouldOpenSlashCommand(view)) {
+      return false
+    }
+
+    const selection = view.state.selection.main
+    viewRef.current = view
+    view.dispatch({
+      changes: { from: selection.from, to: selection.from, insert: '/' },
+      selection: { anchor: selection.from + 1 }
+    })
+    setSlashTriggerRange({ from: selection.from, to: selection.from + 1 })
+    return true
+  }, [])
+
+  const closeSlashPalette = useCallback(() => {
+    const view = viewRef.current
+    const triggerRange = slashTriggerRange
+    setSlashTriggerRange(null)
+
+    if (view && triggerRange) {
+      removeSlashTrigger(view, triggerRange)
+      view.focus()
+    }
+  }, [slashTriggerRange])
+
+  const insertSlashComponent = useCallback(
+    (template: RegistryInsertTemplate) => {
+      const view = viewRef.current
+      const triggerRange = slashTriggerRange
+
+      if (!view || !triggerRange) {
+        return
+      }
+
+      replaceRangeWithInsertion(view, triggerRange, template.snippet, 'block')
+      setSlashTriggerRange(null)
+      view.focus()
+    },
+    [slashTriggerRange]
+  )
+
+  const runSlashCommand = useCallback(
+    async (action: CommandAction): Promise<void> => {
+      if (action.disabled) {
+        return
+      }
+
+      const view = viewRef.current
+      const triggerRange = slashTriggerRange
+      setSlashTriggerRange(null)
+
+      if (view && triggerRange) {
+        removeSlashTrigger(view, triggerRange)
+        view.focus()
+      }
+
+      try {
+        await action.run()
+      } catch (runError) {
+        onCommandErrorRef.current?.(formatError(runError))
+      }
+    },
+    [slashTriggerRange]
+  )
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -315,7 +442,7 @@ export function MdxEditor({
         extensions: [
           basicSetup,
           markdown({ codeLanguages, extensions: mdxHighlightExtension }),
-          syntaxHighlighting(mdxHighlightStyle),
+          syntaxHighlighting(editorHighlightStyle),
           mdxBlockHighlightExtension,
           search({ top: true }),
           autocompletion({
@@ -330,13 +457,7 @@ export function MdxEditor({
               },
               {
                 key: '/',
-                run: (view) => {
-                  if (!shouldOpenSlashCommand(view)) {
-                    return false
-                  }
-
-                  return openInsertPalette(view)
-                }
+                run: openSlashPalette
               }
             ])
           ),
@@ -400,7 +521,23 @@ export function MdxEditor({
       viewRef.current = null
       setLiveView(null)
     }
-  }, [openInsertPalette])
+  }, [openInsertPalette, openSlashPalette])
+
+  useEffect(() => {
+    const view = viewRef.current
+
+    if (!view || !insertRequest || lastInsertRequestRef.current === insertRequest.requestId) {
+      return
+    }
+
+    lastInsertRequestRef.current = insertRequest.requestId
+    view.dispatch(
+      view.state.replaceSelection(
+        createInsertion(view, insertRequest.text, insertRequest.placement)
+      )
+    )
+    view.focus()
+  }, [insertRequest])
 
   useEffect(() => {
     const view = viewRef.current
@@ -454,6 +591,17 @@ export function MdxEditor({
           templates={insertTemplates}
           onClose={closeInsertPalette}
           onSelect={insertTemplate}
+        />
+      ) : null}
+      {slashTriggerRange ? (
+        <SlashCommandPalette
+          commandActions={commandActions}
+          componentTemplates={insertTemplates}
+          onClose={closeSlashPalette}
+          onInsertComponent={insertSlashComponent}
+          onRunAction={(action) => {
+            void runSlashCommand(action)
+          }}
         />
       ) : null}
     </div>
@@ -591,21 +739,63 @@ function buildSelectionSnapshot(view: EditorView): EditorSelectionSnapshot {
   }
 }
 
-function createSnippetInsertion(view: EditorView, snippet: string): string {
-  const selection = view.state.selection.main
-
-  if (!selection.empty) {
+function createInsertion(
+  view: EditorView,
+  snippet: string,
+  placement: 'block' | 'inline',
+  range?: { from: number; to: number }
+): string {
+  if (placement === 'inline') {
     return snippet
   }
 
-  const characterBefore =
-    selection.from > 0 ? view.state.doc.sliceString(selection.from - 1, selection.from) : '\n'
-  const characterAfter =
-    selection.to < view.state.doc.length
-      ? view.state.doc.sliceString(selection.to, selection.to + 1)
-      : '\n'
-  const prefix = characterBefore === '\n' ? '' : '\n\n'
+  const selection = view.state.selection.main
+  const from = range?.from ?? selection.from
+  const to = range?.to ?? selection.to
+
+  if (!range && !selection.empty) {
+    return snippet
+  }
+
+  const line = view.state.doc.lineAt(from)
+  const textBefore = view.state.doc.sliceString(line.from, from)
+  const characterAfter = to < view.state.doc.length ? view.state.doc.sliceString(to, to + 1) : '\n'
+  const prefix = textBefore.trim().length === 0 ? '' : '\n\n'
   const suffix = characterAfter === '\n' ? '' : '\n'
 
   return `${prefix}${snippet}${suffix}`
+}
+
+function replaceRangeWithInsertion(
+  view: EditorView,
+  range: { from: number; to: number },
+  snippet: string,
+  placement: 'block' | 'inline'
+): void {
+  const insert = createInsertion(view, snippet, placement, range)
+
+  view.dispatch({
+    changes: { from: range.from, to: Math.min(range.to, view.state.doc.length), insert },
+    selection: { anchor: range.from + insert.length }
+  })
+}
+
+function removeSlashTrigger(view: EditorView, range: { from: number; to: number }): void {
+  const to = Math.min(range.to, view.state.doc.length)
+
+  if (range.from >= to || view.state.doc.sliceString(range.from, to) !== '/') {
+    return
+  }
+
+  view.dispatch({
+    changes: { from: range.from, to, insert: '' },
+    selection: { anchor: range.from }
+  })
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
 }

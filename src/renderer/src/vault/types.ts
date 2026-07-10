@@ -28,12 +28,16 @@ export interface SearchResult {
   note: IndexedNoteSummary
   snippet: string
   rank: number
+  matches: string[]
 }
 
 export interface BacklinkResult {
+  kind: 'linked' | 'unlinked'
   source: IndexedNoteSummary
   target: string
   display: string
+  snippet: string
+  matchedText: string
 }
 
 export interface NoteHeadingResult {

@@ -497,8 +497,18 @@ function renderTemplateVariables(content: string, title: string, now: Date): str
   }
 
   return content.replace(
-    /\{\{\s*(date|time|title)\s*\}\}/g,
-    (_match, key: string) => variables[key] ?? ''
+    /\{\{\s*(date|time|title)(?::([^}]+))?\s*\}\}/g,
+    (_match, key: string, format: string | undefined) => {
+      if (!format) {
+        return variables[key] ?? ''
+      }
+
+      if (key === 'title') {
+        throw new Error('{{title}} does not support a format suffix')
+      }
+
+      return formatTemplateDateTime(now, format.trim())
+    }
   )
 }
 
@@ -513,6 +523,50 @@ function formatLocalTime(date: Date): string {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+function formatTemplateDateTime(date: Date, format: string): string {
+  if (!format) {
+    throw new Error('Template date/time format cannot be empty')
+  }
+
+  if (format.length > 48) {
+    throw new Error('Template date/time format is too long')
+  }
+
+  const values: Record<string, string> = {
+    YYYY: String(date.getFullYear()),
+    MM: String(date.getMonth() + 1).padStart(2, '0'),
+    DD: String(date.getDate()).padStart(2, '0'),
+    HH: String(date.getHours()).padStart(2, '0'),
+    mm: String(date.getMinutes()).padStart(2, '0')
+  }
+
+  let output = ''
+  let index = 0
+
+  while (index < format.length) {
+    const token = ['YYYY', 'MM', 'DD', 'HH', 'mm'].find((candidate) =>
+      format.startsWith(candidate, index)
+    )
+
+    if (token) {
+      output += values[token]
+      index += token.length
+      continue
+    }
+
+    const character = format[index]
+
+    if (/[A-Za-z]/u.test(character)) {
+      throw new Error(`Unsupported template date/time token near "${format.slice(index)}"`)
+    }
+
+    output += character
+    index += 1
+  }
+
+  return output
 }
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])

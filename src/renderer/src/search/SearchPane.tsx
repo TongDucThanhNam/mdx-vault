@@ -108,7 +108,7 @@ export function SearchPane({
             ref={inputRef}
             value={query}
             className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Search notes"
+            placeholder="Search notes, tag:idea, path:notes, file:daily, /regex/"
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={handleKeyDown}
           />
@@ -126,7 +126,7 @@ export function SearchPane({
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
           {!query.trim() ? (
-            <EmptySearchState label="Type to search note body." />
+            <EmptySearchState label="Use text, tag:, path:, file:, or /regex/." />
           ) : error ? (
             <div className="border-2 border-destructive bg-destructive/10 p-3 font-mono text-[12px] uppercase tracking-wider text-destructive">
               {error}
@@ -149,6 +149,18 @@ export function SearchPane({
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
                     {result.note.relativePath}
                   </div>
+                  {result.matches.length > 0 ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {result.matches.map((match) => (
+                        <span
+                          key={match}
+                          className="border border-current px-1 py-0.5 font-mono text-[10px] uppercase tracking-wider opacity-75"
+                        >
+                          {match}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {result.snippet || result.note.title}
                   </div>

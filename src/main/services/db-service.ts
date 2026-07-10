@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { mkdirSync } from 'fs'
-import { join } from 'path'
+import { basename, join } from 'path'
 import DatabaseConstructor, { type Database as BetterSqliteDatabase } from 'better-sqlite3'
 
 import { getNoteLinkKeys, normalizeLinkKey } from '../../shared/wikilinks'
@@ -24,12 +24,16 @@ export interface SearchResult {
   note: IndexedNoteSummary
   snippet: string
   rank: number
+  matches: string[]
 }
 
 export interface BacklinkResult {
+  kind: 'linked' | 'unlinked'
   source: IndexedNoteSummary
   target: string
   display: string
+  snippet: string
+  matchedText: string
 }
 
 export interface NoteHeadingResult {
@@ -60,11 +64,17 @@ interface AliasRow {
 interface SearchRow extends NoteRow {
   snippet: string
   rank: number
+  body: string | null
 }
 
 interface BacklinkRow extends NoteRow {
   target: string
   display: string | null
+  body: string | null
+}
+
+interface NoteBodyRow extends NoteRow {
+  body: string | null
 }
 
 interface HeadingRow {
@@ -80,6 +90,11 @@ interface TagSummaryRow {
 }
 
 const SCHEMA_VERSION = 1
+const MAX_SEARCH_QUERY_LENGTH = 300
+const MAX_SEARCH_LIMIT = 100
+const MAX_REGEX_PATTERN_LENGTH = 160
+const MAX_REGEX_SCAN_ROWS = 1000
+const MAX_BACKLINK_SCAN_ROWS = 1000
 
 export class DbService {
   private readonly db: BetterSqliteDatabase
@@ -194,37 +209,42 @@ export class DbService {
   }
 
   search(query: string, limit: number): SearchResult[] {
-    const ftsQuery = toFtsQuery(query)
+    const parsedQuery = parseSearchQuery(query)
+    const resultLimit = Math.min(Math.max(1, Math.floor(limit)), MAX_SEARCH_LIMIT)
+    const ftsQuery = toFtsQuery(parsedQuery.text)
 
-    if (!ftsQuery) {
+    if (!parsedQuery.hasFilters && !ftsQuery) {
       return []
     }
 
-    const rows = this.db
-      .prepare(
-        `SELECT
-           n.id,
-           n.relative_path,
-           n.title,
-           n.mtime_ms,
-           n.content_hash,
-           snippet(notes_fts, 2, '', '', '...', 12) AS snippet,
-           bm25(notes_fts) AS rank
-         FROM notes_fts
-         JOIN notes n ON n.id = notes_fts.note_id
-         WHERE notes_fts MATCH ?
-         ORDER BY rank, n.title COLLATE NOCASE
-         LIMIT ?`
-      )
-      .all(ftsQuery, limit) as SearchRow[]
+    const rows = this.runSearchQuery(parsedQuery, ftsQuery, resultLimit)
 
     const notes = this.attachAliases(rows)
+    const results: SearchResult[] = []
 
-    return rows.map((row, index) => ({
-      note: notes[index],
-      snippet: row.snippet,
-      rank: row.rank
-    }))
+    rows.forEach((row, index) => {
+      if (!matchesFileFilters(row.relative_path, parsedQuery.files)) {
+        return
+      }
+
+      const searchableText = buildSearchableText(row)
+
+      if (!matchesRegexFilters(searchableText, parsedQuery.regexes)) {
+        return
+      }
+
+      results.push({
+        note: notes[index],
+        snippet:
+          row.snippet ||
+          buildSearchSnippet(searchableText, parsedQuery.textTokens, parsedQuery.regexes) ||
+          row.title,
+        rank: row.rank,
+        matches: buildSearchMatchLabels(parsedQuery)
+      })
+    })
+
+    return results.slice(0, resultLimit)
   }
 
   getBacklinks(relativePath: string): BacklinkResult[] {
@@ -241,7 +261,7 @@ export class DbService {
     }
 
     const placeholders = targetKeys.map(() => '?').join(', ')
-    const rows = this.db
+    const linkedRows = this.db
       .prepare(
         `SELECT
            n.id,
@@ -250,21 +270,76 @@ export class DbService {
            n.mtime_ms,
            n.content_hash,
            l.target,
-           l.display
+           l.display,
+           notes_fts.body AS body
          FROM note_links l
          JOIN notes n ON n.id = l.source_note_id
+         LEFT JOIN notes_fts ON notes_fts.note_id = n.id
          WHERE l.target_normalized IN (${placeholders})
          ORDER BY n.title COLLATE NOCASE, n.relative_path COLLATE NOCASE`
       )
       .all(...targetKeys) as BacklinkRow[]
 
-    const sources = this.attachAliases(rows)
+    const sources = this.attachAliases(linkedRows)
+    const linkedSourceIds = new Set(linkedRows.map((row) => row.id))
+    const linkedBacklinks = linkedRows.map((row, index) => {
+      const display = row.display ?? row.target
+      const searchableText = row.body ?? row.title
 
-    return rows.map((row, index) => ({
-      source: sources[index],
-      target: row.target,
-      display: row.display ?? row.target
-    }))
+      return {
+        kind: 'linked' as const,
+        source: sources[index],
+        target: row.target,
+        display,
+        snippet: buildSearchSnippet(searchableText, [display, row.target], []) || row.title,
+        matchedText: display
+      }
+    })
+
+    const unlinkedRows = this.db
+      .prepare(
+        `SELECT
+           n.id,
+           n.relative_path,
+           n.title,
+           n.mtime_ms,
+           n.content_hash,
+           notes_fts.body AS body
+         FROM notes n
+         LEFT JOIN notes_fts ON notes_fts.note_id = n.id
+         WHERE n.id <> ?
+         ORDER BY n.title COLLATE NOCASE, n.relative_path COLLATE NOCASE
+         LIMIT ?`
+      )
+      .all(note.id, MAX_BACKLINK_SCAN_ROWS) as NoteBodyRow[]
+
+    const unlinkedSources = this.attachAliases(unlinkedRows)
+    const mentionTerms = uniqueNonEmpty([note.title, ...note.aliases])
+    const unlinkedBacklinks: BacklinkResult[] = []
+
+    unlinkedRows.forEach((row, index) => {
+      if (linkedSourceIds.has(row.id)) {
+        return
+      }
+
+      const body = row.body ?? ''
+      const matchedText = findPlainMention(body, mentionTerms)
+
+      if (!matchedText) {
+        return
+      }
+
+      unlinkedBacklinks.push({
+        kind: 'unlinked',
+        source: unlinkedSources[index],
+        target: matchedText,
+        display: matchedText,
+        snippet: buildSearchSnippet(body, [matchedText], []) || row.title,
+        matchedText
+      })
+    })
+
+    return [...linkedBacklinks, ...unlinkedBacklinks]
   }
 
   getHeadings(relativePath: string): NoteHeadingResult[] {
@@ -470,6 +545,84 @@ export class DbService {
     return this.attachAliases([row])[0]
   }
 
+  private runSearchQuery(
+    parsedQuery: ParsedSearchQuery,
+    ftsQuery: string | null,
+    resultLimit: number
+  ): SearchRow[] {
+    const whereClauses: string[] = []
+    const parameters: Array<number | string> = []
+
+    if (ftsQuery) {
+      whereClauses.push('notes_fts MATCH ?')
+      parameters.push(ftsQuery)
+    }
+
+    parsedQuery.tags.forEach((tag) => {
+      whereClauses.push(
+        `EXISTS (
+           SELECT 1
+           FROM note_tags t
+           WHERE t.note_id = n.id AND lower(t.tag) = ?
+         )`
+      )
+      parameters.push(tag.toLocaleLowerCase())
+    })
+
+    parsedQuery.paths.forEach((pathFilter) => {
+      whereClauses.push("lower(n.relative_path) LIKE ? ESCAPE '\\'")
+      parameters.push(`%${escapeLike(pathFilter.toLocaleLowerCase())}%`)
+    })
+
+    parsedQuery.files.forEach((fileFilter) => {
+      whereClauses.push("lower(n.relative_path) LIKE ? ESCAPE '\\'")
+      parameters.push(`%${escapeLike(fileFilter.toLocaleLowerCase())}%`)
+    })
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
+    const sqlLimit = parsedQuery.regexes.length > 0 ? MAX_REGEX_SCAN_ROWS : resultLimit
+
+    if (ftsQuery) {
+      return this.db
+        .prepare(
+          `SELECT
+             n.id,
+             n.relative_path,
+             n.title,
+             n.mtime_ms,
+             n.content_hash,
+             snippet(notes_fts, 2, '', '', '...', 12) AS snippet,
+             bm25(notes_fts) AS rank,
+             notes_fts.body AS body
+           FROM notes_fts
+           JOIN notes n ON n.id = notes_fts.note_id
+           ${whereSql}
+           ORDER BY rank, n.title COLLATE NOCASE
+           LIMIT ?`
+        )
+        .all(...parameters, sqlLimit) as SearchRow[]
+    }
+
+    return this.db
+      .prepare(
+        `SELECT
+           n.id,
+           n.relative_path,
+           n.title,
+           n.mtime_ms,
+           n.content_hash,
+           '' AS snippet,
+           0 AS rank,
+           notes_fts.body AS body
+         FROM notes n
+         LEFT JOIN notes_fts ON notes_fts.note_id = n.id
+         ${whereSql}
+         ORDER BY n.title COLLATE NOCASE, n.relative_path COLLATE NOCASE
+         LIMIT ?`
+      )
+      .all(...parameters, sqlLimit) as SearchRow[]
+  }
+
   private attachAliases<TRow extends NoteRow>(rows: TRow[]): IndexedNoteSummary[] {
     const noteIds = rows.map((row) => row.id)
 
@@ -517,4 +670,275 @@ function toFtsQuery(query: string): string | null {
   }
 
   return tokens.map((token) => `"${token.replaceAll('"', '""')}"*`).join(' AND ')
+}
+
+interface ParsedSearchQuery {
+  text: string
+  textTokens: string[]
+  tags: string[]
+  paths: string[]
+  files: string[]
+  regexes: RegExp[]
+  regexLabels: string[]
+  hasFilters: boolean
+}
+
+function parseSearchQuery(query: string): ParsedSearchQuery {
+  const trimmedQuery = query.trim()
+
+  if (trimmedQuery.length > MAX_SEARCH_QUERY_LENGTH) {
+    throw new Error(
+      `Search query is too long. Keep it under ${MAX_SEARCH_QUERY_LENGTH} characters.`
+    )
+  }
+
+  const textTokens: string[] = []
+  const tags: string[] = []
+  const paths: string[] = []
+  const files: string[] = []
+  const regexes: RegExp[] = []
+  const regexLabels: string[] = []
+
+  for (const token of tokenizeSearchQuery(trimmedQuery)) {
+    const operatorMatch = /^(tag|path|file):(.+)$/i.exec(token)
+
+    if (operatorMatch) {
+      const operator = operatorMatch[1].toLocaleLowerCase()
+      const value = stripWrappingQuotes(operatorMatch[2].trim())
+
+      if (!value) {
+        continue
+      }
+
+      if (operator === 'tag') {
+        tags.push(value.replace(/^#/, ''))
+      } else if (operator === 'path') {
+        paths.push(value.replaceAll('\\', '/'))
+      } else {
+        files.push(value.replaceAll('\\', '/'))
+      }
+      continue
+    }
+
+    if (token.startsWith('/')) {
+      const regex = parseRegexToken(token)
+      regexes.push(regex)
+      regexLabels.push(token)
+      continue
+    }
+
+    textTokens.push(token)
+  }
+
+  return {
+    text: textTokens.join(' '),
+    textTokens,
+    tags: uniqueNonEmpty(tags),
+    paths: uniqueNonEmpty(paths),
+    files: uniqueNonEmpty(files),
+    regexes,
+    regexLabels,
+    hasFilters:
+      textTokens.length > 0 ||
+      tags.length > 0 ||
+      paths.length > 0 ||
+      files.length > 0 ||
+      regexes.length > 0
+  }
+}
+
+function tokenizeSearchQuery(query: string): string[] {
+  const tokens: string[] = []
+  let index = 0
+
+  while (index < query.length) {
+    while (index < query.length && /\s/u.test(query[index])) {
+      index += 1
+    }
+
+    if (index >= query.length) {
+      break
+    }
+
+    if (query[index] === '/') {
+      const start = index
+      index += 1
+      let escaped = false
+      let closed = false
+
+      while (index < query.length) {
+        const character = query[index]
+
+        if (!escaped && character === '/') {
+          closed = true
+          index += 1
+          break
+        }
+
+        escaped = !escaped && character === '\\'
+        if (character !== '\\') {
+          escaped = false
+        }
+        index += 1
+      }
+
+      if (!closed) {
+        throw new Error('Invalid regex search: missing closing slash.')
+      }
+
+      while (index < query.length && /[A-Za-z]/u.test(query[index])) {
+        index += 1
+      }
+
+      tokens.push(query.slice(start, index))
+      continue
+    }
+
+    const start = index
+    while (index < query.length && !/\s/u.test(query[index])) {
+      index += 1
+    }
+    tokens.push(query.slice(start, index))
+  }
+
+  return tokens
+}
+
+function parseRegexToken(token: string): RegExp {
+  const lastSlash = token.lastIndexOf('/')
+  const pattern = token.slice(1, lastSlash)
+  const rawFlags = token.slice(lastSlash + 1)
+
+  if (!pattern) {
+    throw new Error('Invalid regex search: pattern cannot be empty.')
+  }
+
+  if (pattern.length > MAX_REGEX_PATTERN_LENGTH) {
+    throw new Error(
+      `Invalid regex search: pattern must be ${MAX_REGEX_PATTERN_LENGTH} characters or shorter.`
+    )
+  }
+
+  if (/[^imsu]/u.test(rawFlags)) {
+    throw new Error('Invalid regex search: only i, m, s, and u flags are supported.')
+  }
+
+  const flags = rawFlags || 'i'
+
+  try {
+    return new RegExp(pattern, flags)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Invalid regex search: ${message}`)
+  }
+}
+
+function stripWrappingQuotes(value: string): string {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1)
+  }
+  return value
+}
+
+function matchesFileFilters(relativePath: string, filters: string[]): boolean {
+  if (filters.length === 0) {
+    return true
+  }
+
+  const fileName = basename(relativePath).toLocaleLowerCase()
+  return filters.every((filter) => fileName.includes(filter.toLocaleLowerCase()))
+}
+
+function matchesRegexFilters(value: string, regexes: RegExp[]): boolean {
+  return regexes.every((regex) => {
+    regex.lastIndex = 0
+    return regex.test(value)
+  })
+}
+
+function buildSearchableText(row: SearchRow | NoteBodyRow): string {
+  return `${row.title}\n${row.relative_path}\n${row.body ?? ''}`
+}
+
+function buildSearchSnippet(text: string, terms: string[], regexes: RegExp[]): string {
+  const normalizedTerms = terms
+    .map((term) => term.trim())
+    .filter((term) => term.length > 0)
+    .sort((left, right) => right.length - left.length)
+  let matchIndex = -1
+  let matchLength = 0
+
+  for (const regex of regexes) {
+    regex.lastIndex = 0
+    const match = regex.exec(text)
+    if (match?.index !== undefined) {
+      matchIndex = match.index
+      matchLength = match[0].length
+      break
+    }
+  }
+
+  if (matchIndex === -1) {
+    const lowerText = text.toLocaleLowerCase()
+    for (const term of normalizedTerms) {
+      const index = lowerText.indexOf(term.toLocaleLowerCase())
+      if (index !== -1) {
+        matchIndex = index
+        matchLength = term.length
+        break
+      }
+    }
+  }
+
+  if (matchIndex === -1) {
+    return collapseWhitespace(text).slice(0, 180)
+  }
+
+  const start = Math.max(0, matchIndex - 70)
+  const end = Math.min(text.length, matchIndex + Math.max(matchLength, 1) + 90)
+  const prefix = start > 0 ? '...' : ''
+  const suffix = end < text.length ? '...' : ''
+
+  return `${prefix}${collapseWhitespace(text.slice(start, end))}${suffix}`
+}
+
+function buildSearchMatchLabels(parsedQuery: ParsedSearchQuery): string[] {
+  return [
+    ...parsedQuery.tags.map((tag) => `tag:${tag}`),
+    ...parsedQuery.paths.map((pathFilter) => `path:${pathFilter}`),
+    ...parsedQuery.files.map((fileFilter) => `file:${fileFilter}`),
+    ...parsedQuery.regexLabels
+  ]
+}
+
+function findPlainMention(text: string, terms: string[]): string | null {
+  for (const term of terms.sort((left, right) => right.length - left.length)) {
+    const regex = new RegExp(
+      `(^|[^\\p{Letter}\\p{Number}_-])(${escapeRegExp(term)})(?=$|[^\\p{Letter}\\p{Number}_-])`,
+      'iu'
+    )
+    const match = regex.exec(text)
+
+    if (match) {
+      return match[2]
+    }
+  }
+
+  return null
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))]
+}
+
+function collapseWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function escapeLike(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

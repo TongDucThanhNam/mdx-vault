@@ -22,7 +22,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CommandPalette } from '@/commands/CommandPalette'
 import type { CommandAction } from '@/commands/actions'
-import { MdxEditor, type EditorSelectionSnapshot, type RevealLineRequest } from '@/editor/MdxEditor'
+import {
+  MdxEditor,
+  type EditorInsertRequest,
+  type EditorSelectionSnapshot,
+  type RevealLineRequest
+} from '@/editor/MdxEditor'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { FileTree, type FileTreeSortMode } from '@/explorer/FileTree'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
@@ -39,6 +44,7 @@ import type {
   BacklinkResult,
   IndexedNoteSummary,
   NoteHeadingResult,
+  NoteTemplate,
   TagSummary,
   VaultInfo
 } from '@/vault/types'
@@ -73,6 +79,8 @@ function App(): React.JSX.Element {
   const { theme, resolvedTheme, toggle: toggleTheme } = useTheme()
   const [vault, setVault] = useState<VaultInfo | null>(null)
   const [indexNotes, setIndexNotes] = useState<IndexedNoteSummary[]>([])
+  const [recentNotePaths, setRecentNotePaths] = useState<string[]>(() => loadRecentNotePaths())
+  const [noteTemplates, setNoteTemplates] = useState<NoteTemplate[]>([])
   const [backlinksState, setBacklinksState] = useState<{
     relativePath: string | null
     backlinks: BacklinkResult[]
@@ -107,6 +115,7 @@ function App(): React.JSX.Element {
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [createNoteOpen, setCreateNoteOpen] = useState(false)
   const [editorSelection, setEditorSelection] = useState<EditorSelectionSnapshot | null>(null)
+  const [editorInsertRequest, setEditorInsertRequest] = useState<EditorInsertRequest | null>(null)
   const [revealLineRequest, setRevealLineRequest] = useState<RevealLineRequest | null>(null)
   const [previewHeadingRequest, setPreviewHeadingRequest] = useState<PreviewHeadingRequest | null>(
     null
@@ -128,6 +137,7 @@ function App(): React.JSX.Element {
   const contentRef = useRef(content)
   const savedContentRef = useRef(savedContent)
   const saveRequestRef = useRef(0)
+  const insertRequestRef = useRef(0)
 
   const isDirty = selectedPath !== null && content !== savedContent
 
@@ -158,6 +168,10 @@ function App(): React.JSX.Element {
   useEffect(() => {
     savedContentRef.current = savedContent
   }, [savedContent])
+
+  useEffect(() => {
+    saveRecentNotePaths(recentNotePaths)
+  }, [recentNotePaths])
 
   const saveCurrentFile = useCallback(async () => {
     const path = selectedPathRef.current
@@ -207,6 +221,7 @@ function App(): React.JSX.Element {
         setContent(fileContent)
         setSavedContent(fileContent)
         setLastSavedAt(null)
+        setRecentNotePaths((current) => recordRecentNotePath(current, relativePath))
       } catch (loadError) {
         setError(formatError(loadError))
       } finally {
@@ -673,6 +688,35 @@ function App(): React.JSX.Element {
   }, [indexRevision, vault])
 
   useEffect(() => {
+    if (!vault) {
+      queueMicrotask(() => {
+        setNoteTemplates([])
+      })
+      return
+    }
+
+    let cancelled = false
+
+    void window.vaultApi
+      .listTemplates()
+      .then((templates) => {
+        if (!cancelled) {
+          setNoteTemplates(templates)
+        }
+      })
+      .catch((templatesError: unknown) => {
+        if (!cancelled) {
+          setNoteTemplates([])
+          setError(formatError(templatesError))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [indexRevision, vault])
+
+  useEffect(() => {
     if (!selectedTag) {
       queueMicrotask(() => {
         setTaggedNotes([])
@@ -826,6 +870,96 @@ function App(): React.JSX.Element {
     setAiPanelOpen(true)
   }, [])
 
+  const insertIntoEditor = useCallback(
+    (text: string, placement: EditorInsertRequest['placement']) => {
+      if (!selectedPathRef.current) {
+        throw new Error('Select a note before inserting content.')
+      }
+
+      if (!text) {
+        return
+      }
+
+      insertRequestRef.current += 1
+      setViewMode((current) => (current === 'preview' ? 'split' : current))
+      setEditorInsertRequest({
+        requestId: insertRequestRef.current,
+        text,
+        placement
+      })
+    },
+    []
+  )
+
+  const insertTemplateAtCursor = useCallback(
+    async (template: NoteTemplate): Promise<void> => {
+      const currentPath = selectedPathRef.current
+
+      if (!currentPath) {
+        throw new Error('Select a note before inserting a template.')
+      }
+
+      const renderedTemplate = await window.vaultApi.renderTemplate(
+        template.relativePath,
+        deriveNoteTitle(currentPath)
+      )
+      insertIntoEditor(renderedTemplate, 'block')
+      showToast(`Inserted ${template.name}`)
+    },
+    [insertIntoEditor, showToast]
+  )
+
+  const insertCurrentDate = useCallback(() => {
+    insertIntoEditor(formatLocalDate(new Date()), 'inline')
+  }, [insertIntoEditor])
+
+  const insertCurrentTime = useCallback(() => {
+    insertIntoEditor(formatLocalTime(new Date()), 'inline')
+  }, [insertIntoEditor])
+
+  const openRandomNote = useCallback(async (): Promise<void> => {
+    if (indexNotes.length === 0) {
+      return
+    }
+
+    const note = indexNotes[Math.floor(Math.random() * indexNotes.length)]
+    await loadFile(note.relativePath)
+    showToast(`Opened ${note.title}`)
+  }, [indexNotes, loadFile, showToast])
+
+  const createUniqueNote = useCallback(async (): Promise<void> => {
+    if (!vault) {
+      return
+    }
+
+    await saveCurrentFile()
+    const timestamp = formatUniqueTimestamp(new Date())
+    const relativePath = await findUniqueNotePath(`${timestamp}.mdx`)
+    const createdPath = await window.vaultApi.createFile(
+      relativePath,
+      buildTimestampNoteScaffold(timestamp)
+    )
+
+    await refreshVaultSnapshot()
+    await loadFile(createdPath, false)
+    showToast(`Created ${createdPath}`)
+  }, [loadFile, refreshVaultSnapshot, saveCurrentFile, showToast, vault])
+
+  const createNoteFromSwitcher = useCallback(
+    async (query: string): Promise<void> => {
+      if (!vault) {
+        return
+      }
+
+      const title = sanitizeNoteTitle(query)
+      const relativePath = await findUniqueNotePath(`${title}.mdx`)
+
+      await createNote(relativePath, buildNewNoteScaffold(title))
+      showToast(`Created ${relativePath}`)
+    },
+    [createNote, showToast, vault]
+  )
+
   const selectionForAssistant: SelectionRange | null = useMemo(() => {
     if (!editorSelection || !editorSelection.hasSelection) {
       return null
@@ -859,6 +993,7 @@ function App(): React.JSX.Element {
         description: 'Create a blank MDX note.',
         category: 'Notes',
         keywords: ['create', 'file'],
+        hotkeys: ['Ctrl+N'],
         disabled: vault === null,
         run: () => setCreateNoteOpen(true)
       },
@@ -881,11 +1016,30 @@ function App(): React.JSX.Element {
         run: openDailyNote
       },
       {
+        id: 'note.random',
+        title: 'Open random note',
+        description: 'Open a random indexed note from this vault.',
+        category: 'Notes',
+        keywords: ['shuffle'],
+        disabled: vault === null || indexNotes.length === 0,
+        run: openRandomNote
+      },
+      {
+        id: 'note.unique',
+        title: 'Create unique note',
+        description: 'Create a timestamp-prefixed MDX note.',
+        category: 'Notes',
+        keywords: ['zettelkasten', 'timestamp'],
+        disabled: vault === null,
+        run: createUniqueNote
+      },
+      {
         id: 'note.open',
         title: 'Open note',
         description: 'Jump to a note in the current vault.',
         category: 'Navigation',
         keywords: ['quick switcher'],
+        hotkeys: ['Ctrl+P'],
         disabled: vault === null,
         run: () => setQuickSwitcherOpen(true)
       },
@@ -895,9 +1049,37 @@ function App(): React.JSX.Element {
         description: 'Search indexed note content.',
         category: 'Navigation',
         keywords: ['find'],
+        hotkeys: ['Ctrl+Shift+F'],
         disabled: vault === null,
         run: () => setSearchOpen(true)
       },
+      {
+        id: 'insert.date',
+        title: 'Insert current date',
+        description: 'Insert today at the editor cursor.',
+        category: 'Insert',
+        keywords: ['template', 'today'],
+        disabled: selectedPath === null,
+        run: insertCurrentDate
+      },
+      {
+        id: 'insert.time',
+        title: 'Insert current time',
+        description: 'Insert the current local time at the editor cursor.',
+        category: 'Insert',
+        keywords: ['template', 'clock'],
+        disabled: selectedPath === null,
+        run: insertCurrentTime
+      },
+      ...noteTemplates.map((template): CommandAction => ({
+        id: `template.insert:${template.relativePath}`,
+        title: `Insert template: ${template.name}`,
+        description: `Insert ${template.relativePath} at the editor cursor.`,
+        category: 'Templates',
+        keywords: ['insert', 'template', template.name, template.relativePath],
+        disabled: selectedPath === null,
+        run: () => insertTemplateAtCursor(template)
+      })),
       {
         id: 'view.source',
         title: 'Source view',
@@ -913,6 +1095,7 @@ function App(): React.JSX.Element {
         description: 'Show editor and preview together.',
         category: 'View',
         keywords: ['editor', 'preview'],
+        hotkeys: ['Ctrl+Shift+V'],
         disabled: selectedPath === null,
         run: () => setViewMode('split')
       },
@@ -931,6 +1114,7 @@ function App(): React.JSX.Element {
         description: 'Open export options for the selected note.',
         category: 'Notes',
         keywords: ['static', 'html', 'snapshot'],
+        hotkeys: ['Ctrl+Shift+E'],
         disabled: selectedPath === null,
         run: () => setExportDialogOpen(true)
       },
@@ -940,6 +1124,7 @@ function App(): React.JSX.Element {
         description: 'Show or hide the assistant panel.',
         category: 'AI',
         keywords: ['assistant'],
+        hotkeys: ['Ctrl+Shift+A'],
         disabled: vault === null,
         run: () => setAiPanelOpen((current) => !current)
       },
@@ -969,7 +1154,21 @@ function App(): React.JSX.Element {
         run: () => setEmptyTrashOpen(true)
       }
     ],
-    [openDailyNote, openVault, selectedPath, toggleTheme, trashCount, vault]
+    [
+      createUniqueNote,
+      indexNotes.length,
+      insertCurrentDate,
+      insertCurrentTime,
+      insertTemplateAtCursor,
+      noteTemplates,
+      openDailyNote,
+      openRandomNote,
+      openVault,
+      selectedPath,
+      toggleTheme,
+      trashCount,
+      vault
+    ]
   )
 
   return (
@@ -1215,8 +1414,11 @@ function App(): React.JSX.Element {
                       value={content}
                       onChange={setContent}
                       notes={indexNotes}
+                      commandActions={commandActions}
+                      insertRequest={editorInsertRequest}
                       revealLineRequest={revealLineRequest}
                       onSelectionChange={handleEditorSelectionChange}
+                      onCommandError={setError}
                       onSaveImage={handleSaveImage}
                     />
                     <AiSelectionActionPalette
@@ -1350,8 +1552,10 @@ function App(): React.JSX.Element {
       <QuickSwitcher
         open={quickSwitcherOpen}
         notes={indexNotes}
+        recentNotePaths={recentNotePaths}
         onOpenChange={setQuickSwitcherOpen}
         onSelectNote={navigateToNote}
+        onCreateNote={createNoteFromSwitcher}
       />
       <CommandPalette
         open={commandPaletteOpen}
@@ -1639,14 +1843,117 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+function formatLocalTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function formatUniqueTimestamp(date: Date): string {
+  const year = String(date.getFullYear())
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}${month}${day}${hours}${minutes}${seconds}`
+}
+
 function buildDailyNoteScaffold(date: string): string {
   return `---\ntitle: ${date}\ndate: ${date}\n---\n\n# ${date}\n\n## Notes\n\n## Links\n\n`
+}
+
+function buildNewNoteScaffold(title: string): string {
+  const today = formatLocalDate(new Date())
+  return `---\ntitle: ${title}\ncreated: ${today}\n---\n\n# ${title}\n\nStart writing...\n`
+}
+
+function buildTimestampNoteScaffold(timestamp: string): string {
+  const today = formatLocalDate(new Date())
+  return `---\ntitle: ${timestamp}\ncreated: ${today}\n---\n\n# ${timestamp}\n\n`
 }
 
 function deriveNoteTitle(relativePath: string): string {
   const segments = relativePath.split('/')
   const last = segments[segments.length - 1] ?? relativePath
   return last.replace(/\.(md|mdx)$/i, '')
+}
+
+async function findUniqueNotePath(relativePath: string): Promise<string> {
+  const normalizedPath = relativePath.replaceAll('\\', '/')
+  const dotIndex = normalizedPath.lastIndexOf('.')
+  const stem = dotIndex > 0 ? normalizedPath.slice(0, dotIndex) : normalizedPath
+  const extension = dotIndex > 0 ? normalizedPath.slice(dotIndex) : '.mdx'
+  let candidate = `${stem}${extension}`
+  let counter = 2
+
+  while (await window.vaultApi.fileExists(candidate)) {
+    candidate = `${stem} ${counter}${extension}`
+    counter += 1
+  }
+
+  return candidate
+}
+
+function sanitizeNoteTitle(rawTitle: string): string {
+  const trimmedTitle = rawTitle.replace(/\.(md|mdx)$/i, '').trim()
+
+  if (!trimmedTitle) {
+    throw new Error('Enter a note title.')
+  }
+
+  const sanitized = trimmedTitle
+    .split('')
+    .filter((char) => !isIllegalFilenameChar(char))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+
+  if (!sanitized) {
+    throw new Error('The title contains only unsupported characters.')
+  }
+
+  if (RESERVED_NOTE_NAMES.test(sanitized)) {
+    return `${sanitized} note`
+  }
+
+  return sanitized
+}
+
+function isIllegalFilenameChar(char: string): boolean {
+  if (ILLEGAL_FILENAME_CHARS.has(char)) {
+    return true
+  }
+
+  return char.charCodeAt(0) <= 0x1f
+}
+
+function loadRecentNotePaths(): string[] {
+  try {
+    const value = window.localStorage.getItem(RECENT_NOTES_STORAGE_KEY)
+    const parsed = value ? (JSON.parse(value) as unknown) : null
+
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed.filter((item): item is string => typeof item === 'string').slice(0, 20)
+  } catch {
+    return []
+  }
+}
+
+function saveRecentNotePaths(paths: string[]): void {
+  try {
+    window.localStorage.setItem(RECENT_NOTES_STORAGE_KEY, JSON.stringify(paths.slice(0, 20)))
+  } catch {
+    // Recent notes are a convenience; storage failures should not block editing.
+  }
+}
+
+function recordRecentNotePath(currentPaths: string[], relativePath: string): string[] {
+  return [relativePath, ...currentPaths.filter((path) => path !== relativePath)].slice(0, 20)
 }
 
 function getSaveLabel({
@@ -1714,6 +2021,9 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary)
 }
 
+const RECENT_NOTES_STORAGE_KEY = 'mdx-vault.recent-notes.v1'
+const RESERVED_NOTE_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i
+const ILLEGAL_FILENAME_CHARS = new Set(['<', '>', ':', '"', '/', '\\', '|', '?', '*'])
 const WORDS_PER_MINUTE = 200
 
 /**
