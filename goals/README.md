@@ -4,7 +4,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 
 ## Quy tắc
 
-1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 12. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
+1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 13. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
 2. Cách giao cho Codex: mở session mới trong repo và ra lệnh, ví dụ:
    ```
    Đọc AGENTS.md, sau đó thực thi goals/GOAL-01-app-shell-and-vault.md.
@@ -30,6 +30,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-10-feature-gap-research.md    | Competitor feature-gap research                  | 09        |
 | GOAL-11-editor-enrichment.md       | Math, code highlight, Mermaid, callouts          | 09, 10    |
 | GOAL-12-organization-and-navigation.md | Editor highlighter, navigation panels, commands | 11        |
+| GOAL-13-obsidian-parity-microfeatures.md | Close Obsidian Group A parity microfeatures | 12        |
 
 ## Trạng thái ký hiệu trong goal
 
