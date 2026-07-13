@@ -61,7 +61,7 @@ Chi tiết + gotchas từng lib: [docs/tech-stack.md](docs/tech-stack.md)
 - **Separation of prose and behavior**: note `.mdx` chỉ chứa văn bản + JSX element gọn (`<QuizBlock ... />`, `<Interactive src="../interactives/foo" />`). KHÔNG khuyến khích viết import/export/function body dài bên trong note. Code component nằm ngoài note (registry hoặc `interactives/`). Xem [docs/mdx-conventions.md](docs/mdx-conventions.md).
 - UI components dùng shadcn/ui + Tailwind; utility `cn()` từ `@/lib/utils`.
 - IPC: mọi handler validate input bằng zod ở main process. Channel đặt tên `domain:action` (vd `vault:read-file`).
-- Comment/code style theo Prettier + ESLint config sẵn trong repo.
+- Comment/code style theo Biome config sẵn trong repo.
 - Commit message: conventional commits (`feat:`, `fix:`, `docs:`, ...).
 
 ## Tài liệu

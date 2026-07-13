@@ -118,7 +118,7 @@ export function ExportDialog({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicked off by IPC; result handled in promises below
+    // Kicked off by IPC; the result is handled in the promises below.
     setState({ kind: 'scanning' })
     setLatestProgress(null)
     void api

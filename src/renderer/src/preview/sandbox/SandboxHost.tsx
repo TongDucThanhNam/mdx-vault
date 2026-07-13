@@ -15,12 +15,12 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   hostToSandboxMessageSchema,
-  sandboxToHostMessageSchema,
   type SandboxDescriptor,
   type SandboxDocument,
-  type SandboxToHostMessage,
   type SandboxKind,
-  type SandboxManifest
+  type SandboxManifest,
+  type SandboxToHostMessage,
+  sandboxToHostMessageSchema
 } from '../../../../shared/sandbox'
 import { usePreviewRuntime } from '../runtime'
 

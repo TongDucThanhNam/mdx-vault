@@ -1,5 +1,5 @@
-import { posix as pathPosix } from 'path'
 import type { Link } from 'mdast'
+import { posix as pathPosix } from 'path'
 import { visit } from 'unist-util-visit'
 
 import {

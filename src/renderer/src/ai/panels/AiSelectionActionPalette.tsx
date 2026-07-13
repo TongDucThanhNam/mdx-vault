@@ -12,7 +12,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
-import { SELECTED_ACTIONS, findSelectedAction } from '../selected-actions'
+import { findSelectedAction, SELECTED_ACTIONS } from '../selected-actions'
 
 export interface SelectionActionPalettePosition {
   top: number

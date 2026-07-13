@@ -1,10 +1,9 @@
-import { compile } from '@mdx-js/mdx'
 import { describe, expect, test } from 'bun:test'
-
-import { remarkMarks } from '../src/shared/remark-mark'
+import { compile } from '@mdx-js/mdx'
 import { applyPreviewHighlight } from '../src/renderer/src/preview/preview-highlight'
 import { rehypePreviewSourceMap } from '../src/renderer/src/preview/rehype-preview-source-map'
 import { rehypeSafeHtml } from '../src/renderer/src/preview/safe-html'
+import { remarkMarks } from '../src/shared/remark-mark'
 
 describe('applyPreviewHighlight', () => {
   test('wraps an exact prose source range', () => {

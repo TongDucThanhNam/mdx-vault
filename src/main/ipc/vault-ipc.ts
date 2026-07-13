@@ -2,17 +2,17 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
-  shell,
   type OpenDialogOptions,
-  type OpenDialogReturnValue
+  type OpenDialogReturnValue,
+  shell
 } from 'electron'
 import { z } from 'zod'
 
 import type { RenamePlanPreview, RenameResult } from '../../shared/rename'
-import { planVaultRename } from '../services/rename-service'
-import type { NoteTemplate, TrashEntry, VaultInfo, VaultFile } from '../services/vault-service'
-import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 import type { AppSettingsService } from '../services/app-settings'
+import { planVaultRename } from '../services/rename-service'
+import type { NoteTemplate, TrashEntry, VaultFile, VaultInfo } from '../services/vault-service'
+import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 
 export interface IpcSuccess<T> {
   ok: true

@@ -1,5 +1,5 @@
-import { getNoteLinkKeys } from '../../../shared/wikilinks'
 import type { IndexedNoteSummary } from '@/vault/types'
+import { getNoteLinkKeys } from '../../../shared/wikilinks'
 
 export interface ScoredNote {
   note: IndexedNoteSummary

@@ -9,8 +9,6 @@
 
 import { Eye, EyeOff, KeyRound, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
-
-import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -19,11 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-
-import { createAssistantRuntime } from '../assistant-client'
 import type { AiPublicSettings, AiSaveSettingsInput } from '../../../../shared/ai'
-import { DEFAULT_AI_MODEL, type AiOpenAiModel } from '../../../../shared/ai'
+import { type AiOpenAiModel, DEFAULT_AI_MODEL } from '../../../../shared/ai'
+import { createAssistantRuntime } from '../assistant-client'
 
 const MODELS: ReadonlyArray<{ value: AiOpenAiModel; label: string }> = [
   { value: 'gpt-4o-mini', label: 'GPT-4o mini — cheap, fast' },

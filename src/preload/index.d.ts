@@ -98,42 +98,6 @@ interface SandboxDocument {
   srcDoc: string
 }
 
-type SandboxKind = 'html' | 'interactive'
-type SandboxPermissionDecision = 'allow' | 'deny'
-type SandboxPermissionStatus = 'allowed' | 'denied' | 'prompt'
-
-interface SandboxManifest {
-  name: string
-  version: string
-  runtime: 'html' | 'react'
-  permissions: {
-    network: boolean
-    filesystem: boolean
-    dataPaths: string[]
-  }
-  propsSchema: Record<string, string>
-  dependencies: Record<string, string>
-  fallback?: string
-}
-
-interface SandboxDescriptor {
-  kind: SandboxKind
-  src: string
-  resolvedPath: string
-  contentHash: string
-  manifest: SandboxManifest
-  permissionStatus: SandboxPermissionStatus
-}
-
-interface SandboxDocument {
-  kind: SandboxKind
-  src: string
-  resolvedPath: string
-  contentHash: string
-  instanceId: string
-  srcDoc: string
-}
-
 interface SelectionRange {
   startLine: number
   startColumn: number
@@ -405,5 +369,3 @@ declare global {
     appApi: AppApi
   }
 }
-
-export {}

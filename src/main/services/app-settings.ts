@@ -1,6 +1,6 @@
 import { app } from 'electron'
-import { mkdir, readFile, rename, writeFile, stat } from 'fs/promises'
-import { join, dirname } from 'path'
+import { mkdir, readFile, rename, stat, writeFile } from 'fs/promises'
+import { dirname, join } from 'path'
 
 /**
  * App-level settings that live OUTSIDE the vault (in Electron's userData dir).

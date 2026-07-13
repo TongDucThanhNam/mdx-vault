@@ -172,7 +172,9 @@ function sanitizeMermaidSvg(svg: string): SanitizedSvg {
 
   document
     .querySelectorAll('script, foreignObject, iframe, object, embed, link')
-    .forEach((node) => node.remove())
+    .forEach((node) => {
+      node.remove()
+    })
 
   document.querySelectorAll('style').forEach((styleNode) => {
     if (containsUnsafeCss(styleNode.textContent ?? '')) {

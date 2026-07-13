@@ -1,39 +1,44 @@
 import {
+  ArrowDownUp,
   Columns2,
+  Command,
+  Download,
   Eye,
   FilePlus,
   FileSearch,
   FolderOpen,
+  Hash,
+  Link2,
+  ListTree,
   Moon,
   Save,
   Search,
   Sparkles,
-  Sun,
-  Download,
   SquareCode,
-  Trash2,
-  ArrowDownUp,
-  ListTree,
-  Hash,
-  Link2,
-  Command
+  Sun,
+  Trash2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-import { CommandPalette } from '@/commands/CommandPalette'
-import type { CommandAction } from '@/commands/actions'
 import {
-  MdxEditor,
+  AiSelectionActionPalette,
+  type SelectionActionPalettePosition
+} from '@/ai/panels/AiSelectionActionPalette'
+import { AiSidePanel } from '@/ai/panels/AiSidePanel'
+import type { CommandAction } from '@/commands/actions'
+import { CommandPalette } from '@/commands/CommandPalette'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { Button } from '@/components/ui/button'
+import {
   type EditorInsertRequest,
   type EditorSelectionSnapshot,
+  MdxEditor,
   type RevealLineRequest
 } from '@/editor/MdxEditor'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { FileTree, type FileTreeSortMode } from '@/explorer/FileTree'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
+import { ExportDialog } from '@/export/ExportDialog'
 import { useTheme } from '@/hooks/useTheme'
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { BacklinksPanel } from '@/panels/BacklinksPanel'
 import { OutlinePanel } from '@/panels/OutlinePanel'
@@ -48,13 +53,6 @@ import type {
   TagSummary,
   VaultInfo
 } from '@/vault/types'
-
-import { ExportDialog } from '@/export/ExportDialog'
-import {
-  AiSelectionActionPalette,
-  type SelectionActionPalettePosition
-} from '@/ai/panels/AiSelectionActionPalette'
-import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { SelectionRange } from '../../shared/ai'
 import type { RenamePlanPreview } from '../../shared/rename'
 
@@ -612,6 +610,7 @@ function App(): React.JSX.Element {
   )
 
   // On first mount, try to restore the last-opened vault silently.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Vault restoration intentionally runs only once on mount.
   useEffect(() => {
     let cancelled = false
 
@@ -625,7 +624,6 @@ function App(): React.JSX.Element {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, [])
 
   useEffect(() => {
@@ -1146,15 +1144,17 @@ function App(): React.JSX.Element {
         disabled: selectedPath === null,
         run: insertCurrentTime
       },
-      ...noteTemplates.map((template): CommandAction => ({
-        id: `template.insert:${template.relativePath}`,
-        title: `Insert template: ${template.name}`,
-        description: `Insert ${template.relativePath} at the editor cursor.`,
-        category: 'Templates',
-        keywords: ['insert', 'template', template.name, template.relativePath],
-        disabled: selectedPath === null,
-        run: () => insertTemplateAtCursor(template)
-      })),
+      ...noteTemplates.map(
+        (template): CommandAction => ({
+          id: `template.insert:${template.relativePath}`,
+          title: `Insert template: ${template.name}`,
+          description: `Insert ${template.relativePath} at the editor cursor.`,
+          category: 'Templates',
+          keywords: ['insert', 'template', template.name, template.relativePath],
+          disabled: selectedPath === null,
+          run: () => insertTemplateAtCursor(template)
+        })
+      ),
       {
         id: 'view.source',
         title: 'Source view',

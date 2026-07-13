@@ -1,5 +1,5 @@
-import { applyRenameEdits, buildRenamePlan } from './rename-plan'
 import { buildNoteIndex } from './index-service'
+import { applyRenameEdits, buildRenamePlan } from './rename-plan'
 
 declare function describe(name: string, run: () => void): void
 declare function test(name: string, run: () => void | Promise<void>): void

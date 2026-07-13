@@ -18,9 +18,9 @@
  */
 
 import type { Line, Range } from '@codemirror/state'
-import { Decoration, type DecorationSet, EditorView, ViewPlugin } from '@codemirror/view'
-import type { Element, InlineParser, MarkdownExtension, NodeSpec } from '@lezer/markdown'
+import { Decoration, type DecorationSet, type EditorView, ViewPlugin } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
+import type { Element, InlineParser, MarkdownExtension, NodeSpec } from '@lezer/markdown'
 
 /* -------------------------------------------------------------------------- */
 /*                              Node definitions                              */

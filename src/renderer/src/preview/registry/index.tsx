@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react'
 import type { MDXComponents } from 'mdx/types'
+import type { ComponentType } from 'react'
 
 import { algorithmVisualizerRegistryEntry } from './algorithm-visualizer'
 import { counterRegistryEntry } from './counter'

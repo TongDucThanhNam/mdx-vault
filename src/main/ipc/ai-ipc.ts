@@ -3,18 +3,20 @@ import { z } from 'zod'
 
 import {
   AI_ERROR_CODES,
-  assistantApprovePatchInputSchema,
-  aiSaveSettingsInputSchema,
-  assistantApplyPatchInputSchema,
-  assistantChatCancelInputSchema,
-  assistantChatStartInputSchema,
-  patchOperationSchema,
   type AiPublicSettings,
   type AssistantApplyPatchOutput,
   type AssistantChatStartOutput,
   type AssistantEvent,
-  type PatchOperation
+  aiSaveSettingsInputSchema,
+  assistantApplyPatchInputSchema,
+  assistantApprovePatchInputSchema,
+  assistantChatCancelInputSchema,
+  assistantChatStartInputSchema,
+  type PatchOperation,
+  patchOperationSchema
 } from '../../shared/ai'
+import { approveAiPatch } from '../services/ai-approval-service'
+import { applyAllOperations } from '../services/ai-patch-engine'
 import { AiSettingsService } from '../services/ai-settings'
 import {
   ALLOWED_PATCH_OPERATIONS,
@@ -23,10 +25,8 @@ import {
   indexedNoteExists,
   startChat
 } from '../services/ai-tanstack-adapter'
-import { applyAllOperations } from '../services/ai-patch-engine'
-import { approveAiPatch } from '../services/ai-approval-service'
-import type { IpcFailure, IpcResult } from './vault-ipc'
 import { getCurrentVault } from '../services/vault-session'
+import type { IpcFailure, IpcResult } from './vault-ipc'
 
 const AI_PUSH_CHANNEL = 'ai:event'
 

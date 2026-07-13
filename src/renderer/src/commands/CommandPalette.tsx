@@ -1,10 +1,9 @@
 import { Command as CommandIcon, CornerDownLeft, Pin, Search } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-
-import type { CommandAction } from './actions'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { isSubsequence } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'
+import type { CommandAction } from './actions'
 
 interface CommandPaletteProps {
   open: boolean

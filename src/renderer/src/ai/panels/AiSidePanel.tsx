@@ -18,17 +18,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-
+import type { AssistantContext, SelectionRange } from '../../../../shared/ai'
 import { createAssistantRuntime } from '../assistant-client'
 import { buildRegistryTemplateHints } from '../registry-hints'
-import type { AssistantContext } from '../../../../shared/ai'
-import type { SelectionRange } from '../../../../shared/ai'
-
+import { applyEvent } from '../state/apply-event'
 import { AiComposer } from './AiComposer'
 import { AiContextBanner } from './AiContextBanner'
 import { AiDiffReview, type DiffReviewModel } from './AiDiffReview'
 import { AiMessageList, type ChatMessage } from './AiMessageList'
-import { applyEvent } from '../state/apply-event'
 import { AiSettingsPanel } from './AiSettingsPanel'
 
 interface AiSidePanelProps {

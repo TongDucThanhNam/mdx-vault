@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import type { VaultApi, SandboxApi } from '../preload/index'
+import type { SandboxApi, VaultApi } from '../preload/index'
 
 declare global {
   interface Window {
@@ -8,5 +8,3 @@ declare global {
     sandboxApi?: SandboxApi
   }
 }
-
-export {}

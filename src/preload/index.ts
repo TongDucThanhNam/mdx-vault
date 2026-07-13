@@ -1,19 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  SandboxDescriptor,
-  SandboxDocument,
-  SandboxKind,
-  SandboxPermissionDecision
-} from '../shared/sandbox'
-import type {
-  ExportMode,
-  ExportPickTargetResult,
-  ExportProgressEvent,
-  ExportRunPayload,
-  ExportRunResult,
-  ExportScanResult
-} from '../shared/export'
-import type {
   AiPublicSettings,
   AiSaveSettingsInput,
   AssistantApplyPatchOutput,
@@ -23,7 +9,21 @@ import type {
   AssistantEvent,
   PatchOperation
 } from '../shared/ai'
+import type {
+  ExportMode,
+  ExportPickTargetResult,
+  ExportProgressEvent,
+  ExportRunPayload,
+  ExportRunResult,
+  ExportScanResult
+} from '../shared/export'
 import type { RenamePlanPreview, RenameResult } from '../shared/rename'
+import type {
+  SandboxDescriptor,
+  SandboxDocument,
+  SandboxKind,
+  SandboxPermissionDecision
+} from '../shared/sandbox'
 
 interface VaultFile {
   relativePath: string

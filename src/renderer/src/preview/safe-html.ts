@@ -1,6 +1,6 @@
-import rehypeSanitize from 'rehype-sanitize'
-import type { Options as SanitizeSchema } from 'rehype-sanitize'
 import type { Element, Root, RootContent } from 'hast'
+import type { Options as SanitizeSchema } from 'rehype-sanitize'
+import rehypeSanitize from 'rehype-sanitize'
 
 import { calloutTypes } from '../../../shared/remark-callouts'
 

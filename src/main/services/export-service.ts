@@ -1,6 +1,6 @@
 import { writeFile } from 'fs/promises'
 import matter from 'gray-matter'
-import { dirname, posix as pathPosix, basename, extname } from 'path'
+import { basename, dirname, extname, posix as pathPosix } from 'path'
 
 import {
   EXPORT_HARD_LIMIT_BYTES,
@@ -10,15 +10,15 @@ import {
   type ExportRunResult,
   type ExportScanResult
 } from '../../shared/export'
-import { parseNoteForExport } from './export-renderer'
 import { AssetCollector } from './export-asset-collector'
-import { scanForLeaks } from './export-leak-check'
 import { RegistryBundler } from './export-bundler'
-import { StaticSnapshotRenderer } from './export-static-snapshot'
+import { scanForLeaks } from './export-leak-check'
+import { parseNoteForExport } from './export-renderer'
 import { SandboxExportBridge } from './export-sandbox-bridge'
-import { renderExportTemplate, HYDRATION_SCRIPT } from './export-template'
-import { VaultService } from './vault-service'
+import { StaticSnapshotRenderer } from './export-static-snapshot'
+import { HYDRATION_SCRIPT, renderExportTemplate } from './export-template'
 import { safeJoin } from './safe-path'
+import type { VaultService } from './vault-service'
 
 export type ExportProgressListener = (event: ExportProgressEvent) => void
 

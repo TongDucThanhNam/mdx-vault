@@ -1,9 +1,8 @@
+import { type FSWatcher, watch } from 'chokidar'
 import { readFile, stat } from 'fs/promises'
-import { watch, type FSWatcher } from 'chokidar'
-
-import { safeJoin } from './safe-path'
 import { DbService } from './db-service'
 import { buildNoteIndex, hashContent, isMarkdownPath } from './index-service'
+import { safeJoin } from './safe-path'
 import type { VaultService } from './vault-service'
 
 type IndexChangeCallback = () => void

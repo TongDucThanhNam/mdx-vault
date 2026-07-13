@@ -1,14 +1,14 @@
-import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import {
   ChevronRight,
   Copy,
+  ExternalLink,
+  Files,
   FileText,
   FolderOpen,
   Pencil,
-  Trash2,
-  Files,
-  ExternalLink
+  Trash2
 } from 'lucide-react'
+import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'

@@ -1,7 +1,7 @@
+import DatabaseConstructor, { type Database as BetterSqliteDatabase } from 'better-sqlite3'
 import { createHash } from 'crypto'
 import { mkdirSync } from 'fs'
 import { basename, join } from 'path'
-import DatabaseConstructor, { type Database as BetterSqliteDatabase } from 'better-sqlite3'
 
 import { getNoteLinkKeys, normalizeLinkKey } from '../../shared/wikilinks'
 import type { NoteIndex } from './index-service'

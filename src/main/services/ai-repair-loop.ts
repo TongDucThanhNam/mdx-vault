@@ -1,5 +1,5 @@
 import { AI_ERROR_CODES, type ComponentDraft } from '../../shared/ai'
-import { sandboxManifestSchema, type SandboxManifest } from '../../shared/sandbox'
+import { type SandboxManifest, sandboxManifestSchema } from '../../shared/sandbox'
 import { SandboxService } from './sandbox-service'
 import { getCurrentVault } from './vault-session'
 

@@ -1,6 +1,6 @@
-import { mkdir, readFile, rename, rmdir, rm, stat, writeFile } from 'fs/promises'
-import { basename, dirname, extname, resolve } from 'path'
 import fg from 'fast-glob'
+import { mkdir, readFile, rename, rm, rmdir, stat, writeFile } from 'fs/promises'
+import { basename, dirname, extname, resolve } from 'path'
 
 import type { RenameResult } from '../../shared/rename'
 import { applyRenameEdits, type RenamePlan } from './rename-plan'

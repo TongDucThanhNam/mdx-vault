@@ -1,10 +1,9 @@
 import { readFile } from 'fs/promises'
 import { extname, join, posix as pathPosix } from 'path'
-
-import { safeJoin } from './safe-path'
-import { SandboxService } from './sandbox-service'
-import type { InlinedAsset } from './export-asset-collector'
 import type { SandboxManifest } from '../../shared/sandbox'
+import type { InlinedAsset } from './export-asset-collector'
+import { safeJoin } from './safe-path'
+import type { SandboxService } from './sandbox-service'
 
 const SANDBOX_CSP = [
   "default-src 'none'",

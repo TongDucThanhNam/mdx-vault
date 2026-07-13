@@ -15,7 +15,7 @@ import {
 } from 'recharts'
 
 import { usePreviewRuntime } from '../runtime'
-import { assertChartDataArray, parseChartDataSource, type ChartDatum } from './chart-data'
+import { assertChartDataArray, type ChartDatum, parseChartDataSource } from './chart-data'
 
 export type DataChartType = 'line' | 'bar' | 'scatter'
 

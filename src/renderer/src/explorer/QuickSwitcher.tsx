@@ -1,6 +1,6 @@
 import { FileText, Search } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { getScoredNotes, type ScoredNote } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'

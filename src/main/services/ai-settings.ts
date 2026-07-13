@@ -4,13 +4,13 @@ import { dirname } from 'path'
 
 import {
   AI_PROTOCOL_VERSION,
-  DEFAULT_AI_MODEL,
   type AiPublicSettings,
   type AiSaveSettingsInput,
-  aiPublicSettingsSchema
+  aiPublicSettingsSchema,
+  DEFAULT_AI_MODEL
 } from '../../shared/ai'
 import { safeJoin } from './safe-path'
-import { VaultService } from './vault-service'
+import type { VaultService } from './vault-service'
 
 /* -------------------------------------------------------------------------- */
 /*                                 Constants                                  */

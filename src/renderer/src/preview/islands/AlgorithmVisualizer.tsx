@@ -233,7 +233,7 @@ function PointerBadge({
 }
 
 // The pure step builder is exported from its owning module for deterministic regression tests.
-// eslint-disable-next-line react-refresh/only-export-components
+// biome-ignore lint/style/useComponentExportOnlyModules: Pure helper export is required by regression tests.
 export function createAlgorithmSteps({
   algorithm,
   data,

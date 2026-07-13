@@ -9,7 +9,12 @@ interface InteractiveProps {
 }
 
 type SerializableValue =
-  null | string | number | boolean | SerializableValue[] | { [key: string]: SerializableValue }
+  | null
+  | string
+  | number
+  | boolean
+  | SerializableValue[]
+  | { [key: string]: SerializableValue }
 
 export function Interactive(props: InteractiveProps): React.JSX.Element {
   const { src } = props

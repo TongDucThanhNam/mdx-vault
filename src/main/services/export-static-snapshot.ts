@@ -1,11 +1,11 @@
-import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 import { Counter } from '../../renderer/src/preview/Counter'
-import { QuizBlock } from '../../renderer/src/preview/islands/QuizBlock'
-import { EquationSlider } from '../../renderer/src/preview/islands/EquationSlider'
-import { DataChart } from '../../renderer/src/preview/islands/DataChart'
 import { AlgorithmVisualizer } from '../../renderer/src/preview/islands/AlgorithmVisualizer'
+import { DataChart } from '../../renderer/src/preview/islands/DataChart'
+import { EquationSlider } from '../../renderer/src/preview/islands/EquationSlider'
+import { QuizBlock } from '../../renderer/src/preview/islands/QuizBlock'
 
 /**
  * Trusted components that ship with the app — same set that the live renderer

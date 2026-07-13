@@ -1,21 +1,20 @@
 import { createHash, randomUUID } from 'crypto'
-import { lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, writeFile } from 'fs/promises'
-import { dirname, extname, isAbsolute, relative, resolve } from 'path'
-import { posix as pathPosix } from 'path'
 import { build, type Plugin } from 'esbuild'
 import fg from 'fast-glob'
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'fs/promises'
+import { dirname, extname, isAbsolute, posix as pathPosix, relative, resolve } from 'path'
 import { z } from 'zod'
 
 import {
-  sandboxManifestSchema,
   type SandboxDescriptor,
   type SandboxDocument,
   type SandboxKind,
   type SandboxManifest,
-  type SandboxPermissionDecision
+  type SandboxPermissionDecision,
+  sandboxManifestSchema
 } from '../../shared/sandbox'
 import { safeJoin } from './safe-path'
-import { VaultService } from './vault-service'
+import type { VaultService } from './vault-service'
 
 const permissionStoreRelativePath = '.app/sandbox-permissions.json'
 const componentCacheRelativeDir = '.app/component-cache'
@@ -23,7 +22,8 @@ const sandboxDraftsRelativeDir = '.app/sandbox-drafts'
 const dependencyAllowlist = new Set(['react', 'react-dom'])
 
 export type SandboxDraftCompileResult =
-  { ok: true; contentHash: string; script: string } | { ok: false; errors: string[] }
+  | { ok: true; contentHash: string; script: string }
+  | { ok: false; errors: string[] }
 const sandboxCsp = [
   "default-src 'none'",
   "script-src 'unsafe-inline'",

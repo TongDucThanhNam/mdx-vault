@@ -1,6 +1,6 @@
+import { bindCurrentSandboxService } from './sandbox-session'
 import { VaultIndexRuntime } from './vault-index-runtime'
 import { VaultService } from './vault-service'
-import { bindCurrentSandboxService } from './sandbox-session'
 
 type IndexChangeCallback = () => void
 

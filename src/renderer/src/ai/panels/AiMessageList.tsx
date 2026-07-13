@@ -15,6 +15,7 @@ import type { PatchOperation, PatchProposal } from '../../../../shared/ai'
 
 import type { ChatMessage, ToolCallTrace } from '../state/apply-event'
 
+// biome-ignore lint/style/useComponentExportOnlyModules: Type-only re-exports do not affect Fast Refresh.
 export type { ChatMessage, ToolCallTrace }
 
 interface AiMessageListProps {

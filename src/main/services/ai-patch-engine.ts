@@ -163,20 +163,20 @@ function extractFirstJsonObject(rawText: string): string {
   // Find the first '{' that begins a balanced top-level object.
   let depth = 0
   let inString = false
-  let escape = false
+  let escaped = false
   let startIndex = -1
 
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index]
 
-    if (escape) {
-      escape = false
+    if (escaped) {
+      escaped = false
       continue
     }
 
     if (inString) {
       if (character === '\\') {
-        escape = true
+        escaped = true
       } else if (character === '"') {
         inString = false
       }

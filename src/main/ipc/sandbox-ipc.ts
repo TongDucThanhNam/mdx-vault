@@ -1,13 +1,13 @@
-import { ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { type IpcMainInvokeEvent, ipcMain } from 'electron'
 import { z } from 'zod'
 
 import {
+  type SandboxDescriptor,
+  type SandboxDocument,
   sandboxDescribePayloadSchema,
   sandboxLoadPayloadSchema,
   sandboxRequestDataPayloadSchema,
-  sandboxSetPermissionPayloadSchema,
-  type SandboxDescriptor,
-  type SandboxDocument
+  sandboxSetPermissionPayloadSchema
 } from '../../shared/sandbox'
 import { SandboxService } from '../services/sandbox-service'
 import { getCurrentVault } from '../services/vault-session'

@@ -1,5 +1,5 @@
 import { SandboxService } from './sandbox-service'
-import { VaultService } from './vault-service'
+import type { VaultService } from './vault-service'
 import { getCurrentVault } from './vault-session'
 
 let currentSandbox: SandboxService | null = null

@@ -1,5 +1,5 @@
 import { build } from 'esbuild'
-import { writeFile, mkdtemp, rm } from 'fs/promises'
+import { mkdtemp, rm, writeFile } from 'fs/promises'
 import { dirname, join, resolve } from 'path'
 
 /**
@@ -30,14 +30,10 @@ export interface BundleResult {
 export class RegistryBundler {
   async bundle({ usedComponents }: BundleOptions): Promise<BundleResult> {
     const filtered = [
-      ...new Set(
-        usedComponents.filter((name) =>
-          Object.prototype.hasOwnProperty.call(REGISTRY_COMPONENT_MAP, name)
-        )
-      )
+      ...new Set(usedComponents.filter((name) => Object.hasOwn(REGISTRY_COMPONENT_MAP, name)))
     ]
     const unknownComponents = usedComponents.filter(
-      (name) => !Object.prototype.hasOwnProperty.call(REGISTRY_COMPONENT_MAP, name)
+      (name) => !Object.hasOwn(REGISTRY_COMPONENT_MAP, name)
     )
 
     if (filtered.length === 0) {
@@ -149,7 +145,6 @@ function findRepoRoot(start: string): string {
     if (parent === current) break
     try {
       // require synchronously to avoid pulling fs into hot path
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('node:fs') as typeof import('node:fs')
       if (fs.existsSync(join(parent, 'package.json'))) {
         return parent

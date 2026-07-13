@@ -21,30 +21,29 @@
 
 import {
   chat,
-  toolDefinition,
-  type StreamChunk,
   type ModelMessage,
-  type ToolCall
+  type StreamChunk,
+  type ToolCall,
+  toolDefinition
 } from '@tanstack/ai'
 import { createOpenaiChat } from '@tanstack/ai-openai'
 import { randomUUID } from 'crypto'
 
 import {
   AI_ERROR_CODES,
-  patchOperationSchema,
   type AssistantContext,
   type AssistantEvent,
   type PatchOperation,
   type PatchProposal,
+  patchOperationSchema,
   type SelectionRange
 } from '../../shared/ai'
-import { AiSettingsService } from './ai-settings'
-import { buildAiToolDefinitions } from './ai-tools'
-import { parsePatchResponse, AiPatchParseError } from './ai-patch-engine'
-import { buildSystemPrompt, findAction, type ActionDescriptor } from './ai-system-prompt'
+import { AiPatchParseError, parsePatchResponse } from './ai-patch-engine'
 import { repairComponentDraft } from './ai-repair-loop'
-import { getCurrentVault } from './vault-session'
-import { getCurrentIndex } from './vault-session'
+import { AiSettingsService } from './ai-settings'
+import { type ActionDescriptor, buildSystemPrompt, findAction } from './ai-system-prompt'
+import { buildAiToolDefinitions } from './ai-tools'
+import { getCurrentIndex, getCurrentVault } from './vault-session'
 
 /* -------------------------------------------------------------------------- */
 /*                         Boundary / single-import gate                      */
@@ -683,7 +682,7 @@ function serialiseToolOutput(output: unknown): unknown {
  *  must come through this adapter. */
 export const ONLY_TANSTACK_IMPORT_INDICATOR = 'src/main/services/ai-tanstack-adapter.ts'
 
-export { patchOperationSchema, findAction }
+export { findAction, patchOperationSchema }
 
 /** Marker for grep-able review. */
 export const ALLOWED_PATCH_OPERATIONS: ReadonlyArray<PatchOperation['kind']> = [

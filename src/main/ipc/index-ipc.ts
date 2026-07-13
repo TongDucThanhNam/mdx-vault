@@ -1,7 +1,5 @@
 import { ipcMain } from 'electron'
 import { z } from 'zod'
-
-import { getCurrentIndex } from '../services/vault-session'
 import type {
   BacklinkResult,
   IndexedNoteSummary,
@@ -9,6 +7,7 @@ import type {
   SearchResult,
   TagSummary
 } from '../services/db-service'
+import { getCurrentIndex } from '../services/vault-session'
 import type { IpcFailure, IpcResult } from './vault-ipc'
 
 interface RegisterIndexIpcOptions {

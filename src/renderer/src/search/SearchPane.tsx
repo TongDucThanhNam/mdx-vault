@@ -1,6 +1,6 @@
 import { FileSearch, Search, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { SearchResult } from '@/vault/types'

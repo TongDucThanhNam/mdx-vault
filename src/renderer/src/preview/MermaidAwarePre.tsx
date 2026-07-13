@@ -1,5 +1,5 @@
-import { Children, isValidElement } from 'react'
 import type { HTMLAttributes, ReactNode } from 'react'
+import { Children, isValidElement } from 'react'
 
 import { MermaidDiagram } from './MermaidDiagram'
 

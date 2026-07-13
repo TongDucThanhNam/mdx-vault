@@ -1,12 +1,12 @@
-import { html } from '@codemirror/lang-html'
-import { javascript } from '@codemirror/lang-javascript'
-import { markdown } from '@codemirror/lang-markdown'
-import { yaml } from '@codemirror/lang-yaml'
 import {
   autocompletion,
   type CompletionContext,
   type CompletionResult
 } from '@codemirror/autocomplete'
+import { html } from '@codemirror/lang-html'
+import { javascript } from '@codemirror/lang-javascript'
+import { markdown } from '@codemirror/lang-markdown'
+import { yaml } from '@codemirror/lang-yaml'
 import { HighlightStyle, LanguageDescription, syntaxHighlighting } from '@codemirror/language'
 import { search } from '@codemirror/search'
 import { EditorState, Prec } from '@codemirror/state'
@@ -14,16 +14,15 @@ import { EditorView, keymap } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-import { ComponentInsertPalette } from './ComponentInsertPalette'
-import { InlineFormatToolbar } from './InlineFormatToolbar'
-import { SlashCommandPalette } from './SlashCommandPalette'
-import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
-import { getNoteLinkKeys } from '../../../shared/wikilinks'
 import type { CommandAction } from '@/commands/actions'
 import { getScoredNotes } from '@/lib/fuzzy-match'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 import type { IndexedNoteSummary } from '@/vault/types'
+import { getNoteLinkKeys } from '../../../shared/wikilinks'
+import { ComponentInsertPalette } from './ComponentInsertPalette'
+import { InlineFormatToolbar } from './InlineFormatToolbar'
+import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
+import { SlashCommandPalette } from './SlashCommandPalette'
 
 export interface RevealLineRequest {
   line: number

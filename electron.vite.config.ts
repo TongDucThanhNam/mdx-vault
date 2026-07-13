@@ -1,7 +1,7 @@
-import { resolve } from 'path'
-import { defineConfig } from 'electron-vite'
-import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'electron-vite'
+import { resolve } from 'path'
 
 // The main process reuses a few renderer source files (e.g. registry
 // components for the export SSR snapshot in export-static-snapshot.ts). Those

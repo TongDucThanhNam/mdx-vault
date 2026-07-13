@@ -5,9 +5,9 @@
  * dispatches edits through the live EditorView instance, no IPC writes, no
  * side effects.
  */
-import { Bold, Code, Italic, Link as LinkIcon } from 'lucide-react'
 
 import type { EditorView } from '@codemirror/view'
+import { Bold, Code, Italic, Link as LinkIcon } from 'lucide-react'
 
 interface InlineFormatToolbarProps {
   /** Live CM view — passed down so the toolbar can dispatch wraps. */
