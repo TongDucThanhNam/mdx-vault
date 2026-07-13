@@ -17,6 +17,7 @@ import type {
   AiPublicSettings,
   AiSaveSettingsInput,
   AssistantApplyPatchOutput,
+  AssistantApprovePatchOutput,
   AssistantChatStartInput,
   AssistantChatStartOutput,
   AssistantEvent,
@@ -225,6 +226,11 @@ const aiApi = {
     operations: PatchOperation[]
   }): Promise<AssistantApplyPatchOutput> =>
     invokeAi<AssistantApplyPatchOutput>('ai:apply-patch', input),
+  approvePatch: (input: {
+    noteRelativePath: string
+    operations: PatchOperation[]
+  }): Promise<AssistantApprovePatchOutput> =>
+    invokeAi<AssistantApprovePatchOutput>('ai:approve-patch', input),
   allowedPatchKinds: (): Promise<ReadonlyArray<PatchOperation['kind']>> =>
     invokeAi<ReadonlyArray<PatchOperation['kind']>>('ai:allowed-patch-kinds'),
   onEvent: (callback: (sessionId: string, event: AssistantEvent) => void): (() => void) => {

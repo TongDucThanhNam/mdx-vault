@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import {
   AI_ERROR_CODES,
+  assistantApprovePatchInputSchema,
   aiSaveSettingsInputSchema,
   assistantApplyPatchInputSchema,
   assistantChatCancelInputSchema,
@@ -23,6 +24,7 @@ import {
   startChat
 } from '../services/ai-tanstack-adapter'
 import { applyAllOperations } from '../services/ai-patch-engine'
+import { approveAiPatch } from '../services/ai-approval-service'
 import type { IpcFailure, IpcResult } from './vault-ipc'
 import { getCurrentVault } from '../services/vault-session'
 
@@ -39,24 +41,27 @@ const getSettingsPayloadSchema = z.undefined()
 const clearApiKeyPayloadSchema = z.undefined()
 
 export function registerAiIpc(): void {
-  ipcMain.handle('ai:get-settings', (_event, payload): Promise<IpcResult<AiPublicSettings>> => {
+  ipcMain.handle('ai:get-settings', (event, payload): Promise<IpcResult<AiPublicSettings>> => {
     return handleAiRequest(async () => {
+      assertMainFrame(event)
       getSettingsPayloadSchema.parse(payload)
       const service = new AiSettingsService(getCurrentVault())
       return service.get()
     })
   })
 
-  ipcMain.handle('ai:save-settings', (_event, payload): Promise<IpcResult<AiPublicSettings>> => {
+  ipcMain.handle('ai:save-settings', (event, payload): Promise<IpcResult<AiPublicSettings>> => {
     return handleAiRequest(async () => {
+      assertMainFrame(event)
       const input = aiSaveSettingsInputSchema.parse(payload)
       const service = new AiSettingsService(getCurrentVault())
       return service.save(input)
     })
   })
 
-  ipcMain.handle('ai:clear-api-key', (_event, payload): Promise<IpcResult<AiPublicSettings>> => {
+  ipcMain.handle('ai:clear-api-key', (event, payload): Promise<IpcResult<AiPublicSettings>> => {
     return handleAiRequest(async () => {
+      assertMainFrame(event)
       clearApiKeyPayloadSchema.parse(payload)
       const service = new AiSettingsService(getCurrentVault())
       return service.clearApiKey()
@@ -81,8 +86,9 @@ export function registerAiIpc(): void {
 
   ipcMain.handle(
     'ai:chat-cancel',
-    (_event, payload): Promise<IpcResult<{ ok: boolean; reason?: string }>> => {
+    (event, payload): Promise<IpcResult<{ ok: boolean; reason?: string }>> => {
       return handleAiRequest(async () => {
+        assertMainFrame(event)
         const input = assistantChatCancelInputSchema.parse(payload)
         return cancelChat(input.sessionId)
       })
@@ -91,8 +97,9 @@ export function registerAiIpc(): void {
 
   ipcMain.handle(
     'ai:apply-patch',
-    (_event, payload): Promise<IpcResult<AssistantApplyPatchOutput>> => {
+    (event, payload): Promise<IpcResult<AssistantApplyPatchOutput>> => {
       return handleAiRequest(async () => {
+        assertMainFrame(event)
         const input = assistantApplyPatchInputSchema.parse(payload)
         return validateAndApply(input.noteRelativePath, input.operations)
       })
@@ -100,9 +107,28 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle(
+    'ai:approve-patch',
+    (event, payload): Promise<IpcResult<{ writtenPaths: string[] }>> => {
+      return handleAiRequest(async () => {
+        assertMainFrame(event)
+        const input = assistantApprovePatchInputSchema.parse(payload)
+        if (!indexedNoteExists(input.noteRelativePath)) {
+          throw new Error(
+            `Cannot approve patches: note "${input.noteRelativePath}" is not indexed.`
+          )
+        }
+        return approveAiPatch(getCurrentVault(), input.noteRelativePath, input.operations)
+      })
+    }
+  )
+
+  ipcMain.handle(
     'ai:allowed-patch-kinds',
-    (): Promise<IpcResult<ReadonlyArray<PatchOperation['kind']>>> => {
-      return handleAiRequest(async () => ALLOWED_PATCH_OPERATIONS)
+    (event): Promise<IpcResult<ReadonlyArray<PatchOperation['kind']>>> => {
+      return handleAiRequest(async () => {
+        assertMainFrame(event)
+        return ALLOWED_PATCH_OPERATIONS
+      })
     }
   )
 }
@@ -159,20 +185,13 @@ async function validateAndApply(
 
   const results: AssistantApplyPatchOutput['results'] = []
 
-  if (finalApplied.kind === 'componentDraft') {
-    results.push({ kind: 'componentDraft', files: finalApplied.files })
-  } else {
+  if (finalApplied.text !== currentContent) {
     results.push({ kind: 'textPatch', resultText: finalApplied.text })
   }
-
-  // For multi-op proposals that contain a draft *and* note edits we still
-  // want both — extend to a richer output shape if the goal ever broadens.
-  // Today we collapse to a single outcome per apply call.
-  if (results.length !== 1) {
-    throw new Error(
-      `Validation produced ${results.length} results for ${operations.length} operations.`
-    )
+  if (finalApplied.files.length > 0) {
+    results.push({ kind: 'componentDraft', files: finalApplied.files })
   }
+  if (results.length === 0) throw new Error('Patch proposal produced no changes')
 
   return { results }
 }

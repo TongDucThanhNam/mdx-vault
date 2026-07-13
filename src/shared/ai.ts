@@ -360,6 +360,14 @@ export const assistantApplyPatchOutputSchema = z
 export type AssistantApplyPatchInput = z.infer<typeof assistantApplyPatchInputSchema>
 export type AssistantApplyPatchOutput = z.infer<typeof assistantApplyPatchOutputSchema>
 
+export const assistantApprovePatchInputSchema = assistantApplyPatchInputSchema
+export type AssistantApprovePatchInput = z.infer<typeof assistantApprovePatchInputSchema>
+
+export const assistantApprovePatchOutputSchema = z
+  .object({ writtenPaths: z.array(z.string().min(1)).min(1) })
+  .strict()
+export type AssistantApprovePatchOutput = z.infer<typeof assistantApprovePatchOutputSchema>
+
 /* -------------------------------------------------------------------------- */
 /*                                 Errors                                     */
 /* -------------------------------------------------------------------------- */

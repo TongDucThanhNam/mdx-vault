@@ -46,6 +46,10 @@ export interface RepairContext {
    *  caller passes a function that, given the failing draft + errors,
    *  returns the next draft to try. We don't run LLM here. */
   nextDraft: (draft: ComponentDraft, errors: string[]) => Promise<ComponentDraft | null>
+  compileDraft?: (
+    componentSource: string,
+    manifest: SandboxManifest
+  ) => Promise<{ ok: true } | { ok: false; errors: string[] }>
 }
 
 export interface RepairSuccess {
@@ -66,7 +70,10 @@ export async function repairComponentDraft(
   context: RepairContext
 ): Promise<RepairSuccess | RepairFailure> {
   const maxRounds = Math.max(1, context.maxRounds ?? 3)
-  const sandbox = new SandboxService(getCurrentVault())
+  const compileDraft =
+    context.compileDraft ??
+    ((componentSource: string, manifest: SandboxManifest) =>
+      new SandboxService(getCurrentVault()).compileDraft(componentSource, manifest))
   let current: ComponentDraft = initial
   let lastErrors: string[] = []
 
@@ -88,7 +95,7 @@ export async function repairComponentDraft(
       continue
     }
 
-    const verdict = await sandbox.compileDraft(current.componentSource, manifestValidation.manifest)
+    const verdict = await compileDraft(current.componentSource, manifestValidation.manifest)
 
     if (verdict.ok) {
       return {

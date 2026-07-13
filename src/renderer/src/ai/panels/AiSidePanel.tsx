@@ -77,7 +77,6 @@ export function AiSidePanel({
   noteContent,
   selection,
   backlinks,
-  onWriteFile,
   onRequestActionPalette
 }: AiSidePanelProps): React.JSX.Element {
   const [settings, setSettings] = useState<import('../../../../shared/ai').AiPublicSettings | null>(
@@ -138,26 +137,14 @@ export function AiSidePanel({
             result.kind === 'componentDraft'
         )
 
-        if (textResult) {
+        if (textResult || draftResult) {
           setStreaming((current) => ({
             ...current,
             busy: false,
-            diff: {
-              before: noteContent,
-              after: textResult.resultText,
-              fileLabel: noteRelativePath
-            },
-            draftFiles: null
-          }))
-          return
-        }
-
-        if (draftResult) {
-          setStreaming((current) => ({
-            ...current,
-            busy: false,
-            draftFiles: draftResult.files,
-            diff: null
+            diff: textResult
+              ? { before: noteContent, after: textResult.resultText, fileLabel: noteRelativePath }
+              : null,
+            draftFiles: draftResult?.files ?? null
           }))
           return
         }
@@ -291,19 +278,22 @@ export function AiSidePanel({
   const approve = useCallback(async () => {
     if (!noteRelativePath) return
 
-    if (streaming.diff) {
-      await onWriteFile(noteRelativePath, streaming.diff.after)
+    if (!streaming.proposal) return
+    setStreaming((current) => ({ ...current, busy: true }))
+    try {
+      await runtime.approvePatch({
+        noteRelativePath,
+        operations: streaming.proposal.patches
+      })
       setStreaming(INITIAL_STREAMING)
-      return
+    } catch (error) {
+      setStreaming((current) => ({
+        ...current,
+        busy: false,
+        error: { message: error instanceof Error ? error.message : String(error) }
+      }))
     }
-
-    if (streaming.draftFiles) {
-      for (const file of streaming.draftFiles) {
-        await onWriteFile(file.relativePath, file.content)
-      }
-      setStreaming(INITIAL_STREAMING)
-    }
-  }, [noteRelativePath, onWriteFile, streaming.diff, streaming.draftFiles])
+  }, [noteRelativePath, streaming.proposal])
 
   const reject = useCallback(() => {
     setStreaming(INITIAL_STREAMING)
@@ -436,13 +426,18 @@ function DraftFilesList({
       <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
         New interactive component ({files.length} files)
       </div>
-      <ul className="space-y-1 text-xs text-muted-foreground">
+      <div className="max-h-64 space-y-2 overflow-auto">
         {files.map((file) => (
-          <li key={file.relativePath} className="truncate font-mono">
-            {file.relativePath}
-          </li>
+          <details key={file.relativePath} className="border border-foreground/30 bg-background">
+            <summary className="cursor-pointer px-2 py-1 font-mono text-xs">
+              + {file.relativePath}
+            </summary>
+            <pre className="overflow-auto border-t border-foreground/30 p-2 font-mono text-[11px] text-foreground">
+              {file.content}
+            </pre>
+          </details>
         ))}
-      </ul>
+      </div>
       <div className="text-xs text-muted-foreground">
         Component will live in your vault as a sandboxed interactive (Level 3/4). It is never
         injected into the trusted registry.

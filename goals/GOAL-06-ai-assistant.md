@@ -36,25 +36,25 @@ Tích hợp AI assistant theo đúng triết lý sản phẩm: user bôi đen te
 
 ## Constraints
 
-- [ ] AI KHÔNG BAO GIỜ ghi file trực tiếp — không tồn tại code path nào từ AI response → write mà không qua user approve
-- [ ] TanStack AI import duy nhất trong adapter module; phần còn lại của app chỉ biết `AssistantRuntime`
-- [ ] API key: Electron `safeStorage`, không log, không đưa vào renderer dạng plaintext ngoài lúc nhập
-- [ ] Component AI sinh ra: LUÔN là vault component có manifest chạy sandbox (Level 3/4) — không bao giờ inject vào registry trusted
-- [ ] System prompt cho generation phải nhúng: tiêu chuẩn interactive của docs/product-vision.md + convention docs/mdx-conventions.md + dependency allowlist
-- [ ] Lưu provenance khi sinh component (prompt/context) vào README.md của interactive đó
-- [ ] KHÔNG build UX "nhập topic → AI viết cả note" — kể cả như option
-- [ ] Không có API key → app hoạt động bình thường, AI panel hiện hướng dẫn setup (AI là optional)
-- [ ] Blocker (đặc biệt API TanStack AI đổi so với goal này) → DỪNG, tra context7, báo cáo khác biệt
+- [x] AI KHÔNG BAO GIỜ ghi file trực tiếp — không tồn tại code path nào từ AI response → write mà không qua user approve
+- [x] TanStack AI import duy nhất trong adapter module; phần còn lại của app chỉ biết `AssistantRuntime`
+- [x] API key: Electron `safeStorage`, không log, không đưa vào renderer dạng plaintext ngoài lúc nhập
+- [x] Component AI sinh ra: LUÔN là vault component có manifest chạy sandbox (Level 3/4) — không bao giờ inject vào registry trusted
+- [x] System prompt cho generation phải nhúng: tiêu chuẩn interactive của docs/product-vision.md + convention docs/mdx-conventions.md + dependency allowlist
+- [x] Lưu provenance khi sinh component (prompt/context) vào README.md của interactive đó
+- [x] KHÔNG build UX "nhập topic → AI viết cả note" — kể cả như option
+- [x] Không có API key → app hoạt động bình thường, AI panel hiện hướng dẫn setup (AI là optional)
+- [x] Blocker (đặc biệt API TanStack AI đổi so với goal này) → DỪNG, tra context7, báo cáo khác biệt
 
 ## Success Criteria
 
-- [ ] `bun run typecheck` && `bun run lint` pass
-- [ ] Không có API key: app chạy bình thường, không lỗi console spam
-- [ ] Có API key: chat streaming trong side panel hoạt động
-- [ ] Bôi đen đoạn văn về xác suất → "Create quiz" → AI đề xuất diff chèn `<QuizBlock>` props hợp lệ → diff view → Approve → file thay đổi đúng vị trí, preview render quiz; Reject → file không đổi
-- [ ] "Make interactive" trên đoạn text mà template không đủ → AI sinh `interactives/<name>/` (component.tsx + manifest.json + README có provenance) → compile pass hoặc repair loop chạy → sau approve, note có `<Interactive src>` render trong sandbox với permission dialog GOAL-05
-- [ ] Cố tình làm AI sinh code lỗi (hoặc mock lỗi compile) → repair loop tối đa N vòng rồi báo user, không treo
-- [ ] grep codebase: không có call path ghi file từ AI mà thiếu approve (review thủ công, nêu bằng chứng)
+- [x] `bun run typecheck` && `bun run lint` pass
+- [x] Không có API key: app chạy bình thường, không lỗi console spam
+- [x] Có API key: chat streaming trong side panel hoạt động
+- [x] Bôi đen đoạn văn về xác suất → "Create quiz" → AI đề xuất diff chèn `<QuizBlock>` props hợp lệ → diff view → Approve → file thay đổi đúng vị trí, preview render quiz; Reject → file không đổi
+- [x] "Make interactive" trên đoạn text mà template không đủ → AI sinh `interactives/<name>/` (component.tsx + manifest.json + README có provenance) → compile pass hoặc repair loop chạy → sau approve, note có `<Interactive src>` render trong sandbox với permission dialog GOAL-05
+- [x] Cố tình làm AI sinh code lỗi (hoặc mock lỗi compile) → repair loop tối đa N vòng rồi báo user, không treo
+- [x] grep codebase: không có call path ghi file từ AI mà thiếu approve (review thủ công, nêu bằng chứng)
 
 ## Execution Plan
 

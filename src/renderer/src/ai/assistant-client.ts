@@ -33,6 +33,7 @@ export function createAssistantRuntime(options: AssistantClientOptions = {}): As
     startChat: (input: AssistantChatStartInput) => window.aiApi.chatStart(input),
     cancelChat: (sessionId: string) => window.aiApi.chatCancel({ sessionId }),
     applyPatch: (input: AssistantApplyPatchInput) => window.aiApi.applyPatch(input),
+    approvePatch: (input: AssistantApplyPatchInput) => window.aiApi.approvePatch(input),
     allowedPatchKinds: () => window.aiApi.allowedPatchKinds(),
     onSessionEvent: subscribe,
     buildContext: (input: BuildContextInput) => buildAssistantContext(input)

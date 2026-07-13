@@ -111,14 +111,13 @@ export function applyOperation(
 export function applyAllOperations(
   currentContent: string,
   operations: PatchOperation[]
-):
-  | { kind: 'note'; text: string }
-  | { kind: 'componentDraft'; files: Array<{ relativePath: string; content: string }> } {
+): {
+  kind: 'combined'
+  text: string
+  files: Array<{ relativePath: string; content: string }>
+} {
   let workingText = currentContent
-  let lastComponentDraft: {
-    kind: 'componentDraft'
-    files: Array<{ relativePath: string; content: string }>
-  } | null = null
+  const files: Array<{ relativePath: string; content: string }> = []
 
   for (const operation of operations) {
     if (operation.kind === 'componentDraft') {
@@ -129,7 +128,7 @@ export function applyAllOperations(
       // can return it alongside the (unchanged) note text.
       const result = applyOperation(workingText, operation)
       if (result.kind === 'componentDraft') {
-        lastComponentDraft = result
+        files.push(...result.files)
       }
       continue
     }
@@ -143,11 +142,7 @@ export function applyAllOperations(
     workingText = result.text
   }
 
-  if (lastComponentDraft) {
-    return lastComponentDraft
-  }
-
-  return { kind: 'note', text: workingText }
+  return { kind: 'combined', text: workingText, files }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -304,7 +299,10 @@ function synthesiseComponentFiles(
   return [
     { relativePath: componentRelativePath, content: draft.componentSource },
     { relativePath: manifestRelativePath, content: prettyJson(draft.manifestJson) },
-    { relativePath: readmeRelativePath, content: draft.readmeMarkdown }
+    {
+      relativePath: readmeRelativePath,
+      content: `${draft.readmeMarkdown.trim()}\n\n## AI provenance\n\n- Prompt: ${draft.provenance.prompt}\n- Source note: ${draft.provenance.noteRelativePath}\n- Model: ${draft.provenance.modelName}\n- Generated: ${draft.provenance.generatedAt}\n`
+    }
   ]
 }
 

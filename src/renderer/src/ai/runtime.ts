@@ -41,6 +41,9 @@ export interface AssistantRuntime {
    *  the file via the standard `vaultApi.writeFile`. */
   applyPatch(input: AssistantApplyPatchInput): Promise<AssistantApplyPatchOutput>
 
+  /** Commit the exact reviewed proposal as one validated main-process transaction. */
+  approvePatch(input: AssistantApplyPatchInput): Promise<{ writtenPaths: string[] }>
+
   /** List of operation kinds the runtime is willing to perform. Mirrors
    *  `ALLOWED_PATCH_OPERATIONS` from the adapter so the UI can grey-out
    *  actions that aren't supported. */

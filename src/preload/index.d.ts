@@ -296,6 +296,10 @@ interface AiApi {
     noteRelativePath: string
     operations: PatchOperation[]
   }) => Promise<AssistantApplyPatchOutput>
+  approvePatch: (input: {
+    noteRelativePath: string
+    operations: PatchOperation[]
+  }) => Promise<{ writtenPaths: string[] }>
   allowedPatchKinds: () => Promise<ReadonlyArray<PatchOperation['kind']>>
   onEvent: (callback: (sessionId: string, event: AssistantEvent) => void) => () => void
 }

@@ -437,6 +437,7 @@ async function runChatSession(
     })
 
     if (draftIndexes.length > 0) {
+      let repairFailed = false
       const nextProposal: PatchProposal = {
         rationale: proposal.rationale,
         patches: proposal.patches.slice()
@@ -450,30 +451,47 @@ async function runChatSession(
 
         const verdict = await repairComponentDraft(draft, {
           maxRounds: MAX_REPAIR_ROUNDS,
-          nextDraft: async (_current, errors) => {
-            // The adapter does not actually call the model for repairs —
-            // we expose the compile errors as a tool-result so the user can
-            // see what failed, then return null to terminate the loop. The
-            // user can click "Retry" to start a fresh assistant turn. This
-            // keeps "AI never writes to disk" honest: the model never gets
-            // unbounded self-edit authority.
+          nextDraft: async (current, errors) => {
+            const callId = randomUUID()
             send({
               type: 'tool-call',
-              callId: randomUUID(),
+              callId,
               toolName: 'compile_component_draft',
               args: { errors }
             })
             send({
               type: 'tool-result',
-              callId: randomUUID(),
+              callId,
               ok: false,
               error: errors.join('\n')
             })
-            return null
+
+            const repairedText = await chat({
+              adapter,
+              systemPrompts: [
+                systemPrompt,
+                'Repair the component draft using the compiler diagnostics. Return exactly one JSON PatchProposal containing exactly one componentDraft operation. Preserve provenance and folderRelativePath. Do not add prose or fences.'
+              ],
+              messages: [
+                {
+                  role: 'user',
+                  content: JSON.stringify({ currentDraft: current, compileErrors: errors })
+                }
+              ],
+              stream: false,
+              abortController
+            })
+            const repairedProposal = parsePatchResponse(String(repairedText))
+            const repaired = repairedProposal.patches.find(
+              (operation): operation is Extract<PatchOperation, { kind: 'componentDraft' }> =>
+                operation.kind === 'componentDraft'
+            )
+            return repaired ?? null
           }
         })
 
         if (!verdict.ok) {
+          repairFailed = true
           send({
             type: 'error',
             code: AI_ERROR_CODES.REPAIR_EXHAUSTED,
@@ -482,6 +500,11 @@ async function runChatSession(
         } else {
           nextProposal.patches[index] = verdict.draft
         }
+      }
+
+      if (repairFailed) {
+        send({ type: 'done' })
+        return
       }
 
       proposal = nextProposal
