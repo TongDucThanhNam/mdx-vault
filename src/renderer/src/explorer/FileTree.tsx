@@ -1,16 +1,14 @@
-import {
-  ChevronRight,
-  Copy,
-  ExternalLink,
-  Files,
-  FileText,
-  FolderOpen,
-  Pencil,
-  Trash2
-} from 'lucide-react'
-import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
-import { useEffect, useRef, useState } from 'react'
-
+import type {
+  ContextMenuItem,
+  ContextMenuOpenContext,
+  FileTree as FileTreeModel,
+  FileTreeSortComparator,
+  FileTreeSortEntry
+} from '@pierre/trees'
+import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react'
+import { Copy, ExternalLink, Files, Pencil, Trash2 } from 'lucide-react'
+import type { CSSProperties, KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { VaultFile } from '@/vault/types'
 
@@ -30,21 +28,65 @@ interface FileTreeProps {
   onCopyPath: (relativePath: string) => void
 }
 
-type TreeNode = DirectoryNode | FileNode
-
-interface DirectoryNode {
-  type: 'directory'
-  name: string
-  path: string
-  children: TreeNode[]
+interface TreeCallbacks {
+  onSelectFile: FileTreeProps['onSelectFile']
+  onDeleteFile: FileTreeProps['onDeleteFile']
+  onRenameFile: FileTreeProps['onRenameFile']
+  onDuplicateFile: FileTreeProps['onDuplicateFile']
+  onRevealInExplorer: FileTreeProps['onRevealInExplorer']
+  onCopyPath: FileTreeProps['onCopyPath']
 }
 
-interface FileNode {
-  type: 'file'
-  name: string
-  path: string
-  file: VaultFile
+interface SortContext {
+  mode: FileTreeSortMode
+  mtimeByPath: Map<string, number>
 }
+
+const TREE_STYLE = {
+  height: '100%',
+  width: '100%',
+  '--trees-accent-override': 'var(--editorial-red)',
+  '--trees-bg-override': 'var(--sidebar)',
+  '--trees-bg-muted-override': 'var(--paper-dark)',
+  '--trees-border-color-override': 'var(--foreground)',
+  '--trees-border-radius-override': '0px',
+  '--trees-fg-override': 'var(--sidebar-foreground)',
+  '--trees-fg-muted-override': 'var(--muted-foreground)',
+  '--trees-file-icon-color': 'var(--muted-foreground)',
+  '--trees-focus-ring-color-override': 'var(--editorial-red)',
+  '--trees-focus-ring-offset-override': '-2px',
+  '--trees-focus-ring-width-override': '2px',
+  '--trees-font-family-override': 'var(--font-sans)',
+  '--trees-font-size-override': '13px',
+  '--trees-font-weight-regular-override': '400',
+  '--trees-font-weight-semibold-override': '700',
+  '--trees-item-margin-x-override': '0px',
+  '--trees-item-padding-x-override': '8px',
+  '--trees-item-row-gap-override': '8px',
+  '--trees-level-gap-override': '14px',
+  '--trees-padding-inline-override': '8px',
+  '--trees-scrollbar-thumb-override': 'color-mix(in srgb, var(--foreground) 30%, transparent)',
+  '--trees-selected-bg-override': 'var(--paper-dark)',
+  '--trees-selected-fg-override': 'var(--foreground)',
+  '--trees-selected-focused-border-color-override': 'var(--editorial-red)'
+} as CSSProperties
+
+const TREE_UNSAFE_CSS = `
+  [data-type='item'] {
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  [data-type='item'][data-item-selected='true'] {
+    box-shadow: inset 2px 0 0 var(--trees-accent);
+    font-weight: var(--trees-font-weight-semibold);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-type='item'] {
+      transition: none;
+    }
+  }
+`
 
 export function FileTree({
   files,
@@ -58,380 +100,344 @@ export function FileTree({
   onRevealInExplorer,
   onCopyPath
 }: FileTreeProps): React.JSX.Element {
-  const tree = buildTree(files, notes, sortMode)
+  const paths = useMemo(() => files.map((file) => file.relativePath), [files])
+  const filesByPath = useMemo(
+    () => new Map(files.map((file) => [file.relativePath, file])),
+    [files]
+  )
+  const filePaths = useMemo(() => new Set(paths), [paths])
+  const mtimeByPath = useMemo(
+    () => new Map(notes?.map((note) => [note.relativePath, note.mtimeMs]) ?? []),
+    [notes]
+  )
+
+  const callbacksRef = useRef<TreeCallbacks>({
+    onSelectFile,
+    onDeleteFile,
+    onRenameFile,
+    onDuplicateFile,
+    onRevealInExplorer,
+    onCopyPath
+  })
+  callbacksRef.current = {
+    onSelectFile,
+    onDeleteFile,
+    onRenameFile,
+    onDuplicateFile,
+    onRevealInExplorer,
+    onCopyPath
+  }
+
+  const filesByPathRef = useRef(filesByPath)
+  filesByPathRef.current = filesByPath
+  const filePathsRef = useRef(filePaths)
+  filePathsRef.current = filePaths
+  const pathsRef = useRef(paths)
+  pathsRef.current = paths
+  const selectedPathRef = useRef(selectedPath)
+  selectedPathRef.current = selectedPath
+  const sortContextRef = useRef<SortContext>({ mode: sortMode, mtimeByPath })
+  sortContextRef.current = { mode: sortMode, mtimeByPath }
+  const modelRef = useRef<FileTreeModel | null>(null)
+  const syncingSelectionRef = useRef(false)
+
+  const sort = useCallback<FileTreeSortComparator>((left, right) => {
+    return compareTreeEntries(left, right, sortContextRef.current)
+  }, [])
+
+  const { model } = useFileTree({
+    paths,
+    initialExpansion: 'open',
+    initialSelectedPaths: selectedPath ? [selectedPath] : [],
+    sort,
+    density: 'default',
+    itemHeight: 32,
+    icons: { set: 'minimal', colored: false },
+    renaming: {
+      canRename: (item) => !item.isFolder,
+      onRename: ({ sourcePath, destinationPath }) => {
+        const file = filesByPathRef.current.get(sourcePath)
+        if (!file) {
+          return
+        }
+
+        callbacksRef.current.onRenameFile(
+          sourcePath,
+          normalizeRenameDestination(destinationPath, file.extension)
+        )
+
+        queueMicrotask(() => {
+          modelRef.current?.resetPaths(pathsRef.current)
+        })
+      }
+    },
+    composition: {
+      contextMenu: {
+        enabled: true,
+        triggerMode: 'right-click'
+      }
+    },
+    unsafeCSS: TREE_UNSAFE_CSS,
+    onSelectionChange: (selectedPaths) => {
+      if (syncingSelectionRef.current) {
+        return
+      }
+
+      const selectedFile = selectedPaths.findLast((path) => filePathsRef.current.has(path))
+      const nextSelectedPath = selectedFile ?? selectedPathRef.current
+
+      queueMicrotask(() => {
+        const currentModel = modelRef.current
+        if (currentModel) {
+          synchronizeSelection(currentModel, nextSelectedPath, syncingSelectionRef)
+        }
+      })
+
+      if (selectedFile && selectedFile !== selectedPathRef.current) {
+        callbacksRef.current.onSelectFile(selectedFile)
+      }
+    }
+  })
+  modelRef.current = model
+
+  const selectedPaths = useFileTreeSelector(
+    model,
+    (tree) => tree.getSelectedPaths(),
+    arePathArraysEqual
+  )
+  const previousSelectedPathRef = useRef(selectedPath)
+  const hasMountedRef = useRef(false)
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
+    }
+
+    model.resetPaths(paths)
+  }, [model, mtimeByPath, paths, sortMode])
+
+  useEffect(() => {
+    if (previousSelectedPathRef.current === selectedPath) {
+      return
+    }
+
+    previousSelectedPathRef.current = selectedPath
+    if (arePathArraysEqual(selectedPaths, selectedPath ? [selectedPath] : [])) {
+      return
+    }
+
+    synchronizeSelection(model, selectedPath, syncingSelectionRef)
+  }, [model, selectedPath, selectedPaths])
 
   if (files.length === 0) {
     return (
-      <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+      <div className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
         No Markdown files found.
       </div>
     )
   }
 
   return (
-    <div className="space-y-0.5 px-2 py-2">
-      {tree.map((node) => (
-        <TreeNodeItem
-          key={node.path}
-          level={0}
-          node={node}
-          selectedPath={selectedPath}
-          onSelectFile={onSelectFile}
-          onDeleteFile={onDeleteFile}
-          onRenameFile={onRenameFile}
-          onDuplicateFile={onDuplicateFile}
-          onRevealInExplorer={onRevealInExplorer}
-          onCopyPath={onCopyPath}
-        />
-      ))}
+    <PierreFileTree
+      model={model}
+      className="block min-h-0 bg-sidebar"
+      style={TREE_STYLE}
+      aria-label="Vault files"
+      renderContextMenu={(item, context) => (
+        <TreeContextMenu item={item} context={context} model={model} callbacks={callbacksRef} />
+      )}
+    />
+  )
+}
+
+function TreeContextMenu({
+  item,
+  context,
+  model,
+  callbacks
+}: {
+  item: ContextMenuItem
+  context: ContextMenuOpenContext
+  model: FileTreeModel
+  callbacks: React.RefObject<TreeCallbacks>
+}): React.JSX.Element | null {
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (item.kind === 'directory') {
+      context.close()
+      return
+    }
+
+    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+  }, [context, item.kind])
+
+  if (item.kind === 'directory') {
+    return null
+  }
+
+  const runAction = (action: () => void): void => {
+    context.close()
+    action()
+  }
+
+  const startRenaming = (): void => {
+    context.close({ restoreFocus: false })
+    queueMicrotask(() => {
+      model.startRenaming(item.path)
+    })
+  }
+
+  return (
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label={`Actions for ${item.name}`}
+      data-file-tree-context-menu-root="true"
+      className="absolute left-0 top-0 z-50 min-w-[190px] border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
+      onKeyDown={handleMenuKeyDown(context)}
+    >
+      <TreeContextMenuItem
+        icon={<Files className="size-3.5" aria-hidden="true" />}
+        label="Duplicate"
+        onSelect={() => runAction(() => callbacks.current.onDuplicateFile(item.path))}
+      />
+      <TreeContextMenuItem
+        icon={<Pencil className="size-3.5" aria-hidden="true" />}
+        label="Rename"
+        onSelect={startRenaming}
+      />
+      <TreeContextMenuItem
+        icon={<Copy className="size-3.5" aria-hidden="true" />}
+        label="Copy path"
+        onSelect={() => runAction(() => callbacks.current.onCopyPath(item.path))}
+      />
+      <TreeContextMenuItem
+        icon={<ExternalLink className="size-3.5" aria-hidden="true" />}
+        label="Reveal in explorer"
+        onSelect={() => runAction(() => callbacks.current.onRevealInExplorer(item.path))}
+      />
+      <hr className="my-1 border-0 border-t border-foreground" />
+      <TreeContextMenuItem
+        destructive
+        icon={<Trash2 className="size-3.5" aria-hidden="true" />}
+        label="Delete"
+        onSelect={() => runAction(() => callbacks.current.onDeleteFile(item.path))}
+      />
     </div>
   )
 }
 
-function TreeNodeItem({
-  node,
-  level,
-  selectedPath,
-  onSelectFile,
-  onDeleteFile,
-  onRenameFile,
-  onDuplicateFile,
-  onRevealInExplorer,
-  onCopyPath
-}: {
-  node: TreeNode
-  level: number
-  selectedPath: string | null
-  onSelectFile: (relativePath: string) => void
-  onDeleteFile: (relativePath: string) => void
-  onRenameFile: (fromRelativePath: string, toRelativePath: string) => void
-  onDuplicateFile: (relativePath: string) => void
-  onRevealInExplorer: (relativePath: string) => void
-  onCopyPath: (relativePath: string) => void
-}): React.JSX.Element {
-  if (node.type === 'directory') {
-    return (
-      <div>
-        <div
-          className="flex h-7 items-center gap-1.5 px-2 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
-          style={{ paddingLeft: `${level * 14 + 8}px` }}
-          title={node.path}
-        >
-          <ChevronRight className="size-3 rotate-90" aria-hidden="true" />
-          <FolderOpen className="size-3.5" aria-hidden="true" />
-          <span className="truncate">{node.name}</span>
-        </div>
-        {node.children.map((child) => (
-          <TreeNodeItem
-            key={child.path}
-            level={level + 1}
-            node={child}
-            selectedPath={selectedPath}
-            onSelectFile={onSelectFile}
-            onDeleteFile={onDeleteFile}
-            onRenameFile={onRenameFile}
-            onDuplicateFile={onDuplicateFile}
-            onRevealInExplorer={onRevealInExplorer}
-            onCopyPath={onCopyPath}
-          />
-        ))}
-      </div>
-    )
-  }
-
-  return (
-    <FileNodeButton
-      node={node}
-      level={level}
-      isSelected={selectedPath === node.file.relativePath}
-      onSelectFile={onSelectFile}
-      onDeleteFile={onDeleteFile}
-      onRenameFile={onRenameFile}
-      onDuplicateFile={onDuplicateFile}
-      onRevealInExplorer={onRevealInExplorer}
-      onCopyPath={onCopyPath}
-    />
-  )
-}
-
-function FileNodeButton({
-  node,
-  level,
-  isSelected,
-  onSelectFile,
-  onDeleteFile,
-  onRenameFile,
-  onDuplicateFile,
-  onRevealInExplorer,
-  onCopyPath
-}: {
-  node: FileNode
-  level: number
-  isSelected: boolean
-  onSelectFile: (relativePath: string) => void
-  onDeleteFile: (relativePath: string) => void
-  onRenameFile: (fromRelativePath: string, toRelativePath: string) => void
-  onDuplicateFile: (relativePath: string) => void
-  onRevealInExplorer: (relativePath: string) => void
-  onCopyPath: (relativePath: string) => void
-}): React.JSX.Element {
-  const [isRenaming, setIsRenaming] = useState(false)
-
-  return (
-    <ContextMenuPrimitive.Root>
-      <ContextMenuPrimitive.Trigger asChild>
-        {isRenaming ? (
-          <RenameInput
-            node={node}
-            level={level}
-            onDone={(newPath) => {
-              setIsRenaming(false)
-              if (newPath && newPath !== node.file.relativePath) {
-                onRenameFile(node.file.relativePath, newPath)
-              }
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className={cn(
-              'flex h-8 w-full items-center gap-2 border-l-2 px-2 text-left text-[13px] transition-colors',
-              isSelected
-                ? 'border-l-[var(--editorial-red)] bg-[var(--paper-dark)] text-foreground font-medium'
-                : 'border-l-transparent text-foreground/80 hover:bg-foreground hover:text-background'
-            )}
-            style={{ paddingLeft: `${level * 14 + 8}px` }}
-            title={node.file.relativePath}
-            aria-current={isSelected ? 'page' : undefined}
-            onClick={() => onSelectFile(node.file.relativePath)}
-          >
-            <FileText className="size-[15px] shrink-0 opacity-60" aria-hidden="true" />
-            <span className="truncate">{node.name}</span>
-          </button>
-        )}
-      </ContextMenuPrimitive.Trigger>
-      <ContextMenuPrimitive.Portal>
-        <ContextMenuPrimitive.Content
-          className="z-50 min-w-[180px] border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
-          data-slot="context-menu-content"
-        >
-          <ContextMenuItem
-            onSelect={() => onDuplicateFile(node.file.relativePath)}
-            icon={<Files className="size-3.5" aria-hidden="true" />}
-            label="Duplicate"
-          />
-          <ContextMenuItem
-            onSelect={() => setIsRenaming(true)}
-            icon={<Pencil className="size-3.5" aria-hidden="true" />}
-            label="Rename"
-          />
-          <ContextMenuItem
-            onSelect={() => onCopyPath(node.file.relativePath)}
-            icon={<Copy className="size-3.5" aria-hidden="true" />}
-            label="Copy path"
-          />
-          <ContextMenuItem
-            onSelect={() => onRevealInExplorer(node.file.relativePath)}
-            icon={<ExternalLink className="size-3.5" aria-hidden="true" />}
-            label="Reveal in explorer"
-          />
-          <ContextMenuPrimitive.Separator className="my-1 h-0 border-t border-foreground" />
-          <ContextMenuItem
-            onSelect={() => onDeleteFile(node.file.relativePath)}
-            icon={<Trash2 className="size-3.5" aria-hidden="true" />}
-            label="Delete"
-            destructive
-          />
-        </ContextMenuPrimitive.Content>
-      </ContextMenuPrimitive.Portal>
-    </ContextMenuPrimitive.Root>
-  )
-}
-
-function ContextMenuItem({
-  onSelect,
+function TreeContextMenuItem({
   icon,
   label,
-  destructive
+  onSelect,
+  destructive = false
 }: {
-  onSelect: () => void
   icon: React.ReactNode
   label: string
+  onSelect: () => void
   destructive?: boolean
 }): React.JSX.Element {
   return (
-    <ContextMenuPrimitive.Item
-      onSelect={onSelect}
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onSelect}
       className={cn(
-        'flex cursor-default select-none items-center gap-2 px-2 py-1.5 text-[13px] outline-none focus:bg-foreground focus:text-background data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        destructive && 'text-destructive focus:bg-destructive focus:text-white'
+        'flex w-full cursor-default select-none items-center gap-2 px-2 py-1.5 text-left text-[13px] outline-none transition-colors focus-visible:bg-foreground focus-visible:text-background motion-reduce:transition-none',
+        destructive &&
+          'text-destructive focus-visible:bg-destructive focus-visible:text-destructive-foreground'
       )}
     >
       {icon}
       <span>{label}</span>
-    </ContextMenuPrimitive.Item>
+    </button>
   )
 }
 
-/**
- * Inline rename input — replaces the file label in the tree. Enter confirms
- * (with extension re-attached if the user omitted it), Escape cancels.
- */
-function RenameInput({
-  node,
-  level,
-  onDone
-}: {
-  node: FileNode
-  level: number
-  onDone: (newRelativePath: string | null) => void
-}): React.JSX.Element {
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const [value, setValue] = useState(stripExtension(node.name))
-
-  useEffect(() => {
-    inputRef.current?.focus()
-    inputRef.current?.select()
-  }, [])
-
-  const commit = (): void => {
-    const trimmed = value.trim()
-
-    if (!trimmed) {
-      onDone(null)
+function handleMenuKeyDown(context: ContextMenuOpenContext) {
+  return (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      context.close()
       return
     }
 
-    // Re-attach the original extension if the user stripped it. We don't
-    // allow changing the extension through rename — only the stem.
-    const newName = trimmed.endsWith(node.file.extension)
-      ? trimmed
-      : `${trimmed}${node.file.extension}`
-    const newPath = node.file.directory ? `${node.file.directory}/${newName}` : newName
-    onDone(newPath)
-  }
-
-  return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onChange={(event) => setValue(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          commit()
-        } else if (event.key === 'Escape') {
-          event.preventDefault()
-          onDone(null)
-        }
-      }}
-      onClick={(event) => event.stopPropagation()}
-      className="h-8 w-full border-2 border-[var(--editorial-red)] bg-background px-2 text-[13px] outline-none ring-2 ring-[color-mix(in_srgb,var(--editorial-red)_25%,transparent)]"
-      style={{ marginLeft: `${level * 14 + 8}px` }}
-    />
-  )
-}
-
-function stripExtension(name: string): string {
-  const dot = name.lastIndexOf('.')
-  return dot > 0 ? name.slice(0, dot) : name
-}
-
-function buildTree(
-  files: VaultFile[],
-  notes: Array<{ relativePath: string; mtimeMs: number }> | undefined,
-  sortMode: FileTreeSortMode
-): TreeNode[] {
-  const root: DirectoryNode = {
-    type: 'directory',
-    name: '',
-    path: '',
-    children: []
-  }
-  const directories = new Map<string, DirectoryNode>([['', root]])
-
-  for (const file of files) {
-    const parts = file.relativePath.split('/')
-    const fileName = parts.at(-1) ?? file.name
-    let current = root
-    const pathParts: string[] = []
-
-    for (const directoryName of parts.slice(0, -1)) {
-      pathParts.push(directoryName)
-      const directoryPath = pathParts.join('/')
-      let directory = directories.get(directoryPath)
-
-      if (!directory) {
-        directory = {
-          type: 'directory',
-          name: directoryName,
-          path: directoryPath,
-          children: []
-        }
-        directories.set(directoryPath, directory)
-        current.children.push(directory)
-      }
-
-      current = directory
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      return
     }
 
-    current.children.push({
-      type: 'file',
-      name: fileName,
-      path: file.relativePath,
-      file
-    })
-  }
-
-  const mtimeByPath = new Map<string, number>()
-  if (notes) {
-    for (const note of notes) {
-      mtimeByPath.set(note.relativePath, note.mtimeMs)
+    event.preventDefault()
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+    )
+    if (items.length === 0) {
+      return
     }
-  }
 
-  sortNodes(root.children, sortMode, mtimeByPath)
-  return root.children
+    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement)
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? items.length - 1
+          : event.key === 'ArrowDown'
+            ? (currentIndex + 1) % items.length
+            : (currentIndex - 1 + items.length) % items.length
+    items[nextIndex]?.focus()
+  }
 }
 
-function sortNodes(
-  nodes: TreeNode[],
-  sortMode: FileTreeSortMode,
-  mtimeByPath: Map<string, number>
+function synchronizeSelection(
+  model: FileTreeModel,
+  selectedPath: string | null,
+  syncingSelectionRef: React.RefObject<boolean>
 ): void {
-  nodes.sort((left, right) => {
-    // Directories always sort before files regardless of sort mode.
-    if (left.type !== right.type) {
-      return left.type === 'directory' ? -1 : 1
-    }
+  const currentPaths = model.getSelectedPaths()
+  const desiredPaths = selectedPath ? [selectedPath] : []
+  if (arePathArraysEqual(currentPaths, desiredPaths)) {
+    return
+  }
 
-    if (left.type === 'directory' && right.type === 'directory') {
-      return left.name.localeCompare(right.name)
-    }
+  syncingSelectionRef.current = true
+  for (const currentPath of currentPaths) {
+    model.getItem(currentPath)?.deselect()
+  }
+  if (selectedPath) {
+    model.getItem(selectedPath)?.select()
+  }
+  syncingSelectionRef.current = false
+}
 
-    if (left.type === 'file' && right.type === 'file') {
-      if (sortMode === 'modified-desc') {
-        const leftMtime = mtimeByPath.get(left.file.relativePath) ?? 0
-        const rightMtime = mtimeByPath.get(right.file.relativePath) ?? 0
-        if (leftMtime !== rightMtime) {
-          return rightMtime - leftMtime
-        }
-      }
-      // name and created-desc both fall back to alphabetical — we don't yet
-      // track creation time in the index, so Created degrades to Name with
-      // a hint that this is the fallback (mtimeMs is the closest proxy we
-      // have on disk for cross-filesystem portability).
-      return left.name.localeCompare(right.name)
-    }
+function arePathArraysEqual(previous: readonly string[], next: readonly string[]): boolean {
+  return previous.length === next.length && previous.every((path, index) => path === next[index])
+}
 
-    return 0
-  })
+function compareTreeEntries(
+  left: FileTreeSortEntry,
+  right: FileTreeSortEntry,
+  context: SortContext
+): number {
+  if (left.isDirectory !== right.isDirectory) {
+    return left.isDirectory ? -1 : 1
+  }
 
-  for (const node of nodes) {
-    if (node.type === 'directory') {
-      sortNodes(node.children, sortMode, mtimeByPath)
+  if (!left.isDirectory && !right.isDirectory && context.mode === 'modified-desc') {
+    const leftMtime = context.mtimeByPath.get(left.path) ?? 0
+    const rightMtime = context.mtimeByPath.get(right.path) ?? 0
+    if (leftMtime !== rightMtime) {
+      return rightMtime - leftMtime
     }
   }
+
+  return left.basename.localeCompare(right.basename)
+}
+
+function normalizeRenameDestination(
+  destinationPath: string,
+  extension: VaultFile['extension']
+): string {
+  return destinationPath.endsWith(extension) ? destinationPath : `${destinationPath}${extension}`
 }

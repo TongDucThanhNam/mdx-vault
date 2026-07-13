@@ -135,11 +135,14 @@ function CreateNoteForm({
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
+            name="note-title"
+            autoComplete="off"
+            spellCheck={false}
             value={name}
-            placeholder="Note title"
+            placeholder="Note title…"
             aria-label="Note title"
             disabled={isCreating}
-            className="flex h-9 w-full min-w-0 border-2 border-foreground bg-transparent px-3 py-1 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-full min-w-0 border-2 border-foreground bg-transparent px-3 py-1 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) => {
               setName(event.target.value)
               setError(null)
@@ -154,6 +157,8 @@ function CreateNoteForm({
               Template
             </span>
             <select
+              name="note-template"
+              autoComplete="off"
               value={selectedTemplatePath}
               disabled={isCreating}
               className="h-9 w-full border-2 border-foreground bg-background px-2 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -193,7 +198,7 @@ function CreateNoteForm({
           Cancel
         </Button>
         <Button type="button" disabled={!validation.ok || isCreating} onClick={() => void submit()}>
-          {isCreating ? 'Creating' : 'Create note'}
+          {isCreating ? 'Creating…' : 'Create note'}
         </Button>
       </DialogFooter>
     </>

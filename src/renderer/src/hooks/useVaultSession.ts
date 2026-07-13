@@ -1,0 +1,383 @@
+import type { Dispatch, SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FileTreeSortMode } from '@/explorer/FileTree'
+import type { NoteEditorController } from '@/hooks/useNoteEditor'
+import type { NoteIndexController } from '@/hooks/useNoteIndex'
+import { formatError } from '@/lib/format-error'
+import { deriveNoteTitle } from '@/lib/note-title'
+import type { VaultInfo } from '@/vault/types'
+import type { RenamePlanPreview } from '../../../shared/rename'
+
+export interface RenameRequest {
+  fromRelativePath: string
+  toRelativePath: string
+  plan: RenamePlanPreview
+}
+
+interface UseVaultSessionOptions {
+  vault: VaultInfo | null
+  setVault: Dispatch<SetStateAction<VaultInfo | null>>
+  editor: NoteEditorController
+  noteIndex: NoteIndexController
+  onError: (message: string | null) => void
+  showToast: (message: string) => void
+}
+
+export function useVaultSession({
+  vault,
+  setVault,
+  editor,
+  noteIndex,
+  onError,
+  showToast
+}: UseVaultSessionOptions) {
+  const [isOpening, setIsOpening] = useState(false)
+  const [sortMode, setSortMode] = useState<FileTreeSortMode>('name')
+  const [vaultOpsPending, setVaultOpsPending] = useState(false)
+  const [trashCount, setTrashCount] = useState(0)
+  const [renameRequest, setRenameRequest] = useState<RenameRequest | null>(null)
+  const prevVaultRef = useRef(vault)
+
+  const { clearSelectedFile, loadFile, resetEditor, saveCurrentFile, selectedPathRef } = editor
+  const { bumpIndexRevision, indexRevision, setIndexNotes } = noteIndex
+
+  const refreshVaultSnapshot = useCallback(async (): Promise<void> => {
+    const [files, notes] = await Promise.all([window.vaultApi.listFiles(), window.indexApi.notes()])
+
+    setVault((currentVault) => {
+      if (!currentVault) {
+        return currentVault
+      }
+
+      return {
+        ...currentVault,
+        files
+      }
+    })
+    setIndexNotes(notes)
+  }, [setIndexNotes, setVault])
+
+  const refreshTrashCount = useCallback(async (): Promise<void> => {
+    try {
+      const entries = await window.vaultApi.listTrash()
+      setTrashCount(entries.length)
+    } catch {
+      setTrashCount(0)
+    }
+  }, [])
+
+  const createNote = useCallback(
+    async (relativePath: string, content: string): Promise<void> => {
+      await saveCurrentFile()
+      const createdPath = await window.vaultApi.createFile(relativePath, content)
+      await refreshVaultSnapshot()
+      await loadFile(createdPath, false)
+    },
+    [loadFile, refreshVaultSnapshot, saveCurrentFile]
+  )
+
+  const handleDelete = useCallback(
+    async (relativePath: string): Promise<void> => {
+      setVaultOpsPending(true)
+      onError(null)
+      try {
+        await window.vaultApi.deleteFile(relativePath)
+        clearSelectedFile(relativePath)
+        await refreshVaultSnapshot()
+        await refreshTrashCount()
+        showToast(`Moved "${deriveNoteTitle(relativePath)}" to trash`)
+      } catch (deleteError) {
+        onError(formatError(deleteError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [clearSelectedFile, onError, refreshTrashCount, refreshVaultSnapshot, showToast]
+  )
+
+  const applyRename = useCallback(
+    async (
+      fromRelativePath: string,
+      toRelativePath: string,
+      updateLinks: boolean
+    ): Promise<void> => {
+      const result = await window.vaultApi.renameFile(fromRelativePath, toRelativePath, updateLinks)
+      const activePath = selectedPathRef.current
+      const reloadPath =
+        activePath === fromRelativePath
+          ? result.newRelativePath
+          : activePath && result.rewrittenFiles.includes(activePath)
+            ? activePath
+            : null
+
+      if (reloadPath) {
+        await loadFile(reloadPath, false)
+      }
+
+      await refreshVaultSnapshot()
+      showToast(
+        result.updatedLinks > 0
+          ? `Renamed and updated ${result.updatedLinks} link${result.updatedLinks === 1 ? '' : 's'}`
+          : `Renamed to "${deriveNoteTitle(result.newRelativePath)}"`
+      )
+    },
+    [loadFile, refreshVaultSnapshot, selectedPathRef, showToast]
+  )
+
+  const commitRename = useCallback(
+    async (
+      fromRelativePath: string,
+      toRelativePath: string,
+      updateLinks: boolean
+    ): Promise<void> => {
+      setVaultOpsPending(true)
+      onError(null)
+
+      try {
+        if (!(await saveCurrentFile())) {
+          return
+        }
+
+        await applyRename(fromRelativePath, toRelativePath, updateLinks)
+        setRenameRequest(null)
+      } catch (renameError) {
+        onError(formatError(renameError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [applyRename, onError, saveCurrentFile]
+  )
+
+  const handleRename = useCallback(
+    async (fromRelativePath: string, toRelativePath: string): Promise<void> => {
+      if (fromRelativePath === toRelativePath) {
+        return
+      }
+
+      setVaultOpsPending(true)
+      onError(null)
+
+      try {
+        if (!(await saveCurrentFile())) {
+          return
+        }
+
+        const plan = await window.vaultApi.planRename(fromRelativePath, toRelativePath)
+
+        if (plan.linkCount > 0) {
+          setRenameRequest({ fromRelativePath, toRelativePath, plan })
+        } else {
+          await applyRename(fromRelativePath, toRelativePath, true)
+        }
+      } catch (renameError) {
+        onError(formatError(renameError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [applyRename, onError, saveCurrentFile]
+  )
+
+  const handleDuplicate = useCallback(
+    async (relativePath: string): Promise<void> => {
+      setVaultOpsPending(true)
+      onError(null)
+      try {
+        const newPath = await window.vaultApi.duplicateFile(relativePath)
+        await refreshVaultSnapshot()
+        await loadFile(newPath, false)
+        showToast(`Duplicated to "${deriveNoteTitle(newPath)}"`)
+      } catch (duplicateError) {
+        onError(formatError(duplicateError))
+      } finally {
+        setVaultOpsPending(false)
+      }
+    },
+    [loadFile, onError, refreshVaultSnapshot, showToast]
+  )
+
+  const handleRevealInExplorer = useCallback(
+    async (relativePath: string): Promise<void> => {
+      try {
+        await window.vaultApi.revealInExplorer(relativePath)
+      } catch (revealError) {
+        onError(formatError(revealError))
+      }
+    },
+    [onError]
+  )
+
+  const handleCopyPath = useCallback(
+    async (relativePath: string): Promise<void> => {
+      try {
+        const absolutePath = await window.vaultApi.resolveAbsolutePath(relativePath)
+        await navigator.clipboard.writeText(absolutePath)
+        showToast(`Copied ${absolutePath}`)
+      } catch (copyError) {
+        onError(formatError(copyError))
+      }
+    },
+    [onError, showToast]
+  )
+
+  const handleEmptyTrash = useCallback(async (): Promise<void> => {
+    setVaultOpsPending(true)
+    onError(null)
+    try {
+      await window.vaultApi.emptyTrash()
+      await refreshTrashCount()
+      showToast('Trash emptied')
+    } catch (emptyTrashError) {
+      onError(formatError(emptyTrashError))
+    } finally {
+      setVaultOpsPending(false)
+    }
+  }, [onError, refreshTrashCount, showToast])
+
+  const handleSortModeChange = useCallback((next: FileTreeSortMode): void => {
+    setSortMode(next)
+    void window.appApi.setFileTreeSort(next).catch(() => {
+      // Persistence is best-effort — the in-memory sort still applies.
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+    void window.appApi.getFileTreeSort().then((persisted) => {
+      setSortMode(persisted)
+    })
+    queueMicrotask(() => {
+      void refreshTrashCount()
+    })
+  }, [vault, refreshTrashCount])
+
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+    queueMicrotask(() => {
+      void refreshTrashCount()
+    })
+  }, [indexRevision, vault, refreshTrashCount])
+
+  useEffect(() => {
+    const hadVault = prevVaultRef.current
+    prevVaultRef.current = vault
+    if (hadVault && !vault) {
+      queueMicrotask(() => {
+        setTrashCount(0)
+      })
+    }
+  }, [vault])
+
+  const openVaultInternal = useCallback(
+    async (openedVault: VaultInfo | null): Promise<void> => {
+      if (!openedVault) {
+        return
+      }
+
+      setVault(openedVault)
+      setIndexNotes(await window.indexApi.notes())
+      bumpIndexRevision()
+      resetEditor()
+
+      const firstFile =
+        openedVault.files.find((file) => file.relativePath.endsWith('/Welcome.mdx')) ??
+        openedVault.files.find((file) => file.relativePath === 'Welcome.mdx') ??
+        openedVault.files[0]
+
+      if (firstFile) {
+        await loadFile(firstFile.relativePath, false)
+      }
+    },
+    [bumpIndexRevision, loadFile, resetEditor, setIndexNotes, setVault]
+  )
+
+  const openVault = useCallback(async (): Promise<void> => {
+    await saveCurrentFile()
+    setIsOpening(true)
+    onError(null)
+
+    try {
+      const openedVault = await window.vaultApi.openVault()
+      await openVaultInternal(openedVault)
+    } catch (openError) {
+      onError(formatError(openError))
+    } finally {
+      setIsOpening(false)
+    }
+  }, [onError, openVaultInternal, saveCurrentFile])
+
+  const reopenVault = useCallback(
+    async (path: string): Promise<boolean> => {
+      setIsOpening(true)
+      onError(null)
+
+      try {
+        const openedVault = await window.vaultApi.openVaultPath(path)
+        await openVaultInternal(openedVault)
+        return openedVault !== null
+      } catch (reopenError) {
+        console.warn('Failed to reopen last vault:', reopenError)
+        return false
+      } finally {
+        setIsOpening(false)
+      }
+    },
+    [onError, openVaultInternal]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    void window.vaultApi.lastOpenVault().then((path) => {
+      if (cancelled || !path) {
+        return
+      }
+      void reopenVault(path)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [reopenVault])
+
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+
+    return window.indexApi.onDidChange(() => {
+      bumpIndexRevision()
+
+      void refreshVaultSnapshot().catch((refreshError: unknown) => {
+        onError(formatError(refreshError))
+      })
+    })
+  }, [bumpIndexRevision, onError, refreshVaultSnapshot, vault])
+
+  return {
+    isOpening,
+    sortMode,
+    vaultOpsPending,
+    trashCount,
+    renameRequest,
+    setRenameRequest,
+    refreshVaultSnapshot,
+    createNote,
+    handleDelete,
+    commitRename,
+    handleRename,
+    handleDuplicate,
+    handleRevealInExplorer,
+    handleCopyPath,
+    handleEmptyTrash,
+    handleSortModeChange,
+    openVault
+  }
+}
+
+export type VaultSessionController = ReturnType<typeof useVaultSession>

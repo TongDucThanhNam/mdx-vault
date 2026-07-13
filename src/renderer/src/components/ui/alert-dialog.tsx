@@ -22,7 +22,10 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
-      className={cn('fixed inset-0 z-50 bg-black/45', className)}
+      className={cn(
+        'fixed inset-0 z-50 overscroll-contain bg-background/75 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none',
+        className
+      )}
       {...props}
     />
   )
@@ -38,7 +41,7 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 gap-4 border-2 border-foreground bg-background p-5 shadow-[6px_6px_0_0_var(--foreground)]',
+          'fixed top-1/2 left-1/2 z-50 grid w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 gap-5 border-2 border-foreground bg-card p-5 shadow-[4px_4px_0_0_var(--foreground)] duration-150 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none',
           className
         )}
         {...props}
@@ -58,7 +61,12 @@ function AlertDialogFooter({
   className,
   ...props
 }: React.ComponentProps<'div'>): React.JSX.Element {
-  return <div className={cn('flex justify-end gap-2', className)} {...props} />
+  return (
+    <div
+      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+      {...props}
+    />
+  )
 }
 
 function AlertDialogTitle({
@@ -68,7 +76,10 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn('font-display text-lg leading-tight font-black tracking-tight', className)}
+      className={cn(
+        'text-balance font-display text-xl leading-tight font-black tracking-tight',
+        className
+      )}
       {...props}
     />
   )

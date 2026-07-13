@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
+
   /* "Editorial newspaper" — paper white + ink black + red accent.
      Sự ấm của paper (#f9f9f7) quan trọng — không phải zinc, không phải cream.
      Border mặc định = ink (#111111) — đây là device cấu trúc chính. */
@@ -63,6 +65,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* "Tonight's edition" — same grammar, inverted. Warm-graphite chứ không phải dead-black.
      Text giữ warmth nhỏ để đọc như "ink on slate", không phải terminal. */
   --background: oklch(0.18 0.005 60);

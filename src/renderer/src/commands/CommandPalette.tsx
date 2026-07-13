@@ -111,20 +111,24 @@ export function CommandPalette({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/60 px-4 pt-[12vh] backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-popover shadow-[6px_6px_0_0_var(--foreground)]"
+        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
       >
-        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3">
+        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
+            name="command-query"
+            autoComplete="off"
+            spellCheck={false}
             value={query}
             className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Run command"
+            placeholder="Run command…"
+            aria-label="Run command"
             onChange={(event) => {
               setQuery(event.target.value)
               setSelectedIndex(0)
@@ -142,78 +146,77 @@ export function CommandPalette({
             results.map(({ action, pinned, recent }, index) => {
               const isActive = index === activeIndex
               return (
-                <button
+                <div
                   key={action.id}
-                  type="button"
-                  disabled={action.disabled}
                   className={cn(
-                    'flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                    'flex min-h-14 w-full items-center transition-colors motion-reduce:transition-none',
                     action.disabled
                       ? 'cursor-not-allowed opacity-45'
                       : 'hover:bg-foreground hover:text-background',
                     isActive && !action.disabled && 'bg-foreground text-background'
                   )}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  onClick={() => void runAction(action)}
                 >
-                  <CommandIcon
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium">{action.title}</span>
-                      <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        {action.category}
+                  <button
+                    type="button"
+                    disabled={action.disabled}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    onClick={() => void runAction(action)}
+                  >
+                    <CommandIcon
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{action.title}</span>
+                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {action.category}
+                        </span>
+                        {pinned ? (
+                          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Pinned
+                          </span>
+                        ) : recent ? (
+                          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Recent
+                          </span>
+                        ) : null}
                       </span>
-                      {pinned ? (
-                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Pinned
-                        </span>
-                      ) : recent ? (
-                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Recent
-                        </span>
-                      ) : null}
+                      <span className="block truncate font-mono text-xs text-muted-foreground">
+                        {action.description}
+                      </span>
                     </span>
-                    <span className="block truncate font-mono text-xs text-muted-foreground">
-                      {action.description}
-                    </span>
-                  </span>
-                  {action.hotkeys && action.hotkeys.length > 0 ? (
-                    <span className="hidden shrink-0 gap-1 sm:flex">
-                      {action.hotkeys.map((hotkey) => (
-                        <span
-                          key={hotkey}
-                          className="border border-current px-1 py-0.5 font-mono text-[10px] leading-none"
-                        >
-                          {hotkey}
-                        </span>
-                      ))}
-                    </span>
-                  ) : null}
-                  <span
-                    role="button"
-                    tabIndex={-1}
+                    {action.hotkeys && action.hotkeys.length > 0 ? (
+                      <span className="hidden shrink-0 gap-1 sm:flex">
+                        {action.hotkeys.map((hotkey) => (
+                          <span
+                            key={hotkey}
+                            className="border border-current px-1 py-0.5 font-mono text-[10px] leading-none"
+                          >
+                            {hotkey}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                    {isActive && !action.disabled ? (
+                      <CornerDownLeft className="size-3.5 shrink-0" aria-hidden="true" />
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={action.disabled}
                     title={pinned ? 'Unpin command' : 'Pin command'}
                     aria-label={pinned ? 'Unpin command' : 'Pin command'}
                     className={cn(
-                      'flex size-7 shrink-0 items-center justify-center border border-current',
+                      'mr-2 flex size-8 shrink-0 items-center justify-center border border-current outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none',
                       pinned ? 'opacity-100' : 'opacity-45'
                     )}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      togglePin(action.id)
-                    }}
+                    onClick={() => togglePin(action.id)}
                   >
                     <Pin className="size-3.5" aria-hidden="true" />
-                  </span>
-                  {isActive && !action.disabled ? (
-                    <CornerDownLeft className="size-3.5 shrink-0" aria-hidden="true" />
-                  ) : null}
-                </button>
+                  </button>
+                </div>
               )
             })
           )}

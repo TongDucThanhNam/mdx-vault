@@ -108,20 +108,24 @@ export function QuickSwitcher({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/60 px-4 pt-[12vh] backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Open note"
-        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-popover shadow-[6px_6px_0_0_var(--foreground)]"
+        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
       >
-        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3">
+        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
+            name="quick-switcher-query"
+            autoComplete="off"
+            spellCheck={false}
             value={query}
             className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Open note"
+            placeholder="Open note…"
+            aria-label="Open note"
             onChange={(event) => {
               setQuery(event.target.value)
               setSelectedIndex(0)
@@ -143,7 +147,7 @@ export function QuickSwitcher({
                   key={note.relativePath}
                   type="button"
                   className={cn(
-                    'flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                    'flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
                     index === activeIndex && 'bg-foreground text-background'
                   )}
                   title={note.relativePath}
@@ -168,7 +172,7 @@ export function QuickSwitcher({
                   type="button"
                   disabled={isCreating}
                   className={cn(
-                    'flex min-h-12 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                    'flex min-h-12 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50',
                     activeIndex === results.length && 'bg-foreground text-background'
                   )}
                   onMouseEnter={() => setSelectedIndex(results.length)}
@@ -177,7 +181,7 @@ export function QuickSwitcher({
                   <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      {isCreating ? 'Creating note' : `Create "${trimmedQuery}"`}
+                      {isCreating ? 'Creating note…' : `Create "${trimmedQuery}"`}
                     </span>
                     <span className="block truncate font-mono text-xs text-muted-foreground">
                       New MDX note
