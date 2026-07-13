@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'crypto'
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
+import { lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, writeFile } from 'fs/promises'
 import { dirname, extname, isAbsolute, relative, resolve } from 'path'
 import { posix as pathPosix } from 'path'
 import { build, type Plugin } from 'esbuild'
@@ -177,9 +177,7 @@ export class SandboxService {
     } catch (error) {
       return { ok: false, errors: [formatBuildError(error)] }
     } finally {
-      void rm(draftRoot, { recursive: true, force: true }).catch(() => {
-        /* best-effort cleanup; nothing else needs this folder */
-      })
+      await rm(draftRoot, { recursive: true, force: true })
     }
   }
 
@@ -283,6 +281,7 @@ export class SandboxService {
       throw new Error(`Dataset path is not listed in manifest permissions: ${requestedPath}`)
     }
 
+    await assertPathInsideVault(this.vault.rootPath, safeJoin(this.vault.rootPath, requestedPath))
     return this.vault.readAssetFile(requestedPath)
   }
 
@@ -342,6 +341,7 @@ export class SandboxService {
 
     const htmlPath = safeJoin(this.vault.rootPath, htmlRelativePath)
     await assertFile(htmlPath, 'SandboxedHTML file not found')
+    await assertPathInsideVault(this.vault.rootPath, htmlPath)
 
     return {
       htmlRelativePath,
@@ -373,6 +373,9 @@ export class SandboxService {
 
     await assertDirectory(rootPath, 'Interactive folder not found')
     await assertFile(componentPath, 'component.tsx not found')
+    await assertPathInsideVault(this.vault.rootPath, rootPath)
+    await assertPathInsideVault(this.vault.rootPath, componentPath)
+    await assertNoSymbolicLinks(rootPath)
 
     return {
       rootRelativePath,
@@ -385,13 +388,9 @@ export class SandboxService {
     rootRelativePath: string
   ): Promise<{ data: SandboxManifest; raw: string }> {
     const manifestPath = safeJoin(this.vault.rootPath, `${rootRelativePath}/manifest.json`)
-    let raw: string
-
-    try {
-      raw = await readFile(manifestPath, 'utf8')
-    } catch {
-      throw new Error('manifest.json is required for sandbox content')
-    }
+    await assertFile(manifestPath, 'manifest.json is required for sandbox content')
+    await assertPathInsideVault(this.vault.rootPath, manifestPath)
+    const raw = await readFile(manifestPath, 'utf8')
 
     let parsed: unknown
 
@@ -918,6 +917,40 @@ async function assertDirectory(path: string, message: string): Promise<void> {
     }
   } catch {
     throw new Error(message)
+  }
+}
+
+async function assertPathInsideVault(vaultRoot: string, targetPath: string): Promise<void> {
+  try {
+    const [resolvedRoot, resolvedTarget] = await Promise.all([
+      realpath(vaultRoot),
+      realpath(targetPath)
+    ])
+
+    if (!isPathInside(resolvedRoot, resolvedTarget)) {
+      throw new Error('Sandbox path resolves outside the vault root')
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === 'Sandbox path resolves outside the vault root'
+    ) {
+      throw error
+    }
+
+    throw new Error('Sandbox path could not be resolved safely')
+  }
+}
+
+async function assertNoSymbolicLinks(rootPath: string): Promise<void> {
+  const entries = await readdir(rootPath, { recursive: true })
+
+  for (const entry of entries) {
+    const entryPath = resolve(rootPath, entry)
+
+    if ((await lstat(entryPath)).isSymbolicLink()) {
+      throw new Error('Symbolic links are not allowed in sandbox interactives')
+    }
   }
 }
 
