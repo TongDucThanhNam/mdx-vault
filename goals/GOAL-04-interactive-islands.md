@@ -37,24 +37,24 @@ Mỗi component tuân tiêu chuẩn docs/product-vision.md: thao tác biến qua
 
 ## Constraints
 
-- [ ] Mọi component đăng ký qua registry của GOAL-03 — không hardcode vào components map
-- [ ] KHÔNG dùng `eval()`/`new Function()` cho expression của EquationSlider — viết parser số học nhỏ (+-*/^, ngoặc, biến) hoặc bảng công thức có sẵn
-- [ ] `DataChart src` chỉ đọc trong vault qua safeJoin IPC; file ngoài vault → lỗi rõ ràng
-- [ ] Chart lib: dùng **recharts** (đã cài sẵn, user đã chốt) cho DataChart và đồ thị mini của EquationSlider — KHÔNG tự vẽ SVG, KHÔNG cài thêm chart lib khác
-- [ ] Component phải render tốt trong khổ preview ~800px, responsive khi pane hẹp
-- [ ] KHÔNG đụng sandbox/manifest/AI
-- [ ] Blocker → DỪNG và hỏi
+- [x] Mọi component đăng ký qua registry của GOAL-03 — không hardcode vào components map
+- [x] KHÔNG dùng `eval()`/`new Function()` cho expression của EquationSlider — viết parser số học nhỏ (+-*/^, ngoặc, biến) hoặc bảng công thức có sẵn
+- [x] `DataChart src` chỉ đọc trong vault qua safeJoin IPC; file ngoài vault → lỗi rõ ràng
+- [x] Chart lib: dùng **recharts** (đã cài sẵn, user đã chốt) cho DataChart và đồ thị mini của EquationSlider — KHÔNG tự vẽ SVG, KHÔNG cài thêm chart lib khác
+- [x] Component phải render tốt trong khổ preview ~800px, responsive khi pane hẹp
+- [x] KHÔNG đụng sandbox/manifest/AI
+- [x] Blocker → DỪNG và hỏi
 
 ## Success Criteria
 
-- [ ] `bun run typecheck` && `bun run lint` pass
-- [ ] example-vault có note demo cho TỪNG component, render và tương tác được
-- [ ] QuizBlock: chọn sai → feedback + explanation; chọn đúng → xác nhận
-- [ ] EquationSlider: kéo slider → kết quả + đồ thị cập nhật không giật (không re-compile MDX khi kéo)
-- [ ] DataChart đọc được `example-vault/assets/datasets/*.csv` và render; file không tồn tại → error card thân thiện
-- [ ] AlgorithmVisualizer binary-search: play/pause/step hoạt động, pointer low/mid/high hiển thị đúng từng bước
-- [ ] Ctrl+K → chọn QuizBlock → JSX snippet hợp lệ chèn tại cursor, preview render ngay
-- [ ] Props sai → warning card của GOAL-03 (regression check)
+- [x] `bun run typecheck` && `bun run lint` pass
+- [x] example-vault có note demo cho TỪNG component, render và tương tác được
+- [x] QuizBlock: chọn sai → feedback + explanation; chọn đúng → xác nhận
+- [x] EquationSlider: kéo slider → kết quả + đồ thị cập nhật không giật (không re-compile MDX khi kéo)
+- [x] DataChart đọc được `example-vault/assets/datasets/*.csv` và render; file không tồn tại → error card thân thiện
+- [x] AlgorithmVisualizer binary-search: play/pause/step hoạt động, pointer low/mid/high hiển thị đúng từng bước
+- [x] Ctrl+K → chọn QuizBlock → JSX snippet hợp lệ chèn tại cursor, preview render ngay
+- [x] Props sai → warning card của GOAL-03 (regression check)
 
 ## Execution Plan
 

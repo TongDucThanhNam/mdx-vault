@@ -1,0 +1,21 @@
+---
+title: QuizBlock Demo
+tags: [demo, interactive-islands]
+---
+
+# QuizBlock Demo
+
+Use this block when a note needs a quick concept check with immediate feedback.
+
+<QuizBlock
+  question="Which invariant makes binary search valid?"
+  options={["The input is sorted", "The input is random", "The array has no duplicates"]}
+  answerIndex={0}
+  explanation="Binary search can discard half of the search space only when ordering is known."
+/>
+
+## Invalid props regression
+
+This block should render the GOAL-03 validation warning card.
+
+<QuizBlock question="Broken quiz" options={["Only one option"]} answerIndex={3} />

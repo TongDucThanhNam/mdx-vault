@@ -13,7 +13,7 @@ export interface AlgorithmVisualizerProps {
   speed?: number
 }
 
-type AlgorithmStep =
+export type AlgorithmStep =
   | {
       algorithm: 'binary-search'
       values: number[]
@@ -232,7 +232,9 @@ function PointerBadge({
   )
 }
 
-function createAlgorithmSteps({
+// The pure step builder is exported from its owning module for deterministic regression tests.
+// eslint-disable-next-line react-refresh/only-export-components
+export function createAlgorithmSteps({
   algorithm,
   data,
   target
