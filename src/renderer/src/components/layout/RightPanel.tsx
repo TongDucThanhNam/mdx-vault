@@ -2,7 +2,6 @@ import { Hash, Link2, ListTree } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
-import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { BacklinksPanel } from '@/panels/BacklinksPanel'
 import { OutlinePanel } from '@/panels/OutlinePanel'
@@ -12,7 +11,7 @@ export type NavigationPanel = 'outline' | 'tags' | 'backlinks'
 
 interface RightPanelProps {
   navigationPanel: NavigationPanel
-  editor: NoteEditorController
+  selectedPath: string | null
   noteIndex: NoteIndexController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
@@ -21,7 +20,7 @@ interface RightPanelProps {
 
 export function RightPanel({
   navigationPanel,
-  editor,
+  selectedPath,
   noteIndex,
   noteActions,
   editorInteractions,
@@ -74,7 +73,7 @@ export function RightPanel({
         {navigationPanel === 'outline' ? (
           <OutlinePanel
             headings={noteIndex.outlineHeadings}
-            selectedPath={editor.selectedPath}
+            selectedPath={selectedPath}
             onSelectHeading={editorInteractions.revealHeading}
           />
         ) : navigationPanel === 'tags' ? (
@@ -89,7 +88,7 @@ export function RightPanel({
         ) : (
           <BacklinksPanel
             backlinks={noteIndex.backlinks}
-            selectedPath={editor.selectedPath}
+            selectedPath={selectedPath}
             onSelectNote={noteActions.navigateToNote}
           />
         )}

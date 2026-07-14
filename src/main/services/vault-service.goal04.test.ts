@@ -27,6 +27,25 @@ describe('GOAL-04 dataset access boundary', () => {
     }
   })
 
+  test('reads supported image assets as base64 without changing dataset reads', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mdx-vault-goal04-'))
+    const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
+
+    try {
+      await mkdir(join(root, 'assets'), { recursive: true })
+      await writeFile(join(root, 'assets', 'sample.png'), imageBytes)
+      await writeFile(join(root, 'assets', 'sample.json'), '{"ok":true}', 'utf8')
+
+      const vault = new VaultService(root)
+      expect(await vault.readAssetFile('assets/sample.png')).toBe(
+        Buffer.from(imageBytes).toString('base64')
+      )
+      expect(await vault.readAssetFile('assets/sample.json')).toBe('{"ok":true}')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   test('rejects traversal, files outside assets, and unsupported extensions', async () => {
     const root = await mkdtemp(join(tmpdir(), 'mdx-vault-goal04-'))
     const vault = new VaultService(root)

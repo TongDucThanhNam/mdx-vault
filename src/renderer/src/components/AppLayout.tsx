@@ -1,21 +1,11 @@
-import {
-  Command,
-  Download,
-  FileSearch,
-  FolderOpen,
-  Moon,
-  Save,
-  Search,
-  Sparkles,
-  Sun
-} from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useState } from 'react'
 import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { CommandAction } from '@/commands/actions'
+import { AppStatusBar } from '@/components/AppStatusBar'
+import { AppTopBar } from '@/components/AppTopBar'
 import { LeftPanel } from '@/components/layout/LeftPanel'
-import { MainEditor } from '@/components/layout/MainEditor'
+import { MainEditor, type ReadingZoomStatus } from '@/components/layout/MainEditor'
 import { type NavigationPanel, RightPanel } from '@/components/layout/RightPanel'
-import { Button } from '@/components/ui/button'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -23,16 +13,15 @@ import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import { deriveNoteTitle } from '@/lib/note-title'
-import { cn } from '@/lib/utils'
 import type { VaultInfo } from '@/vault/types'
 
 export type { NavigationPanel } from '@/components/layout/RightPanel'
 
 interface AppLayoutProps {
   vault: VaultInfo | null
+  selectedVaultPath: string | null
+  selectedNotePath: string | null
   error: string | null
-  theme: 'light' | 'dark' | 'system'
-  resolvedTheme: 'light' | 'dark'
   viewMode: ViewMode
   navigationPanel: NavigationPanel
   aiPanelOpen: boolean
@@ -42,14 +31,10 @@ interface AppLayoutProps {
   vaultSession: VaultSessionController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
-  toggleTheme: () => Promise<void>
   setViewMode: Dispatch<SetStateAction<ViewMode>>
   setNavigationPanel: Dispatch<SetStateAction<NavigationPanel>>
   setAiPanelOpen: Dispatch<SetStateAction<boolean>>
   setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>
-  setQuickSwitcherOpen: Dispatch<SetStateAction<boolean>>
-  setSearchOpen: Dispatch<SetStateAction<boolean>>
-  setExportDialogOpen: Dispatch<SetStateAction<boolean>>
   setCreateNoteOpen: Dispatch<SetStateAction<boolean>>
   setEmptyTrashOpen: Dispatch<SetStateAction<boolean>>
   onRequestDelete: (relativePath: string) => void
@@ -58,9 +43,9 @@ interface AppLayoutProps {
 
 export function AppLayout({
   vault,
+  selectedVaultPath,
+  selectedNotePath,
   error,
-  theme,
-  resolvedTheme,
   viewMode,
   navigationPanel,
   aiPanelOpen,
@@ -70,158 +55,66 @@ export function AppLayout({
   vaultSession,
   noteActions,
   editorInteractions,
-  toggleTheme,
   setViewMode,
   setNavigationPanel,
   setAiPanelOpen,
   setCommandPaletteOpen,
-  setQuickSwitcherOpen,
-  setSearchOpen,
-  setExportDialogOpen,
   setCreateNoteOpen,
   setEmptyTrashOpen,
   onRequestDelete,
   onError
 }: AppLayoutProps): React.JSX.Element {
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true)
+  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [readingZoomStatus, setReadingZoomStatus] = useState<ReadingZoomStatus | null>(null)
+  const gridTemplateColumns = [
+    leftPanelOpen ? '280px' : null,
+    'minmax(0, 1fr)',
+    rightPanelOpen ? '320px' : null,
+    aiPanelOpen ? '360px' : null
+  ]
+    .filter((column): column is string => column !== null)
+    .join(' ')
+
   return (
     <>
       <a
         href="#workspace"
-        className="sr-only fixed top-2 left-2 z-[60] border-2 border-foreground bg-background px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-foreground shadow-[3px_3px_0_0_var(--foreground)] focus:not-sr-only"
+        className="app-no-drag sr-only fixed top-2 left-2 z-[60] border-2 border-foreground bg-background px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-foreground shadow-[3px_3px_0_0_var(--foreground)] focus:not-sr-only"
       >
         Skip to workspace
       </a>
-      <header className="sticky top-0 z-50 flex h-11 shrink-0 items-center justify-between border-b-2 border-foreground bg-foreground px-3 text-background">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-background">
-            mdx-vault<span className="text-[var(--editorial-red)]">.</span>
-          </div>
-          {vault ? (
-            <>
-              <span className="font-mono text-[11px] uppercase tracking-widest text-background/35">
-                /
-              </span>
-              <span className="truncate font-mono text-[11px] uppercase tracking-widest text-background/70">
-                {vault.name}
-              </span>
-            </>
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-background/70 hover:bg-background hover:text-foreground"
-            title="Command palette"
-            aria-label="Command palette"
-            onClick={() => setCommandPaletteOpen(true)}
-          >
-            <Command className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-background/70 hover:bg-background hover:text-foreground"
-            title="Open note"
-            aria-label="Open note"
-            disabled={!vault}
-            onClick={() => setQuickSwitcherOpen(true)}
-          >
-            <FileSearch className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-background/70 hover:bg-background hover:text-foreground"
-            title="Search notes"
-            aria-label="Search notes"
-            disabled={!vault}
-            onClick={() => setSearchOpen(true)}
-          >
-            <Search className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="border-2 border-background text-background hover:bg-background hover:text-foreground"
-            disabled={!editor.selectedPath || editor.isSaving || !editor.isDirty}
-            onClick={() => void editor.saveCurrentFile()}
-          >
-            <Save className="size-4" aria-hidden="true" />
-            Save
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-background/70 hover:bg-background hover:text-foreground"
-            title="Export note (Ctrl+Shift+E)"
-            aria-label="Export note"
-            disabled={!editor.selectedPath}
-            onClick={() => setExportDialogOpen(true)}
-          >
-            <Download className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant={aiPanelOpen ? 'default' : 'ghost'}
-            className={
-              aiPanelOpen
-                ? 'bg-[var(--editorial-red)] text-white hover:bg-[var(--editorial-red)]/90'
-                : 'text-background/70 hover:bg-background hover:text-foreground'
-            }
-            title="AI assistant (Ctrl+Shift+A)"
-            aria-label="Toggle AI assistant"
-            aria-pressed={aiPanelOpen}
-            disabled={!vault}
-            onClick={() => setAiPanelOpen((current) => !current)}
-          >
-            <Sparkles className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-background/70 hover:bg-background hover:text-foreground"
-            title={
-              theme === 'system'
-                ? `Theme: follow system (currently ${resolvedTheme})`
-                : `Theme: ${theme}`
-            }
-            aria-label="Toggle dark mode"
-            onClick={() => void toggleTheme()}
-          >
-            {resolvedTheme === 'dark' ? (
-              <Sun className="size-4" aria-hidden="true" />
-            ) : (
-              <Moon className="size-4" aria-hidden="true" />
-            )}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="border-2 border-background bg-background text-foreground shadow-[2px_2px_0_0_color-mix(in_srgb,var(--background)_55%,transparent)] hover:border-[var(--editorial-red)] hover:bg-[var(--editorial-red)] hover:text-white hover:shadow-none"
-            onClick={() => void vaultSession.openVault()}
-            disabled={vaultSession.isOpening}
-          >
-            <FolderOpen className="size-4" aria-hidden="true" />
-            {vaultSession.isOpening ? 'Opening…' : 'Open vault'}
-          </Button>
-        </div>
-      </header>
+      <AppTopBar
+        vaultName={vault?.name ?? null}
+        selectedPath={selectedNotePath}
+        viewMode={viewMode}
+        commandActions={commandActions}
+        editorAvailable={
+          selectedNotePath !== null && !editor.isLoadingFile && viewMode !== 'reading'
+        }
+        isOpeningVault={vaultSession.isOpening}
+        isSaving={editor.isSaving}
+        isDirty={editor.isDirty}
+        leftPanelOpen={leftPanelOpen}
+        rightPanelOpen={rightPanelOpen}
+        aiPanelOpen={aiPanelOpen}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onSave={() => void editor.saveCurrentFile()}
+        onRevealNote={() => {
+          if (selectedNotePath) {
+            void vaultSession.handleRevealInExplorer(selectedNotePath)
+          }
+        }}
+        onToggleLeftPanel={() => setLeftPanelOpen((current) => !current)}
+        onToggleRightPanel={() => setRightPanelOpen((current) => !current)}
+        onToggleAi={() => setAiPanelOpen((current) => !current)}
+      />
 
       {error ? (
         <div
           role="alert"
           aria-live="assertive"
-          className="border-b-2 border-destructive bg-destructive/10 px-4 py-2 font-mono text-[12px] font-bold uppercase tracking-wider text-destructive"
+          className="fixed top-11 left-1/2 z-[70] max-w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 border-2 border-destructive bg-background px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive shadow-[3px_3px_0_0_var(--destructive)]"
         >
           {error}
         </div>
@@ -230,47 +123,52 @@ export function AppLayout({
       <main
         id="workspace"
         tabIndex={-1}
-        className={cn(
-          'grid min-h-0 flex-1 overflow-hidden',
-          aiPanelOpen
-            ? 'grid-cols-[280px_minmax(0,1fr)_320px_360px]'
-            : 'grid-cols-[280px_minmax(0,1fr)_320px]'
-        )}
+        className="grid min-h-0 flex-1 overflow-hidden"
+        style={{ gridTemplateColumns }}
       >
-        <LeftPanel
-          vault={vault}
-          editor={editor}
-          noteIndex={noteIndex}
-          vaultSession={vaultSession}
-          setCreateNoteOpen={setCreateNoteOpen}
-          setEmptyTrashOpen={setEmptyTrashOpen}
-          onRequestDelete={onRequestDelete}
-        />
+        {leftPanelOpen ? (
+          <LeftPanel
+            vault={vault}
+            selectedPath={selectedVaultPath}
+            noteIndex={noteIndex}
+            vaultSession={vaultSession}
+            setCreateNoteOpen={setCreateNoteOpen}
+            setEmptyTrashOpen={setEmptyTrashOpen}
+            onRequestDelete={onRequestDelete}
+          />
+        ) : null}
         <MainEditor
           viewMode={viewMode}
+          selectedPath={selectedVaultPath}
           commandActions={commandActions}
           editor={editor}
           noteIndex={noteIndex}
           noteActions={noteActions}
           editorInteractions={editorInteractions}
           setViewMode={setViewMode}
+          onReadingZoomStatusChange={setReadingZoomStatus}
+          onRevealInExplorer={(relativePath) =>
+            void vaultSession.handleRevealInExplorer(relativePath)
+          }
           onError={onError}
         />
-        <RightPanel
-          navigationPanel={navigationPanel}
-          editor={editor}
-          noteIndex={noteIndex}
-          noteActions={noteActions}
-          editorInteractions={editorInteractions}
-          setNavigationPanel={setNavigationPanel}
-        />
+        {rightPanelOpen ? (
+          <RightPanel
+            navigationPanel={navigationPanel}
+            selectedPath={selectedNotePath}
+            noteIndex={noteIndex}
+            noteActions={noteActions}
+            editorInteractions={editorInteractions}
+            setNavigationPanel={setNavigationPanel}
+          />
+        ) : null}
 
         {aiPanelOpen ? (
           <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-[var(--paper-dark)]">
             <AiSidePanel
-              noteRelativePath={editor.selectedPath}
-              noteTitle={editor.selectedPath ? deriveNoteTitle(editor.selectedPath) : 'No note'}
-              noteContent={editor.content}
+              noteRelativePath={selectedNotePath}
+              noteTitle={selectedNotePath ? deriveNoteTitle(selectedNotePath) : 'No note'}
+              noteContent={selectedNotePath ? editor.content : ''}
               selection={editorInteractions.selectionForAssistant}
               backlinks={noteIndex.backlinks.map((entry) => ({
                 relativePath: entry.source.relativePath,
@@ -282,6 +180,27 @@ export function AppLayout({
           </aside>
         ) : null}
       </main>
+
+      <AppStatusBar
+        selectedPath={selectedNotePath}
+        selectedVaultPath={selectedVaultPath}
+        content={editor.content}
+        isLoadingFile={editor.isLoadingFile}
+        isDirty={editor.isDirty}
+        isSaving={editor.isSaving}
+        lastSavedAt={editor.lastSavedAt}
+        leftPanelOpen={leftPanelOpen}
+        rightPanelOpen={rightPanelOpen}
+        aiPanelOpen={aiPanelOpen}
+        hasVault={vault !== null}
+        readingZoomFactor={
+          selectedNotePath && viewMode === 'reading' ? readingZoomStatus?.factor : undefined
+        }
+        onToggleLeftPanel={() => setLeftPanelOpen((current) => !current)}
+        onToggleRightPanel={() => setRightPanelOpen((current) => !current)}
+        onToggleAiPanel={() => setAiPanelOpen((current) => !current)}
+        onResetReadingZoom={() => readingZoomStatus?.reset()}
+      />
     </>
   )
 }

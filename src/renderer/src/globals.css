@@ -207,6 +207,17 @@
 }
 
 @layer components {
+  .app-drag-region {
+    -webkit-app-region: drag;
+    app-region: drag;
+    user-select: none;
+  }
+
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
   /* Preview prose = "reading voice": Lora body, Playfair headline, Courier Prime code.
      Đây là heart của editorial style — đậm nhất app. */
   .mdx-preview {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CommandPalette } from '@/commands/CommandPalette'
 import { AppLayout, type NavigationPanel } from '@/components/AppLayout'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/useToast'
 import { useVaultSession } from '@/hooks/useVaultSession'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { SearchPane } from '@/search/SearchPane'
+import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 
 interface DeleteRequest {
@@ -26,8 +27,9 @@ interface DeleteRequest {
 }
 
 function App(): React.JSX.Element {
-  const { theme, resolvedTheme, toggle: toggleTheme } = useTheme()
+  const { toggle: toggleTheme } = useTheme()
   const [vault, setVault] = useState<VaultInfo | null>(null)
+  const [selectedVaultPath, setSelectedVaultPath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('live')
   const [navigationPanel, setNavigationPanel] = useState<NavigationPanel>('outline')
@@ -47,14 +49,18 @@ function App(): React.JSX.Element {
     onRecentNote: recordRecentNote,
     showToast
   })
+  const selectedNotePath = isNotePath(selectedVaultPath) ? editor.selectedPath : null
+  const selectedNotePathRef = useRef(selectedNotePath)
+  selectedNotePathRef.current = selectedNotePath
   const noteIndex = useNoteIndex({
     vault,
-    selectedPath: editor.selectedPath,
+    selectedPath: selectedNotePath,
     onError: setError
   })
   const vaultSession = useVaultSession({
     vault,
     setVault,
+    setSelectedVaultPath,
     editor,
     noteIndex,
     onError: setError,
@@ -72,7 +78,7 @@ function App(): React.JSX.Element {
   const editorInteractions = useEditorInteractions({ editor, setAiPanelOpen })
   const commandActions = useCommandActions({
     vault,
-    selectedPath: editor.selectedPath,
+    selectedPath: selectedNotePath,
     indexNoteCount: noteIndex.indexNotes.length,
     noteTemplates: noteIndex.noteTemplates,
     trashCount: vaultSession.trashCount,
@@ -89,7 +95,7 @@ function App(): React.JSX.Element {
   })
 
   useKeyboardShortcuts({
-    selectedPathRef: editor.selectedPathRef,
+    selectedPathRef: selectedNotePathRef,
     saveCurrentFile: editor.saveCurrentFile,
     setViewMode,
     setCommandPaletteOpen,
@@ -104,9 +110,9 @@ function App(): React.JSX.Element {
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <AppLayout
         vault={vault}
+        selectedVaultPath={selectedVaultPath}
+        selectedNotePath={selectedNotePath}
         error={error}
-        theme={theme}
-        resolvedTheme={resolvedTheme}
         viewMode={viewMode}
         navigationPanel={navigationPanel}
         aiPanelOpen={aiPanelOpen}
@@ -116,14 +122,10 @@ function App(): React.JSX.Element {
         vaultSession={vaultSession}
         noteActions={noteActions}
         editorInteractions={editorInteractions}
-        toggleTheme={toggleTheme}
         setViewMode={setViewMode}
         setNavigationPanel={setNavigationPanel}
         setAiPanelOpen={setAiPanelOpen}
         setCommandPaletteOpen={setCommandPaletteOpen}
-        setQuickSwitcherOpen={setQuickSwitcherOpen}
-        setSearchOpen={setSearchOpen}
-        setExportDialogOpen={setExportDialogOpen}
         setCreateNoteOpen={setCreateNoteOpen}
         setEmptyTrashOpen={setEmptyTrashOpen}
         onRequestDelete={(relativePath) => setDeleteRequest({ relativePath })}
@@ -152,8 +154,8 @@ function App(): React.JSX.Element {
       <ExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        noteRelativePath={editor.selectedPath}
-        noteTitle={editor.selectedPath ? deriveNoteTitle(editor.selectedPath) : ''}
+        noteRelativePath={selectedNotePath}
+        noteTitle={selectedNotePath ? deriveNoteTitle(selectedNotePath) : ''}
       />
       <CreateNoteDialog
         open={createNoteOpen}

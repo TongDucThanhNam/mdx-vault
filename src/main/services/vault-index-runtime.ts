@@ -6,6 +6,7 @@ import { safeJoin } from './safe-path'
 import type { VaultService } from './vault-service'
 
 type IndexChangeCallback = () => void
+type TreeChangeCallback = () => void
 
 const WATCH_TARGET = '.'
 const DEBOUNCE_MS = 250
@@ -14,17 +15,34 @@ export class VaultIndexRuntime {
   private readonly vault: VaultService
   private readonly db: DbService
   private readonly onDidChange?: IndexChangeCallback
+  private readonly onTreeDidChange?: TreeChangeCallback
   private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private treeChangeTimer: ReturnType<typeof setTimeout> | null = null
   private watcher: FSWatcher | null = null
 
-  private constructor(vault: VaultService, db: DbService, onDidChange?: IndexChangeCallback) {
+  private constructor(
+    vault: VaultService,
+    db: DbService,
+    onDidChange?: IndexChangeCallback,
+    onTreeDidChange?: TreeChangeCallback
+  ) {
     this.vault = vault
     this.db = db
     this.onDidChange = onDidChange
+    this.onTreeDidChange = onTreeDidChange
   }
 
-  static open(vault: VaultService, onDidChange?: IndexChangeCallback): VaultIndexRuntime {
-    return new VaultIndexRuntime(vault, DbService.open(vault.rootPath), onDidChange)
+  static open(
+    vault: VaultService,
+    onDidChange?: IndexChangeCallback,
+    onTreeDidChange?: TreeChangeCallback
+  ): VaultIndexRuntime {
+    return new VaultIndexRuntime(
+      vault,
+      DbService.open(vault.rootPath),
+      onDidChange,
+      onTreeDidChange
+    )
   }
 
   get database(): DbService {
@@ -42,6 +60,11 @@ export class VaultIndexRuntime {
     }
 
     this.pendingTimers.clear()
+
+    if (this.treeChangeTimer) {
+      clearTimeout(this.treeChangeTimer)
+      this.treeChangeTimer = null
+    }
 
     if (this.watcher) {
       await this.watcher.close()
@@ -192,6 +215,13 @@ export class VaultIndexRuntime {
 
   private queueIndex(path: string): void {
     const relativePath = normalizeVaultPath(path)
+
+    this.queueTreeChange()
+
+    if (!isMarkdownPath(relativePath)) {
+      return
+    }
+
     const existingTimer = this.pendingTimers.get(relativePath)
 
     if (existingTimer) {
@@ -210,6 +240,13 @@ export class VaultIndexRuntime {
 
   private queueDelete(path: string): void {
     const relativePath = normalizeVaultPath(path)
+
+    this.queueTreeChange()
+
+    if (!isMarkdownPath(relativePath)) {
+      return
+    }
+
     const existingTimer = this.pendingTimers.get(relativePath)
 
     if (existingTimer) {
@@ -218,6 +255,17 @@ export class VaultIndexRuntime {
     }
 
     this.deleteFile(relativePath)
+  }
+
+  private queueTreeChange(): void {
+    if (this.treeChangeTimer) {
+      clearTimeout(this.treeChangeTimer)
+    }
+
+    this.treeChangeTimer = setTimeout(() => {
+      this.treeChangeTimer = null
+      this.onTreeDidChange?.()
+    }, DEBOUNCE_MS)
   }
 }
 

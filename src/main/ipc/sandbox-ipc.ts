@@ -9,6 +9,7 @@ import {
   sandboxRequestDataPayloadSchema,
   sandboxSetPermissionPayloadSchema
 } from '../../shared/sandbox'
+import { publishSandboxDocument } from '../services/sandbox-document-protocol'
 import { SandboxService } from '../services/sandbox-service'
 import { getCurrentVault } from '../services/vault-session'
 import type { IpcFailure, IpcResult } from './vault-ipc'
@@ -27,12 +28,13 @@ export function registerSandboxIpc(): void {
   ipcMain.handle('sandbox:load-html', (event, payload): Promise<IpcResult<SandboxDocument>> => {
     return handleSandboxRequest(event, async () => {
       const input = sandboxLoadPayloadSchema.parse(payload)
-      return getSandboxService().loadHtml(
+      const document = await getSandboxService().loadHtml(
         input.src,
         input.notePath,
         input.contentHash,
         input.instanceId
       )
+      return createFrameDocument(document)
     })
   })
 
@@ -51,13 +53,14 @@ export function registerSandboxIpc(): void {
     (event, payload): Promise<IpcResult<SandboxDocument>> => {
       return handleSandboxRequest(event, async () => {
         const input = sandboxLoadPayloadSchema.parse(payload)
-        return getSandboxService().loadInteractive(
+        const document = await getSandboxService().loadInteractive(
           input.src,
           input.notePath,
           input.contentHash,
           input.instanceId,
           input.props
         )
+        return createFrameDocument(document)
       })
     }
   )
@@ -78,6 +81,16 @@ export function registerSandboxIpc(): void {
       return getSandboxService().requestData(input)
     })
   })
+}
+
+function createFrameDocument(
+  document: Awaited<ReturnType<SandboxService['loadHtml']>>
+): SandboxDocument {
+  const { srcDoc, ...metadata } = document
+  return {
+    ...metadata,
+    documentUrl: publishSandboxDocument(srcDoc)
+  }
 }
 
 async function handleSandboxRequest<T>(

@@ -1,5 +1,5 @@
 import { syntaxTree } from '@codemirror/language'
-import type { Extension, Range } from '@codemirror/state'
+import { type Extension, type Range, StateEffect } from '@codemirror/state'
 import {
   Decoration,
   type DecorationSet,
@@ -9,6 +9,16 @@ import {
   WidgetType
 } from '@codemirror/view'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import {
+  parseWikilinkParts,
+  resolveWikilinkTarget,
+  type WikilinkNoteCandidate
+} from '../../../shared/wikilinks'
+
+interface LivePreviewOptions {
+  getNotes: () => WikilinkNoteCandidate[]
+  getOnNavigateToNote: () => ((relativePath: string) => void) | undefined
+}
 
 interface LivePreviewDecorations {
   decorations: DecorationSet
@@ -36,31 +46,7 @@ class BulletWidget extends WidgetType {
 
 const bulletWidget = new BulletWidget()
 
-const livePreviewPlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet
-    atomicRanges: DecorationSet
-
-    constructor(view: EditorView) {
-      const sets = buildDecorations(view)
-      this.decorations = sets.decorations
-      this.atomicRanges = sets.atomicRanges
-    }
-
-    update(update: ViewUpdate): void {
-      if (update.docChanged || update.selectionSet || update.viewportChanged) {
-        const sets = buildDecorations(update.view)
-        this.decorations = sets.decorations
-        this.atomicRanges = sets.atomicRanges
-      }
-    }
-  },
-  {
-    decorations: (plugin) => plugin.decorations,
-    provide: (plugin) =>
-      EditorView.atomicRanges.of((view) => view.plugin(plugin)?.atomicRanges ?? Decoration.none)
-  }
-)
+export const refreshLivePreviewEffect = StateEffect.define<null>()
 
 const livePreviewTheme = EditorView.baseTheme({
   '.cm-live-preview-heading': {
@@ -119,6 +105,20 @@ const livePreviewTheme = EditorView.baseTheme({
     textDecorationThickness: '2px',
     textUnderlineOffset: '3px'
   },
+  '.cm-live-preview-wikilink': {
+    color: 'var(--foreground)',
+    cursor: 'text',
+    fontWeight: '700',
+    textDecoration: 'underline',
+    textDecorationColor: 'color-mix(in srgb, var(--editorial-red) 70%, transparent)',
+    textDecorationThickness: '2px',
+    textUnderlineOffset: '3px'
+  },
+  '.cm-live-preview-wikilink-unresolved': {
+    color: 'var(--muted-foreground)',
+    textDecorationColor: 'color-mix(in srgb, var(--muted-foreground) 60%, transparent)',
+    textDecorationStyle: 'dashed'
+  },
   '.cm-live-preview-bullet': {
     color: 'var(--editorial-red)',
     fontWeight: '700'
@@ -133,9 +133,55 @@ const livePreviewTheme = EditorView.baseTheme({
   }
 })
 
-export const livePreviewExtension: Extension = [livePreviewPlugin, livePreviewTheme]
+export function createLivePreviewExtension(options: LivePreviewOptions): Extension {
+  const livePreviewPlugin = ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet
+      atomicRanges: DecorationSet
 
-function buildDecorations(view: EditorView): LivePreviewDecorations {
+      constructor(view: EditorView) {
+        const sets = buildDecorations(view, options.getNotes())
+        this.decorations = sets.decorations
+        this.atomicRanges = sets.atomicRanges
+      }
+
+      update(update: ViewUpdate): void {
+        const refreshRequested = update.transactions.some((transaction) =>
+          transaction.effects.some((effect) => effect.is(refreshLivePreviewEffect))
+        )
+
+        if (
+          update.docChanged ||
+          update.selectionSet ||
+          update.viewportChanged ||
+          refreshRequested
+        ) {
+          const sets = buildDecorations(update.view, options.getNotes())
+          this.decorations = sets.decorations
+          this.atomicRanges = sets.atomicRanges
+        }
+      }
+    },
+    {
+      decorations: (plugin) => plugin.decorations,
+      provide: (plugin) =>
+        EditorView.atomicRanges.of((view) => view.plugin(plugin)?.atomicRanges ?? Decoration.none)
+    }
+  )
+
+  return [
+    livePreviewPlugin,
+    livePreviewTheme,
+    EditorView.domEventHandlers({
+      mousedown: (event, view) => handleWikilinkClick(event, view, options)
+    })
+  ]
+}
+
+function buildDecorations(
+  view: EditorView,
+  notes: WikilinkNoteCandidate[]
+): LivePreviewDecorations {
   const decorations: Range<Decoration>[] = []
   const atomicRanges: Range<Decoration>[] = []
   const decorationKeys = new Set<string>()
@@ -220,6 +266,11 @@ function buildDecorations(view: EditorView): LivePreviewDecorations {
           return true
         }
 
+        if (node.name === 'MDXWikilink') {
+          decorateWikilink(view, node.node, notes, visibleRange, addClippedMark, addReplacement)
+          return true
+        }
+
         if (node.name === 'ListMark') {
           const marker = view.state.sliceDoc(node.from, node.to)
           if (marker === '-' || marker === '*') {
@@ -263,6 +314,153 @@ function buildDecorations(view: EditorView): LivePreviewDecorations {
     decorations: Decoration.set(decorations, true),
     atomicRanges: Decoration.set(atomicRanges, true)
   }
+}
+
+function decorateWikilink(
+  view: EditorView,
+  node: SyntaxNode,
+  notes: WikilinkNoteCandidate[],
+  visibleRange: VisibleRange,
+  addClippedMark: (
+    decoration: Decoration,
+    from: number,
+    to: number,
+    key: string,
+    visibleRange: VisibleRange
+  ) => void,
+  addReplacement: (
+    decoration: Decoration,
+    from: number,
+    to: number,
+    key: string,
+    visibleRange: VisibleRange
+  ) => void
+): void {
+  const parts = readWikilinkNode(view, node)
+  if (!parts) {
+    return
+  }
+
+  const resolvedNote = resolveWikilinkTarget(notes, parts.target)
+  const className = resolvedNote
+    ? 'cm-live-preview-wikilink'
+    : 'cm-live-preview-wikilink cm-live-preview-wikilink-unresolved'
+
+  addClippedMark(
+    Decoration.mark({
+      class: className,
+      attributes: {
+        title: resolvedNote ? resolvedNote.relativePath : `Unresolved: ${parts.target}`
+      }
+    }),
+    parts.displayFrom,
+    parts.displayTo,
+    'wikilink-display',
+    visibleRange
+  )
+
+  const line = view.state.doc.lineAt(node.from)
+  if (selectionTouchesLine(view, line.from)) {
+    return
+  }
+
+  addReplacement(
+    Decoration.replace({}),
+    node.from,
+    parts.displayFrom,
+    'wikilink-prefix',
+    visibleRange
+  )
+  addReplacement(Decoration.replace({}), parts.displayTo, node.to, 'wikilink-suffix', visibleRange)
+}
+
+interface WikilinkNodeParts {
+  target: string
+  displayFrom: number
+  displayTo: number
+}
+
+function readWikilinkNode(view: EditorView, node: SyntaxNode): WikilinkNodeParts | null {
+  const punctuation = node.getChildren('MDXWikilinkPunct')
+  const openingMark = punctuation.at(0)
+  const closingMark = punctuation.at(-1)
+  if (!openingMark || !closingMark || openingMark === closingMark) {
+    return null
+  }
+
+  const content = view.state.sliceDoc(openingMark.to, closingMark.from)
+  const parts = parseWikilinkParts(content)
+  if (!parts) {
+    return null
+  }
+
+  const delimiterIndex = content.indexOf('|')
+  const rawDisplay = delimiterIndex === -1 ? content : content.slice(delimiterIndex + 1)
+  const displaySegment = rawDisplay.trim() ? rawDisplay : content.slice(0, delimiterIndex)
+  const displaySegmentOffset = delimiterIndex !== -1 && rawDisplay.trim() ? delimiterIndex + 1 : 0
+  const leadingWhitespace = displaySegment.search(/\S/)
+  const trailingWhitespace = displaySegment.length - displaySegment.trimEnd().length
+
+  if (leadingWhitespace === -1) {
+    return null
+  }
+
+  return {
+    target: parts.target,
+    displayFrom: openingMark.to + displaySegmentOffset + leadingWhitespace,
+    displayTo: openingMark.to + displaySegmentOffset + displaySegment.length - trailingWhitespace
+  }
+}
+
+function handleWikilinkClick(
+  event: MouseEvent,
+  view: EditorView,
+  options: LivePreviewOptions
+): boolean {
+  if (event.button !== 0 || (!event.ctrlKey && !event.metaKey)) {
+    return false
+  }
+
+  const position = view.posAtCoords({ x: event.clientX, y: event.clientY })
+  if (position === null) {
+    return false
+  }
+
+  const wikilinkNode = findAncestor(
+    syntaxTree(view.state).resolveInner(position, -1),
+    'MDXWikilink'
+  )
+  if (!wikilinkNode) {
+    return false
+  }
+
+  const parts = readWikilinkNode(view, wikilinkNode)
+  if (!parts) {
+    return false
+  }
+
+  const resolvedNote = resolveWikilinkTarget(options.getNotes(), parts.target)
+  const navigate = options.getOnNavigateToNote()
+  if (!resolvedNote || !navigate) {
+    return false
+  }
+
+  event.preventDefault()
+  navigate(resolvedNote.relativePath)
+  return true
+}
+
+function findAncestor(node: SyntaxNode, name: string): SyntaxNode | null {
+  let current: SyntaxNode | null = node
+
+  while (current) {
+    if (current.name === name) {
+      return current
+    }
+    current = current.parent
+  }
+
+  return null
 }
 
 function decorateHeading(
@@ -498,7 +696,7 @@ function isProtectedNode(node: SyntaxNodeRef, frontmatterEnd: number): boolean {
     node.name === 'HTMLBlock' ||
     node.name === 'Table' ||
     node.name.startsWith('JSX') ||
-    node.name.startsWith('MDX')
+    (node.name !== 'MDXWikilink' && node.name.startsWith('MDX'))
   )
 }
 

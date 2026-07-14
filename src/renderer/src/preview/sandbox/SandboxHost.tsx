@@ -278,7 +278,7 @@ export function SandboxHost({
           title={`${state.descriptor.manifest.name} sandbox`}
           sandbox="allow-scripts"
           referrerPolicy="no-referrer"
-          srcDoc={state.document.srcDoc}
+          src={state.document.documentUrl}
           className="block w-full border-0 bg-transparent"
           style={{ height }}
           onLoad={postInit}

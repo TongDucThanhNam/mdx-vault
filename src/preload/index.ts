@@ -32,9 +32,17 @@ interface VaultFile {
   extension: '.md' | '.mdx'
 }
 
+interface VaultTreeFile {
+  relativePath: string
+  name: string
+  directory: string
+  extension: string
+}
+
 interface VaultInfo {
   name: string
   files: VaultFile[]
+  treeFiles: VaultTreeFile[]
 }
 
 interface TrashEntry {
@@ -118,6 +126,14 @@ const vaultApi = {
     invokeVault('vault:open-path', { path }),
   lastOpenVault: (): Promise<string | null> => invokeVault('vault:last-open'),
   listFiles: (): Promise<VaultFile[]> => invokeVault('vault:list-files'),
+  listTreeFiles: (): Promise<VaultTreeFile[]> => invokeVault('vault:list-tree-files'),
+  onTreeDidChange: (callback: () => void): (() => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('vault:tree-changed', listener)
+    return () => {
+      ipcRenderer.removeListener('vault:tree-changed', listener)
+    }
+  },
   readFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:read-file', { relativePath }),
   readAssetFile: (relativePath: string): Promise<string> =>
@@ -293,6 +309,25 @@ const appApi = {
     >
 }
 
+const windowApi = {
+  platform: readWindowPlatform(),
+  minimize: (): Promise<void> => invokeWindow<void>('window:minimize'),
+  toggleMaximize: (): Promise<boolean> => invokeWindow<boolean>('window:toggle-maximize'),
+  close: (): Promise<void> => invokeWindow<void>('window:close'),
+  isMaximized: (): Promise<boolean> => invokeWindow<boolean>('window:is-maximized'),
+  onMaximizeChange: (callback: (isMaximized: boolean) => void): (() => void) => {
+    const listener = (_event: unknown, payload: unknown): void => {
+      if (typeof payload === 'boolean') {
+        callback(payload)
+      }
+    }
+    ipcRenderer.on('window:maximize-state-changed', listener)
+    return () => {
+      ipcRenderer.removeListener('window:maximize-state-changed', listener)
+    }
+  }
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('vaultApi', vaultApi)
@@ -301,6 +336,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('aiApi', aiApi)
     contextBridge.exposeInMainWorld('exportApi', exportApi)
     contextBridge.exposeInMainWorld('appApi', appApi)
+    contextBridge.exposeInMainWorld('windowApi', windowApi)
   } catch (error) {
     console.error(error)
   }
@@ -356,4 +392,25 @@ async function invokeExport<T>(channel: string, payload?: unknown): Promise<T> {
   }
 
   return result.data
+}
+
+async function invokeWindow<T>(channel: string): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+function readWindowPlatform(): 'darwin' | 'win32' | 'linux' | 'other' {
+  if (
+    process.platform === 'darwin' ||
+    process.platform === 'win32' ||
+    process.platform === 'linux'
+  ) {
+    return process.platform
+  }
+  return 'other'
 }

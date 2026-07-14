@@ -7,9 +7,17 @@ interface VaultFile {
   extension: '.md' | '.mdx'
 }
 
+interface VaultTreeFile {
+  relativePath: string
+  name: string
+  directory: string
+  extension: string
+}
+
 interface VaultInfo {
   name: string
   files: VaultFile[]
+  treeFiles: VaultTreeFile[]
 }
 
 interface TrashEntry {
@@ -95,7 +103,7 @@ interface SandboxDocument {
   resolvedPath: string
   contentHash: string
   instanceId: string
-  srcDoc: string
+  documentUrl: string
 }
 
 interface SelectionRange {
@@ -284,6 +292,8 @@ interface VaultApi {
   openVaultPath: (path: string) => Promise<VaultInfo | null>
   lastOpenVault: () => Promise<string | null>
   listFiles: () => Promise<VaultFile[]>
+  listTreeFiles: () => Promise<VaultTreeFile[]>
+  onTreeDidChange: (callback: () => void) => () => void
   readFile: (relativePath: string) => Promise<string>
   readAssetFile: (relativePath: string) => Promise<string>
   writeFile: (relativePath: string, content: string) => Promise<void>
@@ -359,6 +369,15 @@ interface AppApi {
   setFileTreeSort: (sort: FileTreeSortSetting) => Promise<FileTreeSortSetting>
 }
 
+interface WindowApi {
+  platform: 'darwin' | 'win32' | 'linux' | 'other'
+  minimize: () => Promise<void>
+  toggleMaximize: () => Promise<boolean>
+  close: () => Promise<void>
+  isMaximized: () => Promise<boolean>
+  onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+}
+
 declare global {
   interface Window {
     vaultApi: VaultApi
@@ -367,5 +386,6 @@ declare global {
     aiApi: AiApi
     exportApi: ExportApi
     appApi: AppApi
+    windowApi: WindowApi
   }
 }

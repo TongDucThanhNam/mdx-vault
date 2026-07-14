@@ -45,7 +45,7 @@ export interface SandboxDocument {
   resolvedPath: string
   contentHash: string
   instanceId: string
-  srcDoc: string
+  documentUrl: string
 }
 
 export const sandboxDescribePayloadSchema = z
@@ -100,7 +100,7 @@ export const sandboxToHostMessageSchema = z.discriminatedUnion('type', [
     .strict()
 ])
 
-export const hostToSandboxMessageSchema = z.discriminatedUnion('type', [
+export const hostToSandboxMessageSchema = z.union([
   z
     .object({
       channel: z.literal('mdx-vault'),

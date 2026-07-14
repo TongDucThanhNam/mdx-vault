@@ -1,72 +1,126 @@
 import { Save } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandAction } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
+import { EditorHeader } from '@/components/layout/EditorHeader'
+import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/VaultFilePreview'
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import { MdxEditor } from '@/editor/MdxEditor'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
+import { useReadingZoomShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
-import { computeWordCount } from '@/lib/word-count'
+import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
+import { useReadingZoom } from '@/hooks/useReadingZoom'
 import { MdxPreview } from '@/preview/MdxPreview'
+import { isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
 
 interface MainEditorProps {
   viewMode: ViewMode
+  selectedPath: string | null
   commandActions: CommandAction[]
   editor: NoteEditorController
   noteIndex: NoteIndexController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
-  setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>
+  setViewMode: (mode: ViewMode) => void
+  onReadingZoomStatusChange: (status: ReadingZoomStatus | null) => void
+  onRevealInExplorer: (relativePath: string) => void
   onError: (message: string | null) => void
+}
+
+export interface ReadingZoomStatus {
+  factor: number
+  reset: () => void
 }
 
 export function MainEditor({
   viewMode,
+  selectedPath,
   commandActions,
   editor,
   noteIndex,
   noteActions,
   editorInteractions,
   setViewMode,
+  onReadingZoomStatusChange,
+  onRevealInExplorer,
   onError
 }: MainEditorProps): React.JSX.Element {
-  const saveLabel = getSaveLabel({
-    hasFile: editor.selectedPath !== null,
-    isDirty: editor.isDirty,
-    isSaving: editor.isSaving,
-    lastSavedAt: editor.lastSavedAt
+  const [imageMetadata, setImageMetadata] = useState<{
+    relativePath: string
+    width: number
+    height: number
+  } | null>(null)
+  const noteSelected = isNotePath(selectedPath)
+  const imageSelected = isPreviewableVaultImagePath(selectedPath)
+  const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
+  const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
+  const {
+    factor: readingZoomFactor,
+    adjustFromWheel: adjustReadingZoomFromWheel,
+    zoomIn: zoomReadingIn,
+    zoomOut: zoomReadingOut,
+    reset: resetReadingZoom
+  } = useReadingZoom()
+
+  useReadingZoomShortcuts({
+    enabled: noteSelected && viewMode === 'reading',
+    onZoomIn: zoomReadingIn,
+    onZoomOut: zoomReadingOut,
+    onResetZoom: resetReadingZoom
   })
-  const wordCount = useMemo(() => computeWordCount(editor.content), [editor.content])
+
+  useEffect(() => {
+    onReadingZoomStatusChange({ factor: readingZoomFactor, reset: resetReadingZoom })
+  }, [onReadingZoomStatusChange, readingZoomFactor, resetReadingZoom])
+
+  useEffect(() => {
+    return () => onReadingZoomStatusChange(null)
+  }, [onReadingZoomStatusChange])
 
   return (
     <section
       aria-label="Document"
       className="flex min-h-0 min-w-0 flex-col border-r-2 border-foreground bg-card/50"
     >
-      <div className="flex h-10 shrink-0 items-center justify-between gap-3 border-b-2 border-foreground bg-[var(--paper-dark)] px-4">
-        <div className="min-w-0 truncate font-mono text-[12px] font-medium tracking-tight">
-          {editor.selectedPath ?? 'No file selected'}
-        </div>
-        <ViewModeToggle value={viewMode} onChange={setViewMode} disabled={!editor.selectedPath} />
-      </div>
-
+      <EditorHeader selectedPath={selectedPath}>
+        {noteSelected ? (
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+        ) : selectedPath ? (
+          <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
+            {imageSelected && selectedImageMetadata
+              ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
+              : 'Read only'}
+          </span>
+        ) : null}
+      </EditorHeader>
       <div className="relative min-h-0 flex-1">
-        {editor.selectedPath ? (
+        {noteSelected ? (
           editor.isLoadingFile ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading file…
             </div>
+          ) : editor.selectedPath !== selectedPath ? (
+            <EmptyState
+              icon={<Save className="size-5" aria-hidden="true" />}
+              title="Note unavailable"
+              description="The selected note could not be opened."
+            />
           ) : viewMode === 'reading' ? (
             <MdxPreview
               source={editor.content}
-              selectedPath={editor.selectedPath}
+              selectedPath={selectedPath}
+              readingZoomFactor={readingZoomFactor}
               notes={noteIndex.indexNotes}
               revealHeadingRequest={editorInteractions.previewHeadingRequest}
               onNavigate={noteActions.navigateToNote}
               onRevealLine={editorInteractions.revealEditorLine}
+              isDarwin={isDarwin}
+              isPhysicalZoomModifierDown={isPhysicalModifierDown}
+              onReadingZoomWheel={adjustReadingZoomFromWheel}
               onSourceChange={editor.setContent}
             />
           ) : (
@@ -81,6 +135,7 @@ export function MainEditor({
                 revealLineRequest={editorInteractions.revealLineRequest}
                 onSelectionChange={editorInteractions.handleEditorSelectionChange}
                 onCommandError={onError}
+                onNavigateToNote={noteActions.navigateToNote}
                 onSaveImage={editor.handleSaveImage}
               />
               <AiSelectionActionPalette
@@ -93,59 +148,28 @@ export function MainEditor({
               />
             </>
           )
+        ) : imageSelected ? (
+          <VaultImagePreview
+            key={selectedPath}
+            relativePath={selectedPath}
+            onDimensionsChange={({ width, height }) =>
+              setImageMetadata({ relativePath: selectedPath, width, height })
+            }
+            onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
+          />
+        ) : selectedPath ? (
+          <NoVaultFilePreview
+            relativePath={selectedPath}
+            onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
+          />
         ) : (
           <EmptyState
             icon={<Save className="size-5" aria-hidden="true" />}
-            title="Select a note"
+            title="Select a file"
             description="Choose a file in the vault to begin writing."
           />
         )}
       </div>
-
-      <div
-        className="flex h-8 shrink-0 items-center justify-end gap-3 border-t-2 border-foreground bg-[var(--paper-dark)] px-4 font-mono text-[10px] uppercase tracking-wider tabular-nums text-muted-foreground"
-        aria-live="polite"
-      >
-        {editor.selectedPath ? (
-          <span title="Word / character count and estimated reading time">
-            {wordCount.words} words · {wordCount.chars} chars · {wordCount.readingMinutes} min read
-          </span>
-        ) : null}
-        <span>{editor.isLoadingFile ? 'Loading…' : saveLabel}</span>
-      </div>
     </section>
   )
-}
-
-function getSaveLabel({
-  hasFile,
-  isDirty,
-  isSaving,
-  lastSavedAt
-}: {
-  hasFile: boolean
-  isDirty: boolean
-  isSaving: boolean
-  lastSavedAt: Date | null
-}): string {
-  if (!hasFile) {
-    return 'No file'
-  }
-
-  if (isSaving) {
-    return 'Saving…'
-  }
-
-  if (isDirty) {
-    return 'Unsaved'
-  }
-
-  if (lastSavedAt) {
-    return `Saved ${lastSavedAt.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    })}`
-  }
-
-  return 'Saved'
 }

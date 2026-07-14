@@ -3,14 +3,13 @@ import { EmptyState } from '@/components/EmptyState'
 import { SortMenu } from '@/components/SortMenu'
 import { Button } from '@/components/ui/button'
 import { FileTree } from '@/explorer/FileTree'
-import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { VaultInfo } from '@/vault/types'
 
 interface LeftPanelProps {
   vault: VaultInfo | null
-  editor: NoteEditorController
+  selectedPath: string | null
   noteIndex: NoteIndexController
   vaultSession: VaultSessionController
   setCreateNoteOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -20,7 +19,7 @@ interface LeftPanelProps {
 
 export function LeftPanel({
   vault,
-  editor,
+  selectedPath,
   noteIndex,
   vaultSession,
   setCreateNoteOpen,
@@ -72,7 +71,7 @@ export function LeftPanel({
             ) : null}
           </Button>
           <div className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            {vault?.files.length ?? 0}
+            {vault?.treeFiles.length ?? 0}
             <span className="sr-only"> files</span>
           </div>
         </div>
@@ -80,11 +79,11 @@ export function LeftPanel({
       <div className="h-[calc(100%-2.5rem)] overflow-hidden">
         {vault ? (
           <FileTree
-            files={vault.files}
+            files={vault.treeFiles}
             notes={noteIndex.indexNotes}
-            selectedPath={editor.selectedPath}
+            selectedPath={selectedPath}
             sortMode={vaultSession.sortMode}
-            onSelectFile={(relativePath) => void editor.loadFile(relativePath)}
+            onSelectFile={vaultSession.selectTreeFile}
             onDeleteFile={onRequestDelete}
             onRenameFile={(fromRelativePath, toRelativePath) =>
               void vaultSession.handleRename(fromRelativePath, toRelativePath)

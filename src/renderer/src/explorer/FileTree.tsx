@@ -10,12 +10,13 @@ import { Copy, ExternalLink, Files, Pencil, Trash2 } from 'lucide-react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import type { VaultFile } from '@/vault/types'
+import { isNotePath } from '@/vault/file-kind'
+import type { VaultTreeFile } from '@/vault/types'
 
 export type FileTreeSortMode = 'name' | 'modified-desc' | 'created-desc'
 
 interface FileTreeProps {
-  files: VaultFile[]
+  files: VaultTreeFile[]
   /** Notes (with mtimeMs) used to drive Modified/Created sort. */
   notes?: Array<{ relativePath: string; mtimeMs: number }>
   selectedPath: string | null
@@ -152,9 +153,9 @@ export function FileTree({
     sort,
     density: 'default',
     itemHeight: 32,
-    icons: { set: 'minimal', colored: false },
+    icons: { set: 'complete', colored: false },
     renaming: {
-      canRename: (item) => !item.isFolder,
+      canRename: (item) => !item.isFolder && isNotePath(item.path),
       onRename: ({ sourcePath, destinationPath }) => {
         const file = filesByPathRef.current.get(sourcePath)
         if (!file) {
@@ -233,7 +234,7 @@ export function FileTree({
   if (files.length === 0) {
     return (
       <div className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-        No Markdown files found.
+        No files found.
       </div>
     )
   }
@@ -288,6 +289,7 @@ function TreeContextMenu({
       model.startRenaming(item.path)
     })
   }
+  const isNote = isNotePath(item.path)
 
   return (
     <div
@@ -298,16 +300,20 @@ function TreeContextMenu({
       className="absolute left-0 top-0 z-50 min-w-[190px] border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
       onKeyDown={handleMenuKeyDown(context)}
     >
-      <TreeContextMenuItem
-        icon={<Files className="size-3.5" aria-hidden="true" />}
-        label="Duplicate"
-        onSelect={() => runAction(() => callbacks.current.onDuplicateFile(item.path))}
-      />
-      <TreeContextMenuItem
-        icon={<Pencil className="size-3.5" aria-hidden="true" />}
-        label="Rename"
-        onSelect={startRenaming}
-      />
+      {isNote ? (
+        <>
+          <TreeContextMenuItem
+            icon={<Files className="size-3.5" aria-hidden="true" />}
+            label="Duplicate"
+            onSelect={() => runAction(() => callbacks.current.onDuplicateFile(item.path))}
+          />
+          <TreeContextMenuItem
+            icon={<Pencil className="size-3.5" aria-hidden="true" />}
+            label="Rename"
+            onSelect={startRenaming}
+          />
+        </>
+      ) : null}
       <TreeContextMenuItem
         icon={<Copy className="size-3.5" aria-hidden="true" />}
         label="Copy path"
@@ -318,13 +324,17 @@ function TreeContextMenu({
         label="Reveal in explorer"
         onSelect={() => runAction(() => callbacks.current.onRevealInExplorer(item.path))}
       />
-      <hr className="my-1 border-0 border-t border-foreground" />
-      <TreeContextMenuItem
-        destructive
-        icon={<Trash2 className="size-3.5" aria-hidden="true" />}
-        label="Delete"
-        onSelect={() => runAction(() => callbacks.current.onDeleteFile(item.path))}
-      />
+      {isNote ? (
+        <>
+          <hr className="my-1 border-0 border-t border-foreground" />
+          <TreeContextMenuItem
+            destructive
+            icon={<Trash2 className="size-3.5" aria-hidden="true" />}
+            label="Delete"
+            onSelect={() => runAction(() => callbacks.current.onDeleteFile(item.path))}
+          />
+        </>
+      ) : null}
     </div>
   )
 }
@@ -435,9 +445,6 @@ function compareTreeEntries(
   return left.basename.localeCompare(right.basename)
 }
 
-function normalizeRenameDestination(
-  destinationPath: string,
-  extension: VaultFile['extension']
-): string {
+function normalizeRenameDestination(destinationPath: string, extension: string): string {
   return destinationPath.endsWith(extension) ? destinationPath : `${destinationPath}${extension}`
 }

@@ -11,7 +11,13 @@ import { z } from 'zod'
 import type { RenamePlanPreview, RenameResult } from '../../shared/rename'
 import type { AppSettingsService } from '../services/app-settings'
 import { planVaultRename } from '../services/rename-service'
-import type { NoteTemplate, TrashEntry, VaultFile, VaultInfo } from '../services/vault-service'
+import type {
+  NoteTemplate,
+  TrashEntry,
+  VaultFile,
+  VaultInfo,
+  VaultTreeFile
+} from '../services/vault-service'
 import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
 
 export interface IpcSuccess<T> {
@@ -33,6 +39,7 @@ type OpenVaultResult = VaultInfo | null
 
 interface RegisterVaultIpcOptions {
   onIndexChanged?: () => void
+  onTreeChanged?: () => void
   appSettings?: AppSettingsService
 }
 
@@ -98,7 +105,7 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
       }
 
       const vaultPath = result.filePaths[0]
-      const vault = await openCurrentVault(vaultPath, options.onIndexChanged)
+      const vault = await openCurrentVault(vaultPath, options.onIndexChanged, options.onTreeChanged)
       await options.appSettings?.setLastVaultPath(vaultPath)
       return vault.getInfo()
     })
@@ -107,7 +114,11 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
   ipcMain.handle('vault:open-path', (_event, payload): Promise<IpcResult<OpenVaultResult>> => {
     return handleVaultRequest(async () => {
       const input = openVaultPathPayloadSchema.parse(payload)
-      const vault = await openCurrentVault(input.path, options.onIndexChanged)
+      const vault = await openCurrentVault(
+        input.path,
+        options.onIndexChanged,
+        options.onTreeChanged
+      )
       await options.appSettings?.setLastVaultPath(input.path)
       return vault.getInfo()
     })
@@ -125,6 +136,16 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
       return getCurrentVault().listFiles()
     })
   })
+
+  ipcMain.handle(
+    'vault:list-tree-files',
+    (_event, payload): Promise<IpcResult<VaultTreeFile[]>> => {
+      return handleVaultRequest(async () => {
+        emptyPayloadSchema.parse(payload)
+        return getCurrentVault().listTreeFiles()
+      })
+    }
+  )
 
   ipcMain.handle('vault:read-file', (_event, payload): Promise<IpcResult<string>> => {
     return handleVaultRequest(async () => {

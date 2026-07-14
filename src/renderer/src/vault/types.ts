@@ -5,9 +5,17 @@ export interface VaultFile {
   extension: '.md' | '.mdx'
 }
 
+export interface VaultTreeFile {
+  relativePath: string
+  name: string
+  directory: string
+  extension: string
+}
+
 export interface VaultInfo {
   name: string
   files: VaultFile[]
+  treeFiles: VaultTreeFile[]
 }
 
 export interface NoteTemplate {

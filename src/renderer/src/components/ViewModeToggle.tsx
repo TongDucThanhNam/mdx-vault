@@ -7,7 +7,6 @@ interface ViewModeToggleProps {
   value: ViewMode
   onChange: (mode: ViewMode) => void
   disabled?: boolean
-  dark?: boolean
 }
 
 const VIEW_MODES: Array<{ mode: ViewMode; label: string; icon: React.ReactNode }> = [
@@ -23,17 +22,13 @@ const VIEW_MODES: Array<{ mode: ViewMode; label: string; icon: React.ReactNode }
 export function ViewModeToggle({
   value,
   onChange,
-  disabled,
-  dark = false
+  disabled
 }: ViewModeToggleProps): React.JSX.Element {
   return (
     <div
       role="group"
       aria-label="View mode"
-      className={cn(
-        'flex items-center gap-0.5 border-2 p-0.5',
-        dark ? 'border-background' : 'border-foreground'
-      )}
+      className="flex h-6 items-stretch border border-[var(--line)] bg-background [&>button+button]:border-l [&>button+button]:border-[var(--line)]"
     >
       {VIEW_MODES.map(({ mode, label, icon }) => {
         const isActive = value === mode
@@ -47,19 +42,15 @@ export function ViewModeToggle({
             disabled={disabled}
             onClick={() => onChange(mode)}
             className={cn(
-              'flex h-7 items-center gap-1 px-2 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 motion-reduce:transition-none',
+              'flex h-full items-center gap-1 px-1.5 font-mono text-[9px] font-bold uppercase tracking-wide transition-colors outline-none focus-visible:z-10 focus-visible:ring-[3px] focus-visible:ring-ring/60 motion-reduce:transition-none',
               isActive
-                ? dark
-                  ? 'bg-background text-foreground'
-                  : 'bg-foreground text-background'
-                : dark
-                  ? 'text-background/70 hover:bg-background hover:text-foreground'
-                  : 'text-muted-foreground hover:bg-foreground hover:text-background',
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-[var(--paper-dark)] hover:text-foreground',
               disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
             )}
           >
             {icon}
-            <span className="hidden sm:inline">{label}</span>
+            <span className="hidden lg:inline">{label}</span>
           </button>
         )
       })}

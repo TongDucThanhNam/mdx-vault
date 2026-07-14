@@ -3,18 +3,20 @@ import { VaultIndexRuntime } from './vault-index-runtime'
 import { VaultService } from './vault-service'
 
 type IndexChangeCallback = () => void
+type TreeChangeCallback = () => void
 
 let currentVault: VaultService | null = null
 let currentIndex: VaultIndexRuntime | null = null
 
 export async function openCurrentVault(
   root: string,
-  onIndexChanged?: IndexChangeCallback
+  onIndexChanged?: IndexChangeCallback,
+  onTreeChanged?: TreeChangeCallback
 ): Promise<VaultService> {
   await closeCurrentVault()
 
   const vault = new VaultService(root)
-  const index = VaultIndexRuntime.open(vault, onIndexChanged)
+  const index = VaultIndexRuntime.open(vault, onIndexChanged, onTreeChanged)
   bindCurrentSandboxService(vault)
 
   currentVault = vault

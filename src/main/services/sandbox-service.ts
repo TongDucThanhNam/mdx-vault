@@ -7,7 +7,6 @@ import { z } from 'zod'
 
 import {
   type SandboxDescriptor,
-  type SandboxDocument,
   type SandboxKind,
   type SandboxManifest,
   type SandboxPermissionDecision,
@@ -24,6 +23,15 @@ const dependencyAllowlist = new Set(['react', 'react-dom'])
 export type SandboxDraftCompileResult =
   | { ok: true; contentHash: string; script: string }
   | { ok: false; errors: string[] }
+
+export interface SandboxSourceDocument {
+  kind: SandboxKind
+  src: string
+  resolvedPath: string
+  contentHash: string
+  instanceId: string
+  srcDoc: string
+}
 const sandboxCsp = [
   "default-src 'none'",
   "script-src 'unsafe-inline'",
@@ -85,7 +93,7 @@ export class SandboxService {
     notePath: string | null,
     contentHash: string,
     instanceId: string
-  ): Promise<SandboxDocument> {
+  ): Promise<SandboxSourceDocument> {
     const descriptor = await this.describeHtml(src, notePath)
     this.assertAllowedDescriptor(descriptor, contentHash)
 
@@ -187,7 +195,7 @@ export class SandboxService {
     contentHash: string,
     instanceId: string,
     props: unknown
-  ): Promise<SandboxDocument> {
+  ): Promise<SandboxSourceDocument> {
     const descriptor = await this.describeInteractive(src, notePath)
     this.assertAllowedDescriptor(descriptor, contentHash)
     validateProps(descriptor.manifest, props)

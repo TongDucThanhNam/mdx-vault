@@ -13,9 +13,17 @@ export interface VaultFile {
   extension: '.md' | '.mdx'
 }
 
+export interface VaultTreeFile {
+  relativePath: string
+  name: string
+  directory: string
+  extension: string
+}
+
 export interface VaultInfo {
   name: string
   files: VaultFile[]
+  treeFiles: VaultTreeFile[]
 }
 
 export interface TrashEntry {
@@ -54,7 +62,9 @@ interface VaultServiceOptions {
 
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
+const TREE_FILE_PATTERNS = ['**/*']
 const TRASH_DIR = '.trash'
 const IGNORED_DIRECTORIES = ['**/node_modules/**', '**/.git/**', '**/.app/**', '**/.trash/**']
 
@@ -73,9 +83,12 @@ export class VaultService {
   }
 
   async getInfo(): Promise<VaultInfo> {
+    const [files, treeFiles] = await Promise.all([this.listFiles(), this.listTreeFiles()])
+
     return {
       name: basename(this.root),
-      files: await this.listFiles()
+      files,
+      treeFiles
     }
   }
 
@@ -94,6 +107,21 @@ export class VaultService {
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath))
   }
 
+  async listTreeFiles(): Promise<VaultTreeFile[]> {
+    const entries = await fg(TREE_FILE_PATTERNS, {
+      cwd: this.root,
+      dot: true,
+      ignore: IGNORED_DIRECTORIES,
+      onlyFiles: true,
+      unique: true,
+      followSymbolicLinks: false
+    })
+
+    return entries
+      .map((relativePath) => toVaultTreeFile(relativePath))
+      .sort((left, right) => left.relativePath.localeCompare(right.relativePath))
+  }
+
   async readFile(relativePath: string): Promise<string> {
     const target = this.resolveMarkdownPath(relativePath)
     await assertFile(target)
@@ -104,18 +132,23 @@ export class VaultService {
     const normalizedPath = normalizeVaultPath(relativePath)
     const extension = extname(normalizedPath).toLowerCase()
 
-    if (!ASSET_DATA_EXTENSIONS.has(extension)) {
-      throw new Error('Only .csv and .json asset files are allowed')
+    if (!ASSET_DATA_EXTENSIONS.has(extension) && !IMAGE_EXTENSIONS.has(extension)) {
+      throw new Error('Unsupported asset file extension')
     }
 
     const target = safeJoin(this.root, normalizedPath)
 
     if (!isAssetPath(normalizedPath)) {
-      throw new Error('Dataset files must live under assets/')
+      throw new Error('Asset files must live under assets/')
     }
 
-    await assertDatasetFile(target)
-    return readFile(target, 'utf8')
+    await assertAssetFile(target)
+
+    if (ASSET_DATA_EXTENSIONS.has(extension)) {
+      return readFile(target, 'utf8')
+    }
+
+    return (await readFile(target)).toString('base64')
   }
 
   async writeFile(relativePath: string, content: string): Promise<void> {
@@ -576,6 +609,19 @@ function toVaultFile(relativePath: string): VaultFile {
   }
 }
 
+function toVaultTreeFile(relativePath: string): VaultTreeFile {
+  const normalizedPath = normalizeVaultPath(relativePath)
+  const segments = normalizedPath.split('/')
+  const name = segments.at(-1) ?? normalizedPath
+
+  return {
+    relativePath: normalizedPath,
+    name,
+    directory: segments.slice(0, -1).join('/'),
+    extension: extname(name).toLowerCase()
+  }
+}
+
 function normalizeVaultPath(relativePath: string): string {
   return relativePath.replaceAll('\\', '/')
 }
@@ -640,17 +686,17 @@ async function assertFile(target: string): Promise<void> {
   }
 }
 
-async function assertDatasetFile(target: string): Promise<void> {
+async function assertAssetFile(target: string): Promise<void> {
   let fileStats: Awaited<ReturnType<typeof stat>>
 
   try {
     fileStats = await stat(target)
   } catch {
-    throw new Error('Dataset file not found')
+    throw new Error('Asset file not found')
   }
 
   if (!fileStats.isFile()) {
-    throw new Error('Dataset path is not a file')
+    throw new Error('Asset path is not a file')
   }
 }
 
@@ -777,7 +823,6 @@ function formatTemplateDateTime(date: Date, format: string): string {
   return output
 }
 
-const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
 const ILLEGAL_ASSET_CHARS = new Set(['<', '>', ':', '"', '/', '\\', '|', '?', '*'])
 
 /**

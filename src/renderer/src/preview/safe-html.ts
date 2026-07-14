@@ -55,7 +55,7 @@ const safeHtmlSchema: SanitizeSchema = {
     code: [['className', /^language-[\w-]+$/, 'math-inline', 'math-display']],
     del: ['cite'],
     div: [['className', 'mdx-callout-title']],
-    img: ['alt', 'title', 'width', 'height'],
+    img: ['src', 'alt', 'title', 'width', 'height'],
     ol: ['start', ['type', '1', 'a', 'A', 'i', 'I']],
     th: ['align'],
     td: ['align'],
@@ -77,7 +77,8 @@ const safeHtmlSchema: SanitizeSchema = {
   clobberPrefix: 'user-content-',
   protocols: {
     cite: ['http', 'https'],
-    href: ['http', 'https', 'mailto']
+    href: ['http', 'https', 'mailto'],
+    src: ['http', 'https', 'data', 'blob']
   },
   required: {},
   strip: ['script', 'style', 'iframe', 'foreignObject', 'foreignobject'],

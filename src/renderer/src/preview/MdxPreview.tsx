@@ -11,13 +11,17 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { Button } from '@/components/ui/button'
+import type { ReadingZoomWheelInput } from '@/hooks/useReadingZoom'
+import { shouldHandleReadingWheelZoom } from '@/input/physical-modifier'
 import type { IndexedNoteSummary } from '@/vault/types'
 import { remarkCallouts } from '../../../shared/remark-callouts'
 import { remarkMarks } from '../../../shared/remark-mark'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
 import { createMdxComponents } from './mdx-components'
 import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
+import { PreviewImageCache } from './preview-image'
 import { readPreviewMetadata } from './preview-metadata'
+import { normalizeReadingWheelDelta } from './reading-zoom'
 import { rehypePreviewSourceMap } from './rehype-preview-source-map'
 import { PreviewRuntimeContext } from './runtime'
 import { rehypeSafeHtml } from './safe-html'
@@ -25,6 +29,7 @@ import { rehypeSafeHtml } from './safe-html'
 interface MdxPreviewProps {
   source: string
   selectedPath: string | null
+  readingZoomFactor: number
   notes: IndexedNoteSummary[]
   revealHeadingRequest?: {
     position: number
@@ -32,6 +37,9 @@ interface MdxPreviewProps {
   } | null
   onNavigate: (relativePath: string) => void
   onRevealLine: (line: number) => void
+  isDarwin: boolean
+  isPhysicalZoomModifierDown: () => boolean
+  onReadingZoomWheel: (input: ReadingZoomWheelInput) => void
   onSourceChange: (source: string) => void
 }
 
@@ -52,22 +60,77 @@ interface PreviewTextSelection extends PreviewHighlightSelection {
 export function MdxPreview({
   source,
   selectedPath,
+  readingZoomFactor,
   notes,
   revealHeadingRequest,
   onNavigate,
   onRevealLine,
+  isDarwin,
+  isPhysicalZoomModifierDown,
+  onReadingZoomWheel,
   onSourceChange
 }: MdxPreviewProps): React.JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null)
   const previewContentRef = useRef<HTMLDivElement | null>(null)
+  const readingZoomLiveLayerRef = useRef<HTMLDivElement | null>(null)
   const [Content, setContent] = useState<MDXContent | null>(null)
   const [compileError, setCompileError] = useState<PreviewDiagnostic | null>(null)
   const [isCompiling, setIsCompiling] = useState(false)
   const [previewSelection, setPreviewSelection] = useState<PreviewTextSelection | null>(null)
-  const components = useMemo(() => createMdxComponents({ notes, onNavigate }), [notes, onNavigate])
+  const imageCache = useMemo(() => new PreviewImageCache(), [selectedPath])
+  const components = useMemo(
+    () => createMdxComponents({ notes, onNavigate, selectedPath, imageCache }),
+    [notes, onNavigate, selectedPath, imageCache]
+  )
   const previewMetadata = useMemo(() => readPreviewMetadata(source), [source])
   const runtimeValue = useMemo(() => ({ selectedPath }), [selectedPath])
   const activeSelection = previewSelection?.source === source ? previewSelection : null
+
+  useEffect(() => () => imageCache.dispose(), [imageCache])
+
+  useEffect(() => {
+    const scrollRoot = scrollRootRef.current
+    if (!scrollRoot) {
+      return
+    }
+
+    const handleWheel = (event: WheelEvent): void => {
+      if (
+        !shouldHandleReadingWheelZoom({
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          isDarwin,
+          physicalModifierDown: isPhysicalZoomModifierDown()
+        })
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      const pixelDeltaY = normalizeReadingWheelDelta(
+        event.deltaY,
+        event.deltaMode,
+        scrollRoot.clientHeight
+      )
+
+      const liveLayer = readingZoomLiveLayerRef.current
+      if (pixelDeltaY !== 0 && liveLayer) {
+        onReadingZoomWheel({
+          pixelDeltaY,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          scrollRoot,
+          liveLayer
+        })
+      }
+    }
+
+    scrollRoot.addEventListener('wheel', handleWheel, { passive: false })
+
+    return () => {
+      scrollRoot.removeEventListener('wheel', handleWheel)
+    }
+  }, [isDarwin, isPhysicalZoomModifierDown, onReadingZoomWheel])
 
   useEffect(() => {
     let isCancelled = false
@@ -151,42 +214,51 @@ export function MdxPreview({
   }
 
   return (
-    <div ref={scrollRootRef} className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="sticky top-0 z-10 flex h-9 items-center justify-between border-b-2 border-foreground bg-[var(--paper-dark)] px-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-        <span className="truncate">{selectedPath}</span>
-        <span className={isCompiling ? 'text-muted-foreground' : 'text-[var(--editorial-red)]'}>
-          {isCompiling ? 'Compiling' : '● Live'}
-        </span>
-      </div>
-      <div
-        ref={previewContentRef}
-        className="mdx-preview mx-auto max-w-[820px] px-5 py-10 sm:px-8"
-        onMouseUp={capturePreviewSelection}
-      >
-        <PreviewWarnings warnings={previewMetadata.warnings} />
-        <FrontmatterPropertiesBlock properties={previewMetadata.frontmatter} />
-        {compileError ? (
-          <ErrorPanel
-            title="MDX compile error"
-            diagnostic={compileError}
-            onRevealLine={onRevealLine}
-          />
-        ) : Content ? (
-          <ErrorBoundary
-            resetKeys={[source]}
-            fallbackRender={({ error }) => (
-              <ErrorPanel title="MDX runtime error" diagnostic={createDiagnostic(error)} />
+    <div
+      ref={scrollRootRef}
+      data-testid="reading-preview-scroll"
+      className="h-full min-h-0 overflow-x-hidden overflow-y-auto bg-background"
+      role="region"
+      aria-label="Reading preview"
+    >
+      <span className="sr-only" aria-live="polite">
+        {isCompiling ? 'Compiling preview' : 'Preview ready'}
+      </span>
+      <div className="mx-auto w-full max-w-[820px]">
+        <div
+          ref={previewContentRef}
+          data-reading-zoom={readingZoomFactor}
+          className="mdx-preview px-5 py-10 sm:px-8"
+          style={{ zoom: readingZoomFactor, width: `${100 / readingZoomFactor}%` }}
+          onMouseUp={capturePreviewSelection}
+        >
+          <div ref={readingZoomLiveLayerRef} data-reading-zoom-live-layer="true">
+            <PreviewWarnings warnings={previewMetadata.warnings} />
+            <FrontmatterPropertiesBlock properties={previewMetadata.frontmatter} />
+            {compileError ? (
+              <ErrorPanel
+                title="MDX compile error"
+                diagnostic={compileError}
+                onRevealLine={onRevealLine}
+              />
+            ) : Content ? (
+              <ErrorBoundary
+                resetKeys={[source]}
+                fallbackRender={({ error }) => (
+                  <ErrorPanel title="MDX runtime error" diagnostic={createDiagnostic(error)} />
+                )}
+              >
+                <PreviewRuntimeContext.Provider value={runtimeValue}>
+                  <Content components={components} />
+                </PreviewRuntimeContext.Provider>
+              </ErrorBoundary>
+            ) : (
+              <div className="font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+                Preparing preview.
+              </div>
             )}
-          >
-            <PreviewRuntimeContext.Provider value={runtimeValue}>
-              <Content components={components} />
-            </PreviewRuntimeContext.Provider>
-          </ErrorBoundary>
-        ) : (
-          <div className="font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
-            Preparing preview.
           </div>
-        )}
+        </div>
       </div>
       {activeSelection ? (
         <div

@@ -22,7 +22,7 @@ import type { IndexedNoteSummary } from '@/vault/types'
 import { getNoteLinkKeys } from '../../../shared/wikilinks'
 import { ComponentInsertPalette } from './ComponentInsertPalette'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
-import { livePreviewExtension } from './live-preview'
+import { createLivePreviewExtension, refreshLivePreviewEffect } from './live-preview'
 import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
 import { SlashCommandPalette } from './SlashCommandPalette'
 
@@ -63,6 +63,7 @@ interface MdxEditorProps {
   revealLineRequest?: RevealLineRequest | null
   onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
   onCommandError?: (message: string) => void
+  onNavigateToNote?: (relativePath: string) => void
   /**
    * Called when the user pastes or drops an image. The handler should persist
    * the image under `<vault>/assets/` and return the vault-relative path so
@@ -249,6 +250,7 @@ export function MdxEditor({
   revealLineRequest,
   onSelectionChange,
   onCommandError,
+  onNavigateToNote,
   onSaveImage
 }: MdxEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -260,6 +262,7 @@ export function MdxEditor({
   const onChangeRef = useRef(onChange)
   const onSelectionChangeRef = useRef(onSelectionChange)
   const onCommandErrorRef = useRef(onCommandError)
+  const onNavigateToNoteRef = useRef(onNavigateToNote)
   const onSaveImageRef = useRef(onSaveImage)
   const lastInsertRequestRef = useRef<number | null>(null)
   const insertTemplates = useMemo(() => getRegistryInsertTemplates(), [])
@@ -276,7 +279,12 @@ export function MdxEditor({
   const notesRef = useRef<IndexedNoteSummary[]>(notes ?? [])
   useEffect(() => {
     notesRef.current = notes ?? []
+    viewRef.current?.dispatch({ effects: refreshLivePreviewEffect.of(null) })
   }, [notes])
+
+  useEffect(() => {
+    onNavigateToNoteRef.current = onNavigateToNote
+  }, [onNavigateToNote])
 
   useEffect(() => {
     onSaveImageRef.current = onSaveImage
@@ -518,7 +526,12 @@ export function MdxEditor({
           }),
           editorTheme,
           displayModeCompartment.of(
-            initialDisplayModeRef.current === 'live' ? livePreviewExtension : []
+            initialDisplayModeRef.current === 'live'
+              ? createLivePreviewExtension({
+                  getNotes: () => notesRef.current,
+                  getOnNavigateToNote: () => onNavigateToNoteRef.current
+                })
+              : []
           )
         ]
       })
@@ -543,7 +556,12 @@ export function MdxEditor({
 
     view.dispatch({
       effects: displayModeCompartment.reconfigure(
-        displayMode === 'live' ? livePreviewExtension : []
+        displayMode === 'live'
+          ? createLivePreviewExtension({
+              getNotes: () => notesRef.current,
+              getOnNavigateToNote: () => onNavigateToNoteRef.current
+            })
+          : []
       )
     })
   }, [displayMode, displayModeCompartment])

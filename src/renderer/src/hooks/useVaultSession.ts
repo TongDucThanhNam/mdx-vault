@@ -5,6 +5,7 @@ import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { formatError } from '@/lib/format-error'
 import { deriveNoteTitle } from '@/lib/note-title'
+import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import type { RenamePlanPreview } from '../../../shared/rename'
 
@@ -17,6 +18,7 @@ export interface RenameRequest {
 interface UseVaultSessionOptions {
   vault: VaultInfo | null
   setVault: Dispatch<SetStateAction<VaultInfo | null>>
+  setSelectedVaultPath: Dispatch<SetStateAction<string | null>>
   editor: NoteEditorController
   noteIndex: NoteIndexController
   onError: (message: string | null) => void
@@ -26,6 +28,7 @@ interface UseVaultSessionOptions {
 export function useVaultSession({
   vault,
   setVault,
+  setSelectedVaultPath,
   editor,
   noteIndex,
   onError,
@@ -41,8 +44,32 @@ export function useVaultSession({
   const { clearSelectedFile, loadFile, resetEditor, saveCurrentFile, selectedPathRef } = editor
   const { bumpIndexRevision, indexRevision, setIndexNotes } = noteIndex
 
+  const selectNote = useCallback(
+    async (relativePath: string, saveBeforeLoad = true): Promise<void> => {
+      setSelectedVaultPath(relativePath)
+      await loadFile(relativePath, saveBeforeLoad)
+    },
+    [loadFile, setSelectedVaultPath]
+  )
+
+  const selectTreeFile = useCallback(
+    (relativePath: string): void => {
+      if (isNotePath(relativePath)) {
+        void selectNote(relativePath)
+        return
+      }
+
+      setSelectedVaultPath(relativePath)
+    },
+    [selectNote, setSelectedVaultPath]
+  )
+
   const refreshVaultSnapshot = useCallback(async (): Promise<void> => {
-    const [files, notes] = await Promise.all([window.vaultApi.listFiles(), window.indexApi.notes()])
+    const [files, treeFiles, notes] = await Promise.all([
+      window.vaultApi.listFiles(),
+      window.vaultApi.listTreeFiles(),
+      window.indexApi.notes()
+    ])
 
     setVault((currentVault) => {
       if (!currentVault) {
@@ -51,11 +78,34 @@ export function useVaultSession({
 
       return {
         ...currentVault,
-        files
+        files,
+        treeFiles
       }
     })
     setIndexNotes(notes)
   }, [setIndexNotes, setVault])
+
+  const refreshNoteSnapshot = useCallback(async (): Promise<void> => {
+    const [files, notes] = await Promise.all([window.vaultApi.listFiles(), window.indexApi.notes()])
+
+    setVault((currentVault) => (currentVault ? { ...currentVault, files } : currentVault))
+    setIndexNotes(notes)
+  }, [setIndexNotes, setVault])
+
+  const refreshTreeSnapshot = useCallback(async (): Promise<void> => {
+    const treeFiles = await window.vaultApi.listTreeFiles()
+    const availablePaths = new Set(treeFiles.map((file) => file.relativePath))
+
+    setVault((currentVault) => (currentVault ? { ...currentVault, treeFiles } : currentVault))
+    setSelectedVaultPath((currentPath) => {
+      if (!currentPath || availablePaths.has(currentPath)) {
+        return currentPath
+      }
+
+      const editorPath = selectedPathRef.current
+      return editorPath && availablePaths.has(editorPath) ? editorPath : null
+    })
+  }, [selectedPathRef, setSelectedVaultPath, setVault])
 
   const refreshTrashCount = useCallback(async (): Promise<void> => {
     try {
@@ -71,9 +121,9 @@ export function useVaultSession({
       await saveCurrentFile()
       const createdPath = await window.vaultApi.createFile(relativePath, content)
       await refreshVaultSnapshot()
-      await loadFile(createdPath, false)
+      await selectNote(createdPath, false)
     },
-    [loadFile, refreshVaultSnapshot, saveCurrentFile]
+    [refreshVaultSnapshot, saveCurrentFile, selectNote]
   )
 
   const handleDelete = useCallback(
@@ -83,6 +133,7 @@ export function useVaultSession({
       try {
         await window.vaultApi.deleteFile(relativePath)
         clearSelectedFile(relativePath)
+        setSelectedVaultPath((currentPath) => (currentPath === relativePath ? null : currentPath))
         await refreshVaultSnapshot()
         await refreshTrashCount()
         showToast(`Moved "${deriveNoteTitle(relativePath)}" to trash`)
@@ -92,7 +143,14 @@ export function useVaultSession({
         setVaultOpsPending(false)
       }
     },
-    [clearSelectedFile, onError, refreshTrashCount, refreshVaultSnapshot, showToast]
+    [
+      clearSelectedFile,
+      onError,
+      refreshTrashCount,
+      refreshVaultSnapshot,
+      setSelectedVaultPath,
+      showToast
+    ]
   )
 
   const applyRename = useCallback(
@@ -111,7 +169,11 @@ export function useVaultSession({
             : null
 
       if (reloadPath) {
-        await loadFile(reloadPath, false)
+        await selectNote(reloadPath, false)
+      } else {
+        setSelectedVaultPath((currentPath) =>
+          currentPath === fromRelativePath ? result.newRelativePath : currentPath
+        )
       }
 
       await refreshVaultSnapshot()
@@ -121,7 +183,7 @@ export function useVaultSession({
           : `Renamed to "${deriveNoteTitle(result.newRelativePath)}"`
       )
     },
-    [loadFile, refreshVaultSnapshot, selectedPathRef, showToast]
+    [refreshVaultSnapshot, selectNote, selectedPathRef, setSelectedVaultPath, showToast]
   )
 
   const commitRename = useCallback(
@@ -186,7 +248,7 @@ export function useVaultSession({
       try {
         const newPath = await window.vaultApi.duplicateFile(relativePath)
         await refreshVaultSnapshot()
-        await loadFile(newPath, false)
+        await selectNote(newPath, false)
         showToast(`Duplicated to "${deriveNoteTitle(newPath)}"`)
       } catch (duplicateError) {
         onError(formatError(duplicateError))
@@ -194,7 +256,7 @@ export function useVaultSession({
         setVaultOpsPending(false)
       }
     },
-    [loadFile, onError, refreshVaultSnapshot, showToast]
+    [onError, refreshVaultSnapshot, selectNote, showToast]
   )
 
   const handleRevealInExplorer = useCallback(
@@ -283,6 +345,7 @@ export function useVaultSession({
       setIndexNotes(await window.indexApi.notes())
       bumpIndexRevision()
       resetEditor()
+      setSelectedVaultPath(null)
 
       const firstFile =
         openedVault.files.find((file) => file.relativePath.endsWith('/Welcome.mdx')) ??
@@ -290,10 +353,10 @@ export function useVaultSession({
         openedVault.files[0]
 
       if (firstFile) {
-        await loadFile(firstFile.relativePath, false)
+        await selectNote(firstFile.relativePath, false)
       }
     },
-    [bumpIndexRevision, loadFile, resetEditor, setIndexNotes, setVault]
+    [bumpIndexRevision, resetEditor, selectNote, setIndexNotes, setSelectedVaultPath, setVault]
   )
 
   const openVault = useCallback(async (): Promise<void> => {
@@ -353,11 +416,23 @@ export function useVaultSession({
     return window.indexApi.onDidChange(() => {
       bumpIndexRevision()
 
-      void refreshVaultSnapshot().catch((refreshError: unknown) => {
+      void refreshNoteSnapshot().catch((refreshError: unknown) => {
         onError(formatError(refreshError))
       })
     })
-  }, [bumpIndexRevision, onError, refreshVaultSnapshot, vault])
+  }, [bumpIndexRevision, onError, refreshNoteSnapshot, vault])
+
+  useEffect(() => {
+    if (!vault) {
+      return
+    }
+
+    return window.vaultApi.onTreeDidChange(() => {
+      void refreshTreeSnapshot().catch((refreshError: unknown) => {
+        onError(formatError(refreshError))
+      })
+    })
+  }, [onError, refreshTreeSnapshot, vault])
 
   return {
     isOpening,
@@ -366,6 +441,8 @@ export function useVaultSession({
     trashCount,
     renameRequest,
     setRenameRequest,
+    selectNote,
+    selectTreeFile,
     refreshVaultSnapshot,
     createNote,
     handleDelete,

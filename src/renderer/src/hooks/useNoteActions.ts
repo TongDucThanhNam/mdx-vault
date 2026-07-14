@@ -37,14 +37,14 @@ export function useNoteActions({
 }: UseNoteActionsOptions) {
   const [editorInsertRequest, setEditorInsertRequest] = useState<EditorInsertRequest | null>(null)
   const insertRequestRef = useRef(0)
-  const { loadFile, saveCurrentFile, selectedPathRef } = editor
-  const { createNote, refreshVaultSnapshot } = vaultSession
+  const { saveCurrentFile, selectedPathRef } = editor
+  const { createNote, refreshVaultSnapshot, selectNote } = vaultSession
 
   const navigateToNote = useCallback(
     (relativePath: string): void => {
-      void loadFile(relativePath)
+      void selectNote(relativePath)
     },
-    [loadFile]
+    [selectNote]
   )
 
   const insertIntoEditor = useCallback(
@@ -107,7 +107,7 @@ export function useNoteActions({
       const relativePath = `journal/${date}.mdx`
 
       if (await window.vaultApi.fileExists(relativePath)) {
-        await loadFile(relativePath, false)
+        await selectNote(relativePath, false)
         showToast(`Opened ${relativePath}`)
         return
       }
@@ -119,12 +119,12 @@ export function useNoteActions({
       const createdPath = await window.vaultApi.createFile(relativePath, content)
 
       await refreshVaultSnapshot()
-      await loadFile(createdPath, false)
+      await selectNote(createdPath, false)
       showToast(`Created ${createdPath}`)
     } catch (dailyNoteError) {
       onError(formatError(dailyNoteError))
     }
-  }, [loadFile, onError, refreshVaultSnapshot, saveCurrentFile, showToast, vault])
+  }, [onError, refreshVaultSnapshot, saveCurrentFile, selectNote, showToast, vault])
 
   const openRandomNote = useCallback(async (): Promise<void> => {
     if (indexNotes.length === 0) {
@@ -132,9 +132,9 @@ export function useNoteActions({
     }
 
     const note = indexNotes[Math.floor(Math.random() * indexNotes.length)]
-    await loadFile(note.relativePath)
+    await selectNote(note.relativePath)
     showToast(`Opened ${note.title}`)
-  }, [indexNotes, loadFile, showToast])
+  }, [indexNotes, selectNote, showToast])
 
   const createUniqueNote = useCallback(async (): Promise<void> => {
     if (!vault) {
@@ -150,9 +150,9 @@ export function useNoteActions({
     )
 
     await refreshVaultSnapshot()
-    await loadFile(createdPath, false)
+    await selectNote(createdPath, false)
     showToast(`Created ${createdPath}`)
-  }, [loadFile, refreshVaultSnapshot, saveCurrentFile, showToast, vault])
+  }, [refreshVaultSnapshot, saveCurrentFile, selectNote, showToast, vault])
 
   const createNoteFromSwitcher = useCallback(
     async (query: string): Promise<void> => {

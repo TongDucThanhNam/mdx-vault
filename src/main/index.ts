@@ -7,8 +7,24 @@ import { registerExportIpc } from './ipc/export-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
+import { registerWindowIpc, registerWindowStateEvents } from './ipc/window-ipc'
 import { AppSettingsService } from './services/app-settings'
+import {
+  registerSandboxDocumentProtocol,
+  registerSandboxDocumentScheme
+} from './services/sandbox-document-protocol'
 import { closeCurrentVault } from './services/vault-session'
+
+registerSandboxDocumentScheme()
+
+function enableNativeVisualZoom(mainWindow: BrowserWindow): void {
+  const applyVisualZoomLimits = (): void => {
+    void mainWindow.webContents.setVisualZoomLevelLimits(1, 4)
+  }
+
+  applyVisualZoomLimits()
+  mainWindow.webContents.on('did-finish-load', applyVisualZoomLimits)
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -19,6 +35,7 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -28,6 +45,9 @@ function createWindow(): void {
       webSecurity: true
     }
   })
+
+  enableNativeVisualZoom(mainWindow)
+  registerWindowStateEvents(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -63,11 +83,17 @@ app.whenReady().then(() => {
 
   const appSettings = new AppSettingsService()
 
-  registerVaultIpc({ onIndexChanged: broadcastIndexChanged, appSettings })
+  registerSandboxDocumentProtocol()
+  registerVaultIpc({
+    onIndexChanged: broadcastIndexChanged,
+    onTreeChanged: broadcastVaultTreeChanged,
+    appSettings
+  })
   registerIndexIpc({ onIndexChanged: broadcastIndexChanged })
   registerSandboxIpc()
   registerAiIpc()
   registerExportIpc()
+  registerWindowIpc()
   registerAppSettingsIpc(appSettings)
 
   createWindow()
@@ -99,6 +125,14 @@ function broadcastIndexChanged(): void {
   for (const window of BrowserWindow.getAllWindows()) {
     if (!window.isDestroyed()) {
       window.webContents.send('index:changed')
+    }
+  }
+}
+
+function broadcastVaultTreeChanged(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send('vault:tree-changed')
     }
   }
 }
