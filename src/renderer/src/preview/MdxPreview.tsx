@@ -13,6 +13,7 @@ import remarkMath from 'remark-math'
 import { Button } from '@/components/ui/button'
 import type { ReadingZoomWheelInput } from '@/hooks/useReadingZoom'
 import { shouldHandleReadingWheelZoom } from '@/input/physical-modifier'
+import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary } from '@/vault/types'
 import { remarkCallouts } from '../../../shared/remark-callouts'
 import { remarkMarks } from '../../../shared/remark-mark'
@@ -20,11 +21,12 @@ import { remarkWikilink } from '../../../shared/remark-wikilink'
 import { createMdxComponents } from './mdx-components'
 import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
 import { PreviewImageCache } from './preview-image'
-import { readPreviewMetadata } from './preview-metadata'
+import { isInteractiveNoteTheme, readPreviewMetadata } from './preview-metadata'
 import { normalizeReadingWheelDelta } from './reading-zoom'
 import { rehypePreviewSourceMap } from './rehype-preview-source-map'
 import { PreviewRuntimeContext } from './runtime'
 import { rehypeSafeHtml } from './safe-html'
+import './interactive-note-theme.css'
 
 interface MdxPreviewProps {
   source: string
@@ -228,7 +230,10 @@ export function MdxPreview({
         <div
           ref={previewContentRef}
           data-reading-zoom={readingZoomFactor}
-          className="mdx-preview px-5 py-10 sm:px-8"
+          className={cn(
+            'mdx-preview px-5 py-10 sm:px-8',
+            isInteractiveNoteTheme(previewMetadata.frontmatter) && 'theme-interactive-note'
+          )}
           style={{ zoom: readingZoomFactor, width: `${100 / readingZoomFactor}%` }}
           onMouseUp={capturePreviewSelection}
         >
@@ -454,7 +459,7 @@ function FrontmatterPropertiesBlock({
   }
 
   return (
-    <section className="mb-10 overflow-x-auto border-2 border-foreground bg-paper-dark px-5 py-4 text-sm">
+    <section className="mdx-frontmatter-properties mb-10 overflow-x-auto border-2 border-foreground bg-paper-dark px-5 py-4 text-sm">
       <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
         Properties
       </div>

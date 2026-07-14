@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type { z } from 'zod'
 
-export type RegistryCategory = 'demo' | 'content' | 'data' | 'layout'
+export type RegistryCategory = 'demo' | 'content' | 'data' | 'layout' | 'interactive-note'
 
 export interface ComponentRegistryEntry<TProps extends object = object> {
   name: string

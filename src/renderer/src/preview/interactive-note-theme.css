@@ -1,0 +1,521 @@
+.mdx-preview {
+  --in-paper: #f9f9f7;
+  --in-paper-dark: #efefea;
+  --in-ink: #111111;
+  --in-accent: #d32f2f;
+  --in-line: #cccccc;
+  --in-result: #2b5797;
+  --in-result-tint: #dce6f5;
+  --in-accent-tint: #f5d5d5;
+  --in-shadow: 4px 4px 0 var(--in-ink);
+}
+
+/* Component styles are always available, including in notes without the prose theme. */
+.mdx-preview .in-primer {
+  margin: 0 0 2.2rem;
+  border: 2px dashed var(--in-ink);
+  background: var(--in-paper);
+  padding: 0.8rem 1.1rem;
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-primer-head {
+  margin-bottom: 0.5rem;
+  color: var(--in-accent);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mdx-preview .in-primer-row {
+  margin: 0.3rem 0;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.mdx-preview .in-primer-term {
+  border: 1px solid var(--in-ink);
+  background: var(--in-paper-dark);
+  padding: 1px 6px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mdx-preview .in-primer-link {
+  color: var(--in-result);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mdx-preview .in-highlight-box {
+  margin: 0.8rem 0;
+  border: 2px solid var(--in-accent);
+  border-left: 5px solid var(--in-accent);
+  background: var(--in-paper);
+  padding: 0.7rem 1rem;
+  color: var(--in-ink);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.mdx-preview .in-highlight-title {
+  color: var(--in-accent);
+}
+
+.mdx-preview .in-formula-line {
+  display: block;
+  margin: 0.8rem 0;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  box-shadow: 3px 3px 0 var(--in-ink);
+  padding: 0.7rem 1rem;
+  color: var(--in-ink);
+  font-family: 'Courier Prime', monospace;
+  font-size: 1.05rem;
+}
+
+.mdx-preview .in-mm-grid {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  margin: 1rem 0;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-mm-key,
+.mdx-preview .in-mm-value {
+  border-bottom: 1px solid var(--in-line);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.mdx-preview .in-mm-grid > :nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.mdx-preview .in-mm-key {
+  display: flex;
+  align-items: center;
+  border-right: 2px solid var(--in-ink);
+  background: var(--in-paper-dark);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mdx-preview .in-mm-key-conflict {
+  color: var(--in-accent);
+}
+
+.mdx-preview .in-trace {
+  margin: 1rem 0;
+  overflow-x: auto;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper-dark);
+  padding: 1rem 1.3rem;
+  color: var(--in-ink);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.85rem;
+  line-height: 1.9;
+  white-space: pre;
+}
+
+.mdx-preview .in-widget {
+  margin: 1.4rem 0 2rem;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  box-shadow: var(--in-shadow);
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--in-ink);
+  background: var(--in-paper-dark);
+  padding: 0.55rem 1rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mdx-preview .in-widget-head > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mdx-preview .in-widget-status {
+  flex-shrink: 0;
+  background: var(--in-ink);
+  padding: 0.15rem 0.6rem;
+  color: var(--in-paper);
+  font-size: 0.7rem;
+}
+
+.mdx-preview .in-widget-misconception {
+  border-bottom: 2px dashed var(--in-line);
+  background: var(--in-paper);
+  padding: 0.45rem 1rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.75rem;
+}
+
+.mdx-preview .in-widget-misconception strong {
+  color: var(--in-accent);
+}
+
+.mdx-preview .in-widget-body {
+  padding: 1.3rem;
+}
+
+.mdx-preview .in-gate {
+  margin-bottom: 1.2rem;
+  border: 2px dashed var(--in-accent);
+  background: var(--in-paper);
+  padding: 1rem 1.2rem;
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-gate-question {
+  margin-bottom: 0.8rem;
+  font-family: 'Lora', serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.mdx-preview .in-gate-question strong {
+  color: var(--in-accent);
+}
+
+.mdx-preview .in-gate-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.mdx-preview .in-button {
+  -webkit-tap-highlight-color: transparent;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  box-shadow: 2px 2px 0 var(--in-ink);
+  padding: 0.5rem 1rem;
+  color: var(--in-ink);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+
+.mdx-preview .in-button:hover:not(:disabled) {
+  background: var(--in-ink);
+  color: var(--in-paper);
+}
+
+.mdx-preview .in-button:active:not(:disabled) {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.mdx-preview .in-button:focus-visible,
+.mdx-preview .in-primer-link:focus-visible {
+  outline: 3px solid var(--in-accent);
+  outline-offset: 2px;
+}
+
+.mdx-preview .in-button:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.mdx-preview .in-gate-option-chosen,
+.mdx-preview .in-gate-option-chosen:disabled,
+.mdx-preview .in-gate-option-chosen:hover:disabled {
+  border-color: var(--in-accent);
+  background: var(--in-accent);
+  box-shadow: none;
+  color: var(--in-paper);
+  opacity: 1;
+  transform: translate(2px, 2px);
+}
+
+.mdx-preview .in-gate-verdict {
+  margin-top: 0.9rem;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper-dark);
+  padding: 0.7rem 1rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.mdx-preview .in-verdict-right {
+  color: var(--in-result);
+  font-weight: 700;
+}
+
+.mdx-preview .in-verdict-wrong {
+  color: var(--in-accent);
+  font-weight: 700;
+}
+
+.mdx-preview .in-recap,
+.mdx-preview .in-comparison {
+  margin: 0.7rem 0 0;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  padding: 0.8rem 1rem;
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-recap-label,
+.mdx-preview .in-comparison-caption {
+  margin: 0.45rem 0;
+  border-top: 2px dashed var(--in-line);
+  padding-top: 0.35rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.mdx-preview .in-recap-label:first-child {
+  margin-top: 0;
+}
+
+.mdx-preview .in-comparison-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 45px;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.28rem 0;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mdx-preview .in-comparison-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mdx-preview .in-comparison-track {
+  background: var(--in-paper-dark);
+}
+
+.mdx-preview .in-comparison-bar {
+  height: 11px;
+  background: var(--in-ink);
+}
+
+.mdx-preview .in-comparison-bar-bad {
+  background: var(--in-accent);
+}
+
+.mdx-preview .in-self-test,
+.mdx-preview .in-evidence-log {
+  margin: 1rem 0;
+}
+
+.mdx-preview .in-question {
+  margin: 1rem 0;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-question-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.mdx-preview .in-question-head > :last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mdx-preview .in-question-level {
+  background: var(--in-ink);
+  padding: 0.15rem 0.5rem;
+  color: var(--in-paper);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mdx-preview .in-question-actions {
+  padding: 0 1rem 0.8rem;
+}
+
+.mdx-preview .in-question-answer {
+  border-top: 2px dashed var(--in-line);
+  background: var(--in-paper-dark);
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.mdx-preview .in-evidence-item {
+  margin: 0.8rem 0;
+}
+
+.mdx-preview .in-command {
+  display: block;
+  margin: 0.4rem 0;
+  overflow-x: auto;
+  background: var(--in-ink);
+  padding: 0.6rem 0.9rem;
+  color: var(--in-paper);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.78rem;
+  white-space: pre;
+}
+
+.mdx-preview .in-evidence-result {
+  border-left: 2px solid var(--in-line);
+  padding-left: 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.mdx-preview .in-evidence-empty {
+  color: var(--in-accent);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* The prose theme is frontmatter opt-in; ordinary notes retain the existing preview styles. */
+.mdx-preview.theme-interactive-note {
+  background: var(--in-paper);
+  color: var(--in-ink);
+  font-family: 'Lora', serif;
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.mdx-preview.theme-interactive-note h1 {
+  margin-top: 0;
+  margin-bottom: 0.4rem;
+  border-bottom: 0;
+  padding-bottom: 0;
+  color: var(--in-ink);
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.mdx-preview.theme-interactive-note h2 {
+  margin: 3rem 0 1rem;
+  border-top: 2px solid var(--in-ink);
+  padding-top: 1rem;
+  color: var(--in-ink);
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  scroll-margin-top: 56px;
+  text-wrap: balance;
+}
+
+.mdx-preview.theme-interactive-note p {
+  margin-bottom: 0.9rem;
+  color: var(--in-ink);
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.mdx-preview.theme-interactive-note strong {
+  color: var(--in-ink);
+}
+
+.mdx-preview.theme-interactive-note code {
+  background: var(--in-ink);
+  padding: 2px 7px;
+  color: var(--in-paper);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.85rem;
+}
+
+.mdx-preview.theme-interactive-note blockquote {
+  margin: 1.25rem 0;
+  border-left: 4px solid var(--in-accent);
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  color: var(--in-ink);
+  font-style: italic;
+}
+
+.mdx-preview.theme-interactive-note table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  color: var(--in-ink);
+  font-family: 'Lora', serif;
+  font-size: 0.9rem;
+}
+
+.mdx-preview.theme-interactive-note th {
+  background: var(--in-ink);
+  padding: 0.5rem 0.7rem;
+  color: var(--in-paper);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.mdx-preview.theme-interactive-note td {
+  border: 1px solid var(--in-ink);
+  padding: 0.55rem 0.7rem;
+  line-height: 1.55;
+  vertical-align: top;
+}
+
+.mdx-preview.theme-interactive-note tr:nth-child(even) td {
+  background: var(--in-paper-dark);
+}
+
+.mdx-preview.theme-interactive-note .mdx-frontmatter-properties {
+  border-color: var(--in-ink);
+  background: var(--in-paper-dark);
+  color: var(--in-ink);
+  font-family: 'Courier Prime', monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdx-preview .in-button {
+    transition: none;
+  }
+}

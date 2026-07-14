@@ -31,6 +31,10 @@ export function readPreviewMetadata(source: string): PreviewMetadata {
   }
 }
 
+export function isInteractiveNoteTheme(frontmatter: Record<string, unknown>): boolean {
+  return frontmatter.theme === 'interactive-note'
+}
+
 function readFrontmatter(source: string): Record<string, unknown> {
   try {
     return matter(source).data

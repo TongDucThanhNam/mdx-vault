@@ -16,6 +16,7 @@
       "!!**/.app",
       "!!bun.lock",
       "!!resources",
+      "!!docs/research/interactive-note-skill",
       "!!interactive-notes-out"
     ]
   },

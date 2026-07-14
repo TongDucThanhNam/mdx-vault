@@ -5,6 +5,21 @@ import { algorithmVisualizerRegistryEntry } from './algorithm-visualizer'
 import { counterRegistryEntry } from './counter'
 import { dataChartRegistryEntry } from './data-chart'
 import { equationSliderRegistryEntry } from './equation-slider'
+import { comparisonBarsRegistryEntry } from './interactive-note/comparison-bars'
+import { evidenceItemRegistryEntry } from './interactive-note/evidence-item'
+import { evidenceLogRegistryEntry } from './interactive-note/evidence-log'
+import { formulaLineRegistryEntry } from './interactive-note/formula-line'
+import { highlightBoxRegistryEntry } from './interactive-note/highlight-box'
+import { mentalModelRegistryEntry } from './interactive-note/mental-model'
+import { mentalModelRowRegistryEntry } from './interactive-note/mental-model-row'
+import { notePrimerRegistryEntry } from './interactive-note/note-primer'
+import { predictionGateRegistryEntry } from './interactive-note/prediction-gate'
+import { primerTermRegistryEntry } from './interactive-note/primer-term'
+import { recapRegistryEntry } from './interactive-note/recap'
+import { selfTestRegistryEntry } from './interactive-note/self-test'
+import { selfTestItemRegistryEntry } from './interactive-note/self-test-item'
+import { traceBlockRegistryEntry } from './interactive-note/trace-block'
+import { widgetFrameRegistryEntry } from './interactive-note/widget-frame'
 import { ComponentValidationWarning } from './messages'
 import { quizBlockRegistryEntry } from './quiz-block'
 import type { ComponentRegistryEntry } from './types'
@@ -21,7 +36,22 @@ const registryEntries = [
   quizBlockRegistryEntry,
   equationSliderRegistryEntry,
   dataChartRegistryEntry,
-  algorithmVisualizerRegistryEntry
+  algorithmVisualizerRegistryEntry,
+  notePrimerRegistryEntry,
+  primerTermRegistryEntry,
+  highlightBoxRegistryEntry,
+  formulaLineRegistryEntry,
+  mentalModelRegistryEntry,
+  mentalModelRowRegistryEntry,
+  traceBlockRegistryEntry,
+  widgetFrameRegistryEntry,
+  predictionGateRegistryEntry,
+  recapRegistryEntry,
+  selfTestRegistryEntry,
+  selfTestItemRegistryEntry,
+  evidenceLogRegistryEntry,
+  evidenceItemRegistryEntry,
+  comparisonBarsRegistryEntry
 ]
 
 export const componentRegistry = registryEntries as unknown as ComponentRegistryEntry[]

@@ -1,0 +1,116 @@
+---
+title: {{title}}
+tags: [interactive-note]
+theme: interactive-note
+prerequisites: []
+id: concept-id
+type: concept
+layer: general
+priority: P1
+maturity_target: L3
+current_maturity: L1
+review_interval_days: 14
+---
+
+# {{title}}
+
+_Concept note · explorable reference · Format B_
+
+<NotePrimer>
+  <PrimerTerm term="term" href="#mechanism">Define this note-local term in one line.</PrimerTerm>
+  <PrimerTerm term="prerequisites">List assumed knowledge here; do not re-teach it.</PrimerTerm>
+</NotePrimer>
+
+<h2 id="one-liner">One-liner</h2>
+
+State the durable idea in one or two sentences. Do not add a visual to this section.
+
+<h2 id="mental-model">Mental Model</h2>
+
+<MentalModel>
+  <MentalModelRow label="Extends">Name the model this concept extends.</MentalModelRow>
+  <MentalModelRow label="Conflicts" conflict>Name the misconception this concept invalidates.</MentalModelRow>
+  <MentalModelRow label="Requires">Name the prerequisite mental model.</MentalModelRow>
+  <MentalModelRow label="Misapplication">Explain where this model is commonly misused.</MentalModelRow>
+</MentalModel>
+
+{/* TIER2: Add a static comparison only when the section has quantitative, spatial, or sequential structure. */}
+
+<h2 id="mechanism">Mechanism</h2>
+
+Explain the mechanism from first principles before introducing a widget.
+
+<TraceBlock>{`Input
+  → transformation
+  → observable result`}</TraceBlock>
+
+<FormulaLine>result = mechanism(input)</FormulaLine>
+
+<h2 id="widget-1">Prediction Widget</h2>
+
+<WidgetFrame
+  title="Widget 01 · Prediction-gated"
+  misconception="Write the exact wrong prediction this widget targets."
+>
+  <PredictionGate
+    question="Ask for a prediction before revealing the discrete outcome."
+    options={["Outcome A", "Outcome B", "Outcome C"]}
+    answer="Outcome B"
+    explain="Explain the mechanism that makes this result inevitable."
+  />
+  {/* WIDGET-1: Place an Interactive island or a compact trusted visual here. */}
+</WidgetFrame>
+
+<Recap>State the complete result here for fast repeat reading.</Recap>
+
+<h2 id="tradeoffs">Tradeoffs</h2>
+
+| Decision | Benefit | Cost |
+| --- | --- | --- |
+| Option | What it improves | What it makes worse |
+
+<h2 id="failure-modes">Failure Modes</h2>
+
+| Failure | Mechanism | Production symptom |
+| --- | --- | --- |
+| Failure mode | Why it happens | How it appears in practice |
+
+<HighlightBox title="Evidence boundary">
+  If the claim depends on real hardware or production data, do not simulate the number. Record a real command below.
+</HighlightBox>
+
+<h2 id="evidence">Evidence Log</h2>
+
+The note has not reached L3 while required evidence is missing.
+
+<EvidenceLog>
+  <EvidenceItem cmd="run-the-real-benchmark --with explicit flags" />
+</EvidenceLog>
+
+<h2 id="self-test">Self-test</h2>
+
+Answer from memory before revealing each answer.
+
+<SelfTest>
+  <SelfTestItem level={3} question="Explain the mechanism without looking.">
+    Give the mechanism answer and link back to its section.
+  </SelfTestItem>
+  <SelfTestItem level={4} question="Where does the tradeoff reverse?">
+    Compare the relevant contexts and link back to Tradeoffs.
+  </SelfTestItem>
+  <SelfTestItem level={5} question="Diagnose a production case using this model.">
+    Apply the model to evidence and name what would falsify the diagnosis.
+  </SelfTestItem>
+</SelfTest>
+
+<h2 id="links">Links</h2>
+
+- Prerequisite: [[prerequisite-note]]
+- Downstream: [[downstream-note]]
+- Bridge: [[bridge-note]]
+- Lab: [[lab-note]]
+- Source: Add the primary source here.
+
+---
+
+_Format B · text / static visual / widget · 1/3 widget budget · prerequisite closure required · body scrolls_
