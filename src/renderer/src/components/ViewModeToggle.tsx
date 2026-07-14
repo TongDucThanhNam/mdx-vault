@@ -1,7 +1,7 @@
-import { Columns2, Eye, SquareCode } from 'lucide-react'
+import { Eye, PenLine, SquareCode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type ViewMode = 'source' | 'split' | 'preview'
+export type ViewMode = 'source' | 'live' | 'reading'
 
 interface ViewModeToggleProps {
   value: ViewMode
@@ -16,8 +16,8 @@ const VIEW_MODES: Array<{ mode: ViewMode; label: string; icon: React.ReactNode }
     label: 'Source',
     icon: <SquareCode className="size-3.5" aria-hidden="true" />
   },
-  { mode: 'split', label: 'Split', icon: <Columns2 className="size-3.5" aria-hidden="true" /> },
-  { mode: 'preview', label: 'Preview', icon: <Eye className="size-3.5" aria-hidden="true" /> }
+  { mode: 'live', label: 'Live', icon: <PenLine className="size-3.5" aria-hidden="true" /> },
+  { mode: 'reading', label: 'Reading', icon: <Eye className="size-3.5" aria-hidden="true" /> }
 ]
 
 export function ViewModeToggle({

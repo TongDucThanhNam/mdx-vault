@@ -29,7 +29,7 @@ function App(): React.JSX.Element {
   const { theme, resolvedTheme, toggle: toggleTheme } = useTheme()
   const [vault, setVault] = useState<VaultInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('split')
+  const [viewMode, setViewMode] = useState<ViewMode>('live')
   const [navigationPanel, setNavigationPanel] = useState<NavigationPanel>('outline')
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)

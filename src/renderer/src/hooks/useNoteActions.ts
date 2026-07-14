@@ -58,7 +58,7 @@ export function useNoteActions({
       }
 
       insertRequestRef.current += 1
-      setViewMode((current) => (current === 'preview' ? 'split' : current))
+      setViewMode((current) => (current === 'reading' ? 'live' : current))
       setEditorInsertRequest({
         requestId: insertRequestRef.current,
         text,

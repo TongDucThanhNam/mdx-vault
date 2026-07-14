@@ -50,7 +50,7 @@ export function useKeyboardShortcuts({
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && key === 'v') {
         event.preventDefault()
         setViewMode((current) =>
-          current === 'source' ? 'split' : current === 'split' ? 'preview' : 'source'
+          current === 'source' ? 'live' : current === 'live' ? 'reading' : 'source'
         )
       }
 

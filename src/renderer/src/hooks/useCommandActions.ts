@@ -156,23 +156,23 @@ export function useCommandActions({
         run: () => setViewMode('source')
       },
       {
-        id: 'view.split',
-        title: 'Split view',
-        description: 'Show editor and preview together.',
+        id: 'view.live',
+        title: 'Live Preview view',
+        description: 'Show Markdown with inline formatting in the editor.',
         category: 'View',
         keywords: ['editor', 'preview'],
         hotkeys: ['Ctrl+Shift+V'],
         disabled: selectedPath === null,
-        run: () => setViewMode('split')
+        run: () => setViewMode('live')
       },
       {
-        id: 'view.preview',
-        title: 'Preview view',
-        description: 'Show the rendered MDX preview only.',
+        id: 'view.reading',
+        title: 'Reading view',
+        description: 'Show the rendered note for reading.',
         category: 'View',
         keywords: ['rendered'],
         disabled: selectedPath === null,
-        run: () => setViewMode('preview')
+        run: () => setViewMode('reading')
       },
       {
         id: 'note.export',

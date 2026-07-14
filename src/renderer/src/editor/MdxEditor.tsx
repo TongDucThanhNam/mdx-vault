@@ -9,9 +9,10 @@ import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
 import { HighlightStyle, LanguageDescription, syntaxHighlighting } from '@codemirror/language'
 import { search } from '@codemirror/search'
-import { EditorState, Prec } from '@codemirror/state'
+import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
+import { Strikethrough, Table } from '@lezer/markdown'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CommandAction } from '@/commands/actions'
@@ -21,6 +22,7 @@ import type { IndexedNoteSummary } from '@/vault/types'
 import { getNoteLinkKeys } from '../../../shared/wikilinks'
 import { ComponentInsertPalette } from './ComponentInsertPalette'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
+import { livePreviewExtension } from './live-preview'
 import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
 import { SlashCommandPalette } from './SlashCommandPalette'
 
@@ -53,6 +55,7 @@ export interface EditorInsertRequest {
 interface MdxEditorProps {
   value: string
   onChange: (value: string) => void
+  displayMode: 'source' | 'live'
   /** Indexed notes used as the source for `[[` wikilink autocomplete. */
   notes?: IndexedNoteSummary[]
   commandActions?: CommandAction[]
@@ -239,6 +242,7 @@ const editorHighlightStyle = HighlightStyle.define([
 export function MdxEditor({
   value,
   onChange,
+  displayMode,
   notes,
   commandActions = [],
   insertRequest,
@@ -251,6 +255,8 @@ export function MdxEditor({
   const viewRef = useRef<EditorView | null>(null)
   const [liveView, setLiveView] = useState<EditorView | null>(null)
   const initialValueRef = useRef(value)
+  const initialDisplayModeRef = useRef(displayMode)
+  const [displayModeCompartment] = useState(() => new Compartment())
   const onChangeRef = useRef(onChange)
   const onSelectionChangeRef = useRef(onSelectionChange)
   const onCommandErrorRef = useRef(onCommandError)
@@ -440,7 +446,10 @@ export function MdxEditor({
         doc: initialValueRef.current,
         extensions: [
           basicSetup,
-          markdown({ codeLanguages, extensions: mdxHighlightExtension }),
+          markdown({
+            codeLanguages,
+            extensions: [Strikethrough, Table, mdxHighlightExtension]
+          }),
           syntaxHighlighting(editorHighlightStyle),
           mdxBlockHighlightExtension,
           search({ top: true }),
@@ -507,7 +516,10 @@ export function MdxEditor({
               setInlineDocLength(update.state.doc.length)
             }
           }),
-          editorTheme
+          editorTheme,
+          displayModeCompartment.of(
+            initialDisplayModeRef.current === 'live' ? livePreviewExtension : []
+          )
         ]
       })
     })
@@ -520,7 +532,21 @@ export function MdxEditor({
       viewRef.current = null
       setLiveView(null)
     }
-  }, [openInsertPalette, openSlashPalette])
+  }, [displayModeCompartment, openInsertPalette, openSlashPalette])
+
+  useEffect(() => {
+    const view = viewRef.current
+
+    if (!view) {
+      return
+    }
+
+    view.dispatch({
+      effects: displayModeCompartment.reconfigure(
+        displayMode === 'live' ? livePreviewExtension : []
+      )
+    })
+  }, [displayMode, displayModeCompartment])
 
   useEffect(() => {
     const view = viewRef.current
