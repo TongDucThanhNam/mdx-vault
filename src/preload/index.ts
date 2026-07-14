@@ -306,7 +306,11 @@ const appApi = {
   ): Promise<'name' | 'modified-desc' | 'created-desc'> =>
     ipcRenderer.invoke('app:set-file-tree-sort', sort) as Promise<
       'name' | 'modified-desc' | 'created-desc'
-    >
+    >,
+  getEditorFontSize: (): Promise<number> =>
+    ipcRenderer.invoke('app:get-editor-font-size') as Promise<number>,
+  setEditorFontSize: (fontSize: number): Promise<number> =>
+    ipcRenderer.invoke('app:set-editor-font-size', fontSize) as Promise<number>
 }
 
 const windowApi = {

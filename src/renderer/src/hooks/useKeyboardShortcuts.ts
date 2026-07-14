@@ -12,6 +12,7 @@ interface UseKeyboardShortcutsOptions {
   setSearchOpen: Dispatch<SetStateAction<boolean>>
   setAiPanelOpen: Dispatch<SetStateAction<boolean>>
   setExportDialogOpen: Dispatch<SetStateAction<boolean>>
+  setSettingsOpen: Dispatch<SetStateAction<boolean>>
 }
 
 interface UseReadingZoomShortcutsOptions {
@@ -30,7 +31,8 @@ export function useKeyboardShortcuts({
   setCreateNoteOpen,
   setSearchOpen,
   setAiPanelOpen,
-  setExportDialogOpen
+  setExportDialogOpen,
+  setSettingsOpen
 }: UseKeyboardShortcutsOptions): void {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -47,6 +49,12 @@ export function useKeyboardShortcuts({
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && key === 'p') {
         event.preventDefault()
         setCommandPaletteOpen(true)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && key === ',') {
+        event.preventDefault()
+        setSettingsOpen(true)
         return
       }
 
@@ -102,6 +110,7 @@ export function useKeyboardShortcuts({
     setExportDialogOpen,
     setQuickSwitcherOpen,
     setSearchOpen,
+    setSettingsOpen,
     setViewMode
   ])
 }

@@ -8,6 +8,7 @@ import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { ExportDialog } from '@/export/ExportDialog'
 import { useCommandActions } from '@/hooks/useCommandActions'
+import { useEditorFontSize } from '@/hooks/useEditorFontSize'
 import { useEditorInteractions } from '@/hooks/useEditorInteractions'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useNoteActions } from '@/hooks/useNoteActions'
@@ -19,6 +20,7 @@ import { useToast } from '@/hooks/useToast'
 import { useVaultSession } from '@/hooks/useVaultSession'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { SearchPane } from '@/search/SearchPane'
+import { SettingsDialog } from '@/settings/SettingsDialog'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 
@@ -27,7 +29,7 @@ interface DeleteRequest {
 }
 
 function App(): React.JSX.Element {
-  const { toggle: toggleTheme } = useTheme()
+  const { theme, setTheme, toggle: toggleTheme } = useTheme()
   const [vault, setVault] = useState<VaultInfo | null>(null)
   const [selectedVaultPath, setSelectedVaultPath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,8 +43,10 @@ function App(): React.JSX.Element {
   const [createNoteOpen, setCreateNoteOpen] = useState(false)
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
   const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const { toast, showToast } = useToast()
+  const { editorFontSize, setEditorFontSize } = useEditorFontSize({ onError: setError })
   const { recentNotePaths, recordRecentNote } = useRecentNotes()
   const editor = useNoteEditor({
     onError: setError,
@@ -90,6 +94,7 @@ function App(): React.JSX.Element {
     setSearchOpen,
     setExportDialogOpen,
     setAiPanelOpen,
+    setSettingsOpen,
     setEmptyTrashOpen,
     setViewMode
   })
@@ -103,7 +108,8 @@ function App(): React.JSX.Element {
     setCreateNoteOpen,
     setSearchOpen,
     setAiPanelOpen,
-    setExportDialogOpen
+    setExportDialogOpen,
+    setSettingsOpen
   })
 
   return (
@@ -161,6 +167,17 @@ function App(): React.JSX.Element {
         open={createNoteOpen}
         onOpenChange={setCreateNoteOpen}
         onCreate={vaultSession.createNote}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        theme={theme}
+        fileTreeSort={vaultSession.sortMode}
+        editorFontSize={editorFontSize}
+        onOpenChange={setSettingsOpen}
+        onThemeChange={setTheme}
+        onFileTreeSortChange={vaultSession.handleSortModeChange}
+        onEditorFontSizeChange={setEditorFontSize}
+        onOpenAnotherVault={vaultSession.openVault}
       />
       <ConfirmDialog
         open={vaultSession.renameRequest !== null}

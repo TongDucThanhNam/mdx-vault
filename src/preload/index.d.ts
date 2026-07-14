@@ -367,6 +367,8 @@ interface AppApi {
   setTheme: (theme: AppTheme) => Promise<AppTheme>
   getFileTreeSort: () => Promise<FileTreeSortSetting>
   setFileTreeSort: (sort: FileTreeSortSetting) => Promise<FileTreeSortSetting>
+  getEditorFontSize: () => Promise<number>
+  setEditorFontSize: (fontSize: number) => Promise<number>
 }
 
 interface WindowApi {

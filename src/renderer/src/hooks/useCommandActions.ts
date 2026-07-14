@@ -19,6 +19,7 @@ interface UseCommandActionsOptions {
   setSearchOpen: Dispatch<SetStateAction<boolean>>
   setExportDialogOpen: Dispatch<SetStateAction<boolean>>
   setAiPanelOpen: Dispatch<SetStateAction<boolean>>
+  setSettingsOpen: Dispatch<SetStateAction<boolean>>
   setEmptyTrashOpen: Dispatch<SetStateAction<boolean>>
   setViewMode: Dispatch<SetStateAction<ViewMode>>
 }
@@ -37,6 +38,7 @@ export function useCommandActions({
   setSearchOpen,
   setExportDialogOpen,
   setAiPanelOpen,
+  setSettingsOpen,
   setEmptyTrashOpen,
   setViewMode
 }: UseCommandActionsOptions): CommandAction[] {
@@ -203,6 +205,15 @@ export function useCommandActions({
         run: toggleTheme
       },
       {
+        id: 'settings.open',
+        title: 'Open Settings',
+        description: 'Configure application, editor, and AI preferences.',
+        category: 'App',
+        keywords: ['preferences', 'configuration', 'theme', 'editor'],
+        hotkeys: [window.windowApi.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,'],
+        run: () => setSettingsOpen(true)
+      },
+      {
         id: 'vault.open',
         title: 'Open vault',
         description: 'Choose a vault folder from disk.',
@@ -237,6 +248,7 @@ export function useCommandActions({
       setExportDialogOpen,
       setQuickSwitcherOpen,
       setSearchOpen,
+      setSettingsOpen,
       setViewMode,
       toggleTheme,
       trashCount,

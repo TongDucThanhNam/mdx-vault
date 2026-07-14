@@ -1,6 +1,7 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'path'
+import { z } from 'zod'
 import icon from '../../resources/icon.png?asset'
 import { registerAiIpc } from './ipc/ai-ipc'
 import { registerExportIpc } from './ipc/export-ipc'
@@ -8,7 +9,11 @@ import { registerIndexIpc } from './ipc/index-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
 import { registerWindowIpc, registerWindowStateEvents } from './ipc/window-ipc'
-import { AppSettingsService } from './services/app-settings'
+import {
+  AppSettingsService,
+  MAX_EDITOR_FONT_SIZE,
+  MIN_EDITOR_FONT_SIZE
+} from './services/app-settings'
 import {
   registerSandboxDocumentProtocol,
   registerSandboxDocumentScheme
@@ -81,7 +86,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const appSettings = new AppSettingsService()
+  const appSettings = new AppSettingsService(app.getPath('userData'))
 
   registerSandboxDocumentProtocol()
   registerVaultIpc({
@@ -147,10 +152,10 @@ function registerAppSettingsIpc(appSettings: AppSettingsService): void {
   })
 
   ipcMain.handle('app:set-theme', async (_event, payload: unknown) => {
-    const theme = payload
-    if (theme === 'light' || theme === 'dark' || theme === 'system') {
-      await appSettings.setTheme(theme)
-      return theme
+    const result = appThemeSchema.safeParse(payload)
+    if (result.success) {
+      await appSettings.setTheme(result.data)
+      return result.data
     }
     return appSettings.getTheme()
   })
@@ -160,10 +165,27 @@ function registerAppSettingsIpc(appSettings: AppSettingsService): void {
   })
 
   ipcMain.handle('app:set-file-tree-sort', async (_event, payload: unknown) => {
-    if (payload === 'name' || payload === 'modified-desc' || payload === 'created-desc') {
-      await appSettings.setFileTreeSort(payload)
-      return payload
+    const result = fileTreeSortSchema.safeParse(payload)
+    if (result.success) {
+      await appSettings.setFileTreeSort(result.data)
+      return result.data
     }
     return appSettings.getFileTreeSort()
   })
+
+  ipcMain.handle('app:get-editor-font-size', async () => {
+    return appSettings.getEditorFontSize()
+  })
+
+  ipcMain.handle('app:set-editor-font-size', async (_event, payload: unknown) => {
+    const result = editorFontSizeSchema.safeParse(payload)
+    if (result.success) {
+      await appSettings.setEditorFontSize(result.data)
+    }
+    return appSettings.getEditorFontSize()
+  })
 }
+
+const appThemeSchema = z.enum(['light', 'dark', 'system'])
+const fileTreeSortSchema = z.enum(['name', 'modified-desc', 'created-desc'])
+const editorFontSizeSchema = z.number().finite().min(MIN_EDITOR_FONT_SIZE).max(MAX_EDITOR_FONT_SIZE)

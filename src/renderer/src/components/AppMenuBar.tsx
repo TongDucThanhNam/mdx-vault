@@ -110,6 +110,12 @@ export function AppMenuBar({
             disabled={getAction('vault.empty-trash')?.disabled}
             onSelect={() => runAction('vault.empty-trash')}
           />
+          <MenuSeparator />
+          <MenuItem
+            label="Settings…"
+            shortcut={shortcut('settings.open')}
+            onSelect={() => runAction('settings.open')}
+          />
         </MenuContent>
       </MenubarPrimitive.Menu>
 

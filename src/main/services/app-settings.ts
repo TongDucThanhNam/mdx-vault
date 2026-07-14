@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import { mkdir, readFile, rename, stat, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 
@@ -14,26 +13,33 @@ import { dirname, join } from 'path'
 const SETTINGS_FILENAME = 'app-settings.json'
 
 export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+export type AppTheme = 'light' | 'dark' | 'system'
 
-interface PersistedAppSettings {
-  version: 1
+export interface PersistedAppSettings {
+  version: 2
   lastVaultPath: string | null
-  theme: 'light' | 'dark' | 'system'
+  theme: AppTheme
   fileTreeSort: FileTreeSortSetting
+  editorFontSize: number
 }
 
+export const MIN_EDITOR_FONT_SIZE = 12
+export const MAX_EDITOR_FONT_SIZE = 20
+export const DEFAULT_EDITOR_FONT_SIZE = 13.5
+
 const DEFAULT_SETTINGS: PersistedAppSettings = {
-  version: 1,
+  version: 2,
   lastVaultPath: null,
   theme: 'system',
-  fileTreeSort: 'name'
+  fileTreeSort: 'name',
+  editorFontSize: DEFAULT_EDITOR_FONT_SIZE
 }
 
 export class AppSettingsService {
   private readonly filePath: string
 
-  constructor() {
-    this.filePath = join(app.getPath('userData'), SETTINGS_FILENAME)
+  constructor(userDataPath: string) {
+    this.filePath = join(userDataPath, SETTINGS_FILENAME)
   }
 
   async read(): Promise<PersistedAppSettings> {
@@ -41,10 +47,11 @@ export class AppSettingsService {
       const raw = await readFile(this.filePath, 'utf8')
       const parsed = JSON.parse(raw) as Partial<PersistedAppSettings>
       return {
-        version: 1,
+        version: 2,
         lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
         theme: normalizeTheme(parsed.theme),
-        fileTreeSort: normalizeFileTreeSort(parsed.fileTreeSort)
+        fileTreeSort: normalizeFileTreeSort(parsed.fileTreeSort),
+        editorFontSize: normalizeEditorFontSize(parsed.editorFontSize)
       }
     } catch (error) {
       if (isNotFoundError(error)) {
@@ -77,12 +84,12 @@ export class AppSettingsService {
     await this.write({ ...settings, lastVaultPath: vaultPath })
   }
 
-  async getTheme(): Promise<'light' | 'dark' | 'system'> {
+  async getTheme(): Promise<AppTheme> {
     const settings = await this.read()
     return settings.theme
   }
 
-  async setTheme(theme: 'light' | 'dark' | 'system'): Promise<void> {
+  async setTheme(theme: AppTheme): Promise<void> {
     const settings = await this.read()
     await this.write({ ...settings, theme })
   }
@@ -97,6 +104,16 @@ export class AppSettingsService {
     await this.write({ ...settings, fileTreeSort: sort })
   }
 
+  async getEditorFontSize(): Promise<number> {
+    const settings = await this.read()
+    return settings.editorFontSize
+  }
+
+  async setEditorFontSize(fontSize: number): Promise<void> {
+    const settings = await this.read()
+    await this.write({ ...settings, editorFontSize: normalizeEditorFontSize(fontSize) })
+  }
+
   private async write(settings: PersistedAppSettings): Promise<void> {
     const tempPath = `${this.filePath}.tmp-${process.pid}-${Date.now()}`
     const serialized = `${JSON.stringify(settings, null, 2)}\n`
@@ -107,7 +124,7 @@ export class AppSettingsService {
   }
 }
 
-function normalizeTheme(value: unknown): 'light' | 'dark' | 'system' {
+function normalizeTheme(value: unknown): AppTheme {
   if (value === 'light' || value === 'dark' || value === 'system') {
     return value
   }
@@ -119,6 +136,14 @@ function normalizeFileTreeSort(value: unknown): FileTreeSortSetting {
     return value
   }
   return 'name'
+}
+
+function normalizeEditorFontSize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_EDITOR_FONT_SIZE
+  }
+
+  return Math.min(MAX_EDITOR_FONT_SIZE, Math.max(MIN_EDITOR_FONT_SIZE, value))
 }
 
 async function directoryExists(target: string): Promise<boolean> {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-type AppTheme = 'light' | 'dark' | 'system'
+export type AppTheme = 'light' | 'dark' | 'system'
 
 interface UseThemeResult {
   /** The theme chosen by the user (may be 'system'). */
