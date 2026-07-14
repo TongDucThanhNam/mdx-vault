@@ -14,6 +14,7 @@ import {
   formatUniqueTimestamp
 } from '@/lib/note-scaffolds'
 import { deriveNoteTitle, sanitizeNoteTitle } from '@/lib/note-title'
+import { resolveVaultNavigationTarget } from '@/vault/goto-definition-path'
 import type { IndexedNoteSummary, NoteTemplate, VaultInfo } from '@/vault/types'
 
 interface UseNoteActionsOptions {
@@ -38,13 +39,28 @@ export function useNoteActions({
   const [editorInsertRequest, setEditorInsertRequest] = useState<EditorInsertRequest | null>(null)
   const insertRequestRef = useRef(0)
   const { saveCurrentFile, selectedPathRef } = editor
-  const { createNote, refreshVaultSnapshot, selectNote } = vaultSession
+  const { createNote, refreshVaultSnapshot, selectNote, selectTreeFile } = vaultSession
 
   const navigateToNote = useCallback(
     (relativePath: string): void => {
       void selectNote(relativePath)
     },
     [selectNote]
+  )
+
+  const navigateToVaultFile = useCallback(
+    (relativePath: string): boolean => {
+      const targetPath = resolveVaultNavigationTarget(vault?.treeFiles ?? [], relativePath)
+
+      if (!targetPath) {
+        showToast(`File not found: ${relativePath}`)
+        return false
+      }
+
+      selectTreeFile(targetPath)
+      return true
+    },
+    [selectTreeFile, showToast, vault]
   )
 
   const insertIntoEditor = useCallback(
@@ -172,6 +188,7 @@ export function useNoteActions({
   return {
     editorInsertRequest,
     navigateToNote,
+    navigateToVaultFile,
     insertTemplateAtCursor,
     insertCurrentDate,
     insertCurrentTime,

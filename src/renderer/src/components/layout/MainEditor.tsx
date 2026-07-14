@@ -1,11 +1,12 @@
 import { Save } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandAction } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
 import { EditorHeader } from '@/components/layout/EditorHeader'
 import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/VaultFilePreview'
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
+import type { GotoDefinitionTarget } from '@/editor/goto-definition'
 import { MdxEditor } from '@/editor/MdxEditor'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import { useReadingZoomShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -15,7 +16,9 @@ import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
 import { useReadingZoom } from '@/hooks/useReadingZoom'
 import { MdxPreview } from '@/preview/MdxPreview'
+import { resolvePreviewImageSource } from '@/preview/preview-image'
 import { isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
+import { resolveWikilinkTarget } from '../../../../shared/wikilinks'
 
 interface MainEditorProps {
   viewMode: ViewMode
@@ -81,6 +84,46 @@ export function MainEditor({
     return () => onReadingZoomStatusChange(null)
   }, [onReadingZoomStatusChange])
 
+  const handleNavigateDefinition = useCallback(
+    (target: GotoDefinitionTarget): void => {
+      if (target.type === 'component') {
+        return
+      }
+
+      if (target.type === 'wikilink') {
+        const resolvedNote = resolveWikilinkTarget(noteIndex.indexNotes, target.value)
+        if (!resolvedNote) {
+          onError(`Wikilink target not found: [[${target.value}]]`)
+          return
+        }
+
+        onError(null)
+        noteActions.navigateToNote(resolvedNote.relativePath)
+        return
+      }
+
+      const resolvedPath = resolvePreviewImageSource(selectedPath, target.value)
+      if (resolvedPath.kind !== 'vault') {
+        const detail =
+          resolvedPath.kind === 'error'
+            ? resolvedPath.message
+            : 'External URLs do not have vault definitions'
+        onError(`Cannot open ${target.value}: ${detail}`)
+        return
+      }
+
+      onError(null)
+      noteActions.navigateToVaultFile(resolvedPath.relativePath)
+    },
+    [
+      noteActions.navigateToNote,
+      noteActions.navigateToVaultFile,
+      noteIndex.indexNotes,
+      onError,
+      selectedPath
+    ]
+  )
+
   return (
     <section
       aria-label="Document"
@@ -136,6 +179,7 @@ export function MainEditor({
                 onSelectionChange={editorInteractions.handleEditorSelectionChange}
                 onCommandError={onError}
                 onNavigateToNote={noteActions.navigateToNote}
+                onNavigateDefinition={handleNavigateDefinition}
                 onSaveImage={editor.handleSaveImage}
               />
               <AiSelectionActionPalette

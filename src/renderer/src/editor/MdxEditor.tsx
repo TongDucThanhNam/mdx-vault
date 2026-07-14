@@ -20,7 +20,13 @@ import { getScoredNotes } from '@/lib/fuzzy-match'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 import type { IndexedNoteSummary } from '@/vault/types'
 import { getNoteLinkKeys } from '../../../shared/wikilinks'
+import { ComponentDefinitionPopover } from './ComponentDefinitionPopover'
 import { ComponentInsertPalette } from './ComponentInsertPalette'
+import {
+  createGotoDefinitionExtension,
+  type GotoDefinitionInvocation,
+  type GotoDefinitionTarget
+} from './goto-definition'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
 import { createLivePreviewExtension, refreshLivePreviewEffect } from './live-preview'
 import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
@@ -64,6 +70,7 @@ interface MdxEditorProps {
   onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
   onCommandError?: (message: string) => void
   onNavigateToNote?: (relativePath: string) => void
+  onNavigateDefinition?: (target: GotoDefinitionTarget) => void
   /**
    * Called when the user pastes or drops an image. The handler should persist
    * the image under `<vault>/assets/` and return the vault-relative path so
@@ -251,6 +258,7 @@ export function MdxEditor({
   onSelectionChange,
   onCommandError,
   onNavigateToNote,
+  onNavigateDefinition,
   onSaveImage
 }: MdxEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -263,6 +271,7 @@ export function MdxEditor({
   const onSelectionChangeRef = useRef(onSelectionChange)
   const onCommandErrorRef = useRef(onCommandError)
   const onNavigateToNoteRef = useRef(onNavigateToNote)
+  const onNavigateDefinitionRef = useRef(onNavigateDefinition)
   const onSaveImageRef = useRef(onSaveImage)
   const lastInsertRequestRef = useRef<number | null>(null)
   const insertTemplates = useMemo(() => getRegistryInsertTemplates(), [])
@@ -272,6 +281,10 @@ export function MdxEditor({
   )
   const [hasInlineSelection, setHasInlineSelection] = useState(false)
   const [inlineDocLength, setInlineDocLength] = useState(0)
+  const [componentDefinition, setComponentDefinition] = useState<{
+    name: string
+    position: { left: number; top: number }
+  } | null>(null)
 
   // Keep a ref of the latest notes so the wikilink completion source (created
   // once at editor mount) can read fresh data without recreating the extension
@@ -285,6 +298,10 @@ export function MdxEditor({
   useEffect(() => {
     onNavigateToNoteRef.current = onNavigateToNote
   }, [onNavigateToNote])
+
+  useEffect(() => {
+    onNavigateDefinitionRef.current = onNavigateDefinition
+  }, [onNavigateDefinition])
 
   useEffect(() => {
     onSaveImageRef.current = onSaveImage
@@ -303,6 +320,35 @@ export function MdxEditor({
   const closeInsertPalette = useCallback(() => {
     setInsertPaletteOpen(false)
     viewRef.current?.focus()
+  }, [])
+
+  const closeComponentDefinition = useCallback(() => {
+    setComponentDefinition(null)
+  }, [])
+
+  const handleGotoDefinition = useCallback((invocation: GotoDefinitionInvocation): void => {
+    if (invocation.target.type !== 'component') {
+      setComponentDefinition(null)
+      onNavigateDefinitionRef.current?.(invocation.target)
+      return
+    }
+
+    const editorElement = containerRef.current
+    if (!editorElement) {
+      return
+    }
+
+    const editorBounds = editorElement.getBoundingClientRect()
+    const pointerLeft = invocation.clientX - editorBounds.left
+    const pointerTop = invocation.clientY - editorBounds.top
+    const left = Math.max(8, Math.min(pointerLeft + 12, editorBounds.width - 360))
+    const top =
+      pointerTop + 420 <= editorBounds.height ? pointerTop + 12 : Math.max(8, pointerTop - 420)
+
+    setComponentDefinition({
+      name: invocation.target.value,
+      position: { left, top }
+    })
   }, [])
 
   const insertTemplate = useCallback((template: RegistryInsertTemplate) => {
@@ -478,6 +524,7 @@ export function MdxEditor({
             ])
           ),
           EditorView.lineWrapping,
+          createGotoDefinitionExtension(handleGotoDefinition),
           EditorView.domEventHandlers({
             paste: (event) => {
               const handler = onSaveImageRef.current
@@ -545,7 +592,7 @@ export function MdxEditor({
       viewRef.current = null
       setLiveView(null)
     }
-  }, [displayModeCompartment, openInsertPalette, openSlashPalette])
+  }, [displayModeCompartment, handleGotoDefinition, openInsertPalette, openSlashPalette])
 
   useEffect(() => {
     const view = viewRef.current
@@ -645,6 +692,13 @@ export function MdxEditor({
           onRunAction={(action) => {
             void runSlashCommand(action)
           }}
+        />
+      ) : null}
+      {componentDefinition ? (
+        <ComponentDefinitionPopover
+          componentName={componentDefinition.name}
+          position={componentDefinition.position}
+          onClose={closeComponentDefinition}
         />
       ) : null}
     </div>
