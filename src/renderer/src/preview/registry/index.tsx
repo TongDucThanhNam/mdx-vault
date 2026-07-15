@@ -5,9 +5,11 @@ import { algorithmVisualizerRegistryEntry } from './algorithm-visualizer'
 import { counterRegistryEntry } from './counter'
 import { dataChartRegistryEntry } from './data-chart'
 import { equationSliderRegistryEntry } from './equation-slider'
+import { cellGridRegistryEntry } from './interactive-note/cell-grid'
 import { comparisonBarsRegistryEntry } from './interactive-note/comparison-bars'
 import { evidenceItemRegistryEntry } from './interactive-note/evidence-item'
 import { evidenceLogRegistryEntry } from './interactive-note/evidence-log'
+import { flowSequenceRegistryEntry } from './interactive-note/flow-sequence'
 import { formulaLineRegistryEntry } from './interactive-note/formula-line'
 import { highlightBoxRegistryEntry } from './interactive-note/highlight-box'
 import { mentalModelRegistryEntry } from './interactive-note/mental-model'
@@ -51,7 +53,9 @@ const registryEntries = [
   selfTestItemRegistryEntry,
   evidenceLogRegistryEntry,
   evidenceItemRegistryEntry,
-  comparisonBarsRegistryEntry
+  comparisonBarsRegistryEntry,
+  cellGridRegistryEntry,
+  flowSequenceRegistryEntry
 ]
 
 export const componentRegistry = registryEntries as unknown as ComponentRegistryEntry[]

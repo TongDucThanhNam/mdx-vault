@@ -88,12 +88,18 @@ Hệ quả then chốt: truy cập `a[i]` lần đầu trả 100ns, nhưng `a[i+
 
 <FormulaLine>Code nhìn thấy: 2D → ép phẳng → RAM thật sự: 1D — hàng nọ nối đuôi hàng kia (màu = hàng gốc)</FormulaLine>
 
-| Hàng gốc | Địa chỉ tuyến tính trong RAM |
-| --- | --- |
-| Hàng 0 | 0 · 1 · 2 · 3 |
-| Hàng 1 | 4 · 5 · 6 · 7 |
-| Hàng 2 | 8 · 9 · 10 · 11 |
-| Hàng 3 | 12 · 13 · 14 · 15 |
+<CellGrid
+  columns={4}
+  cells={[
+    { label: "0" }, { label: "1" }, { label: "2" }, { label: "3" },
+    { label: "4" }, { label: "5" }, { label: "6" }, { label: "7" },
+    { label: "8" }, { label: "9" }, { label: "10" }, { label: "11" },
+    { label: "12" }, { label: "13" }, { label: "14" }, { label: "15" }
+  ]}
+  groupSize={4}
+  groupLabels={["LINE 0", "LINE 1", "LINE 2", "LINE 3"]}
+  caption="RAM 1D gấp thành 4 hàng để đọc · mỗi ngoặc là 4 địa chỉ liền kề trong cùng cache line · chưa tô hit/miss"
+/>
 
 **Row-major traversal** (`for r → for c`): đi đúng thứ tự RAM, mỗi bước +1 ô — phần tử kế tiếp gần như luôn nằm sẵn trong cache line vừa nạp. **Col-major traversal** (`for c → for r`): mỗi bước nhảy +4 ô trong RAM. Hai vòng lặp chỉ đảo thứ tự hai chữ `for`, nhưng về vật lý: một cái đi bộ dọc dãy nhà, cái kia nhảy cóc qua 4 nhà mỗi bước.
 

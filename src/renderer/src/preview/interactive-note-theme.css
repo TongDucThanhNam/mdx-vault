@@ -334,6 +334,160 @@
   background: var(--in-accent);
 }
 
+.mdx-preview .in-cell-figure,
+.mdx-preview .in-flow-figure {
+  margin: 1.2rem 0 0.6rem;
+  overflow-x: auto;
+  color: var(--in-ink);
+}
+
+.mdx-preview .in-cell-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--in-cell-columns), 38px);
+  width: max-content;
+  margin-inline: auto;
+  gap: 5px;
+}
+
+.mdx-preview .in-cell-groups {
+  display: grid;
+  grid-template-columns: repeat(var(--in-cell-group-columns), max-content);
+  width: max-content;
+  margin-inline: auto;
+  gap: 0.65rem 5px;
+}
+
+.mdx-preview .in-cell-bracket {
+  margin-bottom: 2px;
+  border-top: 2px solid var(--in-ink);
+  border-right: 2px solid var(--in-ink);
+  border-left: 2px solid var(--in-ink);
+  padding: 1px 0;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.mdx-preview .in-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mdx-preview .in-cell-current {
+  background: var(--in-accent);
+  color: #fff;
+}
+
+.mdx-preview .in-cell-hit {
+  background: var(--in-result-tint);
+}
+
+.mdx-preview .in-cell-miss {
+  background: var(--in-accent-tint);
+}
+
+.mdx-preview .in-cell-cached {
+  outline: 3px solid var(--in-result);
+  outline-offset: 2px;
+}
+
+.mdx-preview .in-cell-dim {
+  opacity: 0.25;
+}
+
+.mdx-preview .in-flow-sequence {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  width: 100%;
+}
+
+.mdx-preview .in-flow-sequence-row {
+  flex-wrap: wrap;
+}
+
+.mdx-preview .in-flow-sequence-column {
+  flex-direction: column;
+}
+
+.mdx-preview .in-flow-segment {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.mdx-preview .in-flow-sequence-column .in-flow-segment {
+  flex-direction: column;
+}
+
+.mdx-preview .in-flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  min-height: 32px;
+  border: 2px solid var(--in-ink);
+  background: var(--in-paper);
+  padding: 0.45rem 0.65rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.mdx-preview .in-flow-node-accent {
+  background: var(--in-accent);
+  color: #fff;
+}
+
+.mdx-preview .in-flow-node-label {
+  font-weight: 700;
+}
+
+.mdx-preview .in-flow-node-sublabel {
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  opacity: 0.75;
+}
+
+.mdx-preview .in-flow-edge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Courier Prime', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mdx-preview .in-flow-edge-label {
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+}
+
+.mdx-preview .in-flow-arrow {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.mdx-preview .in-visual-caption {
+  margin-top: 0.5rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .mdx-preview .in-self-test,
 .mdx-preview .in-evidence-log {
   margin: 1rem 0;
