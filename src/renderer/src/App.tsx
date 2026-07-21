@@ -15,13 +15,14 @@ import { useNoteActions } from '@/hooks/useNoteActions'
 import { useNoteEditor } from '@/hooks/useNoteEditor'
 import { useNoteIndex } from '@/hooks/useNoteIndex'
 import { useRecentNotes } from '@/hooks/useRecentNotes'
+import { useTextFileEditor } from '@/hooks/useTextFileEditor'
 import { useTheme } from '@/hooks/useTheme'
 import { useToast } from '@/hooks/useToast'
 import { useVaultSession } from '@/hooks/useVaultSession'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { SearchPane } from '@/search/SearchPane'
 import { SettingsDialog } from '@/settings/SettingsDialog'
-import { isNotePath } from '@/vault/file-kind'
+import { isEditableTextPath, isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 
 interface DeleteRequest {
@@ -53,9 +54,17 @@ function App(): React.JSX.Element {
     onRecentNote: recordRecentNote,
     showToast
   })
+  const textEditor = useTextFileEditor({ onError: setError })
   const selectedNotePath = isNotePath(selectedVaultPath) ? editor.selectedPath : null
+  const selectedTextPath =
+    isEditableTextPath(selectedVaultPath) && textEditor.selectedPath === selectedVaultPath
+      ? textEditor.selectedPath
+      : null
+  const selectedEditablePath = selectedNotePath ?? selectedTextPath
   const selectedNotePathRef = useRef(selectedNotePath)
   selectedNotePathRef.current = selectedNotePath
+  const selectedEditablePathRef = useRef(selectedEditablePath)
+  selectedEditablePathRef.current = selectedEditablePath
   const noteIndex = useNoteIndex({
     vault,
     selectedPath: selectedNotePath,
@@ -63,9 +72,11 @@ function App(): React.JSX.Element {
   })
   const vaultSession = useVaultSession({
     vault,
+    selectedVaultPath,
     setVault,
     setSelectedVaultPath,
     editor,
+    textEditor,
     noteIndex,
     onError: setError,
     showToast
@@ -101,7 +112,8 @@ function App(): React.JSX.Element {
 
   useKeyboardShortcuts({
     selectedPathRef: selectedNotePathRef,
-    saveCurrentFile: editor.saveCurrentFile,
+    savePathRef: selectedEditablePathRef,
+    saveCurrentFile: selectedTextPath ? textEditor.saveCurrentFile : editor.saveCurrentFile,
     setViewMode,
     setCommandPaletteOpen,
     setQuickSwitcherOpen,
@@ -124,6 +136,7 @@ function App(): React.JSX.Element {
         aiPanelOpen={aiPanelOpen}
         commandActions={commandActions}
         editor={editor}
+        textEditor={textEditor}
         noteIndex={noteIndex}
         vaultSession={vaultSession}
         noteActions={noteActions}

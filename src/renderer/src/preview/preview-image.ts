@@ -7,7 +7,7 @@ export type PreviewImageSource =
   | { kind: 'error'; path: string; message: string }
 
 interface PreviewImageCacheOptions {
-  readAssetFile?: (relativePath: string) => Promise<string>
+  readImageFile?: (relativePath: string) => Promise<string>
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
 }
@@ -19,14 +19,14 @@ interface CachedImage {
 
 export class PreviewImageCache {
   private readonly entries = new Map<string, CachedImage>()
-  private readonly readAssetFile: (relativePath: string) => Promise<string>
+  private readonly readImageFile: (relativePath: string) => Promise<string>
   private readonly createObjectUrl: (blob: Blob) => string
   private readonly revokeObjectUrl: (url: string) => void
   private generation = 0
 
   constructor(options: PreviewImageCacheOptions = {}) {
-    this.readAssetFile =
-      options.readAssetFile ?? ((relativePath) => window.vaultApi.readAssetFile(relativePath))
+    this.readImageFile =
+      options.readImageFile ?? ((relativePath) => window.vaultApi.readImageFile(relativePath))
     this.createObjectUrl = options.createObjectUrl ?? ((blob) => URL.createObjectURL(blob))
     this.revokeObjectUrl = options.revokeObjectUrl ?? ((url) => URL.revokeObjectURL(url))
   }
@@ -43,7 +43,7 @@ export class PreviewImageCache {
       promise: Promise.resolve('')
     }
 
-    entry.promise = this.readAssetFile(relativePath).then((base64) => {
+    entry.promise = this.readImageFile(relativePath).then((base64) => {
       const objectUrl = this.createObjectUrl(
         decodeBase64Image(base64, inferImageMimeType(relativePath))
       )

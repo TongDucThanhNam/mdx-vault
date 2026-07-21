@@ -33,6 +33,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-13-obsidian-parity-microfeatures.md | Close Obsidian Group A parity microfeatures | 12        |
 | GOAL-14-interaction-behavior-research.md | Interaction-behavior deep audit (research-only) | 13        |
 | GOAL-15-transactional-rename.md    | Transactional rename + wikilink rewrite (fix F-01) | 12, 14    |
+| GOAL-16-plain-text-and-image-preview.md | Plain-text view/edit + vault-wide image preview | 01, 05, 15 |
 
 ## Trạng thái ký hiệu trong goal
 

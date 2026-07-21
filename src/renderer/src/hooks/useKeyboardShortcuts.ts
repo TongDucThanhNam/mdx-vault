@@ -4,6 +4,7 @@ import type { ViewMode } from '@/components/ViewModeToggle'
 
 interface UseKeyboardShortcutsOptions {
   selectedPathRef: MutableRefObject<string | null>
+  savePathRef: MutableRefObject<string | null>
   saveCurrentFile: () => Promise<boolean>
   setViewMode: Dispatch<SetStateAction<ViewMode>>
   setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>
@@ -24,6 +25,7 @@ interface UseReadingZoomShortcutsOptions {
 
 export function useKeyboardShortcuts({
   selectedPathRef,
+  savePathRef,
   saveCurrentFile,
   setViewMode,
   setCommandPaletteOpen,
@@ -40,7 +42,7 @@ export function useKeyboardShortcuts({
 
       if ((event.ctrlKey || event.metaKey) && key === 's') {
         event.preventDefault()
-        if (selectedPathRef.current) {
+        if (savePathRef.current) {
           void saveCurrentFile()
         }
         return
@@ -103,6 +105,7 @@ export function useKeyboardShortcuts({
     }
   }, [
     saveCurrentFile,
+    savePathRef,
     selectedPathRef,
     setAiPanelOpen,
     setCommandPaletteOpen,

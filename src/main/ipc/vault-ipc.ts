@@ -53,7 +53,17 @@ const readFilePayloadSchema = z.object({
 const readAssetFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
+const readTextFilePayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
+const readImageFilePayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
 const writeFilePayloadSchema = z.object({
+  relativePath: z.string().min(1),
+  content: z.string()
+})
+const writeTextFilePayloadSchema = z.object({
   relativePath: z.string().min(1),
   content: z.string()
 })
@@ -93,6 +103,8 @@ const saveAssetPayloadSchema = z.object({
 })
 
 export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
+  registerVaultFileAccessIpc()
+
   ipcMain.handle('vault:open', (event, payload): Promise<IpcResult<OpenVaultResult>> => {
     return handleVaultRequest(async () => {
       emptyPayloadSchema.parse(payload)
@@ -316,6 +328,31 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
       const input = saveAssetPayloadSchema.parse(payload)
       const bytes = Buffer.from(input.base64, 'base64')
       return getCurrentVault().saveAsset(input.suggestedName, new Uint8Array(bytes))
+    })
+  })
+}
+
+export function registerVaultFileAccessIpc(
+  getVault: typeof getCurrentVault = getCurrentVault
+): void {
+  ipcMain.handle('vault:read-text-file', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = readTextFilePayloadSchema.parse(payload)
+      return getVault().readTextFile(input.relativePath)
+    })
+  })
+
+  ipcMain.handle('vault:write-text-file', (_event, payload): Promise<IpcResult<void>> => {
+    return handleVaultRequest(async () => {
+      const input = writeTextFilePayloadSchema.parse(payload)
+      await getVault().writeTextFile(input.relativePath, input.content)
+    })
+  })
+
+  ipcMain.handle('vault:read-image-file', (_event, payload): Promise<IpcResult<string>> => {
+    return handleVaultRequest(async () => {
+      const input = readImageFilePayloadSchema.parse(payload)
+      return getVault().readImageFile(input.relativePath)
     })
   })
 }

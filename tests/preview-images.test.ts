@@ -85,7 +85,7 @@ describe('preview image blobs', () => {
     let objectUrlSequence = 0
     const revoked: string[] = []
     const cache = new PreviewImageCache({
-      readAssetFile: async () => {
+      readImageFile: async () => {
         readCount += 1
         return 'AQIDBA=='
       },

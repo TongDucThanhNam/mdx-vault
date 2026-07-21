@@ -296,6 +296,9 @@ interface VaultApi {
   onTreeDidChange: (callback: () => void) => () => void
   readFile: (relativePath: string) => Promise<string>
   readAssetFile: (relativePath: string) => Promise<string>
+  readTextFile: (relativePath: string) => Promise<string>
+  writeTextFile: (relativePath: string, content: string) => Promise<void>
+  readImageFile: (relativePath: string) => Promise<string>
   writeFile: (relativePath: string, content: string) => Promise<void>
   createFile: (relativePath: string, content: string) => Promise<string>
   deleteFile: (relativePath: string) => Promise<string>

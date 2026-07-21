@@ -8,6 +8,7 @@ import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/Vault
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import type { GotoDefinitionTarget } from '@/editor/goto-definition'
 import { MdxEditor } from '@/editor/MdxEditor'
+import { TextFileEditor } from '@/editor/TextFileEditor'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import { useReadingZoomShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -15,9 +16,10 @@ import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
 import { useReadingZoom } from '@/hooks/useReadingZoom'
+import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
-import { isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
+import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
 import { resolveWikilinkTarget } from '../../../../shared/wikilinks'
 
 interface MainEditorProps {
@@ -25,6 +27,7 @@ interface MainEditorProps {
   selectedPath: string | null
   commandActions: CommandAction[]
   editor: NoteEditorController
+  textEditor: TextFileEditorController
   noteIndex: NoteIndexController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
@@ -44,6 +47,7 @@ export function MainEditor({
   selectedPath,
   commandActions,
   editor,
+  textEditor,
   noteIndex,
   noteActions,
   editorInteractions,
@@ -59,6 +63,7 @@ export function MainEditor({
   } | null>(null)
   const noteSelected = isNotePath(selectedPath)
   const imageSelected = isPreviewableVaultImagePath(selectedPath)
+  const textSelected = isEditableTextPath(selectedPath)
   const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
   const {
@@ -136,7 +141,9 @@ export function MainEditor({
           <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
             {imageSelected && selectedImageMetadata
               ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
-              : 'Read only'}
+              : textSelected
+                ? `${getFileExtension(selectedPath)} · Editable`
+                : 'Read only'}
           </span>
         ) : null}
       </EditorHeader>
@@ -201,6 +208,24 @@ export function MainEditor({
             }
             onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
           />
+        ) : textSelected ? (
+          textEditor.isLoadingFile ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Loading file…
+            </div>
+          ) : textEditor.selectedPath !== selectedPath ? (
+            <NoVaultFilePreview
+              relativePath={selectedPath}
+              onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
+            />
+          ) : (
+            <TextFileEditor
+              key={selectedPath}
+              relativePath={selectedPath}
+              value={textEditor.content}
+              onChange={textEditor.setContent}
+            />
+          )
         ) : selectedPath ? (
           <NoVaultFilePreview
             relativePath={selectedPath}
@@ -216,4 +241,9 @@ export function MainEditor({
       </div>
     </section>
   )
+}
+
+function getFileExtension(relativePath: string): string {
+  const extension = relativePath.split('.').at(-1)
+  return extension ? `.${extension.toLowerCase()}` : 'Text'
 }

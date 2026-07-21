@@ -1,6 +1,6 @@
 import fg from 'fast-glob'
-import { mkdir, readFile, rename, rm, rmdir, stat, writeFile } from 'fs/promises'
-import { basename, dirname, extname, resolve } from 'path'
+import { mkdir, readFile, realpath, rename, rm, rmdir, stat, writeFile } from 'fs/promises'
+import { basename, dirname, extname, isAbsolute, relative, resolve } from 'path'
 
 import type { RenameResult } from '../../shared/rename'
 import { applyRenameEdits, type RenamePlan } from './rename-plan'
@@ -63,10 +63,37 @@ interface VaultServiceOptions {
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+const TEXT_EXTENSIONS = new Set([
+  '.txt',
+  '.csv',
+  '.tsv',
+  '.json',
+  '.jsonc',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.xml',
+  '.html',
+  '.css',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+  '.sh',
+  '.sql',
+  '.log',
+  '.ini'
+])
 const FILE_PATTERNS = ['**/*.md', '**/*.mdx']
 const TREE_FILE_PATTERNS = ['**/*']
 const TRASH_DIR = '.trash'
 const IGNORED_DIRECTORIES = ['**/node_modules/**', '**/.git/**', '**/.app/**', '**/.trash/**']
+const RESTRICTED_DIRECT_ACCESS_DIRECTORIES = new Set([TRASH_DIR, '.app', 'node_modules', '.git'])
+const MAX_TEXT_FILE_BYTES = 5 * 1024 * 1024
+const TEXT_BINARY_GUARD_BYTES = 8 * 1024
 
 export class VaultService {
   private readonly root: string
@@ -148,6 +175,47 @@ export class VaultService {
       return readFile(target, 'utf8')
     }
 
+    return (await readFile(target)).toString('base64')
+  }
+
+  async readTextFile(relativePath: string): Promise<string> {
+    const target = await this.resolveExistingDirectFilePath(
+      relativePath,
+      TEXT_EXTENSIONS,
+      'Unsupported text file extension'
+    )
+    const fileStats = await stat(target)
+
+    if (!fileStats.isFile()) {
+      throw new Error('Text path is not a file')
+    }
+
+    assertTextFileSize(fileStats.size)
+    const data = await readFile(target)
+    assertTextFileSize(data.byteLength)
+    assertTextDataIsNotBinary(data)
+    return data.toString('utf8')
+  }
+
+  async writeTextFile(relativePath: string, content: string): Promise<void> {
+    const target = await this.resolveExistingDirectFilePath(
+      relativePath,
+      TEXT_EXTENSIONS,
+      'Unsupported text file extension'
+    )
+    const data = Buffer.from(content, 'utf8')
+    assertTextFileSize(data.byteLength)
+    assertTextDataIsNotBinary(data)
+    await this.writeFileAtomic(target, content)
+  }
+
+  async readImageFile(relativePath: string): Promise<string> {
+    const target = await this.resolveExistingDirectFilePath(
+      relativePath,
+      IMAGE_EXTENSIONS,
+      'Unsupported image file extension'
+    )
+    await assertFile(target)
     return (await readFile(target)).toString('base64')
   }
 
@@ -548,6 +616,63 @@ export class VaultService {
     return safeJoin(this.root, normalizedPath)
   }
 
+  private resolveDirectFilePath(
+    relativePath: string,
+    allowedExtensions: ReadonlySet<string>,
+    unsupportedExtensionMessage: string
+  ): string {
+    const normalizedPath = normalizeVaultPath(relativePath)
+    const extension = extname(normalizedPath).toLowerCase()
+
+    if (!allowedExtensions.has(extension)) {
+      throw new Error(unsupportedExtensionMessage)
+    }
+
+    const target = safeJoin(this.root, normalizedPath)
+    assertDirectFileAccessAllowed(normalizedPath)
+    return target
+  }
+
+  private async resolveExistingDirectFilePath(
+    relativePath: string,
+    allowedExtensions: ReadonlySet<string>,
+    unsupportedExtensionMessage: string
+  ): Promise<string> {
+    const target = this.resolveDirectFilePath(
+      relativePath,
+      allowedExtensions,
+      unsupportedExtensionMessage
+    )
+
+    let resolvedRoot: string
+    let resolvedTarget: string
+
+    try {
+      ;[resolvedRoot, resolvedTarget] = await Promise.all([realpath(this.root), realpath(target)])
+    } catch {
+      throw new Error('Vault file path could not be resolved safely')
+    }
+
+    const pathFromRoot = relative(resolvedRoot, resolvedTarget)
+    const normalizedResolvedPath = pathFromRoot.replaceAll('\\', '/')
+
+    if (
+      normalizedResolvedPath === '..' ||
+      normalizedResolvedPath.startsWith('../') ||
+      isAbsolute(pathFromRoot)
+    ) {
+      throw new Error('Vault file path resolves outside the vault root')
+    }
+
+    if (!allowedExtensions.has(extname(normalizedResolvedPath).toLowerCase())) {
+      throw new Error(unsupportedExtensionMessage)
+    }
+
+    assertDirectFileAccessAllowed(normalizedResolvedPath)
+    await assertFile(resolvedTarget)
+    return resolvedTarget
+  }
+
   private validateRenamePlan(
     plan: RenamePlan,
     oldRelativePath: string,
@@ -624,6 +749,29 @@ function toVaultTreeFile(relativePath: string): VaultTreeFile {
 
 function normalizeVaultPath(relativePath: string): string {
   return relativePath.replaceAll('\\', '/')
+}
+
+function assertDirectFileAccessAllowed(relativePath: string): void {
+  const restrictedDirectory = relativePath
+    .split('/')
+    .map((segment) => segment.toLowerCase())
+    .find((segment) => RESTRICTED_DIRECT_ACCESS_DIRECTORIES.has(segment))
+
+  if (restrictedDirectory) {
+    throw new Error(`Cannot access files inside ${restrictedDirectory}/`)
+  }
+}
+
+function assertTextFileSize(size: number): void {
+  if (size > MAX_TEXT_FILE_BYTES) {
+    throw new Error('Text file exceeds the 5 MiB size limit')
+  }
+}
+
+function assertTextDataIsNotBinary(data: Uint8Array): void {
+  if (data.subarray(0, TEXT_BINARY_GUARD_BYTES).includes(0)) {
+    throw new Error('Text file appears to be binary (NUL byte detected)')
+  }
 }
 
 function createEmptyRenamePlan(oldRelativePath: string, newRelativePath: string): RenamePlan {

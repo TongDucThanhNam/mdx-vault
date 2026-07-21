@@ -3,9 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileTreeSortMode } from '@/explorer/FileTree'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
+import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import { formatError } from '@/lib/format-error'
 import { deriveNoteTitle } from '@/lib/note-title'
-import { isNotePath } from '@/vault/file-kind'
+import { isEditableTextPath, isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import type { RenamePlanPreview } from '../../../shared/rename'
 
@@ -17,9 +18,11 @@ export interface RenameRequest {
 
 interface UseVaultSessionOptions {
   vault: VaultInfo | null
+  selectedVaultPath: string | null
   setVault: Dispatch<SetStateAction<VaultInfo | null>>
   setSelectedVaultPath: Dispatch<SetStateAction<string | null>>
   editor: NoteEditorController
+  textEditor: TextFileEditorController
   noteIndex: NoteIndexController
   onError: (message: string | null) => void
   showToast: (message: string) => void
@@ -27,9 +30,11 @@ interface UseVaultSessionOptions {
 
 export function useVaultSession({
   vault,
+  selectedVaultPath,
   setVault,
   setSelectedVaultPath,
   editor,
+  textEditor,
   noteIndex,
   onError,
   showToast
@@ -40,16 +45,123 @@ export function useVaultSession({
   const [trashCount, setTrashCount] = useState(0)
   const [renameRequest, setRenameRequest] = useState<RenameRequest | null>(null)
   const prevVaultRef = useRef(vault)
+  const selectionRequestRef = useRef(0)
+  const selectedVaultPathRef = useRef(selectedVaultPath)
+  selectedVaultPathRef.current = selectedVaultPath
 
   const { clearSelectedFile, loadFile, resetEditor, saveCurrentFile, selectedPathRef } = editor
+  const {
+    cancelPendingLoad: cancelPendingTextLoad,
+    loadFile: loadTextFile,
+    resetEditor: resetTextEditor,
+    saveCurrentFile: saveCurrentTextFile,
+    selectedPathRef: selectedTextPathRef
+  } = textEditor
   const { bumpIndexRevision, indexRevision, setIndexNotes } = noteIndex
 
   const selectNote = useCallback(
     async (relativePath: string, saveBeforeLoad = true): Promise<void> => {
+      const requestId = selectionRequestRef.current + 1
+      selectionRequestRef.current = requestId
+      const previousUiPath = selectedVaultPathRef.current
+      const rollbackPath = isEditableTextPath(previousUiPath)
+        ? selectedTextPathRef.current
+        : previousUiPath
+      cancelPendingTextLoad()
+
+      if (isEditableTextPath(previousUiPath)) {
+        const saved = await saveCurrentTextFile()
+
+        if (requestId !== selectionRequestRef.current) {
+          return
+        }
+
+        if (!saved) {
+          setSelectedVaultPath((currentPath) =>
+            currentPath === previousUiPath ? rollbackPath : currentPath
+          )
+          return
+        }
+      }
+
+      if (requestId !== selectionRequestRef.current) {
+        return
+      }
+
       setSelectedVaultPath(relativePath)
       await loadFile(relativePath, saveBeforeLoad)
     },
-    [loadFile, setSelectedVaultPath]
+    [
+      cancelPendingTextLoad,
+      loadFile,
+      saveCurrentTextFile,
+      selectedTextPathRef,
+      setSelectedVaultPath
+    ]
+  )
+
+  const selectTextFile = useCallback(
+    async (relativePath: string): Promise<void> => {
+      const requestId = selectionRequestRef.current + 1
+      selectionRequestRef.current = requestId
+      const previousUiPath = selectedVaultPathRef.current
+      const rollbackPath = isEditableTextPath(previousUiPath)
+        ? selectedTextPathRef.current
+        : previousUiPath
+
+      if (isNotePath(previousUiPath) && !(await saveCurrentFile())) {
+        return
+      }
+
+      if (requestId !== selectionRequestRef.current) {
+        return
+      }
+
+      setSelectedVaultPath(relativePath)
+      const result = await loadTextFile(relativePath)
+
+      if (requestId === selectionRequestRef.current && result === 'save-failed') {
+        setSelectedVaultPath((currentPath) =>
+          currentPath === relativePath ? rollbackPath : currentPath
+        )
+      }
+    },
+    [loadTextFile, saveCurrentFile, selectedTextPathRef, setSelectedVaultPath]
+  )
+
+  const selectNonEditableFile = useCallback(
+    async (relativePath: string): Promise<void> => {
+      const requestId = selectionRequestRef.current + 1
+      selectionRequestRef.current = requestId
+      const currentPath = selectedVaultPathRef.current
+      const rollbackPath = isEditableTextPath(currentPath)
+        ? selectedTextPathRef.current
+        : currentPath
+      cancelPendingTextLoad()
+      const saved = isNotePath(currentPath)
+        ? await saveCurrentFile()
+        : !isEditableTextPath(currentPath) || (await saveCurrentTextFile())
+
+      if (requestId !== selectionRequestRef.current) {
+        return
+      }
+
+      if (!saved) {
+        setSelectedVaultPath((selectedPath) =>
+          selectedPath === currentPath ? rollbackPath : selectedPath
+        )
+        return
+      }
+
+      setSelectedVaultPath(relativePath)
+    },
+    [
+      cancelPendingTextLoad,
+      saveCurrentFile,
+      saveCurrentTextFile,
+      selectedTextPathRef,
+      setSelectedVaultPath
+    ]
   )
 
   const selectTreeFile = useCallback(
@@ -59,9 +171,14 @@ export function useVaultSession({
         return
       }
 
-      setSelectedVaultPath(relativePath)
+      if (isEditableTextPath(relativePath)) {
+        void selectTextFile(relativePath)
+        return
+      }
+
+      void selectNonEditableFile(relativePath)
     },
-    [selectNote, setSelectedVaultPath]
+    [selectNonEditableFile, selectNote, selectTextFile]
   )
 
   const refreshVaultSnapshot = useCallback(async (): Promise<void> => {
@@ -102,10 +219,19 @@ export function useVaultSession({
         return currentPath
       }
 
-      const editorPath = selectedPathRef.current
-      return editorPath && availablePaths.has(editorPath) ? editorPath : null
+      if (isNotePath(currentPath)) {
+        const editorPath = selectedPathRef.current
+        return editorPath && availablePaths.has(editorPath) ? editorPath : null
+      }
+
+      if (isEditableTextPath(currentPath)) {
+        const textEditorPath = selectedTextPathRef.current
+        return textEditorPath && availablePaths.has(textEditorPath) ? textEditorPath : null
+      }
+
+      return null
     })
-  }, [selectedPathRef, setSelectedVaultPath, setVault])
+  }, [selectedPathRef, selectedTextPathRef, setSelectedVaultPath, setVault])
 
   const refreshTrashCount = useCallback(async (): Promise<void> => {
     try {
@@ -345,6 +471,7 @@ export function useVaultSession({
       setIndexNotes(await window.indexApi.notes())
       bumpIndexRevision()
       resetEditor()
+      resetTextEditor()
       setSelectedVaultPath(null)
 
       const firstFile =
@@ -356,11 +483,24 @@ export function useVaultSession({
         await selectNote(firstFile.relativePath, false)
       }
     },
-    [bumpIndexRevision, resetEditor, selectNote, setIndexNotes, setSelectedVaultPath, setVault]
+    [
+      bumpIndexRevision,
+      resetEditor,
+      resetTextEditor,
+      selectNote,
+      setIndexNotes,
+      setSelectedVaultPath,
+      setVault
+    ]
   )
 
   const openVault = useCallback(async (): Promise<void> => {
-    await saveCurrentFile()
+    const [noteSaved, textSaved] = await Promise.all([saveCurrentFile(), saveCurrentTextFile()])
+
+    if (!noteSaved || !textSaved) {
+      return
+    }
+
     setIsOpening(true)
     onError(null)
 
@@ -372,7 +512,7 @@ export function useVaultSession({
     } finally {
       setIsOpening(false)
     }
-  }, [onError, openVaultInternal, saveCurrentFile])
+  }, [onError, openVaultInternal, saveCurrentFile, saveCurrentTextFile])
 
   const reopenVault = useCallback(
     async (path: string): Promise<boolean> => {

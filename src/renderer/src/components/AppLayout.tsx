@@ -11,6 +11,7 @@ import type { EditorInteractionsController } from '@/hooks/useEditorInteractions
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
+import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { VaultInfo } from '@/vault/types'
@@ -27,6 +28,7 @@ interface AppLayoutProps {
   aiPanelOpen: boolean
   commandActions: CommandAction[]
   editor: NoteEditorController
+  textEditor: TextFileEditorController
   noteIndex: NoteIndexController
   vaultSession: VaultSessionController
   noteActions: NoteActionsController
@@ -51,6 +53,7 @@ export function AppLayout({
   aiPanelOpen,
   commandActions,
   editor,
+  textEditor,
   noteIndex,
   vaultSession,
   noteActions,
@@ -67,6 +70,15 @@ export function AppLayout({
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [readingZoomStatus, setReadingZoomStatus] = useState<ReadingZoomStatus | null>(null)
+  const noteSelected = selectedNotePath !== null
+  const textSelected = selectedVaultPath !== null && textEditor.selectedPath === selectedVaultPath
+  const activeEditor = textSelected ? textEditor : editor
+  const activeEditorPath = selectedNotePath ?? (textSelected ? textEditor.selectedPath : null)
+  const activeEditorAvailable = noteSelected || textSelected
+  const activeIsDirty = activeEditorAvailable ? activeEditor.isDirty : false
+  const activeIsLoading = activeEditorAvailable ? activeEditor.isLoadingFile : false
+  const activeIsSaving = activeEditorAvailable ? activeEditor.isSaving : false
+  const activeLastSavedAt = activeEditorAvailable ? activeEditor.lastSavedAt : null
   const gridTemplateColumns = [
     leftPanelOpen ? '280px' : null,
     'minmax(0, 1fr)',
@@ -86,23 +98,25 @@ export function AppLayout({
       </a>
       <AppTopBar
         vaultName={vault?.name ?? null}
-        selectedPath={selectedNotePath}
+        selectedPath={activeEditorPath}
         viewMode={viewMode}
         commandActions={commandActions}
         editorAvailable={
-          selectedNotePath !== null && !editor.isLoadingFile && viewMode !== 'reading'
+          activeEditorPath !== null &&
+          !activeEditor.isLoadingFile &&
+          (textSelected || viewMode !== 'reading')
         }
         isOpeningVault={vaultSession.isOpening}
-        isSaving={editor.isSaving}
-        isDirty={editor.isDirty}
+        isSaving={activeIsSaving}
+        isDirty={activeIsDirty}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
         aiPanelOpen={aiPanelOpen}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-        onSave={() => void editor.saveCurrentFile()}
+        onSave={() => void activeEditor.saveCurrentFile()}
         onRevealNote={() => {
-          if (selectedNotePath) {
-            void vaultSession.handleRevealInExplorer(selectedNotePath)
+          if (activeEditorPath) {
+            void vaultSession.handleRevealInExplorer(activeEditorPath)
           }
         }}
         onToggleLeftPanel={() => setLeftPanelOpen((current) => !current)}
@@ -142,6 +156,7 @@ export function AppLayout({
           selectedPath={selectedVaultPath}
           commandActions={commandActions}
           editor={editor}
+          textEditor={textEditor}
           noteIndex={noteIndex}
           noteActions={noteActions}
           editorInteractions={editorInteractions}
@@ -182,13 +197,13 @@ export function AppLayout({
       </main>
 
       <AppStatusBar
-        selectedPath={selectedNotePath}
+        selectedPath={activeEditorPath}
         selectedVaultPath={selectedVaultPath}
-        content={editor.content}
-        isLoadingFile={editor.isLoadingFile}
-        isDirty={editor.isDirty}
-        isSaving={editor.isSaving}
-        lastSavedAt={editor.lastSavedAt}
+        content={activeEditorAvailable ? activeEditor.content : ''}
+        isLoadingFile={activeIsLoading}
+        isDirty={activeIsDirty}
+        isSaving={activeIsSaving}
+        lastSavedAt={activeLastSavedAt}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
         aiPanelOpen={aiPanelOpen}
