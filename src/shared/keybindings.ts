@@ -978,12 +978,7 @@ function isDialogOwnedKeyBinding(binding: KeyBinding, platform: KeybindingPlatfo
     : false
 }
 
-export type KeyBindingGuardReason =
-  | 'modal-context'
-  | 'key-recorder'
-  | 'disabled'
-  | 'repeat'
-  | 'conflict'
+export type KeyBindingGuardReason = 'modal-context' | 'key-recorder' | 'repeat' | 'conflict'
 
 export type KeyBindingResolution =
   | {
@@ -1000,7 +995,7 @@ export type KeyBindingResolution =
     }
   | {
       readonly kind: 'none'
-      readonly reason: 'composition' | 'no-match' | 'editor-owned' | 'focused-control'
+      readonly reason: 'composition' | 'no-match' | 'editor-owned' | 'focused-control' | 'disabled'
       readonly preventDefault: false
     }
 
@@ -1155,12 +1150,7 @@ export function resolveKeyBinding(
 
   const winner = winners[0]
   if (!(options.isActionEnabled?.(winner.definition.id) ?? true)) {
-    return {
-      kind: 'guard',
-      reason: 'disabled',
-      actionIds: [winner.definition.id],
-      preventDefault: true
-    }
+    return { kind: 'none', reason: 'disabled', preventDefault: false }
   }
   if (event.repeat && !winner.definition.allowRepeat) {
     return {

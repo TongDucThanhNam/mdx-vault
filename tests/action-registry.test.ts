@@ -1,4 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import {
+  createReadingZoomActionHandlers,
+  isReadingZoomActionEnabled
+} from '../src/renderer/src/commands/reading-zoom-actions'
 import {
   actionContextsOverlap,
   formatKeyBinding,
@@ -54,13 +60,19 @@ const REQUIRED_WORKBENCH_IDS = [
   'view.toggle-left-panel'
 ] as const
 
+const REQUIRED_READING_ZOOM_IDS = ['view.zoom-in', 'view.zoom-out', 'view.zoom-reset'] as const
+
 describe('workspace action registry', () => {
   test('defines every stable ID exactly once and preserves existing actions', () => {
     const ids = WORKSPACE_ACTION_DEFINITIONS.map((definition) => definition.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(KEYBINDABLE_ACTION_IDS).toEqual(ids)
 
-    for (const id of [...REQUIRED_EXISTING_IDS, ...REQUIRED_WORKBENCH_IDS]) {
+    for (const id of [
+      ...REQUIRED_EXISTING_IDS,
+      ...REQUIRED_WORKBENCH_IDS,
+      ...REQUIRED_READING_ZOOM_IDS
+    ]) {
       expect(ids).toContain(id)
       expect(isStableActionId(id)).toBe(true)
       expect(getWorkspaceActionDefinition(id)?.id).toBe(id)
@@ -99,7 +111,19 @@ describe('workspace action registry', () => {
       'file.save': [['Mod+S'], ['Mod+S']],
       'note.search': [['Mod+Shift+F'], ['Mod+Shift+F']],
       'note.new': [['Mod+N'], ['Mod+N']],
-      'settings.open': [['Mod+,'], ['Mod+,']]
+      'settings.open': [['Mod+,'], ['Mod+,']],
+      'view.zoom-in': [
+        ['Mod+=', 'Mod+Plus', 'Cmd+=', 'Cmd+Plus'],
+        ['Mod+=', 'Mod+Plus', 'Ctrl+=', 'Ctrl+Plus']
+      ],
+      'view.zoom-out': [
+        ['Mod+-', 'Mod+_', 'Cmd+-', 'Cmd+_'],
+        ['Mod+-', 'Mod+_', 'Ctrl+-', 'Ctrl+_']
+      ],
+      'view.zoom-reset': [
+        ['Mod+0', 'Cmd+0'],
+        ['Mod+0', 'Ctrl+0']
+      ]
     } as const
 
     for (const [id, [windows, darwin]] of Object.entries(expected)) {
@@ -164,9 +188,54 @@ describe('workspace action registry', () => {
       'workbench.previous-item',
       'workbench.reopen-closed-item',
       'explorer.toggle-focus',
-      'view.toggle-left-panel'
+      'view.toggle-left-panel',
+      ...REQUIRED_READING_ZOOM_IDS
     ]) {
       expect(paletteIds).toContain(id)
     }
+  })
+
+  test('routes every Reading zoom action ID to its runtime handler', () => {
+    const calls: string[] = []
+    const handlers = createReadingZoomActionHandlers({
+      zoomIn: () => calls.push('in'),
+      zoomOut: () => calls.push('out'),
+      reset: () => calls.push('reset')
+    })
+
+    expect(Object.keys(handlers)).toEqual(REQUIRED_READING_ZOOM_IDS)
+    handlers['view.zoom-in']()
+    handlers['view.zoom-out']()
+    handlers['view.zoom-reset']()
+    expect(calls).toEqual(['in', 'out', 'reset'])
+  })
+
+  test('enables Reading zoom only for an active note in Reading view', () => {
+    expect(isReadingZoomActionEnabled('notes/active.mdx', 'reading')).toBe(true)
+    expect(isReadingZoomActionEnabled('notes/active.mdx', 'source')).toBe(false)
+    expect(isReadingZoomActionEnabled('notes/active.mdx', 'live')).toBe(false)
+    expect(isReadingZoomActionEnabled(null, 'reading')).toBe(false)
+
+    for (const id of REQUIRED_READING_ZOOM_IDS) {
+      expect(getWorkspaceActionDefinition(id)).toMatchObject({
+        context: 'Reading',
+        allowRepeat: true
+      })
+    }
+  })
+
+  test('keeps one global keydown resolver with no standalone Reading zoom list', () => {
+    const shortcutSource = readFileSync(
+      fileURLToPath(new URL('../src/renderer/src/hooks/useKeyboardShortcuts.ts', import.meta.url)),
+      'utf8'
+    )
+    const commandActionSource = readFileSync(
+      fileURLToPath(new URL('../src/renderer/src/hooks/useCommandActions.ts', import.meta.url)),
+      'utf8'
+    )
+
+    expect(shortcutSource.match(/window\.addEventListener\(['"]keydown['"]/g) ?? []).toHaveLength(1)
+    expect(shortcutSource).not.toContain('useReadingZoomShortcuts')
+    expect(commandActionSource).toContain('...createReadingZoomActionHandlers')
   })
 })

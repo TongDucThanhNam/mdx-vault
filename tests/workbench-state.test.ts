@@ -199,6 +199,43 @@ describe('GOAL-22 pure workbench state', () => {
     expect(deleteWorkbenchItem(withText, 'data.csv')).toBe(withText)
   })
 
+  test('activation preserves each tab cursor, selection, scroll, and note view mode', () => {
+    let state = open(createWorkbenchState(), item('a.mdx'), item('b.mdx'))
+    state = captureWorkbenchViewState(state, 'b.mdx', {
+      cursor: 42,
+      selection: { anchor: 30, head: 42 },
+      scrollTop: 480,
+      scrollLeft: 16,
+      viewMode: 'reading'
+    })
+    state = workbenchReducer(state, { type: 'activate', id: 'a.mdx' })
+    state = captureWorkbenchViewState(state, 'a.mdx', {
+      cursor: 9,
+      selection: { anchor: 3, head: 9 },
+      scrollTop: 120,
+      scrollLeft: 0,
+      viewMode: 'source'
+    })
+
+    state = workbenchReducer(state, { type: 'activate', id: 'b.mdx' })
+    expect(state.items.find((candidate) => candidate.id === state.activeId)?.viewState).toEqual({
+      cursor: 42,
+      selection: { anchor: 30, head: 42 },
+      scrollTop: 480,
+      scrollLeft: 16,
+      viewMode: 'reading'
+    })
+
+    state = workbenchReducer(state, { type: 'activate', id: 'a.mdx' })
+    expect(state.items.find((candidate) => candidate.id === state.activeId)?.viewState).toEqual({
+      cursor: 9,
+      selection: { anchor: 3, head: 9 },
+      scrollTop: 120,
+      scrollLeft: 0,
+      viewMode: 'source'
+    })
+  })
+
   test('app delete removes only after commit while external delete retains clean and dirty items', () => {
     let state = open(createWorkbenchState(), item('a.mdx'), item('b.mdx'))
     state = workbenchReducer(state, { type: 'activate', id: 'a.mdx' })

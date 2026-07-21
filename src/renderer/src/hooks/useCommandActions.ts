@@ -1,6 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 import type { CommandAction, CommandActionRegistry } from '@/commands/actions'
+import {
+  createReadingZoomActionHandlers,
+  type ReadingZoomActionHandlersInput
+} from '@/commands/reading-zoom-actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
@@ -14,6 +18,7 @@ import {
 import {
   canonicalizeActionId,
   type KeybindingPlatform,
+  resolveWorkspaceActionId,
   WORKSPACE_ACTION_DEFINITIONS,
   type WorkspaceActionId
 } from '../../../shared/workspace-actions'
@@ -43,6 +48,8 @@ interface UseCommandActionsOptions {
   toggleExplorerFocus: () => void
   focusEditor: () => void
   setViewMode: Dispatch<SetStateAction<ViewMode>>
+  readingZoomEnabled: boolean
+  readingZoomActions: ReadingZoomActionHandlersInput
   onError: (message: string | null) => void
 }
 
@@ -69,9 +76,16 @@ export function useCommandActions({
   toggleExplorerFocus,
   focusEditor,
   setViewMode,
+  readingZoomEnabled,
+  readingZoomActions,
   onError
 }: UseCommandActionsOptions): CommandActionRegistry {
   const platform = toKeybindingPlatform(window.windowApi.platform)
+  const {
+    zoomIn: zoomReadingIn,
+    zoomOut: zoomReadingOut,
+    reset: resetReadingZoom
+  } = readingZoomActions
   const {
     createUniqueNote,
     insertCurrentDate,
@@ -81,7 +95,7 @@ export function useCommandActions({
     openRandomNote
   } = noteActions
 
-  const handlers = useMemo<Readonly<Partial<Record<WorkspaceActionId, RuntimeActionHandler>>>>(
+  const handlers = useMemo<Readonly<Record<WorkspaceActionId, RuntimeActionHandler>>>(
     () => ({
       'note.new': openCreateNote,
       'note.new-template': openCreateNote,
@@ -109,6 +123,11 @@ export function useCommandActions({
       'view.source': () => setViewMode('source'),
       'view.live': () => setViewMode('live'),
       'view.reading': () => setViewMode('reading'),
+      ...createReadingZoomActionHandlers({
+        zoomIn: zoomReadingIn,
+        zoomOut: zoomReadingOut,
+        reset: resetReadingZoom
+      }),
       'note.export': openExport,
       'ai.toggle': toggleAiPanel,
       'theme.toggle': toggleTheme,
@@ -131,11 +150,14 @@ export function useCommandActions({
       openSearch,
       openSettings,
       openVault,
+      resetReadingZoom,
       setViewMode,
       toggleAiPanel,
       toggleExplorerFocus,
       toggleLeftPanel,
       toggleTheme,
+      zoomReadingIn,
+      zoomReadingOut,
       workbench.activateVisual,
       workbench.closeActiveItem,
       workbench.closeItem,
@@ -177,6 +199,9 @@ export function useCommandActions({
       'view.source': hasNote,
       'view.live': hasNote,
       'view.reading': hasNote,
+      'view.zoom-in': readingZoomEnabled,
+      'view.zoom-out': readingZoomEnabled,
+      'view.zoom-reset': readingZoomEnabled,
       'note.export': hasNote,
       'ai.toggle': hasVault,
       'theme.toggle': true,
@@ -186,6 +211,7 @@ export function useCommandActions({
     }
   }, [
     indexNoteCount,
+    readingZoomEnabled,
     selectedPath,
     trashCount,
     vault,
@@ -213,10 +239,11 @@ export function useCommandActions({
   const dispatch = useCallback(
     async (actionId: string, input?: unknown): Promise<boolean> => {
       const canonicalId = canonicalizeActionId(actionId)
-      const stableHandler = handlersRef.current[canonicalId as WorkspaceActionId]
+      const stableActionId = resolveWorkspaceActionId(canonicalId)
+      const stableHandler = stableActionId ? handlersRef.current[stableActionId] : undefined
       const dynamicHandler = dynamicHandlersRef.current.get(canonicalId)
 
-      if (stableHandler && !enabledRef.current[canonicalId as WorkspaceActionId]) {
+      if (stableActionId && !enabledRef.current[stableActionId]) {
         return false
       }
 

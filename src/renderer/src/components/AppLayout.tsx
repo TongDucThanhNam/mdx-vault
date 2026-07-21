@@ -1,16 +1,17 @@
-import { Activity, type Dispatch, type SetStateAction, useState } from 'react'
+import { Activity, type Dispatch, type SetStateAction } from 'react'
 import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { AppStatusBar } from '@/components/AppStatusBar'
 import { AppTopBar } from '@/components/AppTopBar'
 import { LeftPanel } from '@/components/layout/LeftPanel'
-import { MainEditor, type ReadingZoomStatus } from '@/components/layout/MainEditor'
+import { MainEditor } from '@/components/layout/MainEditor'
 import { RightPanel } from '@/components/layout/RightPanel'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
+import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
@@ -34,6 +35,7 @@ interface AppLayoutProps {
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
   editorTabs: WorkbenchController
+  readingZoom: ReadingZoomController
   setRightPanelOpen: Dispatch<SetStateAction<boolean>>
   onRequestDelete: (relativePath: string) => void
   onError: (message: string | null) => void
@@ -56,11 +58,11 @@ export function AppLayout({
   noteActions,
   editorInteractions,
   editorTabs,
+  readingZoom,
   setRightPanelOpen,
   onRequestDelete,
   onError
 }: AppLayoutProps): React.JSX.Element {
-  const [readingZoomStatus, setReadingZoomStatus] = useState<ReadingZoomStatus | null>(null)
   const noteSelected = selectedNotePath !== null
   const textSelected = selectedVaultPath !== null && textEditor.selectedPath === selectedVaultPath
   const activeEditor = textSelected ? textEditor : editor
@@ -147,7 +149,7 @@ export function AppLayout({
           noteIndex={noteIndex}
           noteActions={noteActions}
           editorInteractions={editorInteractions}
-          onReadingZoomStatusChange={setReadingZoomStatus}
+          readingZoom={readingZoom}
           onRevealInExplorer={(relativePath) =>
             void vaultSession.handleRevealInExplorer(relativePath)
           }
@@ -193,12 +195,12 @@ export function AppLayout({
         aiPanelOpen={aiPanelOpen}
         hasVault={vault !== null}
         readingZoomFactor={
-          selectedNotePath && viewMode === 'reading' ? readingZoomStatus?.factor : undefined
+          selectedNotePath && viewMode === 'reading' ? readingZoom.factor : undefined
         }
         onToggleLeftPanel={() => void commandActions.dispatch('view.toggle-left-panel')}
         onToggleRightPanel={() => setRightPanelOpen((current) => !current)}
         onToggleAiPanel={() => void commandActions.dispatch('ai.toggle')}
-        onResetReadingZoom={() => readingZoomStatus?.reset()}
+        onResetReadingZoom={() => void commandActions.dispatch('view.zoom-reset')}
       />
     </>
   )

@@ -9,6 +9,7 @@ import { deriveNoteTitle } from '@/lib/note-title'
 import type { VaultInfo, VaultTreeFile } from '@/vault/types'
 import { createAndOpenVaultNote, openRefreshedVaultFile } from '@/workbench/note-action-lifecycle'
 import { deleteVaultNote } from '@/workbench/note-delete-lifecycle'
+import { switchVault } from '@/workbench/vault-switch-lifecycle'
 import type { RenamePlanPreview } from '../../../shared/rename'
 
 export interface RenameRequest {
@@ -367,20 +368,25 @@ export function useVaultSession({
   )
 
   const openVault = useCallback(async (): Promise<void> => {
-    if (!(await workbench.saveActiveItem())) {
-      return
-    }
-
-    setIsOpening(true)
-    onError(null)
+    let pickerStarted = false
 
     try {
-      const openedVault = await window.vaultApi.openVault()
-      await openVaultInternal(openedVault)
+      await switchVault({
+        saveActiveItem: workbench.saveActiveItem,
+        chooseVault: async () => {
+          pickerStarted = true
+          setIsOpening(true)
+          onError(null)
+          return window.vaultApi.openVault()
+        },
+        commitVault: openVaultInternal
+      })
     } catch (openError) {
       onError(formatError(openError))
     } finally {
-      setIsOpening(false)
+      if (pickerStarted) {
+        setIsOpening(false)
+      }
     }
   }, [onError, openVaultInternal, workbench.saveActiveItem])
 

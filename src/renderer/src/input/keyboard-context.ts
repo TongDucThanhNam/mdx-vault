@@ -2,7 +2,7 @@ import type { ActionContext } from '../../../shared/workspace-actions'
 
 export type FocusedKeyboardContext = Extract<
   ActionContext,
-  'Dialog' | 'Editor' | 'Explorer' | 'Input' | 'Workspace'
+  'Dialog' | 'Editor' | 'Explorer' | 'Input' | 'Reading' | 'Workspace'
 >
 
 export interface KeyboardContextState {

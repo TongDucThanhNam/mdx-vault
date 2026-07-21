@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { CommandPalette } from '@/commands/CommandPalette'
+import { isReadingZoomActionEnabled } from '@/commands/reading-zoom-actions'
 import { AppLayout } from '@/components/AppLayout'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { MruTabSwitcher } from '@/components/layout/MruTabSwitcher'
@@ -17,6 +18,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useNoteActions } from '@/hooks/useNoteActions'
 import { useNoteEditor } from '@/hooks/useNoteEditor'
 import { useNoteIndex } from '@/hooks/useNoteIndex'
+import { useReadingZoom } from '@/hooks/useReadingZoom'
 import { useRecentNotes } from '@/hooks/useRecentNotes'
 import { useTextFileEditor } from '@/hooks/useTextFileEditor'
 import { useTheme } from '@/hooks/useTheme'
@@ -59,6 +61,7 @@ function App(): React.JSX.Element {
     showToast
   })
   const textEditor = useTextFileEditor({ onError: setError })
+  const readingZoom = useReadingZoom()
   const selectedNotePath = isNotePath(selectedVaultPath) ? editor.selectedPath : null
   const noteIndex = useNoteIndex({
     vault,
@@ -164,6 +167,8 @@ function App(): React.JSX.Element {
     toggleExplorerFocus,
     focusEditor: focusActiveDocument,
     setViewMode,
+    readingZoomEnabled: isReadingZoomActionEnabled(selectedNotePath, viewMode),
+    readingZoomActions: readingZoom,
     onError: setError
   })
 
@@ -201,6 +206,7 @@ function App(): React.JSX.Element {
         noteActions={noteActions}
         editorInteractions={editorInteractions}
         editorTabs={editorTabs}
+        readingZoom={readingZoom}
         setRightPanelOpen={setRightPanelOpen}
         onRequestDelete={(relativePath) => setDeleteRequest({ relativePath })}
         onError={setError}

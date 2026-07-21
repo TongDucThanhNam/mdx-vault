@@ -20,13 +20,6 @@ export interface UseKeyboardShortcutsOptions {
   onCancelMru: () => void
 }
 
-interface UseReadingZoomShortcutsOptions {
-  enabled: boolean
-  onZoomIn: () => void
-  onZoomOut: () => void
-  onResetZoom: () => void
-}
-
 type MruActionId = Extract<WorkspaceActionId, 'workbench.mru-next' | 'workbench.mru-previous'>
 
 type ModifierKey = 'Alt' | 'Control' | 'Meta' | 'Shift'
@@ -186,6 +179,9 @@ function getFocusedKeyboardContext(): FocusedKeyboardContext {
   if (focusedElement.closest('[aria-label="Vault explorer"]')) {
     return 'Explorer'
   }
+  if (focusedElement.closest('[data-reading-surface="active"]')) {
+    return 'Reading'
+  }
   return 'Workspace'
 }
 
@@ -222,55 +218,4 @@ function getTriggerModifier(binding: KeyBinding, platform: KeybindingPlatform): 
 function getKeybindingPlatform(): KeybindingPlatform {
   const platform = window.windowApi.platform
   return platform === 'darwin' || platform === 'win32' ? platform : 'linux'
-}
-
-export function useReadingZoomShortcuts({
-  enabled,
-  onZoomIn,
-  onZoomOut,
-  onResetZoom
-}: UseReadingZoomShortcutsOptions): void {
-  useEffect(() => {
-    if (!enabled) {
-      return
-    }
-
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (!event.ctrlKey && !event.metaKey) {
-        return
-      }
-
-      const focusedElement = document.activeElement
-      if (
-        !(focusedElement instanceof HTMLElement) ||
-        !focusedElement.closest('[data-document-surface="active"]') ||
-        focusedElement.closest('[aria-modal="true"]')
-      ) {
-        return
-      }
-
-      if (event.key === '=' || event.key === '+') {
-        event.preventDefault()
-        onZoomIn()
-        return
-      }
-
-      if (event.key === '-' || event.key === '_') {
-        event.preventDefault()
-        onZoomOut()
-        return
-      }
-
-      if (event.key === '0') {
-        event.preventDefault()
-        onResetZoom()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [enabled, onResetZoom, onZoomIn, onZoomOut])
 }

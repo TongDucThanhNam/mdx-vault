@@ -12,6 +12,13 @@ const BASE_STATE: KeyboardContextState = {
 }
 
 describe('global keyboard context derivation', () => {
+  test('exposes Reading ownership only when the active document surface has focus', () => {
+    expect(deriveKeyboardContexts(BASE_STATE, 'Reading')).toEqual(['Reading', 'Workspace'])
+    expect(
+      deriveKeyboardContexts({ ...BASE_STATE, activeSurface: 'file-finder' }, 'Reading')
+    ).toEqual(['Picker', 'Workspace'])
+  })
+
   test('keeps an active MRU session in Workspace when its aria-modal surface owns focus', () => {
     expect(deriveKeyboardContexts({ ...BASE_STATE, mruSwitchActive: true }, 'Dialog')).toEqual([
       'Workspace'

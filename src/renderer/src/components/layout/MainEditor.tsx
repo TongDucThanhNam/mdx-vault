@@ -1,5 +1,5 @@
 import { Save } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
@@ -11,12 +11,11 @@ import type { GotoDefinitionTarget } from '@/editor/goto-definition'
 import { MdxEditor } from '@/editor/MdxEditor'
 import { TextFileEditor } from '@/editor/TextFileEditor'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
-import { useReadingZoomShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
-import { useReadingZoom } from '@/hooks/useReadingZoom'
+import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { MdxPreview } from '@/preview/MdxPreview'
@@ -34,14 +33,9 @@ interface MainEditorProps {
   noteIndex: NoteIndexController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
-  onReadingZoomStatusChange: (status: ReadingZoomStatus | null) => void
+  readingZoom: ReadingZoomController
   onRevealInExplorer: (relativePath: string) => void
   onError: (message: string | null) => void
-}
-
-export interface ReadingZoomStatus {
-  factor: number
-  reset: () => void
 }
 
 export function MainEditor({
@@ -54,7 +48,7 @@ export function MainEditor({
   noteIndex,
   noteActions,
   editorInteractions,
-  onReadingZoomStatusChange,
+  readingZoom,
   onRevealInExplorer,
   onError
 }: MainEditorProps): React.JSX.Element {
@@ -70,28 +64,7 @@ export function MainEditor({
   const activeItemMissing = activeItem?.id === selectedPath && activeItem.missing
   const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
-  const {
-    factor: readingZoomFactor,
-    adjustFromWheel: adjustReadingZoomFromWheel,
-    zoomIn: zoomReadingIn,
-    zoomOut: zoomReadingOut,
-    reset: resetReadingZoom
-  } = useReadingZoom()
-
-  useReadingZoomShortcuts({
-    enabled: noteSelected && viewMode === 'reading',
-    onZoomIn: zoomReadingIn,
-    onZoomOut: zoomReadingOut,
-    onResetZoom: resetReadingZoom
-  })
-
-  useEffect(() => {
-    onReadingZoomStatusChange({ factor: readingZoomFactor, reset: resetReadingZoom })
-  }, [onReadingZoomStatusChange, readingZoomFactor, resetReadingZoom])
-
-  useEffect(() => {
-    return () => onReadingZoomStatusChange(null)
-  }, [onReadingZoomStatusChange])
+  const { factor: readingZoomFactor, adjustFromWheel: adjustReadingZoomFromWheel } = readingZoom
 
   const handleNavigateDefinition = useCallback(
     (target: GotoDefinitionTarget): void => {
@@ -137,6 +110,7 @@ export function MainEditor({
     <section
       aria-label="Document"
       data-document-surface="active"
+      data-reading-surface={noteSelected && viewMode === 'reading' ? 'active' : undefined}
       tabIndex={-1}
       className="flex min-h-0 min-w-0 flex-col border-r-2 border-foreground bg-background"
     >

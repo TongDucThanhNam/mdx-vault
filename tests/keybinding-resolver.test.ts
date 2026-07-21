@@ -116,6 +116,92 @@ describe('keybinding normalization and platform matching', () => {
 })
 
 describe('keybinding resolution', () => {
+  test('routes every Reading zoom chord only from the Reading context', () => {
+    const windowsCases = [
+      [keyEvent('=', { ctrlKey: true }), 'view.zoom-in'],
+      [keyEvent('+', { ctrlKey: true, shiftKey: true }), 'view.zoom-in'],
+      [keyEvent('=', { metaKey: true }), 'view.zoom-in'],
+      [keyEvent('-', { ctrlKey: true }), 'view.zoom-out'],
+      [keyEvent('_', { ctrlKey: true, shiftKey: true }), 'view.zoom-out'],
+      [keyEvent('0', { metaKey: true }), 'view.zoom-reset']
+    ] as const
+
+    for (const [event, actionId] of windowsCases) {
+      expect(
+        resolveKeyBinding(event, {
+          platform: 'win32',
+          activeContexts: ['Reading', 'Workspace']
+        })
+      ).toMatchObject({ kind: 'dispatch', actionId, preventDefault: true })
+    }
+
+    for (const [event, actionId] of [
+      [keyEvent('=', { metaKey: true }), 'view.zoom-in'],
+      [keyEvent('+', { metaKey: true, shiftKey: true }), 'view.zoom-in'],
+      [keyEvent('-', { ctrlKey: true }), 'view.zoom-out'],
+      [keyEvent('0', { ctrlKey: true }), 'view.zoom-reset']
+    ] as const) {
+      expect(
+        resolveKeyBinding(event, {
+          platform: 'darwin',
+          activeContexts: ['Reading', 'Workspace']
+        })
+      ).toMatchObject({ kind: 'dispatch', actionId, preventDefault: true })
+    }
+  })
+
+  test('keeps Reading zoom out of workspace, editor, input, and modal ownership', () => {
+    const resetEvent = keyEvent('0', { ctrlKey: true })
+
+    for (const activeContexts of [
+      ['Workspace'],
+      ['Editor', 'Workspace'],
+      ['Input', 'Workspace']
+    ] as const) {
+      expect(resolveKeyBinding(resetEvent, { platform: 'win32', activeContexts })).toEqual({
+        kind: 'none',
+        reason: 'no-match',
+        preventDefault: false
+      })
+    }
+
+    for (const activeContexts of [
+      ['Picker', 'Workspace'],
+      ['Settings', 'Workspace'],
+      ['Dialog', 'Workspace']
+    ] as const) {
+      expect(resolveKeyBinding(resetEvent, { platform: 'win32', activeContexts })).toEqual({
+        kind: 'guard',
+        reason: 'modal-context',
+        actionIds: ['view.zoom-reset'],
+        preventDefault: true
+      })
+    }
+  })
+
+  test('honors Reading zoom enablement and repeated keydown through the shared resolver', () => {
+    const repeatedZoomIn = keyEvent('=', { ctrlKey: true, repeat: true })
+
+    expect(
+      resolveKeyBinding(repeatedZoomIn, {
+        platform: 'win32',
+        activeContexts: ['Reading', 'Workspace']
+      })
+    ).toMatchObject({ kind: 'dispatch', actionId: 'view.zoom-in' })
+
+    expect(
+      resolveKeyBinding(repeatedZoomIn, {
+        platform: 'win32',
+        activeContexts: ['Reading', 'Workspace'],
+        isActionEnabled: () => false
+      })
+    ).toEqual({
+      kind: 'none',
+      reason: 'disabled',
+      preventDefault: false
+    })
+  })
+
   test('chooses the lower, more-specific active context', () => {
     const overrides: KeymapOverrides = {
       'file.open': ['Mod+K'],
@@ -314,13 +400,13 @@ describe('keybinding resolution', () => {
     ).toMatchObject({ kind: 'dispatch', actionId: 'workbench.mru-next' })
   })
 
-  test('guards disabled application chords and does not prevent unmatched native behavior', () => {
+  test('does not prevent native behavior for disabled or unmatched application chords', () => {
     expect(
       resolveKeyBinding(keyEvent('p', { ctrlKey: true }), {
         platform: 'win32',
         isActionEnabled: () => false
       })
-    ).toMatchObject({ kind: 'guard', reason: 'disabled', preventDefault: true })
+    ).toEqual({ kind: 'none', reason: 'disabled', preventDefault: false })
 
     expect(resolveKeyBinding(keyEvent('g'), { platform: 'win32' })).toEqual({
       kind: 'none',

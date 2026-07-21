@@ -16,6 +16,7 @@ export type KeyBinding = string
 export const ACTION_CONTEXTS = [
   'Workspace',
   'Editor',
+  'Reading',
   'Explorer',
   'Input',
   'Picker',
@@ -37,6 +38,7 @@ export const ACTION_CONTEXT_PRECEDENCE: Readonly<Record<ActionContext, number>> 
   Settings: 20,
   Input: 30,
   Editor: 40,
+  Reading: 40,
   Explorer: 40,
   Workspace: 100
 }
@@ -308,6 +310,42 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     keywords: ['rendered'],
     context: 'Workspace',
     defaultBindings: bindings()
+  }),
+  action({
+    id: 'view.zoom-in',
+    title: 'Reading view: Zoom in',
+    description: 'Increase the Reading view zoom level.',
+    category: 'View',
+    keywords: ['preview', 'reading', 'scale'],
+    context: 'Reading',
+    defaultBindings: bindings(
+      ['Mod+=', 'Mod+Plus', 'Cmd+=', 'Cmd+Plus'],
+      ['Mod+=', 'Mod+Plus', 'Ctrl+=', 'Ctrl+Plus']
+    ),
+    allowRepeat: true
+  }),
+  action({
+    id: 'view.zoom-out',
+    title: 'Reading view: Zoom out',
+    description: 'Decrease the Reading view zoom level.',
+    category: 'View',
+    keywords: ['preview', 'reading', 'scale'],
+    context: 'Reading',
+    defaultBindings: bindings(
+      ['Mod+-', 'Mod+_', 'Cmd+-', 'Cmd+_'],
+      ['Mod+-', 'Mod+_', 'Ctrl+-', 'Ctrl+_']
+    ),
+    allowRepeat: true
+  }),
+  action({
+    id: 'view.zoom-reset',
+    title: 'Reading view: Reset zoom',
+    description: 'Reset the Reading view zoom level to 100%.',
+    category: 'View',
+    keywords: ['preview', 'reading', 'scale', '100%'],
+    context: 'Reading',
+    defaultBindings: bindings(['Mod+0', 'Cmd+0'], ['Mod+0', 'Ctrl+0']),
+    allowRepeat: true
   }),
   action({
     id: 'note.export',
