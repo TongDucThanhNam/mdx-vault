@@ -1,5 +1,6 @@
 import fg from 'fast-glob'
-import { mkdir, readFile, realpath, rename, rm, rmdir, stat, writeFile } from 'fs/promises'
+import { constants } from 'fs'
+import { mkdir, open, readFile, realpath, rename, rm, rmdir, stat, writeFile } from 'fs/promises'
 import { basename, dirname, extname, isAbsolute, relative, resolve } from 'path'
 
 import type { RenameResult } from '../../shared/rename'
@@ -206,7 +207,7 @@ export class VaultService {
     const data = Buffer.from(content, 'utf8')
     assertTextFileSize(data.byteLength)
     assertTextDataIsNotBinary(data)
-    await this.writeFileAtomic(target, content)
+    await this.writeExistingFile(target, content)
   }
 
   async readImageFile(relativePath: string): Promise<string> {
@@ -219,9 +220,38 @@ export class VaultService {
     return (await readFile(target)).toString('base64')
   }
 
+  /**
+   * Verifies that an arbitrary tree file still exists and can be opened for
+   * reading without returning its contents to the renderer. This is used to
+   * reject stale unsupported-file entries before a workbench tab is committed.
+   */
+  async probeFile(relativePath: string): Promise<void> {
+    const normalizedPath = normalizeVaultPath(relativePath)
+    const extension = extname(normalizedPath).toLowerCase()
+    const target = await this.resolveExistingDirectFilePath(
+      normalizedPath,
+      new Set([extension]),
+      'Vault file extension changed while it was being opened'
+    )
+    const handle = await open(target, constants.O_RDONLY | constants.O_NOFOLLOW)
+
+    try {
+      const fileStats = await handle.stat()
+      if (!fileStats.isFile()) {
+        throw new Error('Vault path is not a file')
+      }
+    } finally {
+      await handle.close()
+    }
+  }
+
   async writeFile(relativePath: string, content: string): Promise<void> {
-    const target = this.resolveMarkdownPath(relativePath)
-    await this.writeFileAtomic(target, content)
+    const target = await this.resolveExistingDirectFilePath(
+      relativePath,
+      MARKDOWN_EXTENSIONS,
+      'Only .md and .mdx files are allowed'
+    )
+    await this.writeExistingFile(target, content)
   }
 
   /**
@@ -703,6 +733,46 @@ export class VaultService {
         await rename(tempPath, target)
       } finally {
         await rm(tempPath, { force: true })
+      }
+    }
+
+    if (this.atomicWriteOverride) {
+      await this.atomicWriteOverride(target, data, writeDefault)
+      return
+    }
+
+    await writeDefault()
+  }
+
+  /**
+   * Writes through a handle that can only be opened when the target still
+   * exists. If another process removes the path after validation, this updates
+   * the already-open inode/handle and never renames a new file back into place.
+   */
+  private async writeExistingFile(target: string, data: string | Uint8Array): Promise<void> {
+    const writeDefault = async (): Promise<void> => {
+      const handle = await open(target, constants.O_RDWR | constants.O_NOFOLLOW)
+
+      try {
+        const openedStats = await handle.stat()
+        if (!openedStats.isFile()) {
+          throw new Error('Vault path is not a file')
+        }
+
+        await handle.truncate(0)
+        if (typeof data === 'string') {
+          await handle.writeFile(data, 'utf8')
+        } else {
+          await handle.writeFile(data)
+        }
+        await handle.sync()
+
+        const [handleStats, pathStats] = await Promise.all([handle.stat(), stat(target)])
+        if (handleStats.dev !== pathStats.dev || handleStats.ino !== pathStats.ino) {
+          throw new Error('Vault file changed while it was being saved')
+        }
+      } finally {
+        await handle.close()
       }
     }
 

@@ -1,65 +1,96 @@
-import { mkdir, readFile, rename, stat, writeFile } from 'fs/promises'
+import { randomUUID } from 'crypto'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
+
+import {
+  APP_SETTINGS_CATALOG,
+  type AppSettingsPatch,
+  type AppSettingsSnapshot,
+  type AppTheme,
+  DEFAULT_APP_SETTINGS_SNAPSHOT,
+  DEFAULT_WORKBENCH_SETTINGS,
+  type FileTreeSortSetting,
+  type KeymapOverrides,
+  normalizeKeymapOverrides,
+  type WorkbenchSettings
+} from '../../shared/app-settings'
+import type { KeybindingPlatform } from '../../shared/workspace-actions'
+
+export type {
+  ActivateOnCloseSetting,
+  AppSettingsPatch,
+  AppSettingsSnapshot,
+  AppTheme,
+  FileTreeSortSetting,
+  KeymapOverrides,
+  WhenClosingWithNoTabsSetting,
+  WorkbenchSettings
+} from '../../shared/app-settings'
+export {
+  DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_WORKBENCH_SETTINGS,
+  MAX_EDITOR_FONT_SIZE,
+  MAX_KEYMAP_ACTION_ID_LENGTH,
+  MAX_KEYMAP_BINDING_LENGTH,
+  MAX_KEYMAP_BINDINGS_PER_ACTION,
+  MAX_KEYMAP_OVERRIDE_ACTIONS,
+  MIN_EDITOR_FONT_SIZE
+} from '../../shared/app-settings'
 
 /**
  * App-level settings that live OUTSIDE the vault (in Electron's userData dir).
  *
- * This is deliberately separate from {@link AiSettingsService}, which is
- * vault-scoped and stores secrets. Here we only persist non-sensitive UI
- * preferences and the last-opened vault path so the app can reopen it on
- * startup. No note content, no API keys, no secrets — ever.
+ * This is deliberately separate from AiSettingsService, which stores secrets.
+ * Only non-sensitive workbench preferences and the last-opened vault path are
+ * accepted here. Every read and write rebuilds the persisted value from this
+ * allowlist, so unknown and secret-looking fields can never be carried forward.
  */
 
 const SETTINGS_FILENAME = 'app-settings.json'
 
-export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
-export type AppTheme = 'light' | 'dark' | 'system'
-
 export interface PersistedAppSettings {
-  version: 2
+  version: 3
   lastVaultPath: string | null
   theme: AppTheme
   fileTreeSort: FileTreeSortSetting
   editorFontSize: number
+  workbench: WorkbenchSettings
+  keymapOverrides: KeymapOverrides
 }
 
-export const MIN_EDITOR_FONT_SIZE = 12
-export const MAX_EDITOR_FONT_SIZE = 20
-export const DEFAULT_EDITOR_FONT_SIZE = 13.5
-
-const DEFAULT_SETTINGS: PersistedAppSettings = {
-  version: 2,
+const DEFAULT_SETTINGS: Readonly<PersistedAppSettings> = {
+  version: 3,
   lastVaultPath: null,
-  theme: 'system',
-  fileTreeSort: 'name',
-  editorFontSize: DEFAULT_EDITOR_FONT_SIZE
+  theme: DEFAULT_APP_SETTINGS_SNAPSHOT.theme,
+  fileTreeSort: DEFAULT_APP_SETTINGS_SNAPSHOT.fileTreeSort,
+  editorFontSize: DEFAULT_APP_SETTINGS_SNAPSHOT.editorFontSize,
+  workbench: DEFAULT_WORKBENCH_SETTINGS,
+  keymapOverrides: {}
 }
+
+const CURRENT_KEYBINDING_PLATFORM: KeybindingPlatform =
+  process.platform === 'win32' || process.platform === 'darwin' ? process.platform : 'linux'
 
 export class AppSettingsService {
   private readonly filePath: string
+  private mutationTail: Promise<void> = Promise.resolve()
 
   constructor(userDataPath: string) {
     this.filePath = join(userDataPath, SETTINGS_FILENAME)
   }
 
   async read(): Promise<PersistedAppSettings> {
-    try {
-      const raw = await readFile(this.filePath, 'utf8')
-      const parsed = JSON.parse(raw) as Partial<PersistedAppSettings>
-      return {
-        version: 2,
-        lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
-        theme: normalizeTheme(parsed.theme),
-        fileTreeSort: normalizeFileTreeSort(parsed.fileTreeSort),
-        editorFontSize: normalizeEditorFontSize(parsed.editorFontSize)
-      }
-    } catch (error) {
-      if (isNotFoundError(error)) {
-        return { ...DEFAULT_SETTINGS }
-      }
-      // Corrupt file: reset to defaults rather than crash. Never throw on read.
-      return { ...DEFAULT_SETTINGS }
-    }
+    await this.mutationTail
+    return this.readFromDisk()
+  }
+
+  async getSettings(): Promise<AppSettingsSnapshot> {
+    return toSnapshot(await this.read())
+  }
+
+  async updateSettings(patch: AppSettingsPatch): Promise<AppSettingsSnapshot> {
+    const persisted = await this.mutate((current) => applyPatch(current, patch))
+    return toSnapshot(persisted)
   }
 
   async getLastVaultPath(): Promise<string | null> {
@@ -80,78 +111,175 @@ export class AppSettingsService {
   }
 
   async setLastVaultPath(vaultPath: string | null): Promise<void> {
-    const settings = await this.read()
-    await this.write({ ...settings, lastVaultPath: vaultPath })
+    await this.mutate((settings) => ({ ...settings, lastVaultPath: vaultPath }))
   }
 
   async getTheme(): Promise<AppTheme> {
-    const settings = await this.read()
-    return settings.theme
+    return (await this.read()).theme
   }
 
   async setTheme(theme: AppTheme): Promise<void> {
-    const settings = await this.read()
-    await this.write({ ...settings, theme })
+    await this.updateSettings({ theme })
   }
 
   async getFileTreeSort(): Promise<FileTreeSortSetting> {
-    const settings = await this.read()
-    return settings.fileTreeSort
+    return (await this.read()).fileTreeSort
   }
 
-  async setFileTreeSort(sort: FileTreeSortSetting): Promise<void> {
-    const settings = await this.read()
-    await this.write({ ...settings, fileTreeSort: sort })
+  async setFileTreeSort(fileTreeSort: FileTreeSortSetting): Promise<void> {
+    await this.updateSettings({ fileTreeSort })
   }
 
   async getEditorFontSize(): Promise<number> {
-    const settings = await this.read()
-    return settings.editorFontSize
+    return (await this.read()).editorFontSize
   }
 
-  async setEditorFontSize(fontSize: number): Promise<void> {
-    const settings = await this.read()
-    await this.write({ ...settings, editorFontSize: normalizeEditorFontSize(fontSize) })
+  async setEditorFontSize(editorFontSize: number): Promise<void> {
+    await this.updateSettings({ editorFontSize })
+  }
+
+  private async readFromDisk(): Promise<PersistedAppSettings> {
+    let raw: string
+    try {
+      raw = await readFile(this.filePath, 'utf8')
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return clonePersistedSettings(DEFAULT_SETTINGS)
+      }
+      // Permission, path-shape, and device failures are persistence failures,
+      // not evidence that the user has a valid default settings snapshot.
+      throw error
+    }
+
+    try {
+      return normalizePersistedSettings(JSON.parse(raw))
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw error
+      }
+      // Invalid JSON is schema corruption rather than an unreadable backing
+      // store. Normalize it without silently overwriting the profile.
+      return clonePersistedSettings(DEFAULT_SETTINGS)
+    }
+  }
+
+  private mutate(
+    mutation: (settings: PersistedAppSettings) => PersistedAppSettings
+  ): Promise<PersistedAppSettings> {
+    const operation = this.mutationTail.then(async () => {
+      const current = await this.readFromDisk()
+      const next = normalizePersistedSettings(mutation(current))
+      await this.write(next)
+      return clonePersistedSettings(next)
+    })
+
+    // A rejected mutation is returned to its caller, but does not poison the
+    // queue. Later mutations still start from the last snapshot actually on disk.
+    this.mutationTail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    return operation
   }
 
   private async write(settings: PersistedAppSettings): Promise<void> {
-    const tempPath = `${this.filePath}.tmp-${process.pid}-${Date.now()}`
+    const tempPath = `${this.filePath}.tmp-${process.pid}-${randomUUID()}`
     const serialized = `${JSON.stringify(settings, null, 2)}\n`
 
     await mkdir(dirname(this.filePath), { recursive: true })
-    await writeFile(tempPath, serialized, 'utf8')
-    await rename(tempPath, this.filePath)
+    try {
+      await writeFile(tempPath, serialized, 'utf8')
+      await rename(tempPath, this.filePath)
+    } catch (error) {
+      await rm(tempPath, { force: true }).catch(() => undefined)
+      throw error
+    }
   }
 }
 
-function normalizeTheme(value: unknown): AppTheme {
-  if (value === 'light' || value === 'dark' || value === 'system') {
-    return value
+function applyPatch(settings: PersistedAppSettings, patch: AppSettingsPatch): PersistedAppSettings {
+  return {
+    ...settings,
+    theme: patch.theme ?? settings.theme,
+    fileTreeSort: patch.fileTreeSort ?? settings.fileTreeSort,
+    editorFontSize:
+      patch.editorFontSize === undefined
+        ? settings.editorFontSize
+        : APP_SETTINGS_CATALOG.editorFontSize.normalize(patch.editorFontSize),
+    workbench: {
+      activateOnClose: patch.workbench?.activateOnClose ?? settings.workbench.activateOnClose,
+      whenClosingWithNoTabs:
+        patch.workbench?.whenClosingWithNoTabs ?? settings.workbench.whenClosingWithNoTabs
+    },
+    keymapOverrides:
+      patch.keymapOverrides === undefined
+        ? settings.keymapOverrides
+        : normalizeKeymapOverrides(patch.keymapOverrides, CURRENT_KEYBINDING_PLATFORM)
   }
-  return 'system'
 }
 
-function normalizeFileTreeSort(value: unknown): FileTreeSortSetting {
-  if (value === 'name' || value === 'modified-desc' || value === 'created-desc') {
-    return value
+function normalizePersistedSettings(value: unknown): PersistedAppSettings {
+  const parsed = isRecord(value) ? value : {}
+  const workbench = isRecord(parsed.workbench) ? parsed.workbench : {}
+
+  return {
+    version: 3,
+    lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
+    theme: APP_SETTINGS_CATALOG.theme.normalize(parsed.theme),
+    fileTreeSort: APP_SETTINGS_CATALOG.fileTreeSort.normalize(parsed.fileTreeSort),
+    editorFontSize: APP_SETTINGS_CATALOG.editorFontSize.normalize(parsed.editorFontSize),
+    workbench: {
+      activateOnClose: APP_SETTINGS_CATALOG.activateOnClose.normalize(workbench.activateOnClose),
+      whenClosingWithNoTabs: APP_SETTINGS_CATALOG.whenClosingWithNoTabs.normalize(
+        workbench.whenClosingWithNoTabs
+      )
+    },
+    keymapOverrides: normalizeKeymapOverrides(parsed.keymapOverrides, CURRENT_KEYBINDING_PLATFORM)
   }
-  return 'name'
 }
 
-function normalizeEditorFontSize(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return DEFAULT_EDITOR_FONT_SIZE
+function toSnapshot(settings: PersistedAppSettings): AppSettingsSnapshot {
+  return {
+    version: 3,
+    theme: settings.theme,
+    fileTreeSort: settings.fileTreeSort,
+    editorFontSize: settings.editorFontSize,
+    workbench: { ...settings.workbench },
+    keymapOverrides: cloneKeymapOverrides(settings.keymapOverrides)
   }
+}
 
-  return Math.min(MAX_EDITOR_FONT_SIZE, Math.max(MIN_EDITOR_FONT_SIZE, value))
+function clonePersistedSettings(settings: Readonly<PersistedAppSettings>): PersistedAppSettings {
+  return {
+    version: 3,
+    lastVaultPath: settings.lastVaultPath,
+    theme: settings.theme,
+    fileTreeSort: settings.fileTreeSort,
+    editorFontSize: settings.editorFontSize,
+    workbench: { ...settings.workbench },
+    keymapOverrides: cloneKeymapOverrides(settings.keymapOverrides)
+  }
+}
+
+function cloneKeymapOverrides(overrides: Readonly<KeymapOverrides>): KeymapOverrides {
+  return Object.fromEntries(
+    Object.entries(overrides).map(([actionId, bindings]) => [actionId, [...bindings]])
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 async function directoryExists(target: string): Promise<boolean> {
   try {
     const stats = await stat(target)
     return stats.isDirectory()
-  } catch {
-    return false
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return false
+    }
+    throw error
   }
 }
 

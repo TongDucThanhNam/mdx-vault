@@ -67,7 +67,7 @@ const TREE_STYLE = {
   '--trees-level-gap-override': '14px',
   '--trees-padding-inline-override': '8px',
   '--trees-scrollbar-thumb-override': 'color-mix(in srgb, var(--foreground) 30%, transparent)',
-  '--trees-selected-bg-override': 'var(--paper-dark)',
+  '--trees-selected-bg-override': 'var(--background)',
   '--trees-selected-fg-override': 'var(--foreground)',
   '--trees-selected-focused-border-color-override': 'var(--editorial-red)'
 } as CSSProperties

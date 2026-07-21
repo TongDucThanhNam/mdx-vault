@@ -13,7 +13,7 @@ declare function expect<T>(actual: T): {
 const TEXT_SIZE_LIMIT_BYTES = 5 * 1024 * 1024
 
 describe('VaultService plain-text and vault image access', () => {
-  test('blocks traversal, absolute paths, and .trash access on all three new methods', async () => {
+  test('blocks traversal, absolute paths, and .trash access on direct readers', async () => {
     const base = await mkdtemp(join(tmpdir(), 'mdx-vault-goal16-paths-'))
     const root = join(base, 'vault')
     const vault = new VaultService(root)
@@ -80,6 +80,7 @@ describe('VaultService plain-text and vault image access', () => {
 
       expect(await rejects(() => vault.readTextFile('linked/secret.csv'))).toBe(true)
       expect(await rejects(() => vault.readImageFile('linked/pixel.png'))).toBe(true)
+      expect(await rejects(() => vault.probeFile('linked/secret.csv'))).toBe(true)
       expect(await rejects(() => vault.writeTextFile('linked/overwrite.txt', 'after'))).toBe(true)
       expect(await readFile(join(outside, 'overwrite.txt'), 'utf8')).toBe('before')
     } finally {
@@ -101,6 +102,7 @@ describe('VaultService plain-text and vault image access', () => {
         await rejects(() => vault.writeTextFile('linked/private.json', '{"changed":true}'))
       ).toBe(true)
       expect(await rejects(() => vault.readImageFile('linked/private.png'))).toBe(true)
+      expect(await rejects(() => vault.probeFile('linked/private.png'))).toBe(true)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -181,6 +183,21 @@ describe('VaultService plain-text and vault image access', () => {
 
       expect(await vault.readImageFile('notes/pic.png')).toBe(imageBytes.toString('base64'))
       expect(await rejects(() => vault.readImageFile('notes/pic.bmp'))).toBe(true)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('probes unsupported tree files without returning their contents', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mdx-vault-goal22-probe-'))
+    const vault = new VaultService(root)
+
+    try {
+      await writeFixture(root, 'archive/readable.bin', Buffer.from([0x00, 0xff, 0x42]))
+
+      expect(await vault.probeFile('archive/readable.bin')).toBe(undefined)
+      expect(await rejects(() => vault.probeFile('archive/missing.bin'))).toBe(true)
+      expect(await rejects(() => vault.probeFile('../outside.bin'))).toBe(true)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  AppSettingsPatch,
+  AppSettingsSnapshot,
+  AppTheme,
+  FileTreeSortSetting
+} from '../main/services/app-settings'
+import type {
   AiPublicSettings,
   AiSaveSettingsInput,
   AssistantApplyPatchOutput,
@@ -144,6 +150,8 @@ const vaultApi = {
     invokeVault('vault:write-text-file', { relativePath, content }),
   readImageFile: (relativePath: string): Promise<string> =>
     invokeVault('vault:read-image-file', { relativePath }),
+  probeFile: (relativePath: string): Promise<void> =>
+    invokeVault('vault:probe-file', { relativePath }),
   writeFile: (relativePath: string, content: string): Promise<void> =>
     invokeVault('vault:write-file', { relativePath, content }),
   createFile: (relativePath: string, content: string): Promise<string> =>
@@ -299,24 +307,20 @@ const exportApi = {
 }
 
 const appApi = {
-  getTheme: (): Promise<'light' | 'dark' | 'system'> =>
-    ipcRenderer.invoke('app:get-theme') as Promise<'light' | 'dark' | 'system'>,
-  setTheme: (theme: 'light' | 'dark' | 'system'): Promise<'light' | 'dark' | 'system'> =>
-    ipcRenderer.invoke('app:set-theme', theme) as Promise<'light' | 'dark' | 'system'>,
-  getFileTreeSort: (): Promise<'name' | 'modified-desc' | 'created-desc'> =>
-    ipcRenderer.invoke('app:get-file-tree-sort') as Promise<
-      'name' | 'modified-desc' | 'created-desc'
-    >,
-  setFileTreeSort: (
-    sort: 'name' | 'modified-desc' | 'created-desc'
-  ): Promise<'name' | 'modified-desc' | 'created-desc'> =>
-    ipcRenderer.invoke('app:set-file-tree-sort', sort) as Promise<
-      'name' | 'modified-desc' | 'created-desc'
-    >,
-  getEditorFontSize: (): Promise<number> =>
-    ipcRenderer.invoke('app:get-editor-font-size') as Promise<number>,
+  getSettings: (): Promise<AppSettingsSnapshot> =>
+    invokeAppSettings<AppSettingsSnapshot>('app-settings:get'),
+  updateSettings: (patch: AppSettingsPatch): Promise<AppSettingsSnapshot> =>
+    invokeAppSettings<AppSettingsSnapshot>('app-settings:update', patch),
+  getTheme: (): Promise<AppTheme> => invokeAppSettings<AppTheme>('app:get-theme'),
+  setTheme: (theme: AppTheme): Promise<AppTheme> =>
+    invokeAppSettings<AppTheme>('app:set-theme', theme),
+  getFileTreeSort: (): Promise<FileTreeSortSetting> =>
+    invokeAppSettings<FileTreeSortSetting>('app:get-file-tree-sort'),
+  setFileTreeSort: (sort: FileTreeSortSetting): Promise<FileTreeSortSetting> =>
+    invokeAppSettings<FileTreeSortSetting>('app:set-file-tree-sort', sort),
+  getEditorFontSize: (): Promise<number> => invokeAppSettings<number>('app:get-editor-font-size'),
   setEditorFontSize: (fontSize: number): Promise<number> =>
-    ipcRenderer.invoke('app:set-editor-font-size', fontSize) as Promise<number>
+    invokeAppSettings<number>('app:set-editor-font-size', fontSize)
 }
 
 const windowApi = {
@@ -395,6 +399,16 @@ async function invokeAi<T>(channel: string, payload?: unknown): Promise<T> {
 }
 
 async function invokeExport<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeAppSettings<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

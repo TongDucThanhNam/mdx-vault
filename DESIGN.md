@@ -108,6 +108,15 @@ Dark không phải "tối hơn" — là **tờ báo buổi tối**, cùng gramma
 - Pane header (`h-9 border-b`) chứa Courier Prime uppercase label
 - Masthead **sticky top-0 z-50**, luôn biết đang ở note nào
 
+### Workbench interaction grammar
+
+- **Visual order khác MRU order.** Tab strip luôn giữ vị trí thị giác ổn định; Left/Right/Home/End đi theo strip. `Ctrl/Cmd+Tab` mở switcher gọn theo lịch sử sử dụng, chỉ commit item khi thả modifier/Enter; Escape giữ nguyên document gốc.
+- **Tab state phải đọc được bằng mắt lẫn assistive tech.** Dirty dùng marker riêng, missing dùng label gạch + trạng thái “File deleted”, active/focused là hai state khác nhau. Các file trùng basename luôn kèm directory để phân biệt; icon/kind không được là tín hiệu duy nhất.
+- **Pointer và keyboard tương đương.** Click activate, nút close hoặc middle-click close. Tablist dùng một roving tab stop; Enter/Space activate, Delete close, và focus sau close chuyển tới một tab còn tồn tại hoặc document surface — không để lại focus trên DOM đã bị gỡ.
+- **Picker là command ledger, không phải form rời rạc.** File Finder, Command Palette và MRU switcher dùng cùng row grammar: query/header rõ, selected row có contrast + active-descendant, secondary path/shortcut thẳng cột, recent/open state có label chữ. Up/Down chọn, Enter commit, Escape/backdrop cancel; row được chọn luôn scroll vào view.
+- **Overlay có một owner.** Chỉ một global picker/settings surface nhận shortcut tại một thời điểm; scrim được phép vì nó biểu diễn ownership. Cancel restore invoking control nếu còn hợp lệ, successful navigation focus document. Dialog xác nhận nằm trên surface bị suspend và chặn mọi mutation phía sau.
+- **Settings giữ editorial system.** Sidebar category + searchable content cho General, Editor, Workbench và Keymap; mỗi row có label, mô tả, control/reset cùng baseline. Keymap chip hiển thị chord, conflict replacement phải explicit, recorder có focus ring rõ và không bắt phím chỉnh sửa ở background.
+
 ## Component vocabulary
 
 - **`.mdx-preview`** — prose surface (xem `src/renderer/src/globals.css:159`). Đây là nơi editorial style đậm nhất.

@@ -1,26 +1,50 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, Menu, shell } from 'electron'
 import { join } from 'path'
-import { z } from 'zod'
 import icon from '../../resources/icon.png?asset'
 import { registerAiIpc } from './ipc/ai-ipc'
+import { registerAppSettingsIpc } from './ipc/app-settings-ipc'
 import { registerExportIpc } from './ipc/export-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
 import { registerWindowIpc, registerWindowStateEvents } from './ipc/window-ipc'
-import {
-  AppSettingsService,
-  MAX_EDITOR_FONT_SIZE,
-  MIN_EDITOR_FONT_SIZE
-} from './services/app-settings'
+import { AppSettingsService } from './services/app-settings'
 import {
   registerSandboxDocumentProtocol,
   registerSandboxDocumentScheme
 } from './services/sandbox-document-protocol'
+import { configureDisposableUserData } from './services/test-user-data'
 import { closeCurrentVault } from './services/vault-session'
+import {
+  getWindowShortcutPolicy,
+  type NativeMenuItemSpec,
+  WINDOW_SHORTCUT_WATCHER_OPTIONS
+} from './window-shortcut-policy'
 
+configureDisposableUserData(app)
 registerSandboxDocumentScheme()
+
+function toElectronMenuTemplate(
+  items: readonly NativeMenuItemSpec[]
+): Electron.MenuItemConstructorOptions[] {
+  return items.map((item) => {
+    if (item.kind === 'role') return { role: item.role }
+    if (item.kind === 'separator') return { type: 'separator' }
+    return { label: item.label, submenu: toElectronMenuTemplate(item.items) }
+  })
+}
+
+function applyNativeApplicationMenu(platform: string): void {
+  const policy = getWindowShortcutPolicy(platform)
+  if (policy.applicationMenu.kind === 'none') {
+    Menu.setApplicationMenu(null)
+    return
+  }
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(toElectronMenuTemplate(policy.applicationMenu.items))
+  )
+}
 
 function enableNativeVisualZoom(mainWindow: BrowserWindow): void {
   const applyVisualZoomLimits = (): void => {
@@ -79,11 +103,16 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
+  // Keep only native commands covered by the explicit main/renderer boundary.
+  // The macOS template preserves standard app/edit roles but omits Close Window
+  // so Cmd+W reaches the registered Close Active Item renderer action.
+  applyNativeApplicationMenu(process.platform)
+
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    optimizer.watchWindowShortcuts(window, WINDOW_SHORTCUT_WATCHER_OPTIONS)
   })
 
   const appSettings = new AppSettingsService(app.getPath('userData'))
@@ -141,51 +170,3 @@ function broadcastVaultTreeChanged(): void {
     }
   }
 }
-
-/**
- * Theme + UI prefs IPC. These live outside the vault (app userData), so they
- * must NOT depend on a vault being open. Only non-sensitive UI state here.
- */
-function registerAppSettingsIpc(appSettings: AppSettingsService): void {
-  ipcMain.handle('app:get-theme', async () => {
-    return appSettings.getTheme()
-  })
-
-  ipcMain.handle('app:set-theme', async (_event, payload: unknown) => {
-    const result = appThemeSchema.safeParse(payload)
-    if (result.success) {
-      await appSettings.setTheme(result.data)
-      return result.data
-    }
-    return appSettings.getTheme()
-  })
-
-  ipcMain.handle('app:get-file-tree-sort', async () => {
-    return appSettings.getFileTreeSort()
-  })
-
-  ipcMain.handle('app:set-file-tree-sort', async (_event, payload: unknown) => {
-    const result = fileTreeSortSchema.safeParse(payload)
-    if (result.success) {
-      await appSettings.setFileTreeSort(result.data)
-      return result.data
-    }
-    return appSettings.getFileTreeSort()
-  })
-
-  ipcMain.handle('app:get-editor-font-size', async () => {
-    return appSettings.getEditorFontSize()
-  })
-
-  ipcMain.handle('app:set-editor-font-size', async (_event, payload: unknown) => {
-    const result = editorFontSizeSchema.safeParse(payload)
-    if (result.success) {
-      await appSettings.setEditorFontSize(result.data)
-    }
-    return appSettings.getEditorFontSize()
-  })
-}
-
-const appThemeSchema = z.enum(['light', 'dark', 'system'])
-const fileTreeSortSchema = z.enum(['name', 'modified-desc', 'created-desc'])
-const editorFontSizeSchema = z.number().finite().min(MIN_EDITOR_FONT_SIZE).max(MAX_EDITOR_FONT_SIZE)

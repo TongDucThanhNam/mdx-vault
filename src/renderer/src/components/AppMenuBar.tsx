@@ -3,13 +3,12 @@ import { openSearchPanel } from '@codemirror/search'
 import { EditorView } from '@codemirror/view'
 import { Check } from 'lucide-react'
 import { Menubar as MenubarPrimitive } from 'radix-ui'
-import { useMemo } from 'react'
-import type { CommandAction } from '@/commands/actions'
+import type { CommandActionRegistry } from '@/commands/actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import { cn } from '@/lib/utils'
 
 interface AppMenuBarProps {
-  commandActions: CommandAction[]
+  commandActions: CommandActionRegistry
   selectedPath: string | null
   viewMode: ViewMode
   editorAvailable: boolean
@@ -19,12 +18,8 @@ interface AppMenuBarProps {
   leftPanelOpen: boolean
   rightPanelOpen: boolean
   aiPanelOpen: boolean
-  onSave: () => void
   onRevealNote: () => void
-  onOpenCommandPalette: () => void
-  onToggleLeftPanel: () => void
   onToggleRightPanel: () => void
-  onToggleAiPanel: () => void
 }
 
 const triggerClassName =
@@ -44,23 +39,12 @@ export function AppMenuBar({
   leftPanelOpen,
   rightPanelOpen,
   aiPanelOpen,
-  onSave,
   onRevealNote,
-  onOpenCommandPalette,
-  onToggleLeftPanel,
-  onToggleRightPanel,
-  onToggleAiPanel
+  onToggleRightPanel
 }: AppMenuBarProps): React.JSX.Element {
-  const actionsById = useMemo(
-    () => new Map(commandActions.map((action) => [action.id, action])),
-    [commandActions]
-  )
-  const getAction = (id: string): CommandAction | undefined => actionsById.get(id)
+  const getAction = commandActions.getAction
   const runAction = (id: string): void => {
-    const action = getAction(id)
-    if (action && !action.disabled) {
-      void action.run()
-    }
+    void commandActions.dispatch(id)
   }
   const shortcut = (id: string): string | undefined => getAction(id)?.hotkeys?.[0]
 
@@ -89,9 +73,9 @@ export function AppMenuBar({
           <MenuSeparator />
           <MenuItem
             label="Save"
-            shortcut="Ctrl+S"
+            shortcut={shortcut('file.save')}
             disabled={!selectedPath || isSaving || !isDirty}
-            onSelect={onSave}
+            onSelect={() => runAction('file.save')}
           />
           <MenuItem
             label="Export…"
@@ -172,7 +156,7 @@ export function AppMenuBar({
           <MenuCheckboxItem
             label="Toggle Left Panel"
             checked={leftPanelOpen}
-            onCheckedChange={onToggleLeftPanel}
+            onCheckedChange={() => runAction('view.toggle-left-panel')}
           />
           <MenuCheckboxItem
             label="Toggle Right Panel"
@@ -184,7 +168,7 @@ export function AppMenuBar({
             shortcut={shortcut('ai.toggle')}
             checked={aiPanelOpen}
             disabled={getAction('ai.toggle')?.disabled}
-            onCheckedChange={onToggleAiPanel}
+            onCheckedChange={() => runAction('ai.toggle')}
           />
           <MenuSeparator />
           <MenuItem label="Toggle Theme" onSelect={() => runAction('theme.toggle')} />
@@ -195,10 +179,10 @@ export function AppMenuBar({
         <MenubarPrimitive.Trigger className={triggerClassName}>Go</MenubarPrimitive.Trigger>
         <MenuContent>
           <MenuItem
-            label="Quick Switcher…"
-            shortcut={shortcut('note.open')}
-            disabled={getAction('note.open')?.disabled}
-            onSelect={() => runAction('note.open')}
+            label="Open File…"
+            shortcut={shortcut('file.open')}
+            disabled={getAction('file.open')?.disabled}
+            onSelect={() => runAction('file.open')}
           />
           <MenuItem
             label="Search in Vault…"
@@ -209,26 +193,32 @@ export function AppMenuBar({
           <MenuSeparator />
           <MenuItem
             label="Command Palette…"
-            shortcut="Ctrl+Shift+P"
-            onSelect={onOpenCommandPalette}
+            shortcut={shortcut('command-palette.toggle')}
+            onSelect={() => runAction('command-palette.toggle')}
           />
         </MenuContent>
       </MenubarPrimitive.Menu>
 
-      {window.windowApi.platform !== 'darwin' ? (
-        <MenubarPrimitive.Menu value="window">
-          <MenubarPrimitive.Trigger className={triggerClassName}>Window</MenubarPrimitive.Trigger>
-          <MenuContent>
-            <MenuItem label="Minimize" onSelect={() => void window.windowApi.minimize()} />
-            <MenuItem
-              label="Toggle Maximize"
-              onSelect={() => void window.windowApi.toggleMaximize()}
-            />
-            <MenuSeparator />
-            <MenuItem label="Close" onSelect={() => void window.windowApi.close()} />
-          </MenuContent>
-        </MenubarPrimitive.Menu>
-      ) : null}
+      <MenubarPrimitive.Menu value="window">
+        <MenubarPrimitive.Trigger className={triggerClassName}>Window</MenubarPrimitive.Trigger>
+        <MenuContent>
+          {window.windowApi.platform !== 'darwin' ? (
+            <>
+              <MenuItem label="Minimize" onSelect={() => void window.windowApi.minimize()} />
+              <MenuItem
+                label="Toggle Maximize"
+                onSelect={() => void window.windowApi.toggleMaximize()}
+              />
+              <MenuSeparator />
+            </>
+          ) : null}
+          <MenuItem
+            label="Close Active Item"
+            shortcut={shortcut('workbench.close-item')}
+            onSelect={() => runAction('workbench.close-item')}
+          />
+        </MenuContent>
+      </MenubarPrimitive.Menu>
     </MenubarPrimitive.Root>
   )
 }

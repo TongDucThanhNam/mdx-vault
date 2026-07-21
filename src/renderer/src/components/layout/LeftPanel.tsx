@@ -1,4 +1,5 @@
 import { FilePlus, FolderOpen, Trash2 } from 'lucide-react'
+import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
 import { SortMenu } from '@/components/SortMenu'
 import { Button } from '@/components/ui/button'
@@ -12,8 +13,7 @@ interface LeftPanelProps {
   selectedPath: string | null
   noteIndex: NoteIndexController
   vaultSession: VaultSessionController
-  setCreateNoteOpen: React.Dispatch<React.SetStateAction<boolean>>
-  setEmptyTrashOpen: React.Dispatch<React.SetStateAction<boolean>>
+  commandActions: CommandActionRegistry
   onRequestDelete: (relativePath: string) => void
 }
 
@@ -22,13 +22,13 @@ export function LeftPanel({
   selectedPath,
   noteIndex,
   vaultSession,
-  setCreateNoteOpen,
-  setEmptyTrashOpen,
+  commandActions,
   onRequestDelete
 }: LeftPanelProps): React.JSX.Element {
   return (
     <aside
       aria-label="Vault explorer"
+      tabIndex={-1}
       className="min-h-0 min-w-0 border-r-2 border-foreground bg-sidebar"
     >
       <div className="flex h-10 items-center justify-between border-b-2 border-foreground px-3">
@@ -43,7 +43,7 @@ export function LeftPanel({
             title="New note"
             aria-label="New note"
             disabled={!vault}
-            onClick={() => setCreateNoteOpen(true)}
+            onClick={() => void commandActions.dispatch('note.new')}
           >
             <FilePlus className="size-3.5" aria-hidden="true" />
           </Button>
@@ -63,7 +63,7 @@ export function LeftPanel({
             }
             aria-label="Trash"
             disabled={!vault || vaultSession.trashCount === 0}
-            onClick={() => setEmptyTrashOpen(true)}
+            onClick={() => void commandActions.dispatch('vault.empty-trash')}
           >
             <Trash2 className="size-3.5" aria-hidden="true" />
             {vaultSession.trashCount > 0 ? (

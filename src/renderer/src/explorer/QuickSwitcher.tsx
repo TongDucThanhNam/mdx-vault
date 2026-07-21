@@ -1,131 +1,299 @@
-import { FileText, Search } from 'lucide-react'
-import type { KeyboardEvent } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileCode2, FileQuestion, FileText, Image as ImageIcon, Plus, Search } from 'lucide-react'
+import type { KeyboardEvent, MouseEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
-import { getScoredNotes, type ScoredNote } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'
-import type { IndexedNoteSummary } from '@/vault/types'
+import type { IndexedNoteSummary, VaultTreeFile } from '@/vault/types'
+import { containDialogTabKey } from '@/workbench/dialog-focus'
+import {
+  canOfferCreateMdxNote,
+  type FileFinderResult,
+  getFileFinderModel,
+  resolveFileFinderSelection
+} from '@/workbench/file-finder'
+import type { WorkbenchItemKind } from '@/workbench/types'
 
-interface QuickSwitcherProps {
+export interface QuickSwitcherProps {
   open: boolean
-  notes: IndexedNoteSummary[]
-  recentNotePaths: string[]
+  /** Null represents the intentional no-vault state; an empty array is an open, empty vault. */
+  files: readonly VaultTreeFile[] | null
+  notes: readonly IndexedNoteSummary[]
+  /** Open workbench items in MRU order. */
+  openItemIds: readonly string[]
+  /** Current-vault-session recents, most recent first. */
+  recentItemIds: readonly string[]
   onOpenChange: (open: boolean) => void
-  onSelectNote: (relativePath: string) => void
+  /** False keeps the finder open and leaves the current workbench item untouched. */
+  onSelectFile: (relativePath: string) => Promise<boolean>
+  /** Creation remains an explicit MDX-note operation, never an implicit file open. */
   onCreateNote: (query: string) => Promise<void>
 }
 
+type PendingAction = { kind: 'open'; relativePath: string } | { kind: 'create' } | null
+
 export function QuickSwitcher({
   open,
+  files,
   notes,
-  recentNotePaths,
+  openItemIds,
+  recentItemIds,
   onOpenChange,
-  onSelectNote,
+  onSelectFile,
   onCreateNote
 }: QuickSwitcherProps): React.JSX.Element | null {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [isCreating, setIsCreating] = useState(false)
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const results = useMemo(
-    () => getSwitcherResults(notes, query, recentNotePaths),
-    [notes, query, recentNotePaths]
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const requestIdRef = useRef(0)
+  const pendingRef = useRef(false)
+  const instanceId = useId()
+  const listboxId = `${instanceId}-file-listbox`
+  const statusId = `${instanceId}-file-status`
+  const errorId = `${instanceId}-file-error`
+  const finder = useMemo(
+    () =>
+      getFileFinderModel({
+        files,
+        notes,
+        query,
+        openIds: openItemIds,
+        recentIds: recentItemIds,
+        limit: 50
+      }),
+    [files, notes, openItemIds, query, recentItemIds]
   )
   const trimmedQuery = query.trim()
-  const canCreate = trimmedQuery.length > 0 && !hasExactNoteMatch(notes, trimmedQuery)
-  const itemCount = results.length + (canCreate ? 1 : 0)
+  const canCreate = finder.status === 'ready' && canOfferCreateMdxNote(trimmedQuery, notes)
+  const itemCount = finder.results.length + (canCreate ? 1 : 0)
   const activeIndex = Math.min(selectedIndex, Math.max(0, itemCount - 1))
+  const activeOptionId = itemCount > 0 ? getOptionId(instanceId, activeIndex) : undefined
+  const isPending = pendingAction !== null
 
   useEffect(() => {
     if (!open) {
+      requestIdRef.current += 1
+      pendingRef.current = false
+      setQuery('')
+      setSelectedIndex(0)
+      setPendingAction(null)
+      setError(null)
       return
     }
 
-    window.setTimeout(() => inputRef.current?.focus(), 0)
+    const focusTimer = window.setTimeout(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }, 0)
+
+    return () => window.clearTimeout(focusTimer)
   }, [open])
+
+  useEffect(() => {
+    if (!open || itemCount === 0) {
+      return
+    }
+
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, itemCount, open, query])
 
   if (!open) {
     return null
   }
 
-  const selectNote = (relativePath: string): void => {
-    onSelectNote(relativePath)
+  const resetFinder = (): void => {
+    requestIdRef.current += 1
+    pendingRef.current = false
+    setQuery('')
+    setSelectedIndex(0)
+    setPendingAction(null)
+    setError(null)
+  }
+
+  const cancel = (): void => {
+    resetFinder()
     onOpenChange(false)
   }
 
-  const createNote = async (): Promise<void> => {
-    if (!canCreate || isCreating) {
+  const selectFile = async (relativePath: string): Promise<void> => {
+    if (pendingRef.current) {
       return
     }
 
-    setIsCreating(true)
+    const selection = resolveFileFinderSelection(relativePath, files)
+    if (selection.status === 'no_vault') {
+      setError('No vault is open. Open a vault before choosing a file.')
+      return
+    }
+
+    if (selection.status === 'stale') {
+      setError('That file is no longer in the vault. Refresh the finder and try again.')
+      return
+    }
+
+    const requestId = ++requestIdRef.current
+    pendingRef.current = true
+    setPendingAction({ kind: 'open', relativePath })
+    setError(null)
+
+    try {
+      const didOpen = await onSelectFile(relativePath)
+
+      if (requestId !== requestIdRef.current) {
+        return
+      }
+
+      if (!didOpen) {
+        setError(`Could not open “${relativePath}”. Your current item is still active.`)
+        return
+      }
+
+      resetFinder()
+      onOpenChange(false)
+    } catch (openError) {
+      if (requestId === requestIdRef.current) {
+        setError(formatError(openError, `Could not open “${relativePath}”.`))
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        pendingRef.current = false
+        setPendingAction(null)
+      }
+    }
+  }
+
+  const createNote = async (): Promise<void> => {
+    if (!canCreate || pendingRef.current) {
+      return
+    }
+
+    const requestId = ++requestIdRef.current
+    pendingRef.current = true
+    setPendingAction({ kind: 'create' })
     setError(null)
 
     try {
       await onCreateNote(trimmedQuery)
+
+      if (requestId !== requestIdRef.current) {
+        return
+      }
+
+      resetFinder()
       onOpenChange(false)
-      setQuery('')
     } catch (createError) {
-      setError(formatError(createError))
+      if (requestId === requestIdRef.current) {
+        setError(formatError(createError, 'Could not create that MDX note.'))
+      }
     } finally {
-      setIsCreating(false)
+      if (requestId === requestIdRef.current) {
+        pendingRef.current = false
+        setPendingAction(null)
+      }
     }
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.nativeEvent.isComposing) {
+      return
+    }
+
     if (event.key === 'Escape') {
       event.preventDefault()
-      onOpenChange(false)
+      event.stopPropagation()
+      cancel()
+      return
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      inputRef.current?.focus()
       return
     }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setSelectedIndex((current) => Math.min(current + 1, Math.max(0, itemCount - 1)))
+      setSelectedIndex(Math.min(activeIndex + 1, Math.max(0, itemCount - 1)))
       return
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setSelectedIndex((current) => Math.max(0, current - 1))
+      setSelectedIndex(Math.max(0, activeIndex - 1))
       return
     }
 
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      const result = results[activeIndex]
+    if (event.key !== 'Enter') {
+      return
+    }
 
-      if (result) {
-        selectNote(result.note.relativePath)
-        return
-      }
+    event.preventDefault()
+    if (isPending) {
+      return
+    }
 
-      if (canCreate) {
-        void createNote()
-      }
+    const result = finder.results[activeIndex]
+    if (result) {
+      void selectFile(result.relativePath)
+      return
+    }
+
+    if (canCreate && activeIndex === finder.results.length) {
+      void createNote()
     }
   }
 
+  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>): void => {
+    if (event.target === event.currentTarget) {
+      cancel()
+    }
+  }
+
+  const describedBy = [itemCount === 0 ? statusId : null, error ? errorId : null]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
+      onMouseDown={handleBackdropMouseDown}
+    >
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Open note"
-        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        aria-label="Open file"
+        aria-busy={isPending}
+        tabIndex={-1}
+        className="w-full max-w-2xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && !event.defaultPrevented) {
+            event.preventDefault()
+            event.stopPropagation()
+            cancel()
+          }
+          containDialogTabKey(event, event.currentTarget)
+        }}
       >
-        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
+        <div className="flex h-12 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
-            name="quick-switcher-query"
+            name="file-finder-query"
             autoComplete="off"
             spellCheck={false}
             value={query}
+            readOnly={isPending}
+            role="combobox"
+            aria-label="Search files by title, alias, path, or extension"
+            aria-autocomplete="list"
+            aria-controls={listboxId}
+            aria-expanded="true"
+            aria-activedescendant={activeOptionId}
+            aria-describedby={describedBy || undefined}
             className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Open note…"
-            aria-label="Open note"
+            placeholder="Open file by name, path, alias, or extension…"
             onChange={(event) => {
               setQuery(event.target.value)
               setSelectedIndex(0)
@@ -133,117 +301,228 @@ export function QuickSwitcher({
             }}
             onKeyDown={handleKeyDown}
           />
+          <span className="shrink-0 border border-foreground/45 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Esc
+          </span>
         </div>
 
-        <div className="max-h-[56vh] overflow-auto p-1.5">
-          {results.length === 0 && !canCreate ? (
-            <div className="px-3 py-8 text-center font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
-              No notes found.
+        <div className="max-h-[60vh] overflow-auto p-1.5">
+          <div id={listboxId} role="listbox" aria-label="Vault files">
+            {finder.results.map((result, index) => (
+              <FileFinderOption
+                key={result.relativePath}
+                ref={(element) => {
+                  optionRefs.current[index] = element
+                }}
+                id={getOptionId(instanceId, index)}
+                result={result}
+                selected={index === activeIndex}
+                pending={
+                  pendingAction?.kind === 'open' &&
+                  pendingAction.relativePath === result.relativePath
+                }
+                onMouseEnter={() => setSelectedIndex(index)}
+                onSelect={() => void selectFile(result.relativePath)}
+              />
+            ))}
+
+            {canCreate ? (
+              <button
+                ref={(element) => {
+                  optionRefs.current[finder.results.length] = element
+                }}
+                id={getOptionId(instanceId, finder.results.length)}
+                type="button"
+                role="option"
+                tabIndex={-1}
+                aria-selected={activeIndex === finder.results.length}
+                aria-disabled={isPending}
+                className={cn(
+                  'group flex min-h-14 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
+                  activeIndex === finder.results.length && 'bg-foreground text-background',
+                  isPending && 'cursor-wait'
+                )}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setSelectedIndex(finder.results.length)}
+                onClick={() => void createNote()}
+              >
+                <Plus
+                  className="size-4 shrink-0 text-muted-foreground group-hover:text-current"
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {pendingAction?.kind === 'create'
+                      ? 'Creating MDX note…'
+                      : `Create “${trimmedQuery}”`}
+                  </span>
+                  <span className="block truncate font-mono text-[11px] text-muted-foreground group-hover:text-current">
+                    Explicit note creation · Markdown with native MDX
+                  </span>
+                </span>
+                <OptionLedger extension=".mdx" state="create" />
+              </button>
+            ) : null}
+          </div>
+
+          {itemCount === 0 ? (
+            <div
+              id={statusId}
+              className="px-3 py-10 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
+              role="status"
+            >
+              {getEmptyMessage(finder.status, trimmedQuery)}
             </div>
-          ) : (
-            <>
-              {results.map(({ note, matchedAlias }, index) => (
-                <button
-                  key={note.relativePath}
-                  type="button"
-                  className={cn(
-                    'flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
-                    index === activeIndex && 'bg-foreground text-background'
-                  )}
-                  title={note.relativePath}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  onClick={() => selectNote(note.relativePath)}
-                >
-                  <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{note.title}</span>
-                    <span className="block truncate font-mono text-xs text-muted-foreground">
-                      {matchedAlias
-                        ? `Alias: ${matchedAlias}`
-                        : !trimmedQuery && recentNotePaths.includes(note.relativePath)
-                          ? 'Recently opened'
-                          : note.relativePath}
-                    </span>
-                  </span>
-                </button>
-              ))}
-              {canCreate ? (
-                <button
-                  type="button"
-                  disabled={isCreating}
-                  className={cn(
-                    'flex min-h-12 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50',
-                    activeIndex === results.length && 'bg-foreground text-background'
-                  )}
-                  onMouseEnter={() => setSelectedIndex(results.length)}
-                  onClick={() => void createNote()}
-                >
-                  <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {isCreating ? 'Creating note…' : `Create "${trimmedQuery}"`}
-                    </span>
-                    <span className="block truncate font-mono text-xs text-muted-foreground">
-                      New MDX note
-                    </span>
-                  </span>
-                </button>
-              ) : null}
-              {error ? (
-                <div className="px-3 py-2 font-mono text-xs text-destructive" role="alert">
-                  {error}
-                </div>
-              ) : null}
-            </>
-          )}
+          ) : null}
+
+          {error ? (
+            <div
+              id={errorId}
+              className="mx-2 my-1 border-l-2 border-destructive px-3 py-2 font-mono text-xs text-destructive"
+              role="alert"
+            >
+              {error}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-[var(--line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          <span>{finder.status === 'ready' ? `${finder.results.length} files` : 'No vault'}</span>
+          <span>↑↓ Navigate · Enter Open · Esc Cancel</span>
         </div>
       </div>
     </div>
   )
 }
 
-function getSwitcherResults(
-  notes: IndexedNoteSummary[],
-  query: string,
-  recentNotePaths: string[]
-): ScoredNote[] {
-  const trimmedQuery = query.trim()
+interface FileFinderOptionProps {
+  ref: (element: HTMLButtonElement | null) => void
+  id: string
+  result: FileFinderResult
+  selected: boolean
+  pending: boolean
+  onMouseEnter: () => void
+  onSelect: () => void
+}
 
-  if (trimmedQuery) {
-    return getScoredNotes(notes, trimmedQuery)
+function FileFinderOption({
+  ref,
+  id,
+  result,
+  selected,
+  pending,
+  onMouseEnter,
+  onSelect
+}: FileFinderOptionProps): React.JSX.Element {
+  const aliasLabel = result.matchedAlias ?? result.aliases[0]
+
+  return (
+    <button
+      ref={ref}
+      id={id}
+      type="button"
+      role="option"
+      tabIndex={-1}
+      aria-selected={selected}
+      className={cn(
+        'group relative flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
+        selected &&
+          'bg-foreground text-background before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:bg-primary'
+      )}
+      title={result.relativePath}
+      onMouseDown={(event) => event.preventDefault()}
+      onMouseEnter={onMouseEnter}
+      onClick={onSelect}
+    >
+      <FileKindIcon kind={result.kind} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{result.title}</span>
+        <span className="block truncate font-mono text-[11px] text-muted-foreground group-hover:text-current">
+          {result.relativePath}
+        </span>
+        {aliasLabel ? (
+          <span className="block truncate font-mono text-[10px] text-muted-foreground group-hover:text-current">
+            Alias: {aliasLabel}
+          </span>
+        ) : null}
+      </span>
+      <OptionLedger
+        extension={result.extension || 'file'}
+        state={pending ? 'opening' : getResultState(result)}
+      />
+    </button>
+  )
+}
+
+function FileKindIcon({ kind }: { kind: WorkbenchItemKind }): React.JSX.Element {
+  const iconClassName = 'size-4 shrink-0 text-muted-foreground group-hover:text-current'
+
+  if (kind === 'note') {
+    return <FileText className={iconClassName} aria-hidden="true" />
   }
 
-  const notesByPath = new Map(notes.map((note) => [note.relativePath, note]))
-  const recentNotes = recentNotePaths
-    .map((path) => notesByPath.get(path))
-    .filter((note): note is IndexedNoteSummary => Boolean(note))
-  const recentPathSet = new Set(recentNotes.map((note) => note.relativePath))
-  const remainingNotes = notes
-    .filter((note) => !recentPathSet.has(note.relativePath))
-    .sort((left, right) => left.title.localeCompare(right.title))
+  if (kind === 'text') {
+    return <FileCode2 className={iconClassName} aria-hidden="true" />
+  }
 
-  return [...recentNotes, ...remainingNotes].slice(0, 30).map((note) => ({
-    note,
-    score: 1
-  }))
+  if (kind === 'image') {
+    return <ImageIcon className={iconClassName} aria-hidden="true" />
+  }
+
+  return <FileQuestion className={iconClassName} aria-hidden="true" />
 }
 
-function hasExactNoteMatch(notes: IndexedNoteSummary[], query: string): boolean {
-  const normalizedQuery = query.toLocaleLowerCase()
+function OptionLedger({
+  extension,
+  state
+}: {
+  extension: string
+  state: string
+}): React.JSX.Element {
+  const extensionLabel = extension.replace(/^\./u, '') || 'file'
 
-  return notes.some((note) => {
-    return (
-      note.title.toLocaleLowerCase() === normalizedQuery ||
-      note.aliases.some((alias) => alias.toLocaleLowerCase() === normalizedQuery) ||
-      note.relativePath.toLocaleLowerCase() === normalizedQuery ||
-      note.relativePath.replace(/\.(md|mdx)$/i, '').toLocaleLowerCase() === normalizedQuery
-    )
-  })
+  return (
+    <span className="ml-2 flex shrink-0 flex-col items-end gap-1 font-mono uppercase">
+      <span className="border border-current/45 px-1.5 py-0.5 text-[10px] tracking-[0.12em]">
+        {extensionLabel}
+      </span>
+      <span className="max-w-20 truncate text-[9px] tracking-[0.1em] opacity-70">{state}</span>
+    </span>
+  )
 }
 
-function formatError(error: unknown): string {
-  if (error instanceof Error) {
+function getResultState(result: FileFinderResult): string {
+  if (result.isOpen) {
+    return 'open'
+  }
+
+  if (result.isRecent) {
+    return 'recent'
+  }
+
+  return result.matchKind === 'empty' ? result.kind : result.matchKind
+}
+
+function getOptionId(instanceId: string, index: number): string {
+  return `${instanceId}-file-option-${index}`
+}
+
+function getEmptyMessage(status: 'no_vault' | 'ready', query: string): string {
+  if (status === 'no_vault') {
+    return 'Open a vault to search files.'
+  }
+
+  if (!query) {
+    return 'No files in this vault. Type a note name to create an MDX note.'
+  }
+
+  return 'No files match this query.'
+}
+
+function formatError(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
     return error.message
   }
-  return String(error)
+
+  return fallback
 }

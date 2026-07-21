@@ -1,9 +1,24 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useMemo } from 'react'
-import type { CommandAction } from '@/commands/actions'
+import { useCallback, useMemo, useRef } from 'react'
+import type { CommandAction, CommandActionRegistry } from '@/commands/actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
+import type { WorkbenchController } from '@/hooks/useWorkbench'
+import { formatError } from '@/lib/format-error'
 import type { NoteTemplate, VaultInfo } from '@/vault/types'
+import {
+  formatKeyBinding,
+  getEffectiveBindings,
+  type KeymapOverrides
+} from '../../../shared/keybindings'
+import {
+  canonicalizeActionId,
+  type KeybindingPlatform,
+  WORKSPACE_ACTION_DEFINITIONS,
+  type WorkspaceActionId
+} from '../../../shared/workspace-actions'
+
+type RuntimeActionHandler = (input?: unknown) => unknown
 
 interface UseCommandActionsOptions {
   vault: VaultInfo | null
@@ -12,16 +27,23 @@ interface UseCommandActionsOptions {
   noteTemplates: NoteTemplate[]
   trashCount: number
   noteActions: NoteActionsController
+  workbench: WorkbenchController
+  keymapOverrides: KeymapOverrides
   openVault: () => Promise<void>
   toggleTheme: () => Promise<void>
-  setCreateNoteOpen: Dispatch<SetStateAction<boolean>>
-  setQuickSwitcherOpen: Dispatch<SetStateAction<boolean>>
-  setSearchOpen: Dispatch<SetStateAction<boolean>>
-  setExportDialogOpen: Dispatch<SetStateAction<boolean>>
-  setAiPanelOpen: Dispatch<SetStateAction<boolean>>
-  setSettingsOpen: Dispatch<SetStateAction<boolean>>
-  setEmptyTrashOpen: Dispatch<SetStateAction<boolean>>
+  openCreateNote: () => void
+  openFileFinder: () => void
+  openCommandPalette: () => void
+  openSearch: () => void
+  openExport: () => void
+  openSettings: () => void
+  toggleAiPanel: () => void
+  openEmptyTrash: () => void
+  toggleLeftPanel: () => void
+  toggleExplorerFocus: () => void
+  focusEditor: () => void
   setViewMode: Dispatch<SetStateAction<ViewMode>>
+  onError: (message: string | null) => void
 }
 
 export function useCommandActions({
@@ -31,17 +53,25 @@ export function useCommandActions({
   noteTemplates,
   trashCount,
   noteActions,
+  workbench,
+  keymapOverrides,
   openVault,
   toggleTheme,
-  setCreateNoteOpen,
-  setQuickSwitcherOpen,
-  setSearchOpen,
-  setExportDialogOpen,
-  setAiPanelOpen,
-  setSettingsOpen,
-  setEmptyTrashOpen,
-  setViewMode
-}: UseCommandActionsOptions): CommandAction[] {
+  openCreateNote,
+  openFileFinder,
+  openCommandPalette,
+  openSearch,
+  openExport,
+  openSettings,
+  toggleAiPanel,
+  openEmptyTrash,
+  toggleLeftPanel,
+  toggleExplorerFocus,
+  focusEditor,
+  setViewMode,
+  onError
+}: UseCommandActionsOptions): CommandActionRegistry {
+  const platform = toKeybindingPlatform(window.windowApi.platform)
   const {
     createUniqueNote,
     insertCurrentDate,
@@ -51,208 +81,228 @@ export function useCommandActions({
     openRandomNote
   } = noteActions
 
-  return useMemo<CommandAction[]>(
-    () => [
-      {
-        id: 'note.new',
-        title: 'New note',
-        description: 'Create a blank MDX note.',
-        category: 'Notes',
-        keywords: ['create', 'file'],
-        hotkeys: ['Ctrl+N'],
-        disabled: vault === null,
-        run: () => setCreateNoteOpen(true)
+  const handlers = useMemo<Readonly<Partial<Record<WorkspaceActionId, RuntimeActionHandler>>>>(
+    () => ({
+      'note.new': openCreateNote,
+      'note.new-template': openCreateNote,
+      'note.daily': openDailyNote,
+      'note.random': openRandomNote,
+      'note.unique': createUniqueNote,
+      'file.open': openFileFinder,
+      'command-palette.toggle': openCommandPalette,
+      'note.search': openSearch,
+      'file.save': workbench.saveActiveItem,
+      'workbench.close-item': (input) => {
+        const targetedId = getTargetItemId(input)
+        return targetedId ? workbench.closeItem(targetedId) : workbench.closeActiveItem()
       },
-      {
-        id: 'note.new-template',
-        title: 'New note from template',
-        description: 'Create a note and choose a vault template.',
-        category: 'Notes',
-        keywords: ['insert', 'template'],
-        disabled: vault === null,
-        run: () => setCreateNoteOpen(true)
-      },
-      {
-        id: 'note.daily',
-        title: "Open today's daily note",
-        description: 'Open or create the journal note for today.',
-        category: 'Notes',
-        keywords: ['journal', 'today'],
-        disabled: vault === null,
-        run: openDailyNote
-      },
-      {
-        id: 'note.random',
-        title: 'Open random note',
-        description: 'Open a random indexed note from this vault.',
-        category: 'Notes',
-        keywords: ['shuffle'],
-        disabled: vault === null || indexNoteCount === 0,
-        run: openRandomNote
-      },
-      {
-        id: 'note.unique',
-        title: 'Create unique note',
-        description: 'Create a timestamp-prefixed MDX note.',
-        category: 'Notes',
-        keywords: ['zettelkasten', 'timestamp'],
-        disabled: vault === null,
-        run: createUniqueNote
-      },
-      {
-        id: 'note.open',
-        title: 'Open note',
-        description: 'Jump to a note in the current vault.',
-        category: 'Navigation',
-        keywords: ['quick switcher'],
-        hotkeys: ['Ctrl+P'],
-        disabled: vault === null,
-        run: () => setQuickSwitcherOpen(true)
-      },
-      {
-        id: 'note.search',
-        title: 'Search notes',
-        description: 'Search indexed note content.',
-        category: 'Navigation',
-        keywords: ['find'],
-        hotkeys: ['Ctrl+Shift+F'],
-        disabled: vault === null,
-        run: () => setSearchOpen(true)
-      },
-      {
-        id: 'insert.date',
-        title: 'Insert current date',
-        description: 'Insert today at the editor cursor.',
-        category: 'Insert',
-        keywords: ['template', 'today'],
-        disabled: selectedPath === null,
-        run: insertCurrentDate
-      },
-      {
-        id: 'insert.time',
-        title: 'Insert current time',
-        description: 'Insert the current local time at the editor cursor.',
-        category: 'Insert',
-        keywords: ['template', 'clock'],
-        disabled: selectedPath === null,
-        run: insertCurrentTime
-      },
-      ...noteTemplates.map(
-        (template): CommandAction => ({
-          id: `template.insert:${template.relativePath}`,
-          title: `Insert template: ${template.name}`,
-          description: `Insert ${template.relativePath} at the editor cursor.`,
-          category: 'Templates',
-          keywords: ['insert', 'template', template.name, template.relativePath],
-          disabled: selectedPath === null,
-          run: () => insertTemplateAtCursor(template)
-        })
-      ),
-      {
-        id: 'view.source',
-        title: 'Source view',
-        description: 'Show the MDX editor only.',
-        category: 'View',
-        keywords: ['editor'],
-        disabled: selectedPath === null,
-        run: () => setViewMode('source')
-      },
-      {
-        id: 'view.live',
-        title: 'Live Preview view',
-        description: 'Show Markdown with inline formatting in the editor.',
-        category: 'View',
-        keywords: ['editor', 'preview'],
-        hotkeys: ['Ctrl+Shift+V'],
-        disabled: selectedPath === null,
-        run: () => setViewMode('live')
-      },
-      {
-        id: 'view.reading',
-        title: 'Reading view',
-        description: 'Show the rendered note for reading.',
-        category: 'View',
-        keywords: ['rendered'],
-        disabled: selectedPath === null,
-        run: () => setViewMode('reading')
-      },
-      {
-        id: 'note.export',
-        title: 'Export current note',
-        description: 'Open export options for the selected note.',
-        category: 'Notes',
-        keywords: ['static', 'html', 'snapshot'],
-        hotkeys: ['Ctrl+Shift+E'],
-        disabled: selectedPath === null,
-        run: () => setExportDialogOpen(true)
-      },
-      {
-        id: 'ai.toggle',
-        title: 'Toggle AI assistant',
-        description: 'Show or hide the assistant panel.',
-        category: 'AI',
-        keywords: ['assistant'],
-        hotkeys: ['Ctrl+Shift+A'],
-        disabled: vault === null,
-        run: () => setAiPanelOpen((current) => !current)
-      },
-      {
-        id: 'theme.toggle',
-        title: 'Toggle theme',
-        description: 'Switch between light and dark appearance.',
-        category: 'App',
-        keywords: ['dark', 'light'],
-        run: toggleTheme
-      },
-      {
-        id: 'settings.open',
-        title: 'Open Settings',
-        description: 'Configure application, editor, and AI preferences.',
-        category: 'App',
-        keywords: ['preferences', 'configuration', 'theme', 'editor'],
-        hotkeys: [window.windowApi.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,'],
-        run: () => setSettingsOpen(true)
-      },
-      {
-        id: 'vault.open',
-        title: 'Open vault',
-        description: 'Choose a vault folder from disk.',
-        category: 'Vault',
-        keywords: ['folder', 'workspace'],
-        run: openVault
-      },
-      {
-        id: 'vault.empty-trash',
-        title: 'Empty trash',
-        description: 'Permanently remove notes currently in trash.',
-        category: 'Vault',
-        keywords: ['delete', 'remove'],
-        disabled: vault === null || trashCount === 0,
-        run: () => setEmptyTrashOpen(true)
-      }
-    ],
+      'workbench.reopen-closed-item': workbench.reopenClosedItem,
+      'workbench.mru-next': () => workbench.startMruSwitch(1),
+      'workbench.mru-previous': () => workbench.startMruSwitch(-1),
+      'workbench.next-item': () => workbench.activateVisual(1),
+      'workbench.previous-item': () => workbench.activateVisual(-1),
+      'workbench.focus-editor': focusEditor,
+      'explorer.toggle-focus': toggleExplorerFocus,
+      'view.toggle-left-panel': toggleLeftPanel,
+      'insert.date': insertCurrentDate,
+      'insert.time': insertCurrentTime,
+      'view.source': () => setViewMode('source'),
+      'view.live': () => setViewMode('live'),
+      'view.reading': () => setViewMode('reading'),
+      'note.export': openExport,
+      'ai.toggle': toggleAiPanel,
+      'theme.toggle': toggleTheme,
+      'settings.open': openSettings,
+      'vault.open': openVault,
+      'vault.empty-trash': openEmptyTrash
+    }),
     [
       createUniqueNote,
-      indexNoteCount,
+      focusEditor,
       insertCurrentDate,
       insertCurrentTime,
-      insertTemplateAtCursor,
-      noteTemplates,
+      openCommandPalette,
+      openCreateNote,
       openDailyNote,
+      openEmptyTrash,
+      openExport,
+      openFileFinder,
       openRandomNote,
+      openSearch,
+      openSettings,
       openVault,
-      selectedPath,
-      setAiPanelOpen,
-      setCreateNoteOpen,
-      setEmptyTrashOpen,
-      setExportDialogOpen,
-      setQuickSwitcherOpen,
-      setSearchOpen,
-      setSettingsOpen,
       setViewMode,
+      toggleAiPanel,
+      toggleExplorerFocus,
+      toggleLeftPanel,
       toggleTheme,
-      trashCount,
-      vault
+      workbench.activateVisual,
+      workbench.closeActiveItem,
+      workbench.closeItem,
+      workbench.reopenClosedItem,
+      workbench.saveActiveItem,
+      workbench.startMruSwitch
     ]
   )
+
+  const enabled = useMemo<Readonly<Record<WorkspaceActionId, boolean>>>(() => {
+    const hasVault = vault !== null
+    const hasNote = selectedPath !== null
+    const hasActiveItem = workbench.activeItem !== null
+    const activeEditable =
+      workbench.activeItem?.kind === 'note' || workbench.activeItem?.kind === 'text'
+    const hasSeveralItems = workbench.tabs.length > 1
+
+    return {
+      'note.new': hasVault,
+      'note.new-template': hasVault,
+      'note.daily': hasVault,
+      'note.random': hasVault && indexNoteCount > 0,
+      'note.unique': hasVault,
+      'file.open': hasVault,
+      'command-palette.toggle': true,
+      'note.search': hasVault,
+      'file.save': activeEditable,
+      'workbench.close-item': true,
+      'workbench.reopen-closed-item': workbench.state.closedIds.length > 0,
+      'workbench.mru-next': hasSeveralItems,
+      'workbench.mru-previous': hasSeveralItems,
+      'workbench.next-item': hasSeveralItems,
+      'workbench.previous-item': hasSeveralItems,
+      'workbench.focus-editor': hasActiveItem,
+      'explorer.toggle-focus': hasVault,
+      'view.toggle-left-panel': true,
+      'insert.date': hasNote,
+      'insert.time': hasNote,
+      'view.source': hasNote,
+      'view.live': hasNote,
+      'view.reading': hasNote,
+      'note.export': hasNote,
+      'ai.toggle': hasVault,
+      'theme.toggle': true,
+      'settings.open': true,
+      'vault.open': true,
+      'vault.empty-trash': hasVault && trashCount > 0
+    }
+  }, [
+    indexNoteCount,
+    selectedPath,
+    trashCount,
+    vault,
+    workbench.activeItem,
+    workbench.state.closedIds.length,
+    workbench.tabs.length
+  ])
+
+  const dynamicHandlers = useMemo(() => {
+    return new Map<string, RuntimeActionHandler>(
+      noteTemplates.map((template) => [
+        `template.insert:${template.relativePath}`,
+        () => insertTemplateAtCursor(template)
+      ])
+    )
+  }, [insertTemplateAtCursor, noteTemplates])
+
+  const handlersRef = useRef(handlers)
+  const enabledRef = useRef(enabled)
+  const dynamicHandlersRef = useRef(dynamicHandlers)
+  handlersRef.current = handlers
+  enabledRef.current = enabled
+  dynamicHandlersRef.current = dynamicHandlers
+
+  const dispatch = useCallback(
+    async (actionId: string, input?: unknown): Promise<boolean> => {
+      const canonicalId = canonicalizeActionId(actionId)
+      const stableHandler = handlersRef.current[canonicalId as WorkspaceActionId]
+      const dynamicHandler = dynamicHandlersRef.current.get(canonicalId)
+
+      if (stableHandler && !enabledRef.current[canonicalId as WorkspaceActionId]) {
+        return false
+      }
+
+      const handler = stableHandler ?? dynamicHandler
+      if (!handler) {
+        return false
+      }
+
+      try {
+        return (await handler(input)) !== false
+      } catch (actionError) {
+        onError(formatError(actionError))
+        return false
+      }
+    },
+    [onError]
+  )
+
+  const actions = useMemo<CommandAction[]>(() => {
+    const stableActions = WORKSPACE_ACTION_DEFINITIONS.filter(
+      (definition) => definition.paletteVisible
+    ).map((definition): CommandAction => {
+      const bindings = getEffectiveBindings(definition.id, platform, keymapOverrides)
+      const hotkeys = bindings
+        .map((binding) => formatKeyBinding(binding, platform))
+        .filter((binding): binding is string => binding !== null)
+
+      return {
+        id: definition.id,
+        stableActionId: definition.id,
+        title: definition.title,
+        description: definition.description,
+        category: definition.category,
+        keywords: [...definition.keywords],
+        bindings,
+        hotkeys,
+        context: definition.context,
+        disabled: !enabled[definition.id],
+        run: (input) => dispatch(definition.id, input)
+      }
+    })
+
+    const templateActions = noteTemplates.map(
+      (template): CommandAction => ({
+        id: `template.insert:${template.relativePath}`,
+        title: `Insert template: ${template.name}`,
+        description: `Insert ${template.relativePath} at the editor cursor.`,
+        category: 'Templates',
+        keywords: ['insert', 'template', template.name, template.relativePath],
+        disabled: selectedPath === null,
+        run: () => dispatch(`template.insert:${template.relativePath}`)
+      })
+    )
+
+    return [...stableActions, ...templateActions]
+  }, [dispatch, enabled, keymapOverrides, noteTemplates, platform, selectedPath])
+
+  const actionsById = useMemo(
+    () => new Map(actions.map((action) => [action.id, action])),
+    [actions]
+  )
+  const actionsByIdRef = useRef(actionsById)
+  actionsByIdRef.current = actionsById
+
+  const getAction = useCallback(
+    (actionId: string): CommandAction | undefined =>
+      actionsByIdRef.current.get(canonicalizeActionId(actionId)),
+    []
+  )
+
+  const isEnabled = useCallback(
+    (actionId: WorkspaceActionId): boolean => enabledRef.current[actionId],
+    []
+  )
+
+  return { actions, dispatch, isEnabled, getAction }
+}
+
+function getTargetItemId(input: unknown): string | null {
+  if (!input || typeof input !== 'object' || !('id' in input)) {
+    return null
+  }
+
+  return typeof input.id === 'string' ? input.id : null
+}
+
+function toKeybindingPlatform(platform: typeof window.windowApi.platform): KeybindingPlatform {
+  return platform === 'darwin' || platform === 'win32' ? platform : 'linux'
 }

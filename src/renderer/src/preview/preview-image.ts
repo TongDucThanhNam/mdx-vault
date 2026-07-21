@@ -10,10 +10,18 @@ interface PreviewImageCacheOptions {
   readImageFile?: (relativePath: string) => Promise<string>
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
+  decodeObjectUrl?: (url: string) => Promise<void>
+}
+
+export interface PreparedPreviewImage {
+  readonly relativePath: string
+  readonly objectUrl: string
+  /** Releases the object URL. Safe to call more than once. */
+  release: () => void
 }
 
 interface CachedImage {
-  objectUrl: string | null
+  prepared: PreparedPreviewImage | null
   promise: Promise<string>
 }
 
@@ -22,6 +30,8 @@ export class PreviewImageCache {
   private readonly readImageFile: (relativePath: string) => Promise<string>
   private readonly createObjectUrl: (blob: Blob) => string
   private readonly revokeObjectUrl: (url: string) => void
+  private readonly decodeObjectUrl: (url: string) => Promise<void>
+  private readonly preparedImages = new Set<PreparedPreviewImage>()
   private generation = 0
 
   constructor(options: PreviewImageCacheOptions = {}) {
@@ -29,6 +39,7 @@ export class PreviewImageCache {
       options.readImageFile ?? ((relativePath) => window.vaultApi.readImageFile(relativePath))
     this.createObjectUrl = options.createObjectUrl ?? ((blob) => URL.createObjectURL(blob))
     this.revokeObjectUrl = options.revokeObjectUrl ?? ((url) => URL.revokeObjectURL(url))
+    this.decodeObjectUrl = options.decodeObjectUrl ?? decodeObjectUrlImage
   }
 
   load(relativePath: string): Promise<string> {
@@ -39,39 +50,103 @@ export class PreviewImageCache {
 
     const generation = this.generation
     const entry: CachedImage = {
-      objectUrl: null,
+      prepared: null,
       promise: Promise.resolve('')
     }
 
-    entry.promise = this.readImageFile(relativePath).then((base64) => {
-      const objectUrl = this.createObjectUrl(
-        decodeBase64Image(base64, inferImageMimeType(relativePath))
-      )
-
+    entry.promise = this.prepare(relativePath).then((prepared) => {
       if (generation !== this.generation) {
-        this.revokeObjectUrl(objectUrl)
+        prepared.release()
         throw new Error('Image load was cancelled')
       }
 
-      entry.objectUrl = objectUrl
-      return objectUrl
+      entry.prepared = prepared
+      return prepared.objectUrl
+    })
+    void entry.promise.catch(() => {
+      if (this.entries.get(relativePath) === entry) {
+        this.entries.delete(relativePath)
+      }
     })
 
     this.entries.set(relativePath, entry)
     return entry.promise
   }
 
+  /**
+   * Reads and browser-decodes a fresh image without publishing it to the
+   * cache. Workbench navigation uses this as its prepare phase, then owns the
+   * returned handle only after the matching state transaction commits.
+   */
+  async prepare(relativePath: string): Promise<PreparedPreviewImage> {
+    const generation = this.generation
+    const base64 = await this.readImageFile(relativePath)
+
+    if (generation !== this.generation) {
+      throw new Error('Image load was cancelled')
+    }
+
+    const objectUrl = this.createObjectUrl(
+      decodeBase64Image(base64, inferImageMimeType(relativePath))
+    )
+    let released = false
+    const prepared: PreparedPreviewImage = {
+      relativePath,
+      objectUrl,
+      release: () => {
+        if (released) {
+          return
+        }
+
+        released = true
+        this.preparedImages.delete(prepared)
+        this.revokeObjectUrl(objectUrl)
+      }
+    }
+    this.preparedImages.add(prepared)
+
+    try {
+      await this.decodeObjectUrl(objectUrl)
+    } catch {
+      prepared.release()
+      throw new Error('Image data could not be decoded')
+    }
+
+    if (generation !== this.generation) {
+      prepared.release()
+      throw new Error('Image load was cancelled')
+    }
+
+    return prepared
+  }
+
   dispose(): void {
     this.generation += 1
 
-    for (const entry of this.entries.values()) {
-      if (entry.objectUrl) {
-        this.revokeObjectUrl(entry.objectUrl)
-      }
+    for (const prepared of [...this.preparedImages]) {
+      prepared.release()
     }
 
     this.entries.clear()
   }
+}
+
+function decodeObjectUrlImage(objectUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+
+    image.onload = () => {
+      image.onload = null
+      image.onerror = null
+      resolve()
+    }
+    image.onerror = () => {
+      image.onload = null
+      image.onerror = null
+      reject(new Error('Image data could not be decoded'))
+    }
+    image.src = objectUrl
+  })
 }
 
 export function resolvePreviewImageSource(

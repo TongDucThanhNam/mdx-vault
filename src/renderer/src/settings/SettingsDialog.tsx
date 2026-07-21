@@ -1,29 +1,43 @@
-import { Bot, FileText, Info, Settings2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import {
+  Bot,
+  FileText,
+  Info,
+  Keyboard,
+  Search,
+  Settings2,
+  SlidersHorizontal,
+  X
+} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createAssistantRuntime } from '@/ai/assistant-client'
 import { AiSettingsForm } from '@/ai/panels/AiSettingsPanel'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import type { FileTreeSortMode } from '@/explorer/FileTree'
-import { MAX_EDITOR_FONT_SIZE, MIN_EDITOR_FONT_SIZE } from '@/hooks/useEditorFontSize'
+import { type AppSettingsController, useAppSettings } from '@/hooks/useAppSettings'
 import type { AppTheme } from '@/hooks/useTheme'
 import { formatError } from '@/lib/format-error'
 import { cn } from '@/lib/utils'
 import packageJson from '../../../../package.json'
 import type { AiPublicSettings } from '../../../shared/ai'
+import { APP_SETTINGS_CATALOG, appSettingSearchText } from '../../../shared/app-settings'
+import type { KeybindingPlatform } from '../../../shared/workspace-actions'
+import { KeymapSettings } from './KeymapSettings'
+import { keymapMatchesQuery } from './keymap-search'
+import { SettingGroup, SettingsPage } from './SettingsLayout'
 
-type SettingsSectionId = 'general' | 'editor' | 'ai' | 'about'
+type SettingsSectionId = 'general' | 'editor' | 'workbench' | 'keymap' | 'ai' | 'about'
 
-interface SettingsDialogProps {
+export interface SettingsDialogProps {
   open: boolean
-  theme: AppTheme
-  fileTreeSort: FileTreeSortMode
   editorFontSize: number
   onOpenChange: (open: boolean) => void
-  onThemeChange: (theme: AppTheme) => void | Promise<void>
-  onFileTreeSortChange: (sort: FileTreeSortMode) => void
   onEditorFontSizeChange: (fontSize: number) => void | Promise<void>
   onOpenAnotherVault: () => Promise<void>
+  /** Pass the app-wide controller so workbench behavior and Settings share one snapshot. */
+  appSettings?: AppSettingsController
+  /** Lets the global resolver activate its modal KeyRecorder context. */
+  onKeyRecorderChange?: (active: boolean) => void
 }
 
 interface ChoiceOption {
@@ -32,47 +46,102 @@ interface ChoiceOption {
   description: string
 }
 
-const SECTIONS: ReadonlyArray<{
+interface SettingsSectionDefinition {
   id: SettingsSectionId
   label: string
   icon: typeof Settings2
-}> = [
-  { id: 'general', label: 'General', icon: Settings2 },
-  { id: 'editor', label: 'Editor', icon: FileText },
-  { id: 'ai', label: 'AI', icon: Bot },
-  { id: 'about', label: 'About', icon: Info }
-]
+  searchText: string
+}
 
-const THEME_OPTIONS: ReadonlyArray<ChoiceOption> = [
-  { value: 'light', label: 'Light', description: 'Warm paper edition' },
-  { value: 'dark', label: 'Dark', description: "Tonight's edition" },
-  { value: 'system', label: 'System', description: 'Follow this device' }
-]
-
-const FILE_TREE_SORT_OPTIONS: ReadonlyArray<ChoiceOption> = [
-  { value: 'name', label: 'Name', description: 'A–Z by path' },
-  { value: 'modified-desc', label: 'Modified', description: 'Recently edited first' },
-  { value: 'created-desc', label: 'Created', description: 'Newest first' }
+const SECTIONS: readonly SettingsSectionDefinition[] = [
+  {
+    id: 'general',
+    label: 'General',
+    icon: Settings2,
+    searchText: `${appSettingSearchText([
+      APP_SETTINGS_CATALOG.theme,
+      APP_SETTINGS_CATALOG.fileTreeSort
+    ])} vault folder path`
+  },
+  {
+    id: 'editor',
+    label: 'Editor',
+    icon: FileText,
+    searchText: appSettingSearchText([APP_SETTINGS_CATALOG.editorFontSize])
+  },
+  {
+    id: 'workbench',
+    label: 'Workbench',
+    icon: SlidersHorizontal,
+    searchText: appSettingSearchText([
+      APP_SETTINGS_CATALOG.activateOnClose,
+      APP_SETTINGS_CATALOG.whenClosingWithNoTabs
+    ])
+  },
+  {
+    id: 'keymap',
+    label: 'Keymap',
+    icon: Keyboard,
+    searchText: appSettingSearchText([APP_SETTINGS_CATALOG.keymapOverrides])
+  },
+  {
+    id: 'ai',
+    label: 'AI',
+    icon: Bot,
+    searchText: 'ai assistant provider model api key credentials encrypted safe storage'
+  },
+  {
+    id: 'about',
+    label: 'About',
+    icon: Info,
+    searchText: 'about version local first mdx markdown react'
+  }
 ]
 
 const assistantRuntime = createAssistantRuntime()
 
 export function SettingsDialog({
   open,
-  theme,
-  fileTreeSort,
   editorFontSize,
   onOpenChange,
-  onThemeChange,
-  onFileTreeSortChange,
   onEditorFontSizeChange,
-  onOpenAnotherVault
+  onOpenAnotherVault,
+  appSettings,
+  onKeyRecorderChange
 }: SettingsDialogProps): React.JSX.Element {
+  const privateSettings = useAppSettings({ enabled: open && !appSettings })
+  const settings = appSettings ?? privateSettings
   const [section, setSection] = useState<SettingsSectionId>('general')
+  const [query, setQuery] = useState('')
   const [vaultPath, setVaultPath] = useState<string | null>(null)
   const [openingVault, setOpeningVault] = useState(false)
   const [aiSettings, setAiSettings] = useState<AiPublicSettings | null>(null)
   const [aiSettingsError, setAiSettingsError] = useState<string | null>(null)
+  const platform = getKeybindingPlatform()
+  const keymapOverrides = settings.snapshot?.keymapOverrides ?? {}
+  const theme = settings.snapshot?.theme ?? APP_SETTINGS_CATALOG.theme.defaultValue
+  const fileTreeSort =
+    settings.snapshot?.fileTreeSort ?? APP_SETTINGS_CATALOG.fileTreeSort.defaultValue
+
+  const matchingSections = useMemo(
+    () =>
+      SECTIONS.filter((item) => {
+        if (!query.trim()) {
+          return true
+        }
+        if (item.id === 'keymap') {
+          return (
+            matchesSearchText(item.searchText, query) ||
+            keymapMatchesQuery(query, platform, keymapOverrides)
+          )
+        }
+        return matchesSearchText(item.searchText, query)
+      }),
+    [keymapOverrides, platform, query]
+  )
+  const visibleSection = matchingSections.some((item) => item.id === section)
+    ? section
+    : (matchingSections[0]?.id ?? null)
 
   const refreshVaultPath = useCallback(async (): Promise<void> => {
     const currentPath = await window.vaultApi.lastOpenVault()
@@ -86,7 +155,7 @@ export function SettingsDialog({
   }, [open, refreshVaultPath])
 
   useEffect(() => {
-    if (!open || section !== 'ai') {
+    if (!open || visibleSection !== 'ai') {
       return
     }
 
@@ -94,21 +163,21 @@ export function SettingsDialog({
     setAiSettingsError(null)
     void assistantRuntime
       .getSettings()
-      .then((settings) => {
+      .then((confirmed) => {
         if (!cancelled) {
-          setAiSettings(settings)
+          setAiSettings(confirmed)
         }
       })
-      .catch((error) => {
+      .catch((loadError) => {
         if (!cancelled) {
-          setAiSettingsError(formatError(error))
+          setAiSettingsError(formatError(loadError))
         }
       })
 
     return () => {
       cancelled = true
     }
-  }, [open, section])
+  }, [open, visibleSection])
 
   const handleOpenAnotherVault = async (): Promise<void> => {
     setOpeningVault(true)
@@ -120,67 +189,164 @@ export function SettingsDialog({
     }
   }
 
+  const handleThemeChange = async (nextTheme: AppTheme): Promise<void> => {
+    await settings.updateSettings({ theme: nextTheme })
+  }
+
+  const handleFileTreeSortChange = async (nextSort: FileTreeSortMode): Promise<void> => {
+    await settings.updateSettings({ fileTreeSort: nextSort })
+  }
+
+  const handleEditorFontSizeChange = async (nextSize: number): Promise<void> => {
+    const confirmed = await settings.updateSettings({ editorFontSize: nextSize })
+    if (confirmed) {
+      try {
+        await onEditorFontSizeChange(confirmed.editorFontSize)
+      } catch (applyError) {
+        settings.reportError(
+          `Font size was saved, but the editor could not apply it. ${formatError(applyError)}`
+        )
+      }
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="h-[min(520px,calc(100vh-2rem))] w-[min(760px,calc(100vw-2rem))] max-w-none grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-background p-0 sm:max-w-[760px] sm:grid-cols-[184px_minmax(0,1fr)] sm:grid-rows-1"
+        className="h-[min(680px,calc(100vh-2rem))] w-[min(980px,calc(100vw-2rem))] max-w-none grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-background p-0 sm:max-w-[980px] sm:grid-cols-[220px_minmax(0,1fr)] sm:grid-rows-1"
         aria-describedby="settings-description"
       >
-        <aside className="border-b-2 border-foreground bg-chrome p-3 sm:border-r-2 sm:border-b-0 sm:p-4">
-          <div className="mb-3 pr-8 sm:mb-6 sm:pr-0">
+        <aside className="min-h-0 border-b-2 border-foreground bg-chrome p-3 sm:border-r-2 sm:border-b-0 sm:p-4">
+          <div className="mb-3 pr-8 sm:mb-5 sm:pr-0">
             <DialogTitle className="font-display text-2xl font-black">Settings</DialogTitle>
             <DialogDescription id="settings-description" className="mt-1 text-[10px]">
-              Preferences apply immediately
+              Confirmed preferences apply immediately
             </DialogDescription>
           </div>
 
-          <nav aria-label="Settings categories" className="flex gap-1 overflow-x-auto sm:block">
-            {SECTIONS.map((item) => {
+          <div className="relative mb-3">
+            <label htmlFor="settings-search" className="sr-only">
+              Search settings
+            </label>
+            <Search
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <input
+              id="settings-search"
+              type="search"
+              value={query}
+              autoFocus
+              placeholder="Search settings…"
+              className="h-9 w-full border-2 border-foreground bg-background pr-8 pl-8 font-mono text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              onChange={(event) => setQuery(event.currentTarget.value)}
+            />
+            {query ? (
+              <button
+                type="button"
+                className="absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground outline-none hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                aria-label="Clear settings search"
+                onClick={() => setQuery('')}
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+
+          <nav
+            aria-label="Settings categories"
+            className="flex gap-1 overflow-x-auto sm:block sm:max-h-[calc(100%-10rem)] sm:overflow-y-auto"
+          >
+            {matchingSections.map((item) => {
               const Icon = item.icon
-              const active = item.id === section
+              const active = item.id === visibleSection
               return (
                 <button
                   key={item.id}
                   type="button"
                   className={cn(
-                    'flex min-w-28 items-center gap-2 border-l-2 px-2.5 py-2 text-left font-mono text-[11px] font-bold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none sm:mb-1 sm:w-full',
+                    'flex min-w-32 items-center gap-2 border-l-2 px-2.5 py-2 text-left font-mono text-[11px] font-bold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none sm:mb-1 sm:w-full',
                     active
-                      ? 'border-[var(--editorial-red)] bg-foreground text-background'
+                      ? 'border-editorial-red bg-foreground text-background'
                       : 'border-transparent text-muted-foreground hover:border-foreground hover:bg-background hover:text-foreground'
                   )}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setSection(item.id)}
                 >
-                  <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                  <Icon className="size-3.5 shrink-0 opacity-75" aria-hidden="true" />
                   {item.label}
                 </button>
               )
             })}
           </nav>
+
+          {matchingSections.length === 0 ? (
+            <p className="border-l-2 border-editorial-red px-2 py-1 font-mono text-[10px] leading-relaxed text-muted-foreground">
+              No settings match “{query}”.
+            </p>
+          ) : null}
+
+          {settings.isLoading || settings.isPending ? (
+            <div
+              className="mt-3 font-mono text-[9px] uppercase tracking-wider text-muted-foreground"
+              aria-live="polite"
+            >
+              {settings.isPending ? 'Saving confirmed snapshot…' : 'Loading confirmed snapshot…'}
+            </div>
+          ) : null}
         </aside>
 
         <div className="min-h-0 overflow-y-auto">
-          {section === 'general' ? (
+          {settings.error ? (
+            <div
+              className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b-2 border-destructive bg-background px-5 py-3 font-mono text-[11px] leading-relaxed text-destructive"
+              role="alert"
+            >
+              <span>{settings.error}</span>
+              <button
+                type="button"
+                className="shrink-0 p-1 outline-none hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                aria-label="Dismiss settings error"
+                onClick={settings.dismissError}
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
+
+          {visibleSection === 'general' ? (
             <GeneralSection
               theme={theme}
               fileTreeSort={fileTreeSort}
               vaultPath={vaultPath}
               openingVault={openingVault}
-              onThemeChange={onThemeChange}
-              onFileTreeSortChange={onFileTreeSortChange}
+              settingsPending={settings.isPending || !settings.snapshot}
+              onThemeChange={handleThemeChange}
+              onFileTreeSortChange={handleFileTreeSortChange}
               onOpenAnotherVault={handleOpenAnotherVault}
             />
           ) : null}
-          {section === 'editor' ? (
+          {visibleSection === 'editor' ? (
             <EditorSection
               editorFontSize={editorFontSize}
-              onEditorFontSizeChange={onEditorFontSizeChange}
+              settingsPending={settings.isPending || !settings.snapshot}
+              onEditorFontSizeChange={handleEditorFontSizeChange}
             />
           ) : null}
-          {section === 'ai' ? (
+          {visibleSection === 'workbench' ? <WorkbenchSection controller={settings} /> : null}
+          {visibleSection === 'keymap' ? (
+            <KeymapSettings
+              controller={settings}
+              query={query}
+              platform={platform}
+              onRecorderChange={onKeyRecorderChange}
+            />
+          ) : null}
+          {visibleSection === 'ai' ? (
             <AiSection settings={aiSettings} error={aiSettingsError} onSaved={setAiSettings} />
           ) : null}
-          {section === 'about' ? <AboutSection /> : null}
+          {visibleSection === 'about' ? <AboutSection /> : null}
+          {visibleSection === null ? <NoSearchResults query={query} /> : null}
         </div>
       </DialogContent>
     </Dialog>
@@ -192,6 +358,7 @@ function GeneralSection({
   fileTreeSort,
   vaultPath,
   openingVault,
+  settingsPending,
   onThemeChange,
   onFileTreeSortChange,
   onOpenAnotherVault
@@ -200,33 +367,41 @@ function GeneralSection({
   fileTreeSort: FileTreeSortMode
   vaultPath: string | null
   openingVault: boolean
+  settingsPending: boolean
   onThemeChange: (theme: AppTheme) => void | Promise<void>
   onFileTreeSortChange: (sort: FileTreeSortMode) => void
   onOpenAnotherVault: () => Promise<void>
 }): React.JSX.Element {
   return (
-    <SettingsSection
+    <SettingsPage
       eyebrow="Application"
       title="General"
       description="Appearance, navigation order, and the local folder currently in use."
     >
-      <SettingGroup title="Theme" description="Choose the edition used across the application.">
+      <SettingGroup
+        title={APP_SETTINGS_CATALOG.theme.label}
+        description={APP_SETTINGS_CATALOG.theme.description}
+      >
         <ChoiceGroup
+          name="settings-theme"
           label="Theme"
           value={theme}
-          options={THEME_OPTIONS}
+          options={APP_SETTINGS_CATALOG.theme.options}
+          disabled={settingsPending}
           onChange={(value) => void onThemeChange(value as AppTheme)}
         />
       </SettingGroup>
 
       <SettingGroup
-        title="File tree sort"
-        description="Change how files are ordered in the vault explorer."
+        title={APP_SETTINGS_CATALOG.fileTreeSort.label}
+        description={APP_SETTINGS_CATALOG.fileTreeSort.description}
       >
         <ChoiceGroup
+          name="settings-file-sort"
           label="File tree sort"
           value={fileTreeSort}
-          options={FILE_TREE_SORT_OPTIONS}
+          options={APP_SETTINGS_CATALOG.fileTreeSort.options}
+          disabled={settingsPending}
           onChange={(value) => onFileTreeSortChange(value as FileTreeSortMode)}
         />
       </SettingGroup>
@@ -250,26 +425,28 @@ function GeneralSection({
           {openingVault ? 'Opening…' : 'Open another vault…'}
         </Button>
       </SettingGroup>
-    </SettingsSection>
+    </SettingsPage>
   )
 }
 
 function EditorSection({
   editorFontSize,
+  settingsPending,
   onEditorFontSizeChange
 }: {
   editorFontSize: number
+  settingsPending: boolean
   onEditorFontSizeChange: (fontSize: number) => void | Promise<void>
 }): React.JSX.Element {
   return (
-    <SettingsSection
+    <SettingsPage
       eyebrow="Writing voice"
       title="Editor"
       description="Tune the source editor while keeping the reading view unchanged."
     >
       <SettingGroup
-        title="Font size"
-        description="Applies immediately to MDX notes and plain-text files."
+        title={APP_SETTINGS_CATALOG.editorFontSize.label}
+        description={APP_SETTINGS_CATALOG.editorFontSize.description}
       >
         <div className="border-2 border-foreground bg-card p-4">
           <div className="flex items-end justify-between gap-4">
@@ -289,26 +466,140 @@ function EditorSection({
           <input
             id="editor-font-size"
             type="range"
-            min={MIN_EDITOR_FONT_SIZE}
-            max={MAX_EDITOR_FONT_SIZE}
-            step={0.5}
+            min={APP_SETTINGS_CATALOG.editorFontSize.range.min}
+            max={APP_SETTINGS_CATALOG.editorFontSize.range.max}
+            step={APP_SETTINGS_CATALOG.editorFontSize.range.step}
             value={editorFontSize}
-            className="mt-5 w-full accent-[var(--editorial-red)]"
+            disabled={settingsPending}
+            className="mt-5 w-full accent-editorial-red"
             onChange={(event) => void onEditorFontSizeChange(event.currentTarget.valueAsNumber)}
           />
           <div className="mt-1 flex justify-between font-mono text-[10px] text-muted-foreground">
-            <span>{MIN_EDITOR_FONT_SIZE}px</span>
-            <span>{MAX_EDITOR_FONT_SIZE}px</span>
+            <span>{APP_SETTINGS_CATALOG.editorFontSize.range.min}px</span>
+            <span>{APP_SETTINGS_CATALOG.editorFontSize.range.max}px</span>
           </div>
           <p
-            className="mt-4 border-l-2 border-[var(--editorial-red)] pl-3 font-mono leading-relaxed"
+            className="mt-4 border-l-2 border-editorial-red pl-3 font-mono leading-relaxed"
             style={{ fontSize: `${editorFontSize}px` }}
           >
             Markdown remains the base layer.
           </p>
         </div>
       </SettingGroup>
-    </SettingsSection>
+    </SettingsPage>
+  )
+}
+
+function WorkbenchSection({
+  controller
+}: {
+  controller: AppSettingsController
+}): React.JSX.Element {
+  const workbench = controller.snapshot?.workbench
+  const disabled = controller.isPending || !workbench
+
+  return (
+    <SettingsPage
+      eyebrow="Tab behavior"
+      title="Workbench"
+      description="Choose what becomes active after a tab closes and what Close Active Item does when no tabs remain."
+    >
+      {workbench ? (
+        <>
+          <SettingGroup
+            title={APP_SETTINGS_CATALOG.activateOnClose.label}
+            description={APP_SETTINGS_CATALOG.activateOnClose.description}
+          >
+            <ChoiceGroup
+              name="settings-activate-on-close"
+              label="Activate on close"
+              value={workbench.activateOnClose}
+              options={APP_SETTINGS_CATALOG.activateOnClose.options}
+              disabled={disabled}
+              onChange={(value) =>
+                void controller.updateSettings({
+                  workbench: {
+                    activateOnClose: value as 'history' | 'right' | 'left'
+                  }
+                })
+              }
+            />
+            <ResetButton
+              disabled={
+                disabled ||
+                workbench.activateOnClose === APP_SETTINGS_CATALOG.activateOnClose.defaultValue
+              }
+              onClick={() =>
+                void controller.updateSettings({
+                  workbench: {
+                    activateOnClose: APP_SETTINGS_CATALOG.activateOnClose.defaultValue
+                  }
+                })
+              }
+            />
+          </SettingGroup>
+
+          <SettingGroup
+            title={APP_SETTINGS_CATALOG.whenClosingWithNoTabs.label}
+            description={APP_SETTINGS_CATALOG.whenClosingWithNoTabs.description}
+          >
+            <ChoiceGroup
+              name="settings-no-tabs"
+              label="When closing with no tabs"
+              value={workbench.whenClosingWithNoTabs}
+              options={APP_SETTINGS_CATALOG.whenClosingWithNoTabs.options}
+              disabled={disabled}
+              onChange={(value) =>
+                void controller.updateSettings({
+                  workbench: {
+                    whenClosingWithNoTabs: value as 'keep_window_open' | 'close_window'
+                  }
+                })
+              }
+            />
+            <ResetButton
+              disabled={
+                disabled ||
+                workbench.whenClosingWithNoTabs ===
+                  APP_SETTINGS_CATALOG.whenClosingWithNoTabs.defaultValue
+              }
+              onClick={() =>
+                void controller.updateSettings({
+                  workbench: {
+                    whenClosingWithNoTabs: APP_SETTINGS_CATALOG.whenClosingWithNoTabs.defaultValue
+                  }
+                })
+              }
+            />
+          </SettingGroup>
+        </>
+      ) : (
+        <div className="border-2 border-foreground bg-card p-4 font-mono text-xs text-muted-foreground">
+          Loading confirmed workbench behavior…
+        </div>
+      )}
+    </SettingsPage>
+  )
+}
+
+function ResetButton({
+  disabled,
+  onClick
+}: {
+  disabled: boolean
+  onClick: () => void
+}): React.JSX.Element {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      className="mt-2"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      Reset to default
+    </Button>
   )
 }
 
@@ -322,12 +613,12 @@ function AiSection({
   onSaved: (settings: AiPublicSettings) => void
 }): React.JSX.Element {
   return (
-    <SettingsSection
+    <SettingsPage
       eyebrow="On demand"
       title="AI"
       description="Assistant provider, model, and protected credentials."
     >
-      <div className="border-l-2 border-[var(--editorial-red)] bg-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+      <div className="border-l-2 border-editorial-red bg-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
         API keys are encrypted by Electron safeStorage and never returned to this screen after
         saving.
       </div>
@@ -342,13 +633,13 @@ function AiSection({
           Loading secure AI settings…
         </div>
       )}
-    </SettingsSection>
+    </SettingsPage>
   )
 }
 
 function AboutSection(): React.JSX.Element {
   return (
-    <SettingsSection
+    <SettingsPage
       eyebrow="Local-first MDX"
       title="About"
       description="A writing environment where Markdown stays foundational and React stays optional."
@@ -360,87 +651,68 @@ function AboutSection(): React.JSX.Element {
             Version {packageJson.version}
           </div>
         </div>
-        <p className="p-4 font-serif text-sm leading-relaxed">
+        <p className="max-w-prose p-4 font-serif text-sm leading-relaxed">
           Notes live on your filesystem as plain MDX. Interactive islands appear only where the
           document needs behavior.
         </p>
       </div>
-    </SettingsSection>
+    </SettingsPage>
   )
 }
 
-function SettingsSection({
-  eyebrow,
-  title,
-  description,
-  children
-}: {
-  eyebrow: string
-  title: string
-  description: string
-  children: React.ReactNode
-}): React.JSX.Element {
+function NoSearchResults({ query }: { query: string }): React.JSX.Element {
   return (
-    <section className="p-5 sm:p-7">
-      <header className="mb-7 border-b-2 border-foreground pb-4 pr-8">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--editorial-red)]">
-          {eyebrow}
-        </div>
-        <h2 className="mt-1 font-display text-3xl font-black tracking-tight">{title}</h2>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{description}</p>
-      </header>
-      <div className="space-y-7">{children}</div>
-    </section>
-  )
-}
-
-function SettingGroup({
-  title,
-  description,
-  children
-}: {
-  title: string
-  description: string
-  children: React.ReactNode
-}): React.JSX.Element {
-  return (
-    <section>
-      <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em]">{title}</h3>
-      <p className="mt-1 mb-3 text-xs leading-relaxed text-muted-foreground">{description}</p>
-      {children}
+    <section className="p-7">
+      <div className="border-2 border-foreground bg-card p-5 shadow-[3px_3px_0_0_var(--foreground)]">
+        <Search className="size-5 text-muted-foreground" aria-hidden="true" />
+        <h2 className="mt-3 font-display text-2xl font-black">No matching settings</h2>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Nothing matches “{query}”. Try a control name, action, category, or binding.
+        </p>
+      </div>
     </section>
   )
 }
 
 function ChoiceGroup({
+  name,
   label,
   value,
   options,
+  disabled = false,
   onChange
 }: {
+  name: string
   label: string
   value: string
-  options: ReadonlyArray<ChoiceOption>
+  options: readonly ChoiceOption[]
+  disabled?: boolean
   onChange: (value: string) => void
 }): React.JSX.Element {
   return (
-    <div role="radiogroup" aria-label={label} className="grid gap-2 sm:grid-cols-3">
+    <fieldset className="grid gap-2 sm:grid-cols-3" disabled={disabled}>
+      <legend className="sr-only">{label}</legend>
       {options.map((option) => {
         const selected = option.value === value
         return (
-          <button
+          <label
             key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
             className={cn(
-              'min-h-20 border-2 p-3 text-left outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+              'relative min-h-20 cursor-pointer border-2 p-3 text-left outline-none transition-colors focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none',
               selected
                 ? 'border-foreground bg-foreground text-background shadow-[2px_2px_0_0_var(--editorial-red)]'
-                : 'border-foreground bg-card text-foreground hover:bg-muted'
+                : 'border-foreground bg-card text-foreground hover:bg-muted',
+              disabled && 'cursor-not-allowed opacity-40'
             )}
-            onClick={() => onChange(option.value)}
           >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={selected}
+              className="sr-only"
+              onChange={() => onChange(option.value)}
+            />
             <span className="block font-mono text-[11px] font-bold uppercase tracking-wider">
               {option.label}
             </span>
@@ -452,9 +724,26 @@ function ChoiceGroup({
             >
               {option.description}
             </span>
-          </button>
+          </label>
         )
       })}
-    </div>
+    </fieldset>
   )
+}
+
+function getKeybindingPlatform(): KeybindingPlatform {
+  const platform = window.windowApi?.platform
+  if (platform === 'darwin' || platform === 'win32') {
+    return platform
+  }
+  return 'linux'
+}
+
+function matchesSearchText(searchText: string, query: string): boolean {
+  const haystack = searchText.toLocaleLowerCase()
+  return query
+    .trim()
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .every((term) => haystack.includes(term))
 }

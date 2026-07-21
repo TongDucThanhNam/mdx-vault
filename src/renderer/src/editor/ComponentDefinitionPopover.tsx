@@ -46,12 +46,15 @@ export function ComponentDefinitionPopover({
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent): void => {
       const popover = popoverRef.current
+      if (event.target instanceof Element && event.target.closest('[aria-modal="true"]')) {
+        return
+      }
       if (popover && event.target instanceof Node && !popover.contains(event.target)) {
         onClose()
       }
     }
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !document.querySelector('[aria-modal="true"]')) {
         event.preventDefault()
         onClose()
       }

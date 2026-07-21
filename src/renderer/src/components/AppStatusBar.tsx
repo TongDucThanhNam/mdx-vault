@@ -54,7 +54,7 @@ export function AppStatusBar({
       : null
 
   return (
-    <footer className="flex h-7 shrink-0 items-center justify-between border-t-2 border-foreground bg-[var(--paper-dark)] font-mono text-[10px] tracking-wide text-muted-foreground">
+    <footer className="flex h-7 shrink-0 items-center justify-between border-t-2 border-foreground bg-masthead font-mono text-[10px] tracking-wide text-muted-foreground">
       <div className="flex h-full items-center">
         <div className="flex h-full items-center border-r-2 border-foreground px-1">
           <Button

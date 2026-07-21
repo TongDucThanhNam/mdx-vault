@@ -16,6 +16,19 @@
 
 AI-generated component theo trust model phải chạy Level 3/4. Nếu AI assistant ra đời trước sandbox, code AI sinh ra sẽ phải chạy trong renderer chính (vi phạm docs/security.md) hoặc phải chờ. Sandbox trước → AI output có chỗ chạy an toàn ngay từ ngày đầu.
 
+## Current workbench milestone
+
+- **GOAL-22 — Zed-like workbench UX**: hoàn thiện single-pane workbench cho vault
+  local-first/MDX-native: File Finder `Ctrl/Cmd+P`, tab lifecycle an toàn,
+  visual-vs-MRU navigation, reopen closed item, explorer focus cycle, shared action
+  registry/keybinding resolver, overlay focus ownership và Settings v3 có searchable
+  Workbench/Keymap. Mọi route mở file (Explorer, Search, links, definition, picker)
+  hội tụ vào cùng transactional coordinator; file bị xóa ngoài app được giữ như
+  missing item và existing-file writes không được tạo lại path.
+- Phạm vi cố ý là **single pane**. Split panes/groups, preview tabs, workspace/session
+  restore đầy đủ, editable `settings.json`/`keymap.json` và clone toàn bộ Zed catalog
+  vẫn là candidate sau khi baseline này được chứng minh ổn định.
+
 ## Next candidates
 
 Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):

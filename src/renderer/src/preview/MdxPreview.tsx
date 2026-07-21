@@ -219,6 +219,7 @@ export function MdxPreview({
     <div
       ref={scrollRootRef}
       data-testid="reading-preview-scroll"
+      data-workbench-scroll-surface="true"
       className="h-full min-h-0 overflow-x-hidden overflow-y-auto bg-background"
       role="region"
       aria-label="Reading preview"

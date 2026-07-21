@@ -1,5 +1,5 @@
 import { Sparkles } from 'lucide-react'
-import type { CommandAction } from '@/commands/actions'
+import type { CommandActionRegistry } from '@/commands/actions'
 import { AppMenuBar } from '@/components/AppMenuBar'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from '@/components/ViewModeToggle'
@@ -9,7 +9,7 @@ interface AppTopBarProps {
   vaultName: string | null
   selectedPath: string | null
   viewMode: ViewMode
-  commandActions: CommandAction[]
+  commandActions: CommandActionRegistry
   editorAvailable: boolean
   isOpeningVault: boolean
   isSaving: boolean
@@ -17,12 +17,8 @@ interface AppTopBarProps {
   leftPanelOpen: boolean
   rightPanelOpen: boolean
   aiPanelOpen: boolean
-  onSave: () => void
   onRevealNote: () => void
-  onOpenCommandPalette: () => void
-  onToggleLeftPanel: () => void
   onToggleRightPanel: () => void
-  onToggleAi: () => void
 }
 
 export function AppTopBar({
@@ -37,15 +33,12 @@ export function AppTopBar({
   leftPanelOpen,
   rightPanelOpen,
   aiPanelOpen,
-  onSave,
   onRevealNote,
-  onOpenCommandPalette,
-  onToggleLeftPanel,
-  onToggleRightPanel,
-  onToggleAi
+  onToggleRightPanel
 }: AppTopBarProps): React.JSX.Element {
+  const aiShortcut = commandActions.getAction('ai.toggle')?.hotkeys?.[0]
   return (
-    <header className="app-drag-region sticky top-0 z-50 flex h-9 shrink-0 items-center justify-between border-b border-[var(--line)] bg-[var(--paper-dark)] pl-3 text-foreground">
+    <header className="app-drag-region sticky top-0 z-50 flex h-9 shrink-0 items-center justify-between border-b border-[var(--line)] bg-masthead pl-3 text-foreground">
       <div className="app-no-drag flex min-w-0 items-center">
         <span className="mr-1 flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]">
           <span className="size-2 bg-[var(--editorial-red)]" aria-hidden="true" />
@@ -62,12 +55,8 @@ export function AppTopBar({
           leftPanelOpen={leftPanelOpen}
           rightPanelOpen={rightPanelOpen}
           aiPanelOpen={aiPanelOpen}
-          onSave={onSave}
           onRevealNote={onRevealNote}
-          onOpenCommandPalette={onOpenCommandPalette}
-          onToggleLeftPanel={onToggleLeftPanel}
           onToggleRightPanel={onToggleRightPanel}
-          onToggleAiPanel={onToggleAi}
         />
         <span className="ml-1 max-w-48 truncate border border-[var(--line)] bg-background px-2 py-0.5 font-mono text-[9px] tracking-wide text-muted-foreground">
           {vaultName ?? 'No vault'}
@@ -84,11 +73,11 @@ export function AppTopBar({
               ? 'bg-[var(--editorial-red)] text-white hover:bg-[var(--editorial-red)]/90'
               : 'text-muted-foreground hover:bg-foreground hover:text-background'
           }
-          title="AI assistant (Ctrl+Shift+A)"
+          title={`AI assistant${aiShortcut ? ` (${aiShortcut})` : ''}`}
           aria-label="Toggle AI assistant"
           aria-pressed={aiPanelOpen}
           disabled={!vaultName}
-          onClick={onToggleAi}
+          onClick={() => void commandActions.dispatch('ai.toggle')}
         >
           <Sparkles aria-hidden="true" />
         </Button>

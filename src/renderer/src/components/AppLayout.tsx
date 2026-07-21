@@ -1,11 +1,11 @@
-import { type Dispatch, type SetStateAction, useState } from 'react'
+import { Activity, type Dispatch, type SetStateAction, useState } from 'react'
 import { AiSidePanel } from '@/ai/panels/AiSidePanel'
-import type { CommandAction } from '@/commands/actions'
+import type { CommandActionRegistry } from '@/commands/actions'
 import { AppStatusBar } from '@/components/AppStatusBar'
 import { AppTopBar } from '@/components/AppTopBar'
 import { LeftPanel } from '@/components/layout/LeftPanel'
 import { MainEditor, type ReadingZoomStatus } from '@/components/layout/MainEditor'
-import { type NavigationPanel, RightPanel } from '@/components/layout/RightPanel'
+import { RightPanel } from '@/components/layout/RightPanel'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -13,10 +13,9 @@ import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
+import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { VaultInfo } from '@/vault/types'
-
-export type { NavigationPanel } from '@/components/layout/RightPanel'
 
 interface AppLayoutProps {
   vault: VaultInfo | null
@@ -24,21 +23,18 @@ interface AppLayoutProps {
   selectedNotePath: string | null
   error: string | null
   viewMode: ViewMode
-  navigationPanel: NavigationPanel
   aiPanelOpen: boolean
-  commandActions: CommandAction[]
+  leftPanelOpen: boolean
+  rightPanelOpen: boolean
+  commandActions: CommandActionRegistry
   editor: NoteEditorController
   textEditor: TextFileEditorController
   noteIndex: NoteIndexController
   vaultSession: VaultSessionController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
-  setViewMode: Dispatch<SetStateAction<ViewMode>>
-  setNavigationPanel: Dispatch<SetStateAction<NavigationPanel>>
-  setAiPanelOpen: Dispatch<SetStateAction<boolean>>
-  setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>
-  setCreateNoteOpen: Dispatch<SetStateAction<boolean>>
-  setEmptyTrashOpen: Dispatch<SetStateAction<boolean>>
+  editorTabs: WorkbenchController
+  setRightPanelOpen: Dispatch<SetStateAction<boolean>>
   onRequestDelete: (relativePath: string) => void
   onError: (message: string | null) => void
 }
@@ -49,8 +45,9 @@ export function AppLayout({
   selectedNotePath,
   error,
   viewMode,
-  navigationPanel,
   aiPanelOpen,
+  leftPanelOpen,
+  rightPanelOpen,
   commandActions,
   editor,
   textEditor,
@@ -58,17 +55,11 @@ export function AppLayout({
   vaultSession,
   noteActions,
   editorInteractions,
-  setViewMode,
-  setNavigationPanel,
-  setAiPanelOpen,
-  setCommandPaletteOpen,
-  setCreateNoteOpen,
-  setEmptyTrashOpen,
+  editorTabs,
+  setRightPanelOpen,
   onRequestDelete,
   onError
 }: AppLayoutProps): React.JSX.Element {
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true)
-  const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [readingZoomStatus, setReadingZoomStatus] = useState<ReadingZoomStatus | null>(null)
   const noteSelected = selectedNotePath !== null
   const textSelected = selectedVaultPath !== null && textEditor.selectedPath === selectedVaultPath
@@ -112,16 +103,12 @@ export function AppLayout({
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
         aiPanelOpen={aiPanelOpen}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-        onSave={() => void activeEditor.saveCurrentFile()}
         onRevealNote={() => {
           if (activeEditorPath) {
             void vaultSession.handleRevealInExplorer(activeEditorPath)
           }
         }}
-        onToggleLeftPanel={() => setLeftPanelOpen((current) => !current)}
         onToggleRightPanel={() => setRightPanelOpen((current) => !current)}
-        onToggleAi={() => setAiPanelOpen((current) => !current)}
       />
 
       {error ? (
@@ -140,46 +127,43 @@ export function AppLayout({
         className="grid min-h-0 flex-1 overflow-hidden"
         style={{ gridTemplateColumns }}
       >
-        {leftPanelOpen ? (
+        <Activity mode={leftPanelOpen ? 'visible' : 'hidden'}>
           <LeftPanel
             vault={vault}
             selectedPath={selectedVaultPath}
             noteIndex={noteIndex}
             vaultSession={vaultSession}
-            setCreateNoteOpen={setCreateNoteOpen}
-            setEmptyTrashOpen={setEmptyTrashOpen}
+            commandActions={commandActions}
             onRequestDelete={onRequestDelete}
           />
-        ) : null}
+        </Activity>
         <MainEditor
           viewMode={viewMode}
           selectedPath={selectedVaultPath}
+          editorTabs={editorTabs}
           commandActions={commandActions}
           editor={editor}
           textEditor={textEditor}
           noteIndex={noteIndex}
           noteActions={noteActions}
           editorInteractions={editorInteractions}
-          setViewMode={setViewMode}
           onReadingZoomStatusChange={setReadingZoomStatus}
           onRevealInExplorer={(relativePath) =>
             void vaultSession.handleRevealInExplorer(relativePath)
           }
           onError={onError}
         />
-        {rightPanelOpen ? (
+        <Activity mode={rightPanelOpen ? 'visible' : 'hidden'}>
           <RightPanel
-            navigationPanel={navigationPanel}
             selectedPath={selectedNotePath}
             noteIndex={noteIndex}
-            noteActions={noteActions}
-            editorInteractions={editorInteractions}
-            setNavigationPanel={setNavigationPanel}
+            onSelectHeading={editorInteractions.revealHeading}
+            onSelectNote={noteActions.navigateToNote}
           />
-        ) : null}
+        </Activity>
 
-        {aiPanelOpen ? (
-          <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-[var(--paper-dark)]">
+        <Activity mode={aiPanelOpen ? 'visible' : 'hidden'}>
+          <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-chrome">
             <AiSidePanel
               noteRelativePath={selectedNotePath}
               noteTitle={selectedNotePath ? deriveNoteTitle(selectedNotePath) : 'No note'}
@@ -193,7 +177,7 @@ export function AppLayout({
               onRequestActionPalette={editorInteractions.openAiPalette}
             />
           </aside>
-        ) : null}
+        </Activity>
       </main>
 
       <AppStatusBar
@@ -211,9 +195,9 @@ export function AppLayout({
         readingZoomFactor={
           selectedNotePath && viewMode === 'reading' ? readingZoomStatus?.factor : undefined
         }
-        onToggleLeftPanel={() => setLeftPanelOpen((current) => !current)}
+        onToggleLeftPanel={() => void commandActions.dispatch('view.toggle-left-panel')}
         onToggleRightPanel={() => setRightPanelOpen((current) => !current)}
-        onToggleAiPanel={() => setAiPanelOpen((current) => !current)}
+        onToggleAiPanel={() => void commandActions.dispatch('ai.toggle')}
         onResetReadingZoom={() => readingZoomStatus?.reset()}
       />
     </>

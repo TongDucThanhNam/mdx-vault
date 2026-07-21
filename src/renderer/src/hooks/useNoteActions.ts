@@ -16,6 +16,7 @@ import {
 import { deriveNoteTitle, sanitizeNoteTitle } from '@/lib/note-title'
 import { resolveVaultNavigationTarget } from '@/vault/goto-definition-path'
 import type { IndexedNoteSummary, NoteTemplate, VaultInfo } from '@/vault/types'
+import { openVaultNote } from '@/workbench/note-action-lifecycle'
 
 interface UseNoteActionsOptions {
   vault: VaultInfo | null
@@ -38,18 +39,18 @@ export function useNoteActions({
 }: UseNoteActionsOptions) {
   const [editorInsertRequest, setEditorInsertRequest] = useState<EditorInsertRequest | null>(null)
   const insertRequestRef = useRef(0)
-  const { saveCurrentFile, selectedPathRef } = editor
-  const { createNote, refreshVaultSnapshot, selectNote, selectTreeFile } = vaultSession
+  const { selectedPathRef } = editor
+  const { createNote, selectNote, selectTreeFile } = vaultSession
 
   const navigateToNote = useCallback(
-    (relativePath: string): void => {
-      void selectNote(relativePath)
+    (relativePath: string): Promise<boolean> => {
+      return selectNote(relativePath)
     },
     [selectNote]
   )
 
   const navigateToVaultFile = useCallback(
-    (relativePath: string): boolean => {
+    async (relativePath: string): Promise<boolean> => {
       const targetPath = resolveVaultNavigationTarget(vault?.treeFiles ?? [], relativePath)
 
       if (!targetPath) {
@@ -57,8 +58,7 @@ export function useNoteActions({
         return false
       }
 
-      selectTreeFile(targetPath)
-      return true
+      return selectTreeFile(targetPath)
     },
     [selectTreeFile, showToast, vault]
   )
@@ -110,12 +110,11 @@ export function useNoteActions({
     insertIntoEditor(formatLocalTime(new Date()), 'inline')
   }, [insertIntoEditor])
 
-  const openDailyNote = useCallback(async (): Promise<void> => {
+  const openDailyNote = useCallback(async (): Promise<boolean> => {
     if (!vault) {
-      return
+      return false
     }
 
-    await saveCurrentFile()
     onError(null)
 
     try {
@@ -123,64 +122,62 @@ export function useNoteActions({
       const relativePath = `journal/${date}.mdx`
 
       if (await window.vaultApi.fileExists(relativePath)) {
-        await selectNote(relativePath, false)
-        showToast(`Opened ${relativePath}`)
-        return
+        return openVaultNote(
+          () => selectNote(relativePath, false),
+          () => showToast(`Opened ${relativePath}`)
+        )
       }
 
       const templatePath = 'templates/daily.mdx'
       const content = (await window.vaultApi.fileExists(templatePath))
         ? await window.vaultApi.renderTemplate(templatePath, date)
         : buildDailyNoteScaffold(date)
-      const createdPath = await window.vaultApi.createFile(relativePath, content)
-
-      await refreshVaultSnapshot()
-      await selectNote(createdPath, false)
+      const createdPath = await createNote(relativePath, content)
       showToast(`Created ${createdPath}`)
+      return true
     } catch (dailyNoteError) {
       onError(formatError(dailyNoteError))
+      return false
     }
-  }, [onError, refreshVaultSnapshot, saveCurrentFile, selectNote, showToast, vault])
+  }, [createNote, onError, selectNote, showToast, vault])
 
-  const openRandomNote = useCallback(async (): Promise<void> => {
+  const openRandomNote = useCallback(async (): Promise<boolean> => {
     if (indexNotes.length === 0) {
-      return
+      return false
     }
 
     const note = indexNotes[Math.floor(Math.random() * indexNotes.length)]
-    await selectNote(note.relativePath)
-    showToast(`Opened ${note.title}`)
+    return openVaultNote(
+      () => selectNote(note.relativePath),
+      () => showToast(`Opened ${note.title}`)
+    )
   }, [indexNotes, selectNote, showToast])
 
-  const createUniqueNote = useCallback(async (): Promise<void> => {
+  const createUniqueNote = useCallback(async (): Promise<boolean> => {
     if (!vault) {
-      return
+      return false
     }
 
-    await saveCurrentFile()
     const timestamp = formatUniqueTimestamp(new Date())
     const relativePath = await findUniqueNotePath(`${timestamp}.mdx`)
-    const createdPath = await window.vaultApi.createFile(
-      relativePath,
-      buildTimestampNoteScaffold(timestamp)
-    )
+    const createdPath = await createNote(relativePath, buildTimestampNoteScaffold(timestamp))
 
-    await refreshVaultSnapshot()
-    await selectNote(createdPath, false)
     showToast(`Created ${createdPath}`)
-  }, [refreshVaultSnapshot, saveCurrentFile, selectNote, showToast, vault])
+    return true
+  }, [createNote, showToast, vault])
 
   const createNoteFromSwitcher = useCallback(
-    async (query: string): Promise<void> => {
+    async (query: string): Promise<boolean> => {
       if (!vault) {
-        return
+        return false
       }
 
       const title = sanitizeNoteTitle(query)
       const relativePath = await findUniqueNotePath(`${title}.mdx`)
 
-      await createNote(relativePath, buildNewNoteScaffold(title))
-      showToast(`Created ${relativePath}`)
+      const createdPath = await createNote(relativePath, buildNewNoteScaffold(title))
+      showToast(`Created ${createdPath}`)
+      return true
     },
     [createNote, showToast, vault]
   )

@@ -37,6 +37,13 @@
   --paper-dark: #efefea;
   --line: #c9c9c1;
 
+  /* Chrome — surface cho app frame (top bar, tab strip, status bar, side panels).
+     Tối hơn paper một bậc để editor luôn là vùng sáng nhất (visual hierarchy). */
+  --chrome: #e9e9e1;
+  /* Masthead — khung trên/dưới (top bar + status bar), tối hơn chrome một bậc nữa:
+     frame → panels → paper, ba lớp rõ ràng. */
+  --masthead: #e1e1d8;
+
   --border: #111111;
   --input: #111111;
   --ring: #d32f2f;
@@ -54,11 +61,11 @@
   --chart-4: #6b6b6b;
   --chart-5: #b8860b;
 
-  --sidebar: #f9f9f7;
+  --sidebar: #e9e9e1;
   --sidebar-foreground: #111111;
   --sidebar-primary: #d32f2f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #efefea;
+  --sidebar-accent: #dfdfd5;
   --sidebar-accent-foreground: #111111;
   --sidebar-border: #111111;
   --sidebar-ring: #d32f2f;
@@ -95,6 +102,10 @@
   --paper-dark: oklch(0.26 0.006 60);
   --line: oklch(0.35 0.006 60);
 
+  /* Chrome tối hơn background — editor (0.18) nổi lên trên frame (0.145). */
+  --chrome: oklch(0.145 0.005 60);
+  --masthead: oklch(0.12 0.005 60);
+
   --border: var(--foreground);
   --input: var(--foreground);
   --ring: #ef5350;
@@ -109,11 +120,11 @@
   --chart-4: oklch(0.66 0.006 80);
   --chart-5: #d4a847;
 
-  --sidebar: oklch(0.16 0.006 60);
+  --sidebar: oklch(0.145 0.005 60);
   --sidebar-foreground: oklch(0.93 0.005 80);
   --sidebar-primary: #ef5350;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: oklch(0.26 0.006 60);
+  --sidebar-accent: oklch(0.24 0.006 60);
   --sidebar-accent-foreground: oklch(0.93 0.005 80);
   --sidebar-border: var(--foreground);
   --sidebar-ring: #ef5350;
@@ -143,6 +154,8 @@
   --color-editorial-red: var(--editorial-red);
   --color-editorial-blue: var(--editorial-blue);
   --color-paper-dark: var(--paper-dark);
+  --color-chrome: var(--chrome);
+  --color-masthead: var(--masthead);
   --color-line: var(--line);
   --color-border: var(--border);
   --color-input: var(--input);

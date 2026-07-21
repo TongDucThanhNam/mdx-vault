@@ -299,6 +299,7 @@ interface VaultApi {
   readTextFile: (relativePath: string) => Promise<string>
   writeTextFile: (relativePath: string, content: string) => Promise<void>
   readImageFile: (relativePath: string) => Promise<string>
+  probeFile: (relativePath: string) => Promise<void>
   writeFile: (relativePath: string, content: string) => Promise<void>
   createFile: (relativePath: string, content: string) => Promise<string>
   deleteFile: (relativePath: string) => Promise<string>
@@ -362,10 +363,37 @@ interface SandboxApi {
   ) => Promise<string>
 }
 
-type AppTheme = 'light' | 'dark' | 'system'
-type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+export type AppTheme = 'light' | 'dark' | 'system'
+export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+export type ActivateOnCloseSetting = 'history' | 'right' | 'left'
+export type WhenClosingWithNoTabsSetting = 'keep_window_open' | 'close_window'
+export type KeymapOverrides = Record<string, string[]>
+
+export interface WorkbenchSettings {
+  activateOnClose: ActivateOnCloseSetting
+  whenClosingWithNoTabs: WhenClosingWithNoTabsSetting
+}
+
+export interface AppSettingsSnapshot {
+  version: 3
+  theme: AppTheme
+  fileTreeSort: FileTreeSortSetting
+  editorFontSize: number
+  workbench: WorkbenchSettings
+  keymapOverrides: KeymapOverrides
+}
+
+export interface AppSettingsPatch {
+  theme?: AppTheme
+  fileTreeSort?: FileTreeSortSetting
+  editorFontSize?: number
+  workbench?: Partial<WorkbenchSettings>
+  keymapOverrides?: KeymapOverrides
+}
 
 interface AppApi {
+  getSettings: () => Promise<AppSettingsSnapshot>
+  updateSettings: (patch: AppSettingsPatch) => Promise<AppSettingsSnapshot>
   getTheme: () => Promise<AppTheme>
   setTheme: (theme: AppTheme) => Promise<AppTheme>
   getFileTreeSort: () => Promise<FileTreeSortSetting>

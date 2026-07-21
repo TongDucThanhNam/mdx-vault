@@ -1,13 +1,14 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileTreeSortMode } from '@/explorer/FileTree'
-import type { NoteEditorController } from '@/hooks/useNoteEditor'
+import { type AppSettingsController, DEFAULT_APP_SETTINGS_SNAPSHOT } from '@/hooks/useAppSettings'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
-import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
+import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { formatError } from '@/lib/format-error'
 import { deriveNoteTitle } from '@/lib/note-title'
-import { isEditableTextPath, isNotePath } from '@/vault/file-kind'
-import type { VaultInfo } from '@/vault/types'
+import type { VaultInfo, VaultTreeFile } from '@/vault/types'
+import { createAndOpenVaultNote, openRefreshedVaultFile } from '@/workbench/note-action-lifecycle'
+import { deleteVaultNote } from '@/workbench/note-delete-lifecycle'
 import type { RenamePlanPreview } from '../../../shared/rename'
 
 export interface RenameRequest {
@@ -18,170 +19,46 @@ export interface RenameRequest {
 
 interface UseVaultSessionOptions {
   vault: VaultInfo | null
-  selectedVaultPath: string | null
   setVault: Dispatch<SetStateAction<VaultInfo | null>>
-  setSelectedVaultPath: Dispatch<SetStateAction<string | null>>
-  editor: NoteEditorController
-  textEditor: TextFileEditorController
+  workbench: WorkbenchController
   noteIndex: NoteIndexController
+  appSettings: AppSettingsController
   onError: (message: string | null) => void
   showToast: (message: string) => void
 }
 
 export function useVaultSession({
   vault,
-  selectedVaultPath,
   setVault,
-  setSelectedVaultPath,
-  editor,
-  textEditor,
+  workbench,
   noteIndex,
+  appSettings,
   onError,
   showToast
 }: UseVaultSessionOptions) {
   const [isOpening, setIsOpening] = useState(false)
-  const [sortMode, setSortMode] = useState<FileTreeSortMode>('name')
+  const sortMode = appSettings.snapshot?.fileTreeSort ?? DEFAULT_APP_SETTINGS_SNAPSHOT.fileTreeSort
   const [vaultOpsPending, setVaultOpsPending] = useState(false)
   const [trashCount, setTrashCount] = useState(0)
   const [renameRequest, setRenameRequest] = useState<RenameRequest | null>(null)
   const prevVaultRef = useRef(vault)
-  const selectionRequestRef = useRef(0)
-  const selectedVaultPathRef = useRef(selectedVaultPath)
-  selectedVaultPathRef.current = selectedVaultPath
-
-  const { clearSelectedFile, loadFile, resetEditor, saveCurrentFile, selectedPathRef } = editor
-  const {
-    cancelPendingLoad: cancelPendingTextLoad,
-    loadFile: loadTextFile,
-    resetEditor: resetTextEditor,
-    saveCurrentFile: saveCurrentTextFile,
-    selectedPathRef: selectedTextPathRef
-  } = textEditor
   const { bumpIndexRevision, indexRevision, setIndexNotes } = noteIndex
 
   const selectNote = useCallback(
-    async (relativePath: string, saveBeforeLoad = true): Promise<void> => {
-      const requestId = selectionRequestRef.current + 1
-      selectionRequestRef.current = requestId
-      const previousUiPath = selectedVaultPathRef.current
-      const rollbackPath = isEditableTextPath(previousUiPath)
-        ? selectedTextPathRef.current
-        : previousUiPath
-      cancelPendingTextLoad()
-
-      if (isEditableTextPath(previousUiPath)) {
-        const saved = await saveCurrentTextFile()
-
-        if (requestId !== selectionRequestRef.current) {
-          return
-        }
-
-        if (!saved) {
-          setSelectedVaultPath((currentPath) =>
-            currentPath === previousUiPath ? rollbackPath : currentPath
-          )
-          return
-        }
-      }
-
-      if (requestId !== selectionRequestRef.current) {
-        return
-      }
-
-      setSelectedVaultPath(relativePath)
-      await loadFile(relativePath, saveBeforeLoad)
+    async (relativePath: string, _saveBeforeLoad = true): Promise<boolean> => {
+      return workbench.openOrActivate(relativePath)
     },
-    [
-      cancelPendingTextLoad,
-      loadFile,
-      saveCurrentTextFile,
-      selectedTextPathRef,
-      setSelectedVaultPath
-    ]
-  )
-
-  const selectTextFile = useCallback(
-    async (relativePath: string): Promise<void> => {
-      const requestId = selectionRequestRef.current + 1
-      selectionRequestRef.current = requestId
-      const previousUiPath = selectedVaultPathRef.current
-      const rollbackPath = isEditableTextPath(previousUiPath)
-        ? selectedTextPathRef.current
-        : previousUiPath
-
-      if (isNotePath(previousUiPath) && !(await saveCurrentFile())) {
-        return
-      }
-
-      if (requestId !== selectionRequestRef.current) {
-        return
-      }
-
-      setSelectedVaultPath(relativePath)
-      const result = await loadTextFile(relativePath)
-
-      if (requestId === selectionRequestRef.current && result === 'save-failed') {
-        setSelectedVaultPath((currentPath) =>
-          currentPath === relativePath ? rollbackPath : currentPath
-        )
-      }
-    },
-    [loadTextFile, saveCurrentFile, selectedTextPathRef, setSelectedVaultPath]
-  )
-
-  const selectNonEditableFile = useCallback(
-    async (relativePath: string): Promise<void> => {
-      const requestId = selectionRequestRef.current + 1
-      selectionRequestRef.current = requestId
-      const currentPath = selectedVaultPathRef.current
-      const rollbackPath = isEditableTextPath(currentPath)
-        ? selectedTextPathRef.current
-        : currentPath
-      cancelPendingTextLoad()
-      const saved = isNotePath(currentPath)
-        ? await saveCurrentFile()
-        : !isEditableTextPath(currentPath) || (await saveCurrentTextFile())
-
-      if (requestId !== selectionRequestRef.current) {
-        return
-      }
-
-      if (!saved) {
-        setSelectedVaultPath((selectedPath) =>
-          selectedPath === currentPath ? rollbackPath : selectedPath
-        )
-        return
-      }
-
-      setSelectedVaultPath(relativePath)
-    },
-    [
-      cancelPendingTextLoad,
-      saveCurrentFile,
-      saveCurrentTextFile,
-      selectedTextPathRef,
-      setSelectedVaultPath
-    ]
+    [workbench.openOrActivate]
   )
 
   const selectTreeFile = useCallback(
-    (relativePath: string): void => {
-      if (isNotePath(relativePath)) {
-        void selectNote(relativePath)
-        return
-      }
-
-      if (isEditableTextPath(relativePath)) {
-        void selectTextFile(relativePath)
-        return
-      }
-
-      void selectNonEditableFile(relativePath)
+    (relativePath: string): Promise<boolean> => {
+      return workbench.openOrActivate(relativePath)
     },
-    [selectNonEditableFile, selectNote, selectTextFile]
+    [workbench.openOrActivate]
   )
 
-  const refreshVaultSnapshot = useCallback(async (): Promise<void> => {
+  const refreshVaultSnapshot = useCallback(async (): Promise<VaultTreeFile[]> => {
     const [files, treeFiles, notes] = await Promise.all([
       window.vaultApi.listFiles(),
       window.vaultApi.listTreeFiles(),
@@ -200,6 +77,7 @@ export function useVaultSession({
       }
     })
     setIndexNotes(notes)
+    return treeFiles
   }, [setIndexNotes, setVault])
 
   const refreshNoteSnapshot = useCallback(async (): Promise<void> => {
@@ -211,27 +89,8 @@ export function useVaultSession({
 
   const refreshTreeSnapshot = useCallback(async (): Promise<void> => {
     const treeFiles = await window.vaultApi.listTreeFiles()
-    const availablePaths = new Set(treeFiles.map((file) => file.relativePath))
-
     setVault((currentVault) => (currentVault ? { ...currentVault, treeFiles } : currentVault))
-    setSelectedVaultPath((currentPath) => {
-      if (!currentPath || availablePaths.has(currentPath)) {
-        return currentPath
-      }
-
-      if (isNotePath(currentPath)) {
-        const editorPath = selectedPathRef.current
-        return editorPath && availablePaths.has(editorPath) ? editorPath : null
-      }
-
-      if (isEditableTextPath(currentPath)) {
-        const textEditorPath = selectedTextPathRef.current
-        return textEditorPath && availablePaths.has(textEditorPath) ? textEditorPath : null
-      }
-
-      return null
-    })
-  }, [selectedPathRef, selectedTextPathRef, setSelectedVaultPath, setVault])
+  }, [setVault])
 
   const refreshTrashCount = useCallback(async (): Promise<void> => {
     try {
@@ -243,13 +102,20 @@ export function useVaultSession({
   }, [])
 
   const createNote = useCallback(
-    async (relativePath: string, content: string): Promise<void> => {
-      await saveCurrentFile()
-      const createdPath = await window.vaultApi.createFile(relativePath, content)
-      await refreshVaultSnapshot()
-      await selectNote(createdPath, false)
-    },
-    [refreshVaultSnapshot, saveCurrentFile, selectNote]
+    (relativePath: string, content: string): Promise<string> =>
+      createAndOpenVaultNote({
+        relativePath,
+        content,
+        saveActiveItem: workbench.saveActiveItem,
+        createFile: window.vaultApi.createFile,
+        refreshVaultSnapshot,
+        openCreatedFile: (createdPath, file) =>
+          workbench.openOrActivate(createdPath, { knownFile: file }),
+        rollbackCreatedFile: async (createdPath) => {
+          await window.vaultApi.deleteFile(createdPath)
+        }
+      }),
+    [refreshVaultSnapshot, workbench.openOrActivate, workbench.saveActiveItem]
   )
 
   const handleDelete = useCallback(
@@ -257,12 +123,17 @@ export function useVaultSession({
       setVaultOpsPending(true)
       onError(null)
       try {
-        await window.vaultApi.deleteFile(relativePath)
-        clearSelectedFile(relativePath)
-        setSelectedVaultPath((currentPath) => (currentPath === relativePath ? null : currentPath))
-        await refreshVaultSnapshot()
-        await refreshTrashCount()
-        showToast(`Moved "${deriveNoteTitle(relativePath)}" to trash`)
+        await deleteVaultNote({
+          prepareDelete: () => workbench.prepareNoteMutation(relativePath),
+          deleteFile: async () => {
+            await window.vaultApi.deleteFile(relativePath)
+          },
+          refreshAfterDelete: async () => {
+            await Promise.all([refreshVaultSnapshot(), refreshTrashCount()])
+          },
+          commitDelete: () => workbench.commitNoteDelete(relativePath),
+          reportSuccess: () => showToast(`Moved "${deriveNoteTitle(relativePath)}" to trash`)
+        })
       } catch (deleteError) {
         onError(formatError(deleteError))
       } finally {
@@ -270,12 +141,12 @@ export function useVaultSession({
       }
     },
     [
-      clearSelectedFile,
       onError,
       refreshTrashCount,
       refreshVaultSnapshot,
-      setSelectedVaultPath,
-      showToast
+      showToast,
+      workbench.commitNoteDelete,
+      workbench.prepareNoteMutation
     ]
   )
 
@@ -285,21 +156,16 @@ export function useVaultSession({
       toRelativePath: string,
       updateLinks: boolean
     ): Promise<void> => {
+      const activePath = workbench.activePath
       const result = await window.vaultApi.renameFile(fromRelativePath, toRelativePath, updateLinks)
-      const activePath = selectedPathRef.current
-      const reloadPath =
-        activePath === fromRelativePath
-          ? result.newRelativePath
-          : activePath && result.rewrittenFiles.includes(activePath)
-            ? activePath
-            : null
+      workbench.commitNoteRename(fromRelativePath, result.newRelativePath)
 
-      if (reloadPath) {
-        await selectNote(reloadPath, false)
-      } else {
-        setSelectedVaultPath((currentPath) =>
-          currentPath === fromRelativePath ? result.newRelativePath : currentPath
-        )
+      if (
+        activePath &&
+        activePath !== fromRelativePath &&
+        result.rewrittenFiles.includes(activePath)
+      ) {
+        await workbench.reloadActiveItem()
       }
 
       await refreshVaultSnapshot()
@@ -309,7 +175,13 @@ export function useVaultSession({
           : `Renamed to "${deriveNoteTitle(result.newRelativePath)}"`
       )
     },
-    [refreshVaultSnapshot, selectNote, selectedPathRef, setSelectedVaultPath, showToast]
+    [
+      refreshVaultSnapshot,
+      showToast,
+      workbench.activePath,
+      workbench.commitNoteRename,
+      workbench.reloadActiveItem
+    ]
   )
 
   const commitRename = useCallback(
@@ -322,7 +194,10 @@ export function useVaultSession({
       onError(null)
 
       try {
-        if (!(await saveCurrentFile())) {
+        if (!(await workbench.saveActiveItem())) {
+          return
+        }
+        if (!(await workbench.prepareNoteMutation(fromRelativePath))) {
           return
         }
 
@@ -334,7 +209,7 @@ export function useVaultSession({
         setVaultOpsPending(false)
       }
     },
-    [applyRename, onError, saveCurrentFile]
+    [applyRename, onError, workbench.prepareNoteMutation, workbench.saveActiveItem]
   )
 
   const handleRename = useCallback(
@@ -347,7 +222,10 @@ export function useVaultSession({
       onError(null)
 
       try {
-        if (!(await saveCurrentFile())) {
+        if (!(await workbench.saveActiveItem())) {
+          return
+        }
+        if (!(await workbench.prepareNoteMutation(fromRelativePath))) {
           return
         }
 
@@ -364,7 +242,7 @@ export function useVaultSession({
         setVaultOpsPending(false)
       }
     },
-    [applyRename, onError, saveCurrentFile]
+    [applyRename, onError, workbench.prepareNoteMutation, workbench.saveActiveItem]
   )
 
   const handleDuplicate = useCallback(
@@ -373,8 +251,14 @@ export function useVaultSession({
       onError(null)
       try {
         const newPath = await window.vaultApi.duplicateFile(relativePath)
-        await refreshVaultSnapshot()
-        await selectNote(newPath, false)
+        const opened = await openRefreshedVaultFile({
+          relativePath: newPath,
+          refreshVaultSnapshot,
+          openFile: (path, file) => workbench.openOrActivate(path, { knownFile: file })
+        })
+        if (!opened) {
+          return
+        }
         showToast(`Duplicated to "${deriveNoteTitle(newPath)}"`)
       } catch (duplicateError) {
         onError(formatError(duplicateError))
@@ -382,7 +266,7 @@ export function useVaultSession({
         setVaultOpsPending(false)
       }
     },
-    [onError, refreshVaultSnapshot, selectNote, showToast]
+    [onError, refreshVaultSnapshot, showToast, workbench.openOrActivate]
   )
 
   const handleRevealInExplorer = useCallback(
@@ -423,20 +307,17 @@ export function useVaultSession({
     }
   }, [onError, refreshTrashCount, showToast])
 
-  const handleSortModeChange = useCallback((next: FileTreeSortMode): void => {
-    setSortMode(next)
-    void window.appApi.setFileTreeSort(next).catch(() => {
-      // Persistence is best-effort — the in-memory sort still applies.
-    })
-  }, [])
+  const handleSortModeChange = useCallback(
+    async (next: FileTreeSortMode): Promise<void> => {
+      await appSettings.updateSettings({ fileTreeSort: next })
+    },
+    [appSettings.updateSettings]
+  )
 
   useEffect(() => {
     if (!vault) {
       return
     }
-    void window.appApi.getFileTreeSort().then((persisted) => {
-      setSortMode(persisted)
-    })
     queueMicrotask(() => {
       void refreshTrashCount()
     })
@@ -467,12 +348,11 @@ export function useVaultSession({
         return
       }
 
+      workbench.resetForVault(openedVault)
+      setIndexNotes([])
       setVault(openedVault)
       setIndexNotes(await window.indexApi.notes())
       bumpIndexRevision()
-      resetEditor()
-      resetTextEditor()
-      setSelectedVaultPath(null)
 
       const firstFile =
         openedVault.files.find((file) => file.relativePath.endsWith('/Welcome.mdx')) ??
@@ -480,24 +360,14 @@ export function useVaultSession({
         openedVault.files[0]
 
       if (firstFile) {
-        await selectNote(firstFile.relativePath, false)
+        await workbench.openOrActivate(firstFile.relativePath)
       }
     },
-    [
-      bumpIndexRevision,
-      resetEditor,
-      resetTextEditor,
-      selectNote,
-      setIndexNotes,
-      setSelectedVaultPath,
-      setVault
-    ]
+    [bumpIndexRevision, setIndexNotes, setVault, workbench.openOrActivate, workbench.resetForVault]
   )
 
   const openVault = useCallback(async (): Promise<void> => {
-    const [noteSaved, textSaved] = await Promise.all([saveCurrentFile(), saveCurrentTextFile()])
-
-    if (!noteSaved || !textSaved) {
+    if (!(await workbench.saveActiveItem())) {
       return
     }
 
@@ -512,7 +382,7 @@ export function useVaultSession({
     } finally {
       setIsOpening(false)
     }
-  }, [onError, openVaultInternal, saveCurrentFile, saveCurrentTextFile])
+  }, [onError, openVaultInternal, workbench.saveActiveItem])
 
   const reopenVault = useCallback(
     async (path: string): Promise<boolean> => {
@@ -532,6 +402,8 @@ export function useVaultSession({
     },
     [onError, openVaultInternal]
   )
+  const startupReopenRef = useRef(reopenVault)
+  startupReopenRef.current = reopenVault
 
   useEffect(() => {
     let cancelled = false
@@ -540,13 +412,13 @@ export function useVaultSession({
       if (cancelled || !path) {
         return
       }
-      void reopenVault(path)
+      void startupReopenRef.current(path)
     })
 
     return () => {
       cancelled = true
     }
-  }, [reopenVault])
+  }, [])
 
   useEffect(() => {
     if (!vault) {

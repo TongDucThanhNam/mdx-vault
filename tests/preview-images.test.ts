@@ -90,7 +90,8 @@ describe('preview image blobs', () => {
         return 'AQIDBA=='
       },
       createObjectUrl: () => `blob:test-${++objectUrlSequence}`,
-      revokeObjectUrl: (url) => revoked.push(url)
+      revokeObjectUrl: (url) => revoked.push(url),
+      decodeObjectUrl: async () => undefined
     })
 
     const [first, second] = await Promise.all([
@@ -107,5 +108,35 @@ describe('preview image blobs', () => {
 
     expect(await cache.load('assets/sample.png')).toBe('blob:test-2')
     expect(readCount).toBe(2)
+  })
+
+  test('rejects corrupt image bytes before exposing the object URL and allows retry', async () => {
+    let readCount = 0
+    let objectUrlSequence = 0
+    let shouldDecode = false
+    const revoked: string[] = []
+    const cache = new PreviewImageCache({
+      readImageFile: async () => {
+        readCount += 1
+        return 'AQIDBA=='
+      },
+      createObjectUrl: () => `blob:test-${++objectUrlSequence}`,
+      revokeObjectUrl: (url) => revoked.push(url),
+      decodeObjectUrl: async () => {
+        if (!shouldDecode) {
+          throw new Error('browser decode failed')
+        }
+      }
+    })
+
+    await expect(cache.load('images/sample.png')).rejects.toThrow('Image data could not be decoded')
+    expect(revoked).toEqual(['blob:test-1'])
+
+    shouldDecode = true
+    expect(await cache.load('images/sample.png')).toBe('blob:test-2')
+    expect(readCount).toBe(2)
+
+    cache.dispose()
+    expect(revoked).toEqual(['blob:test-1', 'blob:test-2'])
   })
 })

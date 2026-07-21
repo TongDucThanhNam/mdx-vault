@@ -9,7 +9,7 @@ export function EditorHeader({ selectedPath, children }: EditorHeaderProps): Rea
   const pathParts = selectedPath?.split(/[\\/]/).filter(Boolean) ?? []
 
   return (
-    <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--paper-dark)] pl-3">
+    <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] bg-background pl-3">
       {pathParts.length > 0 ? (
         <nav
           className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden font-mono text-[11px]"

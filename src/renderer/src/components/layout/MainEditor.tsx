@@ -1,9 +1,10 @@
 import { Save } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
-import type { CommandAction } from '@/commands/actions'
+import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
 import { EditorHeader } from '@/components/layout/EditorHeader'
+import { EditorTabs } from '@/components/layout/EditorTabs'
 import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/VaultFilePreview'
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import type { GotoDefinitionTarget } from '@/editor/goto-definition'
@@ -17,6 +18,7 @@ import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
 import { useReadingZoom } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
+import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
 import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
@@ -25,13 +27,13 @@ import { resolveWikilinkTarget } from '../../../../shared/wikilinks'
 interface MainEditorProps {
   viewMode: ViewMode
   selectedPath: string | null
-  commandActions: CommandAction[]
+  editorTabs: WorkbenchController
+  commandActions: CommandActionRegistry
   editor: NoteEditorController
   textEditor: TextFileEditorController
   noteIndex: NoteIndexController
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
-  setViewMode: (mode: ViewMode) => void
   onReadingZoomStatusChange: (status: ReadingZoomStatus | null) => void
   onRevealInExplorer: (relativePath: string) => void
   onError: (message: string | null) => void
@@ -45,13 +47,13 @@ export interface ReadingZoomStatus {
 export function MainEditor({
   viewMode,
   selectedPath,
+  editorTabs,
   commandActions,
   editor,
   textEditor,
   noteIndex,
   noteActions,
   editorInteractions,
-  setViewMode,
   onReadingZoomStatusChange,
   onRevealInExplorer,
   onError
@@ -64,6 +66,8 @@ export function MainEditor({
   const noteSelected = isNotePath(selectedPath)
   const imageSelected = isPreviewableVaultImagePath(selectedPath)
   const textSelected = isEditableTextPath(selectedPath)
+  const activeItem = editorTabs.activeItem
+  const activeItemMissing = activeItem?.id === selectedPath && activeItem.missing
   const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
   const {
@@ -132,11 +136,24 @@ export function MainEditor({
   return (
     <section
       aria-label="Document"
-      className="flex min-h-0 min-w-0 flex-col border-r-2 border-foreground bg-card/50"
+      data-document-surface="active"
+      tabIndex={-1}
+      className="flex min-h-0 min-w-0 flex-col border-r-2 border-foreground bg-background"
     >
+      <EditorTabs
+        items={editorTabs.tabs}
+        activeId={editorTabs.activePath}
+        onActivate={(relativePath) => void editorTabs.openOrActivate(relativePath)}
+        onClose={(relativePath) =>
+          commandActions.dispatch('workbench.close-item', { id: relativePath })
+        }
+      />
       <EditorHeader selectedPath={selectedPath}>
         {noteSelected ? (
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <ViewModeToggle
+            value={viewMode}
+            onChange={(mode) => void commandActions.dispatch(`view.${mode}`)}
+          />
         ) : selectedPath ? (
           <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
             {imageSelected && selectedImageMetadata
@@ -147,6 +164,14 @@ export function MainEditor({
           </span>
         ) : null}
       </EditorHeader>
+      {activeItemMissing ? (
+        <div
+          role="status"
+          className="shrink-0 border-b border-destructive bg-destructive/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-destructive"
+        >
+          File deleted outside mdx-vault · Session content is preserved · Autosave paused
+        </div>
+      ) : null}
       <div className="relative min-h-0 flex-1">
         {noteSelected ? (
           editor.isLoadingFile ? (
@@ -180,7 +205,7 @@ export function MainEditor({
                 onChange={editor.setContent}
                 displayMode={viewMode}
                 notes={noteIndex.indexNotes}
-                commandActions={commandActions}
+                commandActions={commandActions.actions}
                 insertRequest={noteActions.editorInsertRequest}
                 revealLineRequest={editorInteractions.revealLineRequest}
                 onSelectionChange={editorInteractions.handleEditorSelectionChange}
@@ -199,10 +224,11 @@ export function MainEditor({
               />
             </>
           )
-        ) : imageSelected ? (
+        ) : imageSelected && !activeItemMissing && editorTabs.activeImageObjectUrl ? (
           <VaultImagePreview
-            key={selectedPath}
+            key={`${selectedPath}:${editorTabs.activeImageObjectUrl}`}
             relativePath={selectedPath}
+            objectUrl={editorTabs.activeImageObjectUrl}
             onDimensionsChange={({ width, height }) =>
               setImageMetadata({ relativePath: selectedPath, width, height })
             }

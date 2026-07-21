@@ -34,7 +34,7 @@ afterAll(() => {
 })
 
 describe('GOAL-16 vault file IPC', () => {
-  test('blocks traversal, absolute paths, and .trash paths on all three channels', async () => {
+  test('blocks traversal, absolute paths, and .trash paths on every direct-access channel', async () => {
     const base = await mkdtemp(join(tmpdir(), 'mdx-vault-goal16-ipc-'))
     const root = join(base, 'vault')
     const vault = new VaultService(root)
@@ -61,6 +61,11 @@ describe('GOAL-16 vault file IPC', () => {
           channel: 'vault:read-image-file',
           paths: ['../outside.png', join(base, 'outside.png'), '.trash/hidden.png'],
           payload: (relativePath: string) => ({ relativePath })
+        },
+        {
+          channel: 'vault:probe-file',
+          paths: ['../outside.png', join(base, 'outside.png'), '.trash/hidden.png'],
+          payload: (relativePath: string) => ({ relativePath })
         }
       ]
 
@@ -68,7 +73,8 @@ describe('GOAL-16 vault file IPC', () => {
         const handler = requireHandler(ipcCase.channel)
 
         for (const path of ipcCase.paths) {
-          const result = await handler({}, ipcCase.payload(path))
+          const event = ipcCase.channel === 'vault:probe-file' ? mainFrameEvent() : {}
+          const result = await handler(event, ipcCase.payload(path))
           expect(result.ok).toBe(false)
           expect(result.error?.code).toBe('VAULT_ERROR')
         }
@@ -89,15 +95,42 @@ describe('GOAL-16 vault file IPC', () => {
       for (const channel of [
         'vault:read-text-file',
         'vault:write-text-file',
-        'vault:read-image-file'
+        'vault:read-image-file',
+        'vault:probe-file'
       ]) {
-        const result = await requireHandler(channel)({}, {})
+        const event = channel === 'vault:probe-file' ? mainFrameEvent() : {}
+        const result = await requireHandler(channel)(event, {})
         expect(result.ok).toBe(false)
         expect(result.error?.code).toBe('VALIDATION_FAILED')
       }
     } finally {
       ipcHandlers.clear()
       await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('rejects missing and child-frame probe callers before file access', async () => {
+    let probeCount = 0
+    const vault = {
+      probeFile: async () => {
+        probeCount += 1
+      }
+    } as unknown as VaultService
+
+    try {
+      registerVaultFileAccessIpc(() => vault)
+      const probe = requireHandler('vault:probe-file')
+
+      for (const event of [{ sender: { mainFrame: {} } }, childFrameEvent()]) {
+        const result = await probe(event, { relativePath: 'archive.bin' })
+        expect(result.ok).toBe(false)
+        expect(result.error?.code).toBe('VAULT_ERROR')
+        expect(result.error?.message).toContain('main renderer frame')
+      }
+
+      expect(probeCount).toBe(0)
+    } finally {
+      ipcHandlers.clear()
     }
   })
 })
@@ -110,6 +143,15 @@ function requireHandler(channel: string): IpcHandler {
   }
 
   return handler
+}
+
+function mainFrameEvent(): unknown {
+  const mainFrame = {}
+  return { senderFrame: mainFrame, sender: { mainFrame } }
+}
+
+function childFrameEvent(): unknown {
+  return { senderFrame: {}, sender: { mainFrame: {} } }
 }
 
 async function writeFixture(

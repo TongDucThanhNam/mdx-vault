@@ -1,6 +1,7 @@
 import {
   BrowserWindow,
   dialog,
+  type IpcMainInvokeEvent,
   ipcMain,
   type OpenDialogOptions,
   type OpenDialogReturnValue,
@@ -57,6 +58,9 @@ const readTextFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
 const readImageFilePayloadSchema = z.object({
+  relativePath: z.string().min(1)
+})
+const probeFilePayloadSchema = z.object({
   relativePath: z.string().min(1)
 })
 const writeFilePayloadSchema = z.object({
@@ -355,6 +359,20 @@ export function registerVaultFileAccessIpc(
       return getVault().readImageFile(input.relativePath)
     })
   })
+
+  ipcMain.handle('vault:probe-file', (event, payload): Promise<IpcResult<void>> => {
+    return handleVaultRequest(async () => {
+      assertMainFrame(event)
+      const input = probeFilePayloadSchema.parse(payload)
+      await getVault().probeFile(input.relativePath)
+    })
+  })
+}
+
+function assertMainFrame(event: IpcMainInvokeEvent): void {
+  if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame) {
+    throw new Error('Vault file access IPC is only available to the main renderer frame')
+  }
 }
 
 async function showOpenVaultDialog(window: BrowserWindow | null): Promise<OpenDialogReturnValue> {

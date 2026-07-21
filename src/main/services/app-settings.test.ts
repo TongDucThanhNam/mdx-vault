@@ -1,19 +1,25 @@
-import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
-import { AppSettingsService, DEFAULT_EDITOR_FONT_SIZE } from './app-settings'
+import {
+  AppSettingsService,
+  DEFAULT_EDITOR_FONT_SIZE,
+  MAX_KEYMAP_BINDINGS_PER_ACTION
+} from './app-settings'
 
 declare function describe(name: string, run: () => void): void
 declare function test(name: string, run: () => void | Promise<void>): void
 declare function expect<T>(actual: T): {
-  toBe(expected: T): void
+  toBe(expected: unknown): void
+  toEqual(expected: unknown): void
   toContain(expected: string): void
+  toHaveLength(expected: number): void
   not: { toContain(expected: string): void }
 }
 
-describe('AppSettingsService v2', () => {
-  test('migrates a v1 settings file with the default editor font size', async () => {
+describe('AppSettingsService v3', () => {
+  test('migrates a v1 settings file losslessly and supplies v3 workbench defaults', async () => {
     await withSettingsDirectory(async (root) => {
       await writeSettings(root, {
         version: 1,
@@ -24,47 +30,124 @@ describe('AppSettingsService v2', () => {
 
       const settings = await new AppSettingsService(root).read()
 
-      expect(settings.version).toBe(2)
+      expect(settings.version).toBe(3)
       expect(settings.lastVaultPath).toBe('C:\\notes')
       expect(settings.theme).toBe('dark')
       expect(settings.fileTreeSort).toBe('modified-desc')
       expect(settings.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
+      expect(settings.workbench).toEqual({
+        activateOnClose: 'history',
+        whenClosingWithNoTabs: 'keep_window_open'
+      })
+      expect(settings.keymapOverrides).toEqual({})
     })
   })
 
-  test('returns v2 defaults for corrupt JSON without throwing', async () => {
+  test('migrates every v2 field to v3 without changing its value', async () => {
     await withSettingsDirectory(async (root) => {
-      await writeFile(join(root, 'app-settings.json'), '{not-json', 'utf8')
+      await writeSettings(root, {
+        version: 2,
+        lastVaultPath: 'D:\\vault',
+        theme: 'light',
+        fileTreeSort: 'created-desc',
+        editorFontSize: 18.5
+      })
 
       const settings = await new AppSettingsService(root).read()
 
-      expect(settings.version).toBe(2)
-      expect(settings.lastVaultPath).toBe(null)
-      expect(settings.theme).toBe('system')
-      expect(settings.fileTreeSort).toBe('name')
-      expect(settings.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
+      expect(settings.version).toBe(3)
+      expect(settings.lastVaultPath).toBe('D:\\vault')
+      expect(settings.theme).toBe('light')
+      expect(settings.fileTreeSort).toBe('created-desc')
+      expect(settings.editorFontSize).toBe(18.5)
     })
   })
 
-  test('normalizes invalid font sizes and clamps finite numbers to 12–20', async () => {
+  test('returns clean v3 defaults for missing, corrupt, and non-object JSON', async () => {
+    await withSettingsDirectory(async (root) => {
+      const service = new AppSettingsService(root)
+      expect((await service.read()).version).toBe(3)
+
+      await writeFile(join(root, 'app-settings.json'), '{not-json', 'utf8')
+      const corrupt = await service.read()
+      expect(corrupt.theme).toBe('system')
+      expect(corrupt.workbench.activateOnClose).toBe('history')
+
+      await writeFile(join(root, 'app-settings.json'), 'null', 'utf8')
+      const nonObject = await service.read()
+      expect(nonObject.fileTreeSort).toBe('name')
+      expect(nonObject.keymapOverrides).toEqual({})
+    })
+  })
+
+  test('normalizes invalid fields and clamps finite font sizes to 12–20', async () => {
     await withSettingsDirectory(async (root) => {
       const service = new AppSettingsService(root)
 
-      await writeSettings(root, { version: 2, editorFontSize: 'large' })
-      expect((await service.read()).editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
+      await writeSettings(root, {
+        version: 3,
+        theme: 'neon',
+        fileTreeSort: 'size',
+        editorFontSize: 'large',
+        workbench: {
+          activateOnClose: 'newest',
+          whenClosingWithNoTabs: 'quit_app'
+        }
+      })
+      const invalid = await service.read()
+      expect(invalid.theme).toBe('system')
+      expect(invalid.fileTreeSort).toBe('name')
+      expect(invalid.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
+      expect(invalid.workbench.activateOnClose).toBe('history')
+      expect(invalid.workbench.whenClosingWithNoTabs).toBe('keep_window_open')
 
-      await writeSettings(root, { version: 2, editorFontSize: 8 })
+      await writeSettings(root, { version: 3, editorFontSize: 8 })
       expect((await service.read()).editorFontSize).toBe(12)
 
-      await writeSettings(root, { version: 2, editorFontSize: 24 })
+      await writeSettings(root, { version: 3, editorFontSize: 24 })
       expect((await service.read()).editorFontSize).toBe(20)
-
-      await writeSettings(root, { version: 2, editorFontSize: 16.5 })
-      expect((await service.read()).editorFontSize).toBe(16.5)
     })
   })
 
-  test('round-trips v2 settings and never carries unknown secret fields forward', async () => {
+  test('bounds, canonicalizes, deduplicates, and filters persisted keymap overrides', async () => {
+    await withSettingsDirectory(async (root) => {
+      const alternatives = 'ABCDEFGHIJ'.split('').map((key) => `Mod+Alt+${key}`)
+      await writeSettings(root, {
+        version: 3,
+        keymapOverrides: {
+          'note.open': [' Mod+O ', 'Mod+O'],
+          'command-palette.toggle': alternatives,
+          'unknown.action': ['Mod+U'],
+          'workbench.close-item': ['Mod+R', 'F12', 'Mod', 'P', 'Mod+K Mod+P']
+        }
+      })
+
+      const settings = await new AppSettingsService(root).read()
+
+      expect(settings.keymapOverrides['note.open']).toBe(undefined)
+      expect(settings.keymapOverrides['unknown.action']).toBe(undefined)
+      expect(settings.keymapOverrides['file.open']).toEqual(['Mod+O'])
+      expect(settings.keymapOverrides['command-palette.toggle']).toHaveLength(
+        MAX_KEYMAP_BINDINGS_PER_ACTION
+      )
+      expect(settings.keymapOverrides['command-palette.toggle'][0]).toBe('Mod+Alt+A')
+      expect(settings.keymapOverrides['workbench.close-item']).toBe(undefined)
+    })
+  })
+
+  test('preserves an explicit unbind while missing action IDs continue to mean defaults', async () => {
+    await withSettingsDirectory(async (root) => {
+      const service = new AppSettingsService(root)
+      const snapshot = await service.updateSettings({
+        keymapOverrides: { 'file.open': [] }
+      })
+
+      expect(snapshot.keymapOverrides).toEqual({ 'file.open': [] })
+      expect('workbench.close-item' in snapshot.keymapOverrides).toBe(false)
+    })
+  })
+
+  test('atomically round-trips an allowlisted snapshot and strips unknown or secret fields', async () => {
     await withSettingsDirectory(async (root) => {
       await writeSettings(root, {
         version: 2,
@@ -72,24 +155,104 @@ describe('AppSettingsService v2', () => {
         theme: 'light',
         fileTreeSort: 'created-desc',
         editorFontSize: 14,
-        apiKey: 'must-not-survive'
+        apiKey: 'must-not-survive',
+        token: 'also-secret',
+        unknown: { nested: true }
       })
       const service = new AppSettingsService(root)
 
-      await service.setTheme('dark')
-      await service.setFileTreeSort('modified-desc')
-      await service.setEditorFontSize(18.5)
+      const snapshot = await service.updateSettings({
+        theme: 'dark',
+        fileTreeSort: 'modified-desc',
+        editorFontSize: 18.5,
+        workbench: {
+          activateOnClose: 'left',
+          whenClosingWithNoTabs: 'close_window'
+        }
+      })
 
-      const settings = await service.read()
       const persisted = await readFile(join(root, 'app-settings.json'), 'utf8')
-
-      expect(settings.version).toBe(2)
-      expect(settings.theme).toBe('dark')
-      expect(settings.fileTreeSort).toBe('modified-desc')
-      expect(settings.editorFontSize).toBe(18.5)
-      expect(persisted).toContain('"editorFontSize": 18.5')
+      const files = await readdir(root)
+      expect(snapshot.version).toBe(3)
+      expect(snapshot.theme).toBe('dark')
+      expect(snapshot.workbench.activateOnClose).toBe('left')
+      expect('lastVaultPath' in snapshot).toBe(false)
+      expect(persisted).toContain('"version": 3')
       expect(persisted).not.toContain('apiKey')
       expect(persisted).not.toContain('must-not-survive')
+      expect(persisted).not.toContain('also-secret')
+      expect(persisted).not.toContain('unknown')
+      expect(files).toEqual(['app-settings.json'])
+    })
+  })
+
+  test('serializes concurrent mutations without losing independent values', async () => {
+    await withSettingsDirectory(async (root) => {
+      const service = new AppSettingsService(root)
+
+      await Promise.all([
+        service.setTheme('dark'),
+        service.setFileTreeSort('modified-desc'),
+        service.setEditorFontSize(17),
+        service.setLastVaultPath(root),
+        service.updateSettings({ workbench: { activateOnClose: 'right' } }),
+        service.updateSettings({
+          workbench: { whenClosingWithNoTabs: 'close_window' }
+        }),
+        service.updateSettings({ keymapOverrides: { 'file.open': ['Mod+O'] } })
+      ])
+
+      const settings = await service.read()
+      expect(settings.theme).toBe('dark')
+      expect(settings.fileTreeSort).toBe('modified-desc')
+      expect(settings.editorFontSize).toBe(17)
+      expect(settings.lastVaultPath).toBe(root)
+      expect(settings.workbench).toEqual({
+        activateOnClose: 'right',
+        whenClosingWithNoTabs: 'close_window'
+      })
+      expect(settings.keymapOverrides).toEqual({ 'file.open': ['Mod+O'] })
+    })
+  })
+
+  test('surfaces unreadable settings storage instead of manufacturing defaults', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'mdx-vault-app-settings-failure-'))
+    await mkdir(join(base, 'app-settings.json'))
+    const service = new AppSettingsService(base)
+
+    try {
+      let rejected = false
+      try {
+        await service.updateSettings({ theme: 'dark' })
+      } catch {
+        rejected = true
+      }
+      expect(rejected).toBe(true)
+
+      let readRejected = false
+      try {
+        await service.getSettings()
+      } catch {
+        readRejected = true
+      }
+      expect(readRejected).toBe(true)
+    } finally {
+      await rm(base, { recursive: true, force: true })
+    }
+  })
+
+  test('surfaces last-vault stat errors other than a missing path', async () => {
+    await withSettingsDirectory(async (root) => {
+      const service = new AppSettingsService(root)
+      await service.setLastVaultPath(`${root}\0invalid-vault`)
+
+      let rejected = false
+      try {
+        await service.getLastVaultPath()
+      } catch {
+        rejected = true
+      }
+      expect(rejected).toBe(true)
     })
   })
 })

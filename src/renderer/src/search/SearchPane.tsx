@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { SearchResult } from '@/vault/types'
+import { containDialogTabKey } from '@/workbench/dialog-focus'
 
 interface SearchPaneProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelectNote: (relativePath: string) => void
+  onSelectNote: (relativePath: string) => Promise<boolean>
 }
 
 export function SearchPane({
@@ -19,6 +20,7 @@ export function SearchPane({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isOpening, setIsOpening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -76,31 +78,59 @@ export function SearchPane({
     return null
   }
 
-  const selectNote = (relativePath: string): void => {
-    onSelectNote(relativePath)
-    onOpenChange(false)
+  const selectNote = async (relativePath: string): Promise<void> => {
+    if (isOpening) {
+      return
+    }
+
+    setIsOpening(true)
+    setError(null)
+    try {
+      if (await onSelectNote(relativePath)) {
+        onOpenChange(false)
+      } else {
+        setError(`Could not open “${relativePath}”. Your current item is still active.`)
+      }
+    } catch (openError) {
+      setError(formatError(openError))
+    } finally {
+      setIsOpening(false)
+    }
   }
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
     if (event.key === 'Escape') {
       event.preventDefault()
+      event.stopPropagation()
       onOpenChange(false)
       return
     }
 
-    if (event.key === 'Enter' && results[0]) {
+    if (event.target === inputRef.current && event.key === 'Enter' && results[0]) {
       event.preventDefault()
-      selectNote(results[0].note.relativePath)
+      void selectNote(results[0].note.relativePath)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onOpenChange(false)
+        }
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Search notes"
+        tabIndex={-1}
         className="flex max-h-[76vh] w-full max-w-2xl flex-col overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        onKeyDown={(event) => {
+          handleKeyDown(event)
+          containDialogTabKey(event, event.currentTarget)
+        }}
       >
         <div className="flex h-12 shrink-0 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -114,7 +144,6 @@ export function SearchPane({
             placeholder="Search notes, tag:idea, path:notes, file:daily, /regex/…"
             aria-label="Search notes"
             onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={handleKeyDown}
           />
           <Button
             type="button"
@@ -150,7 +179,8 @@ export function SearchPane({
                   type="button"
                   className="w-full px-3 py-2.5 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
                   title={result.note.relativePath}
-                  onClick={() => selectNote(result.note.relativePath)}
+                  disabled={isOpening}
+                  onClick={() => void selectNote(result.note.relativePath)}
                 >
                   <div className="truncate text-sm font-medium">{result.note.title}</div>
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
