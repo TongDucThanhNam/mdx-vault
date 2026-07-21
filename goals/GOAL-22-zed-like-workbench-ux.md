@@ -386,18 +386,24 @@ Capture screenshots only for ambiguous failures or focus/state evidence. Do not 
 
 ## Evidence Snapshot — 2026-07-21
 
-- Full repository gates: `bun test` (226 pass, 0 fail), `bun run typecheck`,
-  `bun run lint`, `bun run build`, and `git diff --check` all exit 0.
+- Implementation commit: `9975384` (`fix: harden goal 22 workbench behaviors`).
+- Full repository gates: `bun test` (245 pass, 0 fail; 1,721 assertions across
+  47 files), `bun run typecheck`, `bun run lint` (291 files), `bun run build`,
+  and `git diff --check` all exit 0.
 - Focused suites cover the workbench reducer/controller/resource transactions,
-  editor adapters/view state, File Finder, action registry, keybinding contexts,
-  Settings v3 service/catalog/reconciliation/IPC, native shortcut policy, isolated
-  `userData`, image staging, unsupported probes, and existing-file write safety.
+  vault-switch lifecycle, editor adapters/view state and real undo/redo, File Finder,
+  action registry, keybinding contexts, legacy Palette persistence, effective menu
+  hints, Reading wikilink activation, Settings v3 service/catalog/reconciliation/IPC,
+  native shortcut policy, isolated `userData`, image staging, unsupported probes, and
+  existing-file write safety.
 - The Windows disposable-vault record is
   [docs/verification/goal-22-windows-live-pass.md](../docs/verification/goal-22-windows-live-pass.md).
   It records every required scenario and final profile reset. The direct disposable
-  vault switch, immediate dirty-MDX close, and protected AI-field paste/undo now have
-  live Windows evidence. Live macOS remains explicitly unavailable, and the in-app
-  delete click awaits action-time destructive confirmation rather than being claimed.
+  vault switch, immediate dirty-MDX close, all modal dismissal paths, full tab keyboard
+  model, per-tab view restoration, live Windows redo, and protected AI-field paste/undo
+  have live Windows evidence. Live macOS/IME remain explicitly unavailable; Reading
+  wikilink/definition gestures retain deterministic supplements; and the in-app delete
+  click awaits action-time destructive confirmation rather than being claimed.
 - Unrelated example-vault, research, and interactive-note work remains outside the
   GOAL-22 staging scope.
 
