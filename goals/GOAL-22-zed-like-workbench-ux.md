@@ -394,9 +394,9 @@ Capture screenshots only for ambiguous failures or focus/state evidence. Do not 
   `userData`, image staging, unsupported probes, and existing-file write safety.
 - The Windows disposable-vault record is
   [docs/verification/goal-22-windows-live-pass.md](../docs/verification/goal-22-windows-live-pass.md).
-  It records every required scenario and final profile reset. Live macOS, the
-  successful second-vault selection, an additional immediate dirty-note close, and
-  AI-field clipboard repetition remain explicit partial observations; the in-app
+  It records every required scenario and final profile reset. The direct disposable
+  vault switch, immediate dirty-MDX close, and protected AI-field paste/undo now have
+  live Windows evidence. Live macOS remains explicitly unavailable, and the in-app
   delete click awaits action-time destructive confirmation rather than being claimed.
 - Unrelated example-vault, research, and interactive-note work remains outside the
   GOAL-22 staging scope.
