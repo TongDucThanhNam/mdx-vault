@@ -27,6 +27,12 @@ export const primerTermRegistryEntry = defineRegistryEntry({
   propsSchema: primerTermPropsSchema,
   description: 'One primer term with a concise definition and optional internal link.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/primer-term.ts',
+    entryExport: 'primerTermRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<NotePrimer>
   <PrimerTerm term="cache line" href="#mechanism">The transfer unit between RAM and cache.</PrimerTerm>
 </NotePrimer>`

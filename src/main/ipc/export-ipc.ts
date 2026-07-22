@@ -1,6 +1,7 @@
 import {
   BrowserWindow,
   dialog,
+  type IpcMainInvokeEvent,
   ipcMain,
   type SaveDialogOptions,
   type SaveDialogReturnValue
@@ -102,10 +103,11 @@ async function showSaveDialog(
 }
 
 async function handleExportRequest<T>(
-  _event: Parameters<Parameters<typeof ipcMain.handle>[1]>[0],
+  event: IpcMainInvokeEvent,
   operation: () => Promise<T>
 ): Promise<IpcResult<T>> {
   try {
+    assertMainFrame(event)
     return {
       ok: true,
       data: await operation()
@@ -118,7 +120,29 @@ async function handleExportRequest<T>(
   }
 }
 
+function assertMainFrame(event: IpcMainInvokeEvent): void {
+  if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame) {
+    throw new ExportIpcError(
+      'MAIN_FRAME_REQUIRED',
+      'Export is only available to the main renderer frame'
+    )
+  }
+}
+
+class ExportIpcError extends Error {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
+    super(message)
+    this.name = 'ExportIpcError'
+  }
+}
+
 function toIpcError(error: unknown): IpcFailure['error'] {
+  if (error instanceof ExportIpcError) {
+    return { code: error.code, message: error.message }
+  }
   if (error instanceof z.ZodError) {
     return {
       code: 'VALIDATION_FAILED',
@@ -136,7 +160,7 @@ function toIpcError(error: unknown): IpcFailure['error'] {
   if (error instanceof Error) {
     return {
       code: 'EXPORT_ERROR',
-      message: error.message
+      message: 'Export could not be completed safely.'
     }
   }
 

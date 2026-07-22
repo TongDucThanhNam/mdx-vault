@@ -10,42 +10,12 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-
-export type ExportMode = 'static' | 'interactive'
-
-export interface ExportScanResult {
-  noteRelativePath: string
-  noteTitle: string
-  usedComponents: string[]
-  sandboxIslands: Array<{
-    kind: 'html' | 'interactive'
-    src: string
-    resolvedPath: string
-    manifestName: string
-    permissionStatus: 'allowed' | 'denied' | 'prompt'
-    fallback?: string
-  }>
-  imageAssets: string[]
-  datasetAssets: string[]
-  wikilinkTargets: string[]
-}
-
-export interface ExportRunResult {
-  size: number
-  warnings: string[]
-  sandboxSkipped: Array<{ resolvedPath: string; reason: string }>
-}
-
-export type ExportProgressEvent =
-  | { phase: 'scan'; message: string }
-  | { phase: 'render'; message: string }
-  | { phase: 'bundle'; message: string }
-  | { phase: 'inline'; message: string }
-  | { phase: 'leak-check' }
-  | { phase: 'write' }
-  | { phase: 'done'; size: number }
-  | { phase: 'error'; code: string; message: string }
-  | { phase: 'size-warning'; totalBytes: number; thresholdBytes: number }
+import type {
+  ExportMode,
+  ExportProgressEvent,
+  ExportRunResult,
+  ExportScanResult
+} from '../../../shared/export'
 
 export interface ExportApi {
   scan: (noteRelativePath: string) => Promise<ExportScanResult>
@@ -78,7 +48,12 @@ type DialogState =
   | { kind: 'idle' }
   | { kind: 'scanning' }
   | { kind: 'ready'; scan: ExportScanResult; target: ResolvedTarget | null }
-  | { kind: 'running'; mode: ExportMode }
+  | {
+      kind: 'running'
+      mode: ExportMode
+      target: ResolvedTarget
+      scan: ExportScanResult
+    }
   | {
       kind: 'size-warning'
       mode: ExportMode
@@ -86,7 +61,7 @@ type DialogState =
       target: ResolvedTarget
       scan: ExportScanResult
     }
-  | { kind: 'done'; result: ExportRunResult; target: ResolvedTarget }
+  | { kind: 'done'; result: ExportRunResult; target: ResolvedTarget; scan: ExportScanResult }
   | { kind: 'error'; message: string }
 
 export function ExportDialog({
@@ -144,14 +119,26 @@ export function ExportDialog({
       setLatestProgress(event)
       if (event.phase === 'error') {
         setState({ kind: 'error', message: event.message })
+      } else if (event.phase === 'size-warning') {
+        setState((current) =>
+          current.kind === 'running'
+            ? {
+                kind: 'size-warning',
+                mode: current.mode,
+                totalBytes: event.totalBytes,
+                target: current.target,
+                scan: current.scan
+              }
+            : current
+        )
       }
     })
     return () => dispose()
   }, [api])
 
-  const chooseTarget = useCallback(async () => {
+  const chooseTarget = useCallback(async (): Promise<ResolvedTarget | null> => {
     if (!api || !noteRelativePath) {
-      return
+      return null
     }
     try {
       const result = await api.pickTarget({
@@ -160,22 +147,25 @@ export function ExportDialog({
         defaultFileName
       })
       if (!result) {
-        return
+        return null
       }
+      const target = { absolutePath: result.absolutePath }
       setState((current) => {
         if (current.kind === 'ready') {
-          return { ...current, target: { absolutePath: result.absolutePath } }
+          return { ...current, target }
         }
         if (current.kind === 'done') {
-          return { ...current, target: { absolutePath: result.absolutePath } }
+          return { ...current, target }
         }
         if (current.kind === 'size-warning') {
-          return { ...current, target: { absolutePath: result.absolutePath } }
+          return { ...current, target }
         }
         return current
       })
+      return target
     } catch (error) {
       setState({ kind: 'error', message: formatError(error) })
+      return null
     }
   }, [api, defaultFileName, mode, noteRelativePath])
 
@@ -184,7 +174,12 @@ export function ExportDialog({
       if (!api || !noteRelativePath) {
         return
       }
-      setState({ kind: 'running', mode })
+      const currentScan =
+        state.kind === 'ready' || state.kind === 'size-warning' || state.kind === 'done'
+          ? state.scan
+          : null
+      if (!currentScan) return
+      setState({ kind: 'running', mode, target, scan: currentScan })
       setLatestProgress(null)
       try {
         const result = await api.run({
@@ -193,24 +188,25 @@ export function ExportDialog({
           target,
           confirmedOversized
         })
-        setState({ kind: 'done', result, target })
+        setState({ kind: 'done', result, target, scan: currentScan })
       } catch (error) {
+        if (getErrorCode(error) === 'EXPORT_SIZE_CONFIRMATION_REQUIRED') {
+          return
+        }
         setState({ kind: 'error', message: formatError(error) })
       }
     },
-    [api, mode, noteRelativePath]
+    [api, mode, noteRelativePath, state]
   )
 
   const onRunClick = useCallback(() => {
-    if (state.kind !== 'ready' || !noteRelativePath) {
+    if ((state.kind !== 'ready' && state.kind !== 'done') || !noteRelativePath) {
       return
     }
-    const target = state.target
-    if (!target) {
-      void chooseTarget()
-      return
-    }
-    void runExport(target, false)
+    void (async () => {
+      const target = state.kind === 'done' || !state.target ? await chooseTarget() : state.target
+      if (target) await runExport(target, false)
+    })()
   }, [chooseTarget, noteRelativePath, runExport, state])
 
   const onConfirmOversized = useCallback(() => {
@@ -224,8 +220,17 @@ export function ExportDialog({
     return null
   }
 
-  const ready = state.kind === 'ready' || state.kind === 'done'
-  const scan = state.kind === 'ready' || state.kind === 'size-warning' ? state.scan : null
+  const scan =
+    state.kind === 'ready' ||
+    state.kind === 'size-warning' ||
+    state.kind === 'running' ||
+    state.kind === 'done'
+      ? state.scan
+      : null
+  const hasBlockingIssues = Boolean(
+    scan?.diagnostics.some((entry) => entry.severity === 'blocking' && entry.modes.includes(mode))
+  )
+  const ready = (state.kind === 'ready' || state.kind === 'done') && !hasBlockingIssues
   const running = state.kind === 'running'
 
   return (
@@ -380,6 +385,21 @@ function ScanSummary({ scan }: { scan: ExportScanResult }): React.JSX.Element {
           {scan.wikilinkTargets.length === 1 ? '' : 's'} (resolved in note, not exported)
         </li>
       </ul>
+      {scan.diagnostics.length > 0 ? (
+        <ul className="mt-3 space-y-2 border-t-2 border-foreground/20 pt-3 font-mono text-[11px]">
+          {scan.diagnostics.map((diagnostic, index) => (
+            <li
+              className={
+                diagnostic.severity === 'blocking' ? 'text-destructive' : 'text-muted-foreground'
+              }
+              key={`${diagnostic.code}-${diagnostic.line ?? 'note'}-${index}`}
+            >
+              <strong className="uppercase">{diagnostic.severity}</strong>
+              {diagnostic.line ? ` · line ${diagnostic.line}` : ''}: {diagnostic.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -425,6 +445,13 @@ function ResultPanel({ result }: { result: ExportRunResult }): React.JSX.Element
           ))}
         </ul>
       ) : null}
+      {result.fallbacksUsed.length > 0 ? (
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-muted-foreground">
+          {result.fallbacksUsed.map((fallback, index) => (
+            <li key={`${fallback}-${index}`}>Fallback: {fallback}</li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -452,11 +479,11 @@ function SizeWarningBanner({
     <div className="border-2 border-destructive bg-destructive/10 p-3 text-sm">
       <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
         <TriangleAlert className="size-4" aria-hidden="true" />
-        Inlined assets are large ({formatBytes(totalBytes)})
+        Final self-contained file is large ({formatBytes(totalBytes)})
       </div>
       <p className="mt-1 font-mono text-[11px] text-foreground/80">
-        The export will embed assets as base64 data URIs. Files over 25 MB are blocked entirely.
-        Continue?
+        This size includes CSS, fonts, trusted bundles, sandbox bundles, and base64 assets. Files
+        over 25 MiB are blocked. Continue?
       </p>
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" size="sm" variant="outline" onClick={onCancel}>
@@ -486,4 +513,11 @@ function formatError(error: unknown): string {
     return String((error as { message: unknown }).message)
   }
   return String(error)
+}
+
+function getErrorCode(error: unknown): string | null {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String((error as { code: unknown }).code)
+  }
+  return null
 }

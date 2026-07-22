@@ -1,3 +1,11 @@
+import type {
+  ExportMode,
+  ExportPickTargetResult,
+  ExportProgressEvent,
+  ExportRunPayload,
+  ExportRunResult,
+  ExportScanResult
+} from '../shared/export'
 import type { RenamePlanPreview, RenameResult } from '../shared/rename'
 
 interface VaultFile {
@@ -131,53 +139,6 @@ interface AiPublicSettings {
   baseUrl?: string
   updatedAt?: string
 }
-
-type ExportMode = 'static' | 'interactive'
-
-interface ExportScanResult {
-  noteRelativePath: string
-  noteTitle: string
-  usedComponents: string[]
-  sandboxIslands: Array<{
-    kind: 'html' | 'interactive'
-    src: string
-    resolvedPath: string
-    manifestName: string
-    permissionStatus: 'allowed' | 'denied' | 'prompt'
-    fallback?: string
-  }>
-  imageAssets: string[]
-  datasetAssets: string[]
-  wikilinkTargets: string[]
-}
-
-interface ExportPickTargetResult {
-  absolutePath: string
-}
-
-interface ExportRunPayload {
-  noteRelativePath: string
-  mode: ExportMode
-  target: { absolutePath: string }
-  confirmedOversized?: boolean
-}
-
-interface ExportRunResult {
-  size: number
-  warnings: string[]
-  sandboxSkipped: Array<{ resolvedPath: string; reason: string }>
-}
-
-type ExportProgressEvent =
-  | { phase: 'scan'; message: string }
-  | { phase: 'render'; message: string }
-  | { phase: 'bundle'; message: string }
-  | { phase: 'inline'; message: string }
-  | { phase: 'leak-check' }
-  | { phase: 'write' }
-  | { phase: 'done'; size: number }
-  | { phase: 'error'; code: string; message: string }
-  | { phase: 'size-warning'; totalBytes: number; thresholdBytes: number }
 
 interface AiSaveSettingsInput {
   provider: 'openai' | 'none'

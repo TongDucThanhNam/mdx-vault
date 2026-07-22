@@ -16,6 +16,12 @@ export const evidenceLogRegistryEntry = defineRegistryEntry({
   propsSchema: evidenceLogPropsSchema,
   description: 'Container for real commands and observed results, never simulated evidence.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/evidence-log.ts',
+    entryExport: 'evidenceLogRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<EvidenceLog>
   <EvidenceItem cmd="perf stat -e cache-misses ./benchmark" />
 </EvidenceLog>`

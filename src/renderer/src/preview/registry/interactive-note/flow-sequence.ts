@@ -35,6 +35,12 @@ export const flowSequenceRegistryEntry = defineRegistryEntry({
   propsSchema: flowSequencePropsSchema,
   description: 'Static node-and-arrow sequence for paths, handshakes, and pipelines.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/flow-sequence.ts',
+    entryExport: 'flowSequenceRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   defaultProps: { direction: 'row' },
   insertSnippet: `<FlowSequence
   nodes={[

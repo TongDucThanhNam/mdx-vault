@@ -16,6 +16,12 @@ export const mentalModelRegistryEntry = defineRegistryEntry({
   propsSchema: mentalModelPropsSchema,
   description: 'Two-column grid for extends, conflicts, requires, and misapplication.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/mental-model.ts',
+    entryExport: 'mentalModelRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<MentalModel>
   <MentalModelRow label="Extends">The model this concept extends.</MentalModelRow>
   <MentalModelRow label="Conflicts" conflict>The misconception it invalidates.</MentalModelRow>

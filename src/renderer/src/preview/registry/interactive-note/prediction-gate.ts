@@ -30,6 +30,12 @@ export const predictionGateRegistryEntry = defineRegistryEntry({
   propsSchema: predictionGatePropsSchema,
   description: 'Commit-once prediction with immediate correct or incorrect verdict.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/prediction-gate.ts',
+    entryExport: 'predictionGateRegistryEntry',
+    static: 'prediction-disclosure',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<PredictionGate
   question="What will happen before you reveal the result?"
   options={["Outcome A", "Outcome B", "Outcome C"]}

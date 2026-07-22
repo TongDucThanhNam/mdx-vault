@@ -1,115 +1,190 @@
-import { writeFile } from 'fs/promises'
+import { randomUUID } from 'node:crypto'
+import { rename, rm, writeFile } from 'node:fs/promises'
+import { basename, dirname, extname } from 'node:path'
 import matter from 'gray-matter'
-import { basename, dirname, extname, posix as pathPosix } from 'path'
 
+import { parseChartDataSource } from '../../renderer/src/preview/islands/chart-data'
 import {
   EXPORT_HARD_LIMIT_BYTES,
   EXPORT_SIZE_WARNING_THRESHOLD_BYTES,
+  type ExportDiagnostic,
   type ExportProgressEvent,
   type ExportRunPayload,
   type ExportRunResult,
   type ExportScanResult
 } from '../../shared/export'
-import { AssetCollector } from './export-asset-collector'
+import { type AssetCollectionResult, AssetCollector } from './export-asset-collector'
 import { RegistryBundler } from './export-bundler'
+import type { ExportIrDocument, ExportIrNode, ExportIrSandboxNode } from './export-ir'
 import { scanForLeaks } from './export-leak-check'
 import { parseNoteForExport } from './export-renderer'
 import { SandboxExportBridge } from './export-sandbox-bridge'
 import { StaticSnapshotRenderer } from './export-static-snapshot'
-import { HYDRATION_SCRIPT, renderExportTemplate } from './export-template'
-import { safeJoin } from './safe-path'
+import { renderExportTemplate } from './export-template'
 import type { VaultService } from './vault-service'
 
 export type ExportProgressListener = (event: ExportProgressEvent) => void
 
-interface ResolvedSandbox {
+interface ResolvedSandboxDetail {
+  nodeId: string
   src: string
   resolvedPath: string
   kind: 'html' | 'interactive'
   manifestName: string
   permissionStatus: 'allowed' | 'denied' | 'prompt'
   fallback?: string
+  fallbackDataUri: string | null
+  networkRequested: boolean
+  dataPaths: string[]
 }
 
-interface InternalScanResult extends ExportScanResult {
+interface InternalScanResult {
+  scan: ExportScanResult
   frontmatter: Record<string, unknown>
-  bodyHtml: string
+  ir: ExportIrDocument
+  assets: AssetCollectionResult
+  approvedDatasets: Awaited<ReturnType<AssetCollector['collectApprovedDatasets']>>
+  sandboxDetails: Map<string, ResolvedSandboxDetail>
 }
 
-const DEFAULT_PROPS_BY_COMPONENT: Record<string, () => string> = {
-  Counter: () => JSON.stringify({ initial: 0 }),
-  QuizBlock: () =>
-    JSON.stringify({
-      question: 'Which invariant makes binary search valid?',
-      options: ['The input is sorted', 'The input is random', 'The array has no duplicates'],
-      answerIndex: 0,
-      explanation: 'Binary search can discard half of the search space only when ordering is known.'
-    }),
-  EquationSlider: () =>
-    JSON.stringify({
-      formula: 'y = m * x + b',
-      compute: 'm * x + b',
-      variables: {
-        x: { min: -10, max: 10, default: 2, step: 0.5 },
-        m: { min: -5, max: 5, default: 1.5, step: 0.1 },
-        b: { min: -10, max: 10, default: 1, step: 0.5 }
-      }
-    }),
-  DataChart: () =>
-    JSON.stringify({
-      type: 'line',
-      data: [
-        { x: 1, y: 3 },
-        { x: 2, y: 5 },
-        { x: 3, y: 2 },
-        { x: 4, y: 8 },
-        { x: 5, y: 6 }
-      ],
-      x: 'x',
-      y: 'y',
-      title: 'Sample dataset'
-    }),
-  AlgorithmVisualizer: () =>
-    JSON.stringify({
-      algorithm: 'binary-search',
-      data: [1, 3, 4, 8, 12, 15, 20],
-      target: 12,
-      speed: 700
-    })
+interface SandboxRuntimePayload {
+  nodeId: string
+  instanceId: string
+  title: string
+  available: boolean
+  srcdoc: string
+  props: Record<string, unknown>
+  datasets: Record<string, string>
+  fallbackHtml: string
+}
+
+interface PreparedSandboxes {
+  payloads: SandboxRuntimePayload[]
+  fallbacks: Map<string, string>
+  fallbacksUsed: string[]
 }
 
 export class ExportService {
-  private readonly vault: VaultService
-
   private readonly assetCollector: AssetCollector
+  private readonly registryBundler = new RegistryBundler()
+  private readonly staticSnapshotRenderer = new StaticSnapshotRenderer()
 
-  private readonly registryBundler: RegistryBundler
-
-  private readonly staticSnapshotRenderer: StaticSnapshotRenderer
-
-  private readonly sandboxBridge: SandboxExportBridge
-
-  constructor(vault: VaultService, sandboxBridge: SandboxExportBridge) {
-    this.vault = vault
+  constructor(
+    private readonly vault: VaultService,
+    private readonly sandboxBridge: SandboxExportBridge
+  ) {
     this.assetCollector = new AssetCollector(vault)
-    this.registryBundler = new RegistryBundler()
-    this.staticSnapshotRenderer = new StaticSnapshotRenderer()
-    this.sandboxBridge = sandboxBridge
   }
 
   async scan(noteRelativePath: string): Promise<ExportScanResult> {
-    const result = await this.runScan(noteRelativePath, false)
-    return result
+    return (await this.runScan(noteRelativePath, false)).scan
   }
 
   async run(payload: ExportRunPayload, emit: ExportProgressListener): Promise<ExportRunResult> {
-    const scan = await this.runScan(payload.noteRelativePath, true, emit)
-
-    if (payload.mode === 'static') {
-      return this.runStatic(scan, payload, emit)
+    const internal = await this.runScan(payload.noteRelativePath, true, emit)
+    const blocking = internal.scan.diagnostics.filter((entry) => entry.severity === 'blocking')
+    if (blocking.length > 0) {
+      throw new ExportError('EXPORT_BLOCKED', formatBlockingDiagnostics(blocking))
     }
 
-    return this.runInteractive(scan, payload, emit)
+    emit({ phase: 'render', message: 'Rendering the authored component tree' })
+    const ir = prepareIrAssets(internal.ir, internal.assets)
+    const sandboxes = await this.prepareSandboxes(internal, payload.mode)
+    const rendered = this.staticSnapshotRenderer.renderDocument({
+      ir,
+      mode: payload.mode,
+      sandboxFallbacks: sandboxes.fallbacks
+    })
+
+    let registryBundle: string | undefined
+    if (payload.mode === 'interactive') {
+      emit({ phase: 'bundle', message: 'Bundling only the trusted components used by this note' })
+      const bundle = await this.registryBundler.bundle({
+        usedComponents: internal.scan.usedComponents
+      })
+      if (bundle.unknownComponents.length > 0) {
+        throw new ExportError(
+          'REGISTRY_POLICY_MISSING',
+          `Export policy is missing for: ${bundle.unknownComponents.join(', ')}`
+        )
+      }
+      registryBundle = bundle.script
+    }
+
+    emit({ phase: 'inline', message: 'Inlining local assets and offline runtime data' })
+    const html = renderExportTemplate({
+      title: internal.scan.noteTitle,
+      bodyHtml: rendered.bodyHtml,
+      frontmatter: internal.frontmatter,
+      registryBundle,
+      interactiveNoteTheme: internal.frontmatter.theme === 'interactive-note',
+      exportData:
+        payload.mode === 'interactive'
+          ? { roots: rendered.hydrationRoots, sandboxes: sandboxes.payloads }
+          : undefined
+    })
+
+    const unresolved = findUnresolvedRuntimeDependencies(html)
+    if (unresolved.length > 0) {
+      throw new ExportError(
+        'EXPORT_NOT_OFFLINE',
+        `The generated file still contains ${unresolved.length} unresolved runtime subresource${unresolved.length === 1 ? '' : 's'}.`
+      )
+    }
+
+    emit({ phase: 'leak-check' })
+    const leaks = scanForLeaks({ vault: this.vault, content: html })
+    if (leaks.length > 0) {
+      throw new ExportError(
+        'EXPORT_LEAK_DETECTED',
+        `Leak scan blocked the export (rules: ${[...new Set(leaks.map((entry) => entry.rule))].join(', ')})`
+      )
+    }
+
+    const finalSize = Buffer.byteLength(html, 'utf8')
+    if (finalSize > EXPORT_HARD_LIMIT_BYTES) {
+      throw new ExportError(
+        'EXPORT_TOO_LARGE',
+        `Final encoded export is ${formatBytes(finalSize)}, above the 25 MiB hard limit.`
+      )
+    }
+    if (!payload.confirmedOversized && finalSize > EXPORT_SIZE_WARNING_THRESHOLD_BYTES) {
+      emit({
+        phase: 'size-warning',
+        totalBytes: finalSize,
+        thresholdBytes: EXPORT_SIZE_WARNING_THRESHOLD_BYTES
+      })
+      throw new ExportError(
+        'EXPORT_SIZE_CONFIRMATION_REQUIRED',
+        `Final encoded export is ${formatBytes(finalSize)}. Confirm the size warning to continue.`
+      )
+    }
+
+    emit({ phase: 'write' })
+    await writeAtomically(payload.target.absolutePath, html)
+    emit({ phase: 'done', size: finalSize })
+
+    const diagnosticWarnings = internal.scan.diagnostics
+      .filter((entry) => entry.severity === 'warning')
+      .map(formatDiagnostic)
+    const sizeWarnings =
+      finalSize > EXPORT_SIZE_WARNING_THRESHOLD_BYTES
+        ? [`Final encoded file is ${formatBytes(finalSize)} (above the 5 MiB warning threshold).`]
+        : []
+
+    return {
+      size: finalSize,
+      warnings: [...diagnosticWarnings, ...sizeWarnings],
+      fallbacksUsed: sandboxes.fallbacksUsed,
+      sandboxSkipped: internal.scan.sandboxIslands
+        .filter((entry) => entry.permissionStatus !== 'allowed' || entry.networkRequested)
+        .map((entry) => ({
+          resolvedPath: entry.resolvedPath || entry.src,
+          reason: entry.networkRequested
+            ? 'offline_network_policy'
+            : `permission_status:${entry.permissionStatus}`
+        }))
+    }
   }
 
   private async runScan(
@@ -117,9 +192,7 @@ export class ExportService {
     emitEvents: boolean,
     emit?: ExportProgressListener
   ): Promise<InternalScanResult> {
-    if (emitEvents) {
-      emit?.({ phase: 'scan', message: `Reading ${noteRelativePath}` })
-    }
+    if (emitEvents) emit?.({ phase: 'scan', message: `Reading ${noteRelativePath}` })
 
     const source = await this.vault.readFile(noteRelativePath)
     const frontmatter = readFrontmatter(source)
@@ -128,445 +201,388 @@ export class ExportService {
       noteRelativePath,
       deriveTitle(frontmatter, noteRelativePath)
     )
-
-    const sandboxResolver = new SandboxResolver(this.sandboxBridge)
-    const sandboxIslands = await sandboxResolver.resolveAll(
+    const diagnostics = [...parsed.meta.diagnostics]
+    const { publicEntries, details } = await this.resolveSandboxes(
       parsed.meta.sandboxIslands,
+      noteRelativePath,
+      diagnostics
+    )
+    const assets = await this.assetCollector.collect({
+      imageSources: parsed.meta.imageAssets,
+      datasetSources: parsed.meta.datasetAssets,
       noteRelativePath
-    )
+    })
 
-    const meta: ExportScanResult = {
-      ...parsed.meta,
-      sandboxIslands
+    for (const skipped of assets.skipped) {
+      const [, sourcePath = skipped] = skipped.split(':', 2)
+      diagnostics.push({
+        code: 'LOCAL_ASSET_UNAVAILABLE',
+        severity: 'blocking',
+        message: `Local export asset ${sourcePath} is missing, unsupported, oversized, or resolves outside the vault. Fix the path before exporting.`,
+        modes: ['static', 'interactive']
+      })
+    }
+
+    const approvedPaths = [...new Set([...details.values()].flatMap((entry) => entry.dataPaths))]
+    const approvedDatasets = await this.assetCollector.collectApprovedDatasets(approvedPaths)
+    for (const sourcePath of approvedDatasets.skipped) {
+      diagnostics.push({
+        code: 'SANDBOX_DATASET_UNAVAILABLE',
+        severity: 'warning',
+        message: `Approved sandbox dataset ${sourcePath} is unavailable; the island will use its explicit offline fallback.`,
+        modes: ['static', 'interactive']
+      })
     }
 
     return {
-      ...meta,
+      scan: {
+        ...parsed.meta,
+        sandboxIslands: publicEntries,
+        diagnostics: dedupeDiagnostics(diagnostics)
+      },
       frontmatter,
-      bodyHtml: parsed.bodyHtml
+      ir: parsed.ir,
+      assets,
+      approvedDatasets,
+      sandboxDetails: details
     }
   }
 
-  private async runStatic(
-    scan: InternalScanResult,
-    payload: ExportRunPayload,
-    emit: ExportProgressListener
-  ): Promise<ExportRunResult> {
-    emit({ phase: 'render', message: 'Rendering static snapshots' })
+  private async resolveSandboxes(
+    rawIslands: ExportScanResult['sandboxIslands'],
+    noteRelativePath: string,
+    diagnostics: ExportDiagnostic[]
+  ): Promise<{
+    publicEntries: ExportScanResult['sandboxIslands']
+    details: Map<string, ResolvedSandboxDetail>
+  }> {
+    const publicEntries: ExportScanResult['sandboxIslands'] = []
+    const details = new Map<string, ResolvedSandboxDetail>()
 
-    const placeholders = collectPlaceholders(scan.bodyHtml)
-    const componentNameMap = namePlaceholders(
-      placeholders,
-      scan.usedComponents,
-      scan.sandboxIslands
-    )
-
-    let bodyHtml = scan.bodyHtml
-    for (const placeholder of placeholders) {
-      const componentName = componentNameMap.get(placeholder.id)
-      const replacement = this.renderStaticReplacement({
-        componentName,
-        sandbox: placeholder.kind === 'sandbox' ? placeholder.sandbox : undefined
-      })
-      bodyHtml = replacePlaceholder(bodyHtml, placeholder.id, replacement)
-    }
-
-    emit({ phase: 'inline', message: 'Inlining assets' })
-
-    const assets = await this.assetCollector.collect({
-      imageSources: scan.imageAssets,
-      datasetSources: scan.datasetAssets,
-      noteRelativePath: payload.noteRelativePath
-    })
-    bodyHtml = inlineImages(bodyHtml, assets.images)
-
-    if (!payload.confirmedOversized && assets.totalBytes > EXPORT_SIZE_WARNING_THRESHOLD_BYTES) {
-      emit({
-        phase: 'size-warning',
-        totalBytes: assets.totalBytes,
-        thresholdBytes: -EXPORT_SIZE_WARNING_THRESHOLD_BYTES
-      })
-    }
-
-    if (assets.totalBytes > EXPORT_HARD_LIMIT_BYTES) {
-      throw new ExportError('EXPORT_TOO_LARGE', 'Inlined assets exceed the export hard limit')
-    }
-
-    const html = renderExportTemplate({
-      title: scan.noteTitle,
-      bodyHtml,
-      frontmatter: scan.frontmatter
-    })
-
-    emit({ phase: 'leak-check' })
-    const leaks = scanForLeaks({ vault: this.vault, content: html })
-    if (leaks.length > 0) {
-      throw new ExportError(
-        'EXPORT_LEAK_DETECTED',
-        `Leak scan blocked the export (rules: ${[...new Set(leaks.map((entry) => entry.rule))].join(', ')})`
-      )
-    }
-
-    emit({ phase: 'write' })
-    await writeFile(payload.target.absolutePath, html, 'utf8')
-
-    const stats = await import('node:fs/promises').then((module) =>
-      module.stat(payload.target.absolutePath)
-    )
-    emit({ phase: 'done', size: stats.size })
-
-    return {
-      size: stats.size,
-      warnings: [
-        ...assets.warnings,
-        ...(assets.totalBytes > EXPORT_SIZE_WARNING_THRESHOLD_BYTES
-          ? [
-              `Inlined assets total ${formatBytes(assets.totalBytes)} — consider external hosting for large datasets.`
-            ]
-          : [])
-      ],
-      sandboxSkipped: scan.sandboxIslands
-        .filter((entry) => entry.permissionStatus !== 'allowed')
-        .map((entry) => ({
-          resolvedPath: entry.resolvedPath || entry.src,
-          reason: `permission_status:${entry.permissionStatus}`
-        }))
-    }
-  }
-
-  private async runInteractive(
-    scan: InternalScanResult,
-    payload: ExportRunPayload,
-    emit: ExportProgressListener
-  ): Promise<ExportRunResult> {
-    emit({ phase: 'render', message: 'Rendering placeholder prose' })
-
-    let bodyHtml = scan.bodyHtml
-
-    emit({ phase: 'bundle', message: 'Bundling registry islands' })
-
-    const bundleResult = await this.registryBundler.bundle({
-      usedComponents: scan.usedComponents
-    })
-
-    const placeholders = collectPlaceholders(bodyHtml)
-    const componentNameMap = namePlaceholders(
-      placeholders,
-      scan.usedComponents,
-      scan.sandboxIslands
-    )
-
-    for (const placeholder of placeholders) {
-      const componentName = componentNameMap.get(placeholder.id)
-
-      if (placeholder.kind === 'registry' && componentName) {
-        const propsJson = DEFAULT_PROPS_BY_COMPONENT[componentName]?.() ?? '{}'
-        const replacement = `<mdx-vault-component data-component="${escapeAttribute(componentName)}" data-props="${escapeAttribute(propsJson)}" data-mdx-component-id="${placeholder.id}"></mdx-vault-component>`
-        bodyHtml = replacePlaceholder(bodyHtml, placeholder.id, replacement)
-        continue
-      }
-
-      if (placeholder.kind === 'sandbox' && placeholder.sandbox) {
-        try {
-          const propsJson = placeholder.rawAttrs['data-props']
-          const propsFromMdx: Record<string, unknown> = propsJson
-            ? JSON.parse(decodeHtmlEntities(propsJson))
-            : {}
-          const document = await this.sandboxBridge.buildDocument({
-            kind: placeholder.sandbox.kind,
-            src: placeholder.sandbox.src,
-            noteRelativePath: payload.noteRelativePath,
-            props:
-              placeholder.sandbox.kind === 'interactive'
-                ? {
-                    ...JSON.parse(
-                      DEFAULT_PROPS_BY_COMPONENT[placeholder.sandbox.manifestName]?.() ?? '{}'
-                    ),
-                    ...propsFromMdx
-                  }
-                : {}
-          })
-          const escaped = escapeSrcDoc(document.srcdoc)
-          const replacement = `<div class="mdx-vault-sandbox"><iframe class="mdx-vault-sandbox-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="${escaped}" title="${escapeAttribute(document.manifestName)}"></iframe></div>`
-          bodyHtml = replacePlaceholder(bodyHtml, placeholder.id, replacement)
-        } catch (error) {
-          const reason = formatError(error)
-          const fallbackUri = await this.sandboxBridge.resolveFallbackDataUri(
-            placeholder.sandbox.fallback ?? '',
-            payload.noteRelativePath
-          )
-          const fallbackReplacement = renderSandboxFallback(
-            placeholder.sandbox,
-            fallbackUri,
-            reason
-          )
-          bodyHtml = replacePlaceholder(bodyHtml, placeholder.id, fallbackReplacement)
+    for (const island of rawIslands) {
+      try {
+        const descriptor = await this.sandboxBridge.describe(
+          island.kind,
+          island.src,
+          noteRelativePath
+        )
+        const fallbackDataUri = descriptor.manifest.fallback
+          ? await this.sandboxBridge.resolveFallbackDataUri({
+              fallback: descriptor.manifest.fallback,
+              resolvedPath: descriptor.resolvedPath,
+              kind: island.kind
+            })
+          : null
+        const detail: ResolvedSandboxDetail = {
+          nodeId: island.nodeId,
+          src: island.src,
+          resolvedPath: descriptor.resolvedPath,
+          kind: island.kind,
+          manifestName: descriptor.manifest.name,
+          permissionStatus: descriptor.permissionStatus,
+          fallback: descriptor.manifest.fallback,
+          fallbackDataUri,
+          networkRequested: descriptor.manifest.permissions.network,
+          dataPaths: descriptor.manifest.permissions.filesystem
+            ? descriptor.manifest.permissions.dataPaths
+            : []
         }
+        details.set(island.nodeId, detail)
+        publicEntries.push({
+          ...island,
+          resolvedPath: detail.resolvedPath,
+          manifestName: detail.manifestName,
+          permissionStatus: detail.permissionStatus,
+          fallback: detail.fallback,
+          fallbackAvailable: Boolean(fallbackDataUri),
+          networkRequested: detail.networkRequested,
+          dataPaths: detail.dataPaths
+        })
+
+        if (detail.permissionStatus !== 'allowed') {
+          diagnostics.push({
+            code: 'SANDBOX_NOT_APPROVED',
+            severity: 'warning',
+            message: `${detail.manifestName} is ${detail.permissionStatus}; export will show an explicit fallback until this content hash is approved in the app.`,
+            line: island.line,
+            nodeId: island.nodeId,
+            componentName: island.kind === 'html' ? 'SandboxedHTML' : 'Interactive',
+            modes: ['static', 'interactive']
+          })
+        }
+        if (detail.networkRequested) {
+          diagnostics.push({
+            code: 'SANDBOX_NETWORK_OFFLINE',
+            severity: 'warning',
+            message: `${detail.manifestName} requests network access and will use an offline fallback instead of executing.`,
+            line: island.line,
+            nodeId: island.nodeId,
+            modes: ['static', 'interactive']
+          })
+        }
+        if (!fallbackDataUri) {
+          diagnostics.push({
+            code: 'SANDBOX_FALLBACK_CARD',
+            severity: 'warning',
+            message: `${detail.manifestName} has no valid local image fallback; static or unavailable modes will show a descriptive card.`,
+            line: island.line,
+            nodeId: island.nodeId,
+            modes: ['static', 'interactive']
+          })
+        }
+      } catch {
+        const detail: ResolvedSandboxDetail = {
+          nodeId: island.nodeId,
+          src: island.src,
+          resolvedPath: island.src,
+          kind: island.kind,
+          manifestName: 'Unavailable island',
+          permissionStatus: 'denied',
+          fallbackDataUri: null,
+          networkRequested: false,
+          dataPaths: []
+        }
+        details.set(island.nodeId, detail)
+        publicEntries.push({
+          ...island,
+          resolvedPath: island.src,
+          manifestName: detail.manifestName,
+          permissionStatus: 'denied',
+          fallbackAvailable: false,
+          networkRequested: false,
+          dataPaths: []
+        })
+        diagnostics.push({
+          code: 'SANDBOX_UNAVAILABLE',
+          severity: 'warning',
+          message: `The island at line ${island.line ?? '?'} could not be resolved safely and will show a descriptive fallback card.`,
+          line: island.line,
+          nodeId: island.nodeId,
+          modes: ['static', 'interactive']
+        })
+      }
+    }
+
+    return { publicEntries, details }
+  }
+
+  private async prepareSandboxes(
+    internal: InternalScanResult,
+    mode: 'static' | 'interactive'
+  ): Promise<PreparedSandboxes> {
+    const payloads: SandboxRuntimePayload[] = []
+    const fallbacks = new Map<string, string>()
+    const fallbacksUsed: string[] = []
+    const sandboxNodes = collectSandboxNodes(internal.ir)
+
+    for (const node of sandboxNodes) {
+      const detail = internal.sandboxDetails.get(node.id)
+      if (!detail) continue
+      const staticReason = 'Interactive behavior is unavailable in a no-JavaScript export.'
+      const fallbackHtml = renderSandboxFallback(detail, staticReason)
+
+      if (mode === 'static') {
+        fallbacks.set(node.id, fallbackHtml)
+        fallbacksUsed.push(`${detail.manifestName}: static offline fallback`)
         continue
       }
 
-      // Unknown component / unknown sandbox — emit placeholder.
-      const replacement = renderUnknownPlaceholder(componentName ?? 'Unknown')
-      bodyHtml = replacePlaceholder(bodyHtml, placeholder.id, replacement)
-    }
+      const missingDataset = detail.dataPaths.some(
+        (path) => !internal.approvedDatasets.datasets.has(path)
+      )
+      const canRun =
+        detail.permissionStatus === 'allowed' && !detail.networkRequested && !missingDataset
+      const instanceId = randomUUID()
+      const datasets = Object.fromEntries(
+        detail.dataPaths.flatMap((path) => {
+          const text = internal.approvedDatasets.datasets.get(path)?.text
+          return text === undefined ? [] : [[path, text]]
+        })
+      )
 
-    emit({ phase: 'inline', message: 'Inlining assets' })
+      if (canRun) {
+        try {
+          const document = await this.sandboxBridge.buildDocument({
+            kind: node.kind,
+            src: node.src,
+            noteRelativePath: internal.scan.noteRelativePath,
+            instanceId,
+            props: node.props
+          })
+          if (findSandboxRemoteRuntimeDependencies(document.srcdoc).length > 0) {
+            throw new Error('Sandbox document contains a remote runtime dependency')
+          }
+          payloads.push({
+            nodeId: node.id,
+            instanceId,
+            title: document.manifestName,
+            available: true,
+            srcdoc: document.srcdoc,
+            props: node.props,
+            datasets,
+            fallbackHtml: ''
+          })
+          continue
+        } catch {
+          // A safe fallback is emitted below; raw sandbox errors never cross to the renderer/file.
+        }
+      }
 
-    const assets = await this.assetCollector.collect({
-      imageSources: scan.imageAssets,
-      datasetSources: scan.datasetAssets,
-      noteRelativePath: payload.noteRelativePath
-    })
-    bodyHtml = inlineImages(bodyHtml, assets.images)
-
-    if (!payload.confirmedOversized && assets.totalBytes > EXPORT_SIZE_WARNING_THRESHOLD_BYTES) {
-      emit({
-        phase: 'size-warning',
-        totalBytes: assets.totalBytes,
-        thresholdBytes: -EXPORT_SIZE_WARNING_THRESHOLD_BYTES
+      const unavailableReason = detail.networkRequested
+        ? 'This island requires network access, which offline export does not grant.'
+        : missingDataset
+          ? 'A manifest-approved dataset is unavailable.'
+          : detail.permissionStatus !== 'allowed'
+            ? `This content hash is ${detail.permissionStatus}.`
+            : 'The island could not be prepared safely.'
+      const unavailableFallback = renderSandboxFallback(detail, unavailableReason)
+      fallbacks.set(node.id, unavailableFallback)
+      fallbacksUsed.push(`${detail.manifestName}: ${unavailableReason}`)
+      payloads.push({
+        nodeId: node.id,
+        instanceId,
+        title: detail.manifestName,
+        available: false,
+        srcdoc: '',
+        props: node.props,
+        datasets: {},
+        fallbackHtml: unavailableFallback
       })
     }
 
-    if (assets.totalBytes > EXPORT_HARD_LIMIT_BYTES) {
-      throw new ExportError('EXPORT_TOO_LARGE', 'Inlined assets exceed the export hard limit')
-    }
-
-    const html = renderExportTemplate({
-      title: scan.noteTitle,
-      bodyHtml,
-      frontmatter: scan.frontmatter,
-      hydrationScript: HYDRATION_SCRIPT,
-      registryBundle: bundleResult.script
-    })
-
-    emit({ phase: 'leak-check' })
-    const leaks = scanForLeaks({ vault: this.vault, content: html })
-    if (leaks.length > 0) {
-      throw new ExportError(
-        'EXPORT_LEAK_DETECTED',
-        `Leak scan blocked the export (rules: ${[...new Set(leaks.map((entry) => entry.rule))].join(', ')})`
-      )
-    }
-
-    emit({ phase: 'write' })
-    await writeFile(payload.target.absolutePath, html, 'utf8')
-
-    const stats = await import('node:fs/promises').then((module) =>
-      module.stat(payload.target.absolutePath)
-    )
-    emit({ phase: 'done', size: stats.size })
-
-    return {
-      size: stats.size,
-      warnings: [
-        ...assets.warnings,
-        ...bundleResult.unknownComponents.map(
-          (name) => `Unknown registry component: ${name} — rendered as placeholder.`
-        ),
-        ...(assets.totalBytes > EXPORT_SIZE_WARNING_THRESHOLD_BYTES
-          ? [
-              `Inlined assets total ${formatBytes(assets.totalBytes)} — consider external hosting for large datasets.`
-            ]
-          : [])
-      ],
-      sandboxSkipped: scan.sandboxIslands
-        .filter((entry) => entry.permissionStatus !== 'allowed')
-        .map((entry) => ({
-          resolvedPath: entry.resolvedPath || entry.src,
-          reason: `permission_status:${entry.permissionStatus}`
-        }))
-    }
-  }
-
-  private renderStaticReplacement({
-    componentName,
-    sandbox
-  }: {
-    componentName: string | undefined
-    sandbox: ResolvedSandbox | undefined
-  }): string {
-    if (sandbox) {
-      return `<div class="mdx-vault-snapshot-placeholder"><div class="mdx-vault-snapshot-placeholder-title">${escapeHtml(sandbox.manifestName || sandbox.src)}</div><div class="mdx-vault-snapshot-placeholder-body">Interactive sandbox content — open in mdx-vault for the full experience.</div></div>`
-    }
-
-    if (!componentName) {
-      return `<div class="mdx-vault-snapshot-placeholder"><div class="mdx-vault-snapshot-placeholder-title">Unknown component</div></div>`
-    }
-
-    const result = this.staticSnapshotRenderer.render({ componentName, props: undefined })
-
-    if (result.mode === 'snapshot') {
-      return result.html
-    }
-
-    return result.html
+    return { payloads, fallbacks, fallbacksUsed }
   }
 }
 
 export class ExportError extends Error {
-  readonly code: string
-
-  constructor(code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
     super(message)
     this.name = 'ExportError'
-    this.code = code
   }
 }
 
-class SandboxResolver {
-  constructor(private readonly bridge: SandboxExportBridge) {}
+function prepareIrAssets(ir: ExportIrDocument, assets: AssetCollectionResult): ExportIrDocument {
+  const cloned = structuredClone(ir)
 
-  async resolveAll(
-    rawIslands: ExportScanResult['sandboxIslands'],
-    noteRelativePath: string
-  ): Promise<ExportScanResult['sandboxIslands']> {
-    const resolved: ExportScanResult['sandboxIslands'] = []
-
-    for (const island of rawIslands) {
-      try {
-        const descriptor = await this.bridge.describe(island.kind, island.src, noteRelativePath)
-        resolved.push({
-          ...island,
-          resolvedPath: descriptor.resolvedPath,
-          manifestName: descriptor.manifest.name,
-          permissionStatus: descriptor.permissionStatus,
-          fallback: descriptor.manifest.fallback
-        })
-      } catch {
-        resolved.push({
-          ...island,
-          resolvedPath: island.src,
-          manifestName: '',
-          permissionStatus: 'denied'
-        })
-      }
-    }
-
-    return resolved
-  }
-}
-
-interface PlaceholderRef {
-  id: string
-  componentName: string | null
-  kind: 'registry' | 'sandbox' | 'unknown'
-  sandbox?: ResolvedSandbox
-  /** Raw JSON attribute map extracted from the placeholder component tag. */
-  rawAttrs: Record<string, string>
-}
-
-function collectPlaceholders(bodyHtml: string): PlaceholderRef[] {
-  const placeholders: PlaceholderRef[] = []
-  const regex = /<mdx-vault-component\b([^>]*)>/g
-
-  let match: RegExpExecArray | null
-  while ((match = regex.exec(bodyHtml)) !== null) {
-    const rawAttrs = parseAttributes(match[1] ?? '')
-    const id = rawAttrs[COMPONENT_PLACEHOLDER_ATTR]
-    if (!id) {
-      continue
-    }
-    const componentName = rawAttrs['data-component-name'] ?? null
-    placeholders.push({ id, componentName, kind: 'unknown', rawAttrs })
-  }
-  return placeholders
-}
-
-function parseAttributes(raw: string): Record<string, string> {
-  const attributes: Record<string, string> = {}
-  const regex = /([a-zA-Z_][a-zA-Z0-9_-]*)\s*=\s*"([^"]*)"/g
-  let match: RegExpExecArray | null
-  while ((match = regex.exec(raw)) !== null) {
-    attributes[match[1]] = match[2]
-  }
-  return attributes
-}
-
-function namePlaceholders(
-  placeholders: PlaceholderRef[],
-  _usedComponents: string[],
-  sandboxIslands: ExportScanResult['sandboxIslands']
-): Map<string, string> {
-  const map = new Map<string, string>()
-  let sandboxIndex = 0
-
-  for (const placeholder of placeholders) {
+  walkIr(cloned.children, (node) => {
     if (
-      placeholder.componentName === 'SandboxedHTML' ||
-      placeholder.componentName === 'Interactive'
+      node.type === 'element' &&
+      node.tagName === 'img' &&
+      typeof node.properties.src === 'string'
     ) {
-      if (sandboxIndex < sandboxIslands.length) {
-        const sandbox = sandboxIslands[sandboxIndex]
-        placeholder.kind = 'sandbox'
-        placeholder.sandbox = {
-          src: sandbox.src,
-          resolvedPath: sandbox.resolvedPath,
-          kind: sandbox.kind,
-          manifestName: sandbox.manifestName,
-          permissionStatus: sandbox.permissionStatus,
-          fallback: sandbox.fallback
-        }
-        sandboxIndex += 1
-        continue
+      const image = assets.images.get(node.properties.src)
+      if (image) node.properties.src = image.dataUri
+    }
+
+    if (
+      node.type === 'component' &&
+      node.name === 'DataChart' &&
+      typeof node.props.src === 'string'
+    ) {
+      const source = node.props.src
+      const dataset = assets.datasets.get(source)
+      if (!dataset?.text) {
+        throw new ExportError('DATASET_UNAVAILABLE', 'A DataChart dataset could not be embedded.')
+      }
+      try {
+        node.props.data = parseChartDataSource(dataset.text, source)
+        delete node.props.src
+      } catch {
+        throw new ExportError(
+          'DATASET_INVALID',
+          'A DataChart dataset is not valid CSV or JSON for the authored chart.'
+        )
       }
     }
+  })
 
-    if (placeholder.componentName && componentNameRegex.test(placeholder.componentName)) {
-      placeholder.kind = 'registry'
-      map.set(placeholder.id, placeholder.componentName)
-      continue
-    }
-
-    placeholder.kind = 'unknown'
-  }
-
-  return map
+  return cloned
 }
 
-const componentNameRegex = /^[A-Z][A-Za-z0-9_]*$/
-
-const COMPONENT_PLACEHOLDER_ATTR = 'data-mdx-component-id'
-
-function replacePlaceholder(bodyHtml: string, id: string, replacement: string): string {
-  const escapedId = escapeRegExp(id)
-  const regex = new RegExp(
-    `<mdx-vault-component[^>]*data-mdx-component-id="${escapedId}"[^>]*>([\\s\\S]*?)</mdx-vault-component>`,
-    'g'
-  )
-  return bodyHtml.replace(regex, () => replacement)
+function collectSandboxNodes(ir: ExportIrDocument): ExportIrSandboxNode[] {
+  const nodes: ExportIrSandboxNode[] = []
+  walkIr(ir.children, (node) => {
+    if (node.type === 'sandbox') nodes.push(node)
+  })
+  return nodes
 }
 
-function inlineImages(bodyHtml: string, images: Map<string, { dataUri: string }>): string {
-  if (images.size === 0) {
-    return bodyHtml
-  }
-  return bodyHtml.replace(/<img([^>]*?)src="([^"]+)"([^>]*)>/g, (full, before, src, after) => {
-    const inlined = images.get(src)
-    if (!inlined) {
-      return full
+function walkIr(nodes: ExportIrNode[], visitNode: (node: ExportIrNode) => void): void {
+  for (const node of nodes) {
+    visitNode(node)
+    if (node.type === 'element' || node.type === 'component') {
+      walkIr(node.children, visitNode)
     }
-    return `<img${before}src="${escapeAttribute(inlined.dataUri)}"${after}>`
+  }
+}
+
+function renderSandboxFallback(detail: ResolvedSandboxDetail, reason: string): string {
+  const title = escapeHtml(detail.manifestName)
+  const caption = escapeHtml(`${detail.manifestName}: ${reason}`)
+  if (detail.fallbackDataUri) {
+    return `<figure class="mdx-vault-sandbox-fallback"><img alt="${title}" src="${escapeAttribute(detail.fallbackDataUri)}"><figcaption>${caption}</figcaption></figure>`
+  }
+  return `<div class="mdx-vault-snapshot-placeholder" role="note"><div class="mdx-vault-snapshot-placeholder-title">${title}</div><div class="mdx-vault-snapshot-placeholder-body">${escapeHtml(reason)}</div></div>`
+}
+
+async function writeAtomically(targetPath: string, content: string): Promise<void> {
+  const tempPath = `${targetPath}.tmp-${process.pid}-${randomUUID()}`
+  try {
+    await writeFile(tempPath, content, 'utf8')
+    await rename(tempPath, targetPath)
+  } finally {
+    await rm(tempPath, { force: true })
+  }
+}
+
+function findUnresolvedRuntimeDependencies(html: string): string[] {
+  const findings: string[] = []
+  const tagPattern =
+    /<(?:img|script|link|iframe|source|video|audio)\b[^>]*\b(?:src|href)=["']([^"']+)["']/gi
+  let match: RegExpExecArray | null
+  while ((match = tagPattern.exec(html)) !== null) {
+    const value = match[1] ?? ''
+    if (!value.startsWith('data:') && !value.startsWith('blob:') && value !== 'about:blank') {
+      findings.push(value)
+    }
+  }
+  const cssPattern = /url\(\s*["']?(https?:|\/\/|file:|[A-Za-z]:[\\/])/gi
+  if (cssPattern.test(html)) findings.push('stylesheet-url')
+  return findings
+}
+
+function findSandboxRemoteRuntimeDependencies(srcdoc: string): string[] {
+  const patterns = [
+    /<(?:img|script|link|iframe|source|video|audio|form)\b[^>]*\b(?:src|href|action)\s*=\s*["'](?:https?:|\/\/)/gi,
+    /url\(\s*["']?(?:https?:|\/\/)/gi,
+    /\b(?:fetch|WebSocket|EventSource)\s*\(\s*["'](?:https?:|\/\/)/g
+  ]
+  return patterns.flatMap((pattern) => srcdoc.match(pattern) ?? [])
+}
+
+function dedupeDiagnostics(diagnostics: ExportDiagnostic[]): ExportDiagnostic[] {
+  const seen = new Set<string>()
+  return diagnostics.filter((entry) => {
+    const key = `${entry.code}:${entry.line ?? ''}:${entry.nodeId ?? ''}:${entry.message}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
 
-function renderUnknownPlaceholder(componentName: string): string {
-  return `<div class="mdx-vault-snapshot-placeholder"><div class="mdx-vault-snapshot-placeholder-title">${escapeHtml(componentName)}</div><div class="mdx-vault-snapshot-placeholder-body">Unknown component — rendered as placeholder.</div></div>`
+function formatBlockingDiagnostics(diagnostics: ExportDiagnostic[]): string {
+  const first = diagnostics[0]
+  const location = first.line ? ` at line ${first.line}` : ''
+  const remaining =
+    diagnostics.length > 1 ? ` (${diagnostics.length - 1} more blocking issues)` : ''
+  return `${first.message}${location}${remaining}`
 }
 
-function renderSandboxFallback(
-  sandbox: ResolvedSandbox,
-  fallbackDataUri: string | null,
-  reason: string
-): string {
-  const title = escapeHtml(sandbox.manifestName || sandbox.src)
-  const reasonEscaped = escapeHtml(reason)
-  const caption = escapeHtml(
-    `Interactive sandbox "${sandbox.manifestName || sandbox.src}" was not included: ${reason}`
-  )
-  if (fallbackDataUri) {
-    return `<figure class="mdx-vault-sandbox-fallback"><img alt="${title}" src="${escapeAttribute(fallbackDataUri)}"><figcaption>${caption}</figcaption></figure>`
-  }
-  return `<div class="mdx-vault-snapshot-placeholder"><div class="mdx-vault-snapshot-placeholder-title">${title}</div><div class="mdx-vault-snapshot-placeholder-body">${caption} — reason: ${reasonEscaped}</div></div>`
+function formatDiagnostic(diagnostic: ExportDiagnostic): string {
+  return diagnostic.line ? `Line ${diagnostic.line}: ${diagnostic.message}` : diagnostic.message
 }
 
 function readFrontmatter(source: string): Record<string, unknown> {
@@ -581,19 +597,7 @@ function deriveTitle(frontmatter: Record<string, unknown>, noteRelativePath: str
   if (typeof frontmatter.title === 'string' && frontmatter.title.trim()) {
     return frontmatter.title.trim()
   }
-  const stem = basename(noteRelativePath, extname(noteRelativePath))
-  return stem
-}
-
-function decodeHtmlEntities(encoded: string): string {
-  return encoded
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x22;/g, '"')
-    .replace(/&#x27;/g, "'")
+  return basename(noteRelativePath, extname(noteRelativePath))
 }
 
 function escapeHtml(value: string): string {
@@ -609,45 +613,19 @@ function escapeAttribute(value: string): string {
   return escapeHtml(value)
 }
 
-/**
- * Escape a string for use inside an `srcdoc` attribute value.
- * Unlike `escapeAttribute`, this preserves angle brackets so that the
- * embedded HTML document stays valid. Only `&` and `"` are escaped.
- */
-function escapeSrcDoc(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`
-  }
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function formatError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
-  }
-  return String(error)
-}
-
 export const __internalTesting = {
-  SandboxResolver,
-  namePlaceholders,
-  collectPlaceholders,
-  replacePlaceholder,
-  inlineImages,
-  dirname,
-  pathPosix,
-  safeJoin
+  prepareIrAssets,
+  collectSandboxNodes,
+  findUnresolvedRuntimeDependencies,
+  findSandboxRemoteRuntimeDependencies,
+  writeAtomically,
+  dirname
 }
 
 export function buildExportService(

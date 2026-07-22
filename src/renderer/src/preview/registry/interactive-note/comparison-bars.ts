@@ -28,6 +28,12 @@ export const comparisonBarsRegistryEntry = defineRegistryEntry({
   propsSchema: comparisonBarsPropsSchema,
   description: 'Static horizontal comparison bars scaled to the largest value.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/comparison-bars.ts',
+    entryExport: 'comparisonBarsRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<ComparisonBars
   items={[
     { label: "Row-major misses", value: 4, display: "4" },

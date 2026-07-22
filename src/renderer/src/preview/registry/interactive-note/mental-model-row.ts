@@ -21,6 +21,12 @@ export const mentalModelRowRegistryEntry = defineRegistryEntry({
   propsSchema: mentalModelRowPropsSchema,
   description: 'One labelled mental-model row; conflict rows use the red accent.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/mental-model-row.ts',
+    entryExport: 'mentalModelRowRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<MentalModel>
   <MentalModelRow label="Conflicts" conflict>The misconception this concept invalidates.</MentalModelRow>
 </MentalModel>`

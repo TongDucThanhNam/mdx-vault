@@ -15,8 +15,13 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, extname, join } from 'node:path'
 
+import interactiveNoteThemeSource from '../../renderer/src/preview/interactive-note-theme.css?raw'
+
 const nodeRequire = createRequire(__filename)
 const KATEX_EXPORT_STYLESHEET = loadKatexExportStylesheet()
+const INTERACTIVE_NOTE_EXPORT_STYLESHEET = createInteractiveNoteExportStylesheet(
+  interactiveNoteThemeSource
+)
 
 export const STATIC_STYLESHEET = `
 :root {
@@ -277,39 +282,48 @@ header.mdx-export-header .mdx-export-meta {
   color: var(--mdx-muted);
 }
 .mdx-vault-frontmatter dd { margin: 0 0 0.5rem; }
+.mdx-vault-static-control-summary,
+.mdx-vault-static-data-summary,
+.mdx-vault-static-quiz {
+  margin: 1.25rem 0;
+  border: 2px solid var(--mdx-fg);
+  background: var(--mdx-bg);
+  box-shadow: 3px 3px 0 var(--mdx-fg);
+  padding: 1rem;
+}
+.mdx-vault-static-control-summary figcaption,
+.mdx-vault-static-data-summary figcaption {
+  margin-bottom: 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mdx-vault-static-control-summary output { font-size: 1.4rem; font-weight: 700; }
+.mdx-vault-static-options { margin: 0.65rem 0; }
+.mdx-vault-sandbox-fallback-slot { margin: 1.25rem 0; }
+.mdx-vault-sandbox-fallback { margin: 0; }
+.mdx-vault-sandbox-fallback img { display: block; max-width: 100%; height: auto; }
+.mdx-vault-export--interactive-note {
+  --mdx-bg: #f9f9f7;
+  --mdx-fg: #111111;
+  --mdx-muted: #555555;
+  --mdx-border: #111111;
+  --mdx-muted-bg: #efefea;
+  --mdx-link: #2b5797;
+  max-width: 64rem;
+}
+@media (max-width: 42rem) {
+  header.mdx-export-header { align-items: flex-start; flex-direction: column; }
+  main.mdx-export { padding: 1.25rem 0.85rem 3rem; }
+  .mdx-vault-export .in-mm-grid { grid-template-columns: minmax(6.5rem, 34%) 1fr; }
+  .mdx-vault-export .in-comparison-row { grid-template-columns: minmax(6.5rem, 1fr) 1fr auto; }
+  .mdx-vault-export .in-widget-body { padding: 0.85rem; }
+  .mdx-vault-export .in-gate { padding: 0.85rem; }
+  .mdx-vault-export table { display: block; max-width: 100%; overflow-x: auto; }
+}
 ${KATEX_EXPORT_STYLESHEET}
-`
-
-export const HYDRATION_SCRIPT = `
-(function () {
-  function hydrate() {
-    var nodes = document.querySelectorAll('mdx-vault-component[data-component]');
-    if (!nodes.length) return;
-    var registry = window.__mdxVaultIslands;
-    var runtime = window.__mdxVaultReact;
-    if (!registry || !runtime) return;
-    var React = runtime.React;
-    var createRoot = runtime.createRoot;
-    nodes.forEach(function (node) {
-      var name = node.getAttribute('data-component');
-      if (!name) return;
-      var Component = registry[name];
-      if (!Component) return;
-      var propsAttr = node.getAttribute('data-props');
-      var props = {};
-      try { props = propsAttr ? JSON.parse(propsAttr) : {}; } catch (err) { props = {}; }
-      var container = document.createElement('div');
-      node.replaceWith(container);
-      var root = createRoot(container);
-      root.render(React.createElement(Component, props));
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', hydrate);
-  } else {
-    hydrate();
-  }
-})();
 `
 
 export interface RenderTemplateInput {
@@ -323,6 +337,10 @@ export interface RenderTemplateInput {
   hydrationScript?: string
   /** Optional registry IIFE bundle script. */
   registryBundle?: string
+  /** Serialized hydration roots and standalone sandbox documents. */
+  exportData?: unknown
+  /** Opt into the authoritative interactive-note prose theme. */
+  interactiveNoteTheme?: boolean
   /** Optional generated timestamp ISO string. */
   generatedAt?: string
 }
@@ -331,9 +349,11 @@ export function renderExportTemplate({
   title,
   bodyHtml,
   frontmatter,
-  stylesheet = STATIC_STYLESHEET,
+  stylesheet,
   hydrationScript,
   registryBundle,
+  exportData,
+  interactiveNoteTheme = false,
   generatedAt
 }: RenderTemplateInput): string {
   const safeTitle = escapeHtml(title)
@@ -341,32 +361,72 @@ export function renderExportTemplate({
   const stamp = generatedAt ?? new Date().toISOString()
   const inlineRegistry = registryBundle ? `<script>\n${registryBundle}\n</script>` : ''
   const inlineHydration = hydrationScript ? `<script>\n${hydrationScript}\n</script>` : ''
+  const resolvedStylesheet =
+    stylesheet ??
+    `${STATIC_STYLESHEET}\n${interactiveNoteTheme ? INTERACTIVE_NOTE_EXPORT_STYLESHEET : componentStylesOnly(INTERACTIVE_NOTE_EXPORT_STYLESHEET)}`
+  const exportDataBlock =
+    exportData === undefined
+      ? ''
+      : `<script id="mdx-vault-export-data" type="application/json">${serializeInlineJson(exportData)}</script>`
+  const contentSecurityPolicy = registryBundle
+    ? "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'"
+    : "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+  const articleClass = interactiveNoteTheme
+    ? 'mdx-vault-export theme-interactive-note'
+    : 'mdx-vault-export'
+  const mainClass = interactiveNoteTheme
+    ? 'mdx-export mdx-vault-export--interactive-note'
+    : 'mdx-export'
 
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy}">
 <meta name="generator" content="mdx-vault export">
 <title>${safeTitle}</title>
-<style>${stylesheet}</style>
+<style>${resolvedStylesheet}</style>
 </head>
 <body>
 <header class="mdx-export-header">
   <strong>${safeTitle}</strong>
   <span class="mdx-export-meta">Exported by mdx-vault · ${escapeHtml(stamp)}</span>
 </header>
-<main class="mdx-export">
+<main class="${mainClass}">
 ${frontmatterBlock}
-<article class="mdx-vault-export">
+<article class="${articleClass}">
 ${bodyHtml}
 </article>
 </main>
+${exportDataBlock}
 ${inlineRegistry}
 ${inlineHydration}
 </body>
 </html>
 `
+}
+
+export function createInteractiveNoteExportStylesheet(source: string): string {
+  return source
+    .replaceAll('.mdx-preview', '.mdx-vault-export')
+    .replaceAll("'Playfair Display', serif", "Georgia, 'Times New Roman', serif")
+    .replaceAll("'Lora', serif", "Georgia, 'Times New Roman', serif")
+    .replaceAll("'Courier Prime', monospace", "'Courier New', Consolas, monospace")
+}
+
+function componentStylesOnly(stylesheet: string): string {
+  const marker =
+    '/* The prose theme is frontmatter opt-in; ordinary notes retain the existing preview styles. */'
+  const index = stylesheet.indexOf(marker)
+  return index === -1 ? stylesheet : stylesheet.slice(0, index)
+}
+
+function serializeInlineJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replaceAll('&', '\\u0026')
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
 }
 
 function renderFrontmatter(frontmatter: Record<string, unknown>): string {

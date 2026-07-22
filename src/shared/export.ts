@@ -3,6 +3,21 @@ import { z } from 'zod'
 export const exportModeSchema = z.enum(['static', 'interactive'])
 export type ExportMode = z.infer<typeof exportModeSchema>
 
+export const exportDiagnosticSchema = z
+  .object({
+    code: z.string().min(1),
+    severity: z.enum(['blocking', 'warning']),
+    message: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    column: z.number().int().positive().optional(),
+    nodeId: z.string().min(1).optional(),
+    componentName: z.string().min(1).optional(),
+    propName: z.string().min(1).optional(),
+    modes: z.array(exportModeSchema).min(1).default(['static', 'interactive'])
+  })
+  .strict()
+export type ExportDiagnostic = z.infer<typeof exportDiagnosticSchema>
+
 export const exportScanResultSchema = z
   .object({
     noteRelativePath: z.string().min(1),
@@ -12,19 +27,25 @@ export const exportScanResultSchema = z
       .array(
         z
           .object({
+            nodeId: z.string().min(1),
+            line: z.number().int().positive().optional(),
             kind: z.enum(['html', 'interactive']),
             src: z.string().min(1),
             resolvedPath: z.string().min(1),
             manifestName: z.string().min(1),
             permissionStatus: z.enum(['allowed', 'denied', 'prompt']),
-            fallback: z.string().optional()
+            fallback: z.string().optional(),
+            fallbackAvailable: z.boolean().default(false),
+            networkRequested: z.boolean().default(false),
+            dataPaths: z.array(z.string().min(1)).default([])
           })
           .strict()
       )
       .default([]),
     imageAssets: z.array(z.string().min(1)).default([]),
     datasetAssets: z.array(z.string().min(1)).default([]),
-    wikilinkTargets: z.array(z.string().min(1)).default([])
+    wikilinkTargets: z.array(z.string().min(1)).default([]),
+    diagnostics: z.array(exportDiagnosticSchema).default([])
   })
   .strict()
 export type ExportScanResult = z.infer<typeof exportScanResultSchema>
@@ -58,6 +79,7 @@ export const exportRunResultSchema = z
   .object({
     size: z.number().int().nonnegative(),
     warnings: z.array(z.string().min(1)).default([]),
+    fallbacksUsed: z.array(z.string().min(1)).default([]),
     sandboxSkipped: z
       .array(
         z
@@ -124,7 +146,7 @@ export const exportProgressEventSchema = z.discriminatedUnion('phase', [
     .object({
       phase: z.literal('size-warning'),
       totalBytes: z.number().int().nonnegative(),
-      thresholdBytes: z.number().int().nonpositive()
+      thresholdBytes: z.number().int().positive()
     })
     .strict()
 ])

@@ -40,6 +40,12 @@ export const dataChartRegistryEntry = defineRegistryEntry({
   propsSchema: dataChartPropsSchema,
   description: 'Responsive Recharts line, bar, or scatter chart from inline data or a vault asset.',
   category: 'data',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/data-chart.ts',
+    entryExport: 'dataChartRegistryEntry',
+    static: 'data-table',
+    interactive: 'hydrate'
+  },
   defaultProps: {
     type: 'line',
     x: 'x',

@@ -123,7 +123,15 @@ Audit no more than three correction rounds:
 5. Exercise commit-once prediction, self-test reveal, and empty evidence behavior in preview.
 6. Create a note through the template flow and compile it.
 7. Run `bun test`, `bun run typecheck`, and `bun run lint`.
-8. Export once and record the observed fidelity. Export support can lag in-app registry and theme support; report placeholders or missing theme CSS instead of claiming parity.
+8. Export both Static HTML and Interactive HTML, then open each generated file directly through `file://`. Static export should retain semantic disclosures and explicit island fallbacks; interactive export should retain trusted behavior and approved sandbox islands without network access.
+
+## Export contract
+
+Export preserves authored props when they use the safe literal subset: strings, booleans, finite numbers, `null`, arrays, and plain objects composed from those values. Keep executable JavaScript out of component props. Identifiers, calls, member access, computed keys, spreads, functions, imports/exports, and prototype-polluting keys are rejected with a source-located diagnostic instead of being evaluated or replaced with sample defaults.
+
+Both modes preserve Markdown, safe HTML, nested trusted-component structure, source order, local images, math, code, and the `interactive-note` editorial theme in one self-contained HTML file. Interactive export hydrates each composed trusted subtree as one React root and runs only already-approved vault islands inside `sandbox="allow-scripts"`; approved datasets are embedded and capability-scoped to their owning island. It does not grant network access or broader permissions.
+
+Static export deliberately replaces stateful behavior with honest no-JavaScript representations. Prediction and self-test content use semantic disclosures, and a sandbox island uses its manifest fallback resolved from the island directory. When a valid fallback is unavailable, the artifact contains a named unavailable card and the Export dialog reports the limitation. Blocking expressions, remote runtime dependencies, denied or invalid sandboxes, and the 25 MiB final-file limit prevent export; non-blocking fallbacks and the 5 MiB warning remain visible before and after writing.
 
 ## HTML-to-MDX mapping
 

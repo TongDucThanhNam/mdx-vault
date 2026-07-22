@@ -18,6 +18,12 @@ export const widgetFrameRegistryEntry = defineRegistryEntry({
   propsSchema: widgetFramePropsSchema,
   description: 'Hard-shadow widget frame with LOCKED, READY, and DONE context state.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/widget-frame.ts',
+    entryExport: 'widgetFrameRegistryEntry',
+    static: 'widget-frame',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<WidgetFrame
   title="Stride Explorer"
   misconception="A regular access pattern always benefits from cache."

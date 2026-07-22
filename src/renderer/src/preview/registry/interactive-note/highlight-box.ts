@@ -17,6 +17,12 @@ export const highlightBoxRegistryEntry = defineRegistryEntry({
   propsSchema: highlightBoxPropsSchema,
   description: 'Editorial highlight with the source theme red rule.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/highlight-box.ts',
+    entryExport: 'highlightBoxRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<HighlightBox title="Version-dependent">
   State the important caveat here.
 </HighlightBox>`

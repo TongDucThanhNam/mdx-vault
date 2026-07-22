@@ -15,6 +15,12 @@ export const counterRegistryEntry = defineRegistryEntry({
   propsSchema: counterPropsSchema,
   description: 'Small demo counter used to prove trusted component rendering.',
   category: 'demo',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/counter.ts',
+    entryExport: 'counterRegistryEntry',
+    static: 'counter-summary',
+    interactive: 'hydrate'
+  },
   defaultProps: {
     initial: 0
   }

@@ -16,6 +16,12 @@ export const traceBlockRegistryEntry = defineRegistryEntry({
   propsSchema: traceBlockPropsSchema,
   description: 'Whitespace-preserving mechanism trace in Courier Prime.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/trace-block.ts',
+    entryExport: 'traceBlockRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<TraceBlock>{\`Load address X
   → L1 lookup
   → RAM fetch on miss

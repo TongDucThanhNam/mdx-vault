@@ -18,6 +18,12 @@ export const selfTestItemRegistryEntry = defineRegistryEntry({
   propsSchema: selfTestItemPropsSchema,
   description: 'Levelled self-test question with an answer hidden until reveal.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/self-test-item.ts',
+    entryExport: 'selfTestItemRegistryEntry',
+    static: 'self-test-disclosure',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<SelfTest>
   <SelfTestItem level={3} question="Explain the mechanism from memory.">
     Put the answer and a link back to the relevant section here.

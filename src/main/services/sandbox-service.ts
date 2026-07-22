@@ -41,8 +41,7 @@ const sandboxCsp = [
   "font-src 'none'",
   "object-src 'none'",
   "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'"
+  "form-action 'none'"
 ].join('; ')
 
 const permissionStoreSchema = z
@@ -656,13 +655,18 @@ function createSandboxBootstrapScript(instanceId: string): string {
   window.addEventListener('load', postResize);
 
   if ('ResizeObserver' in window) {
-    new ResizeObserver(postResize).observe(document.documentElement);
+    var resizeObserver = new ResizeObserver(postResize);
+    resizeObserver.observe(document.documentElement);
+    if (document.body) resizeObserver.observe(document.body);
   } else {
     window.setInterval(postResize, 500);
   }
 
   post({ type: 'ready' });
   postResize();
+  window.setTimeout(postResize, 0);
+  window.setTimeout(postResize, 100);
+  window.setTimeout(postResize, 500);
 })();
 `
 }

@@ -1,5 +1,5 @@
-import { readFile, stat } from 'fs/promises'
-import { extname } from 'path'
+import { readFile, realpath, stat } from 'fs/promises'
+import { extname, isAbsolute, relative, resolve } from 'path'
 
 import { safeJoin } from './safe-path'
 import type { VaultService } from './vault-service'
@@ -9,6 +9,7 @@ export interface InlinedAsset {
   mimeType: string
   dataUri: string
   bytes: number
+  text?: string
 }
 
 export interface AssetCollectionResult {
@@ -31,14 +32,12 @@ const SUPPORTED_IMAGE_MIME_TYPES: Record<string, string> = {
 
 const SUPPORTED_DATASET_EXTENSIONS = new Set(['.csv', '.json'])
 
-const DATA_URI_HEAD_BYTES = 16 * 1024
-
 export class AssetCollector {
   constructor(private readonly vault: VaultService) {}
 
   /**
    * Resolve relative references against `noteRelativePath` and inline the
-   * contents as data URIs. Files that fail the size limit (5MB) or have an
+   * contents as data URIs. Files that fail the per-asset limit (25 MiB) or have an
    * unsupported mime type are recorded in `skipped` and the original relative
    * path is left in the manifest so the renderer can warn the user.
    */
@@ -104,7 +103,7 @@ export class AssetCollector {
         }
 
         const mimeType = extension === '.json' ? 'application/json' : 'text/csv'
-        const inlined = await this.readAsDataUri(absolutePath, mimeType, source)
+        const inlined = await this.readAsDataUri(absolutePath, mimeType, source, true)
         if (!inlined) {
           skipped.push(`dataset:${source}`)
           continue
@@ -127,6 +126,40 @@ export class AssetCollector {
     }
   }
 
+  async collectApprovedDatasets(sources: string[]): Promise<{
+    datasets: Map<string, InlinedAsset>
+    warnings: string[]
+    skipped: string[]
+  }> {
+    const datasets = new Map<string, InlinedAsset>()
+    const warnings: string[] = []
+    const skipped: string[] = []
+
+    for (const source of dedupe(sources)) {
+      try {
+        if (isAbsolutePathLike(source)) {
+          throw new Error('Dataset path must be vault-relative')
+        }
+        const extension = extname(source).toLowerCase()
+        if (!SUPPORTED_DATASET_EXTENSIONS.has(extension)) {
+          throw new Error('Dataset must be JSON or CSV')
+        }
+        const absolutePath = safeJoin(this.vault.rootPath, source)
+        const mimeType = extension === '.json' ? 'application/json' : 'text/csv'
+        const inlined = await this.readAsDataUri(absolutePath, mimeType, source, true)
+        if (!inlined) {
+          throw new Error('Dataset is missing, not a file, or exceeds the per-asset limit')
+        }
+        datasets.set(source, inlined)
+      } catch (error) {
+        skipped.push(source)
+        warnings.push(`Could not embed approved dataset ${source}: ${formatError(error)}`)
+      }
+    }
+
+    return { datasets, warnings, skipped }
+  }
+
   /**
    * Reads the file at `absolutePath` and converts it to a base64 data URI.
    * Returns `null` if the file is missing, not a file, or larger than the
@@ -135,7 +168,8 @@ export class AssetCollector {
   private async readAsDataUri(
     absolutePath: string,
     mimeType: string,
-    source: string
+    source: string,
+    includeText = false
   ): Promise<InlinedAsset | null> {
     let stats: Awaited<ReturnType<typeof stat>>
     try {
@@ -147,6 +181,8 @@ export class AssetCollector {
       return null
     }
 
+    await this.assertRealPathInsideVault(absolutePath)
+
     if (stats.size > 25 * 1024 * 1024) {
       return null
     }
@@ -157,7 +193,8 @@ export class AssetCollector {
       sourcePath: source,
       mimeType,
       dataUri,
-      bytes: bytes.byteLength
+      bytes: bytes.byteLength,
+      text: includeText ? bytes.toString('utf8') : undefined
     }
   }
 
@@ -179,6 +216,17 @@ export class AssetCollector {
   private isPathInsideInteractive(absolutePath: string): boolean {
     const normalized = absolutePath.replaceAll('\\', '/')
     return normalized.includes('/interactives/')
+  }
+
+  private async assertRealPathInsideVault(absolutePath: string): Promise<void> {
+    const [resolvedRoot, resolvedTarget] = await Promise.all([
+      realpath(this.vault.rootPath),
+      realpath(absolutePath)
+    ])
+    const pathFromRoot = relative(resolve(resolvedRoot), resolve(resolvedTarget))
+    if (pathFromRoot.startsWith('..') || isAbsolute(pathFromRoot)) {
+      throw new Error('Asset resolves outside the vault root')
+    }
   }
 }
 
@@ -226,6 +274,3 @@ function formatError(error: unknown): string {
   }
   return String(error)
 }
-
-// Silence unused-import warning during refactors.
-void DATA_URI_HEAD_BYTES

@@ -56,6 +56,12 @@ export const equationSliderRegistryEntry = defineRegistryEntry({
   propsSchema: equationSliderPropsSchema,
   description: 'Sliders for variables that update a parsed arithmetic expression and mini chart.',
   category: 'data',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/equation-slider.ts',
+    entryExport: 'equationSliderRegistryEntry',
+    static: 'equation-summary',
+    interactive: 'hydrate'
+  },
   defaultProps: {
     formula: 'y = m * x + b',
     compute: 'm * x + b',

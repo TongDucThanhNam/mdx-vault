@@ -43,6 +43,12 @@ export const cellGridRegistryEntry = defineRegistryEntry({
   propsSchema: cellGridPropsSchema,
   description: 'Static state-cell grid with optional brackets for contiguous groups.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/cell-grid.ts',
+    entryExport: 'cellGridRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<CellGrid
   columns={4}
   cells={[

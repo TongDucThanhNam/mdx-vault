@@ -16,6 +16,12 @@ export const recapRegistryEntry = defineRegistryEntry({
   propsSchema: recapPropsSchema,
   description: 'Static post-widget result for fast repeat reading.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/recap.ts',
+    entryExport: 'recapRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<Recap>
   State the durable result here, after the prediction gate.
 </Recap>`

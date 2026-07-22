@@ -27,6 +27,12 @@ export const algorithmVisualizerRegistryEntry = defineRegistryEntry({
   propsSchema: algorithmVisualizerPropsSchema,
   description: 'Step-by-step algorithm animation with play, pause, and manual stepping.',
   category: 'content',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/algorithm-visualizer.ts',
+    entryExport: 'algorithmVisualizerRegistryEntry',
+    static: 'algorithm-summary',
+    interactive: 'hydrate'
+  },
   defaultProps: {
     algorithm: 'binary-search',
     data: [1, 3, 4, 8, 12, 15, 20],

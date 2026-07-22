@@ -17,6 +17,12 @@ export const evidenceItemRegistryEntry = defineRegistryEntry({
   propsSchema: evidenceItemPropsSchema,
   description: 'Command and optional real result; missing evidence is visibly marked CHƯA CÓ.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/evidence-item.ts',
+    entryExport: 'evidenceItemRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<EvidenceLog>
   <EvidenceItem cmd="perf stat -e cache-misses ./benchmark" />
 </EvidenceLog>`

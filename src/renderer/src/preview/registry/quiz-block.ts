@@ -27,6 +27,12 @@ export const quizBlockRegistryEntry = defineRegistryEntry({
   propsSchema: quizBlockPropsSchema,
   description: 'Multiple-choice question with immediate feedback and an explanation.',
   category: 'content',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/quiz-block.ts',
+    entryExport: 'quizBlockRegistryEntry',
+    static: 'quiz-disclosure',
+    interactive: 'hydrate'
+  },
   defaultProps: {
     question: 'Which invariant makes binary search valid?',
     options: ['The input is sorted', 'The input is random', 'The array has no duplicates'],

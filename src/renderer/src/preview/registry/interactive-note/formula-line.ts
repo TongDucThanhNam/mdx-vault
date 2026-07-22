@@ -16,5 +16,11 @@ export const formulaLineRegistryEntry = defineRegistryEntry({
   propsSchema: formulaLinePropsSchema,
   description: 'Monospace formula or result line with a hard shadow.',
   category: 'interactive-note',
+  exportPolicy: {
+    modulePath: 'src/renderer/src/preview/registry/interactive-note/formula-line.ts',
+    entryExport: 'formulaLineRegistryEntry',
+    static: 'render',
+    interactive: 'hydrate'
+  },
   insertSnippet: `<FormulaLine>hit ratio = 1 - stride / line size</FormulaLine>`
 })
