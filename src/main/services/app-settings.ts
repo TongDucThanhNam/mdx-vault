@@ -9,9 +9,11 @@ import {
   type AppTheme,
   DEFAULT_APP_SETTINGS_SNAPSHOT,
   DEFAULT_WORKBENCH_SETTINGS,
+  type DefaultNoteViewSetting,
   type FileTreeSortSetting,
   type KeymapOverrides,
   normalizeKeymapOverrides,
+  type PagePreviewSettings,
   type WorkbenchSettings
 } from '../../shared/app-settings'
 import type { KeybindingPlatform } from '../../shared/workspace-actions'
@@ -21,8 +23,10 @@ export type {
   AppSettingsPatch,
   AppSettingsSnapshot,
   AppTheme,
+  DefaultNoteViewSetting,
   FileTreeSortSetting,
   KeymapOverrides,
+  PagePreviewSettings,
   WhenClosingWithNoTabsSetting,
   WorkbenchSettings
 } from '../../shared/app-settings'
@@ -49,21 +53,25 @@ export {
 const SETTINGS_FILENAME = 'app-settings.json'
 
 export interface PersistedAppSettings {
-  version: 3
+  version: 5
   lastVaultPath: string | null
   theme: AppTheme
   fileTreeSort: FileTreeSortSetting
+  defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
+  pagePreview: PagePreviewSettings
   workbench: WorkbenchSettings
   keymapOverrides: KeymapOverrides
 }
 
 const DEFAULT_SETTINGS: Readonly<PersistedAppSettings> = {
-  version: 3,
+  version: 5,
   lastVaultPath: null,
   theme: DEFAULT_APP_SETTINGS_SNAPSHOT.theme,
   fileTreeSort: DEFAULT_APP_SETTINGS_SNAPSHOT.fileTreeSort,
+  defaultNoteView: DEFAULT_APP_SETTINGS_SNAPSHOT.defaultNoteView,
   editorFontSize: DEFAULT_APP_SETTINGS_SNAPSHOT.editorFontSize,
+  pagePreview: DEFAULT_APP_SETTINGS_SNAPSHOT.pagePreview,
   workbench: DEFAULT_WORKBENCH_SETTINGS,
   keymapOverrides: {}
 }
@@ -202,10 +210,15 @@ function applyPatch(settings: PersistedAppSettings, patch: AppSettingsPatch): Pe
     ...settings,
     theme: patch.theme ?? settings.theme,
     fileTreeSort: patch.fileTreeSort ?? settings.fileTreeSort,
+    defaultNoteView: patch.defaultNoteView ?? settings.defaultNoteView,
     editorFontSize:
       patch.editorFontSize === undefined
         ? settings.editorFontSize
         : APP_SETTINGS_CATALOG.editorFontSize.normalize(patch.editorFontSize),
+    pagePreview: {
+      enabled: patch.pagePreview?.enabled ?? settings.pagePreview.enabled,
+      requireModifier: patch.pagePreview?.requireModifier ?? settings.pagePreview.requireModifier
+    },
     workbench: {
       activateOnClose: patch.workbench?.activateOnClose ?? settings.workbench.activateOnClose,
       whenClosingWithNoTabs:
@@ -221,13 +234,21 @@ function applyPatch(settings: PersistedAppSettings, patch: AppSettingsPatch): Pe
 function normalizePersistedSettings(value: unknown): PersistedAppSettings {
   const parsed = isRecord(value) ? value : {}
   const workbench = isRecord(parsed.workbench) ? parsed.workbench : {}
+  const pagePreview = isRecord(parsed.pagePreview) ? parsed.pagePreview : {}
 
   return {
-    version: 3,
+    version: 5,
     lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
     theme: APP_SETTINGS_CATALOG.theme.normalize(parsed.theme),
     fileTreeSort: APP_SETTINGS_CATALOG.fileTreeSort.normalize(parsed.fileTreeSort),
+    defaultNoteView: APP_SETTINGS_CATALOG.defaultNoteView.normalize(parsed.defaultNoteView),
     editorFontSize: APP_SETTINGS_CATALOG.editorFontSize.normalize(parsed.editorFontSize),
+    pagePreview: {
+      enabled: APP_SETTINGS_CATALOG.pagePreviewEnabled.normalize(pagePreview.enabled),
+      requireModifier: APP_SETTINGS_CATALOG.pagePreviewRequireModifier.normalize(
+        pagePreview.requireModifier
+      )
+    },
     workbench: {
       activateOnClose: APP_SETTINGS_CATALOG.activateOnClose.normalize(workbench.activateOnClose),
       whenClosingWithNoTabs: APP_SETTINGS_CATALOG.whenClosingWithNoTabs.normalize(
@@ -240,10 +261,12 @@ function normalizePersistedSettings(value: unknown): PersistedAppSettings {
 
 function toSnapshot(settings: PersistedAppSettings): AppSettingsSnapshot {
   return {
-    version: 3,
+    version: 5,
     theme: settings.theme,
     fileTreeSort: settings.fileTreeSort,
+    defaultNoteView: settings.defaultNoteView,
     editorFontSize: settings.editorFontSize,
+    pagePreview: { ...settings.pagePreview },
     workbench: { ...settings.workbench },
     keymapOverrides: cloneKeymapOverrides(settings.keymapOverrides)
   }
@@ -251,11 +274,13 @@ function toSnapshot(settings: PersistedAppSettings): AppSettingsSnapshot {
 
 function clonePersistedSettings(settings: Readonly<PersistedAppSettings>): PersistedAppSettings {
   return {
-    version: 3,
+    version: 5,
     lastVaultPath: settings.lastVaultPath,
     theme: settings.theme,
     fileTreeSort: settings.fileTreeSort,
+    defaultNoteView: settings.defaultNoteView,
     editorFontSize: settings.editorFontSize,
+    pagePreview: { ...settings.pagePreview },
     workbench: { ...settings.workbench },
     keymapOverrides: cloneKeymapOverrides(settings.keymapOverrides)
   }

@@ -81,6 +81,7 @@ export function TagsPanel({
                 <button
                   key={note.relativePath}
                   type="button"
+                  data-page-preview-path={note.relativePath}
                   className="flex h-11 w-full items-center gap-2 border-l-2 border-l-transparent px-2 text-left transition-colors hover:border-l-[var(--editorial-red)] hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
                   title={note.relativePath}
                   onClick={() => onSelectNote(note.relativePath)}

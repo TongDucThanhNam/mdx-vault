@@ -12,12 +12,16 @@ import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import {
   parseWikilinkParts,
   resolveWikilinkTarget,
-  type WikilinkNoteCandidate
+  type WikilinkNoteCandidate,
+  type WikilinkSubpath
 } from '../../../shared/wikilinks'
 
 interface LivePreviewOptions {
   getNotes: () => WikilinkNoteCandidate[]
-  getOnNavigateToNote: () => ((relativePath: string) => void) | undefined
+  getSourceRelativePath: () => string | undefined
+  getOnNavigateToNote: () =>
+    | ((relativePath: string, subpath?: WikilinkSubpath | null) => void)
+    | undefined
 }
 
 interface LivePreviewDecorations {
@@ -140,7 +144,7 @@ export function createLivePreviewExtension(options: LivePreviewOptions): Extensi
       atomicRanges: DecorationSet
 
       constructor(view: EditorView) {
-        const sets = buildDecorations(view, options.getNotes())
+        const sets = buildDecorations(view, options.getNotes(), options.getSourceRelativePath())
         this.decorations = sets.decorations
         this.atomicRanges = sets.atomicRanges
       }
@@ -156,7 +160,11 @@ export function createLivePreviewExtension(options: LivePreviewOptions): Extensi
           update.viewportChanged ||
           refreshRequested
         ) {
-          const sets = buildDecorations(update.view, options.getNotes())
+          const sets = buildDecorations(
+            update.view,
+            options.getNotes(),
+            options.getSourceRelativePath()
+          )
           this.decorations = sets.decorations
           this.atomicRanges = sets.atomicRanges
         }
@@ -180,7 +188,8 @@ export function createLivePreviewExtension(options: LivePreviewOptions): Extensi
 
 function buildDecorations(
   view: EditorView,
-  notes: WikilinkNoteCandidate[]
+  notes: WikilinkNoteCandidate[],
+  sourceRelativePath?: string
 ): LivePreviewDecorations {
   const decorations: Range<Decoration>[] = []
   const atomicRanges: Range<Decoration>[] = []
@@ -267,7 +276,15 @@ function buildDecorations(
         }
 
         if (node.name === 'MDXWikilink') {
-          decorateWikilink(view, node.node, notes, visibleRange, addClippedMark, addReplacement)
+          decorateWikilink(
+            view,
+            node.node,
+            notes,
+            sourceRelativePath,
+            visibleRange,
+            addClippedMark,
+            addReplacement
+          )
           return true
         }
 
@@ -320,6 +337,7 @@ function decorateWikilink(
   view: EditorView,
   node: SyntaxNode,
   notes: WikilinkNoteCandidate[],
+  sourceRelativePath: string | undefined,
   visibleRange: VisibleRange,
   addClippedMark: (
     decoration: Decoration,
@@ -341,7 +359,7 @@ function decorateWikilink(
     return
   }
 
-  const resolvedNote = resolveWikilinkTarget(notes, parts.target)
+  const resolvedNote = resolveWikilinkTarget(notes, parts.target, sourceRelativePath)
   const className = resolvedNote
     ? 'cm-live-preview-wikilink'
     : 'cm-live-preview-wikilink cm-live-preview-wikilink-unresolved'
@@ -376,6 +394,7 @@ function decorateWikilink(
 
 interface WikilinkNodeParts {
   target: string
+  subpath: WikilinkSubpath | null
   displayFrom: number
   displayTo: number
 }
@@ -407,6 +426,7 @@ function readWikilinkNode(view: EditorView, node: SyntaxNode): WikilinkNodeParts
 
   return {
     target: parts.target,
+    subpath: parts.reference.subpath,
     displayFrom: openingMark.to + displaySegmentOffset + leadingWhitespace,
     displayTo: openingMark.to + displaySegmentOffset + displaySegment.length - trailingWhitespace
   }
@@ -439,14 +459,18 @@ function handleWikilinkClick(
     return false
   }
 
-  const resolvedNote = resolveWikilinkTarget(options.getNotes(), parts.target)
+  const resolvedNote = resolveWikilinkTarget(
+    options.getNotes(),
+    parts.target,
+    options.getSourceRelativePath()
+  )
   const navigate = options.getOnNavigateToNote()
   if (!resolvedNote || !navigate) {
     return false
   }
 
   event.preventDefault()
-  navigate(resolvedNote.relativePath)
+  navigate(resolvedNote.relativePath, parts.subpath)
   return true
 }
 

@@ -267,6 +267,78 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     defaultBindings: bindings(['Mod+B'])
   }),
   action({
+    id: 'panel.showOutline',
+    title: 'Context: Open Outline',
+    description: 'Show the current note outline in the context panel.',
+    category: 'Context',
+    keywords: ['sidebar', 'headings', 'navigation'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showTags',
+    title: 'Context: Open Tags',
+    description: 'Show vault tags in the context panel.',
+    category: 'Context',
+    keywords: ['sidebar', 'metadata'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showBacklinks',
+    title: 'Context: Open Backlinks',
+    description: 'Show linked and unlinked backlinks for the current note.',
+    category: 'Context',
+    keywords: ['sidebar', 'incoming links', 'mentions'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showOutgoingLinks',
+    title: 'Context: Open Outgoing Links',
+    description: 'Show outgoing links and unlinked mentions for the current note.',
+    category: 'Context',
+    keywords: ['sidebar', 'links', 'mentions'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showProperties',
+    title: 'Context: Open Properties',
+    description: 'Show file and vault properties in the context panel.',
+    category: 'Context',
+    keywords: ['sidebar', 'frontmatter', 'metadata'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showBookmarks',
+    title: 'Context: Open Bookmarks',
+    description: 'Show durable vault bookmarks in the context panel.',
+    category: 'Context',
+    keywords: ['sidebar', 'saved', 'favorites'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showFootnotes',
+    title: 'Context: Open Footnotes',
+    description: 'Show definitions and references for the current note.',
+    category: 'Context',
+    keywords: ['sidebar', 'references', 'citations'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'property.add',
+    title: 'Add property',
+    description: 'Add a source-preserving property to the current note.',
+    category: 'Properties',
+    keywords: ['frontmatter', 'metadata', 'field'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
     id: 'insert.date',
     title: 'Insert current date',
     description: 'Insert today at the editor cursor.',

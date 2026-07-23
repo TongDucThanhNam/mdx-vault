@@ -6,20 +6,27 @@ import type {
   FileTreeSortEntry
 } from '@pierre/trees'
 import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react'
-import { Copy, ExternalLink, Files, Pencil, Trash2 } from 'lucide-react'
+import { BookmarkPlus, Copy, ExternalLink, Files, Pencil, Trash2 } from 'lucide-react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
+import type { BookmarkTarget } from '../../../shared/bookmarks'
 
 export type FileTreeSortMode = 'name' | 'modified-desc' | 'created-desc'
+
+export interface FileTreeRevealRequest {
+  path: string
+  requestId: number
+}
 
 interface FileTreeProps {
   files: VaultTreeFile[]
   /** Notes (with mtimeMs) used to drive Modified/Created sort. */
   notes?: Array<{ relativePath: string; mtimeMs: number }>
   selectedPath: string | null
+  revealRequest: FileTreeRevealRequest | null
   sortMode: FileTreeSortMode
   onSelectFile: (relativePath: string) => void
   onDeleteFile: (relativePath: string) => void
@@ -27,6 +34,7 @@ interface FileTreeProps {
   onDuplicateFile: (relativePath: string) => void
   onRevealInExplorer: (relativePath: string) => void
   onCopyPath: (relativePath: string) => void
+  onBookmark: (target: BookmarkTarget, title?: string | null) => void
 }
 
 interface TreeCallbacks {
@@ -36,6 +44,7 @@ interface TreeCallbacks {
   onDuplicateFile: FileTreeProps['onDuplicateFile']
   onRevealInExplorer: FileTreeProps['onRevealInExplorer']
   onCopyPath: FileTreeProps['onCopyPath']
+  onBookmark: FileTreeProps['onBookmark']
 }
 
 interface SortContext {
@@ -93,13 +102,15 @@ export function FileTree({
   files,
   notes,
   selectedPath,
+  revealRequest,
   sortMode,
   onSelectFile,
   onDeleteFile,
   onRenameFile,
   onDuplicateFile,
   onRevealInExplorer,
-  onCopyPath
+  onCopyPath,
+  onBookmark
 }: FileTreeProps): React.JSX.Element {
   const paths = useMemo(() => files.map((file) => file.relativePath), [files])
   const filesByPath = useMemo(
@@ -118,7 +129,8 @@ export function FileTree({
     onRenameFile,
     onDuplicateFile,
     onRevealInExplorer,
-    onCopyPath
+    onCopyPath,
+    onBookmark
   })
   callbacksRef.current = {
     onSelectFile,
@@ -126,7 +138,8 @@ export function FileTree({
     onRenameFile,
     onDuplicateFile,
     onRevealInExplorer,
-    onCopyPath
+    onCopyPath,
+    onBookmark
   }
 
   const filesByPathRef = useRef(filesByPath)
@@ -231,6 +244,27 @@ export function FileTree({
     synchronizeSelection(model, selectedPath, syncingSelectionRef)
   }, [model, selectedPath, selectedPaths])
 
+  useEffect(() => {
+    if (!revealRequest) return
+
+    let ancestorPath = ''
+    for (const segment of revealRequest.path.split('/').filter(Boolean)) {
+      ancestorPath += `${segment}/`
+      const item = model.getItem(ancestorPath)
+      if (item && 'expand' in item) item.expand()
+    }
+
+    queueMicrotask(() => {
+      model.focusPath(revealRequest.path)
+      model.scrollToPath(revealRequest.path, { focus: true, offset: 'center' })
+      window.requestAnimationFrame(() => {
+        const selector = `[data-item-path="${CSS.escape(revealRequest.path)}"]`
+        const row = model.getFileTreeContainer()?.shadowRoot?.querySelector(selector)
+        if (row instanceof HTMLElement) row.focus()
+      })
+    })
+  }, [model, revealRequest])
+
   if (files.length === 0) {
     return (
       <div className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -266,17 +300,8 @@ function TreeContextMenu({
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (item.kind === 'directory') {
-      context.close()
-      return
-    }
-
     menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-  }, [context, item.kind])
-
-  if (item.kind === 'directory') {
-    return null
-  }
+  }, [])
 
   const runAction = (action: () => void): void => {
     context.close()
@@ -314,6 +339,20 @@ function TreeContextMenu({
           />
         </>
       ) : null}
+      <TreeContextMenuItem
+        icon={<BookmarkPlus className="size-3.5" aria-hidden="true" />}
+        label={item.kind === 'directory' ? 'Bookmark folder' : 'Bookmark file'}
+        onSelect={() =>
+          runAction(() =>
+            callbacks.current.onBookmark(
+              item.kind === 'directory'
+                ? { kind: 'folder', relativePath: item.path }
+                : { kind: 'file', relativePath: item.path },
+              item.name
+            )
+          )
+        }
+      />
       <TreeContextMenuItem
         icon={<Copy className="size-3.5" aria-hidden="true" />}
         label="Copy path"

@@ -1,3 +1,4 @@
+import type { BookmarkManifest } from '../shared/bookmarks'
 import type {
   ExportMode,
   ExportPickTargetResult,
@@ -6,6 +7,16 @@ import type {
   ExportRunResult,
   ExportScanResult
 } from '../shared/export'
+import type {
+  KnowledgeNoteSnapshot,
+  LinkMentionRequest,
+  PropertyMutationRequest,
+  PropertyMutationResponse,
+  PropertyRenameApplyRequest,
+  PropertyRenamePlan,
+  PropertyRenameResult,
+  PropertySummary
+} from '../shared/knowledge'
 import type { RenamePlanPreview, RenameResult } from '../shared/rename'
 
 interface VaultFile {
@@ -292,6 +303,20 @@ interface IndexApi {
   onDidChange: (callback: () => void) => () => void
 }
 
+interface KnowledgeApi {
+  noteSnapshot: (relativePath: string) => Promise<KnowledgeNoteSnapshot>
+  propertyInventory: () => Promise<PropertySummary[]>
+  mutateProperty: (request: PropertyMutationRequest) => Promise<PropertyMutationResponse>
+  linkMention: (request: LinkMentionRequest) => Promise<PropertyMutationResponse>
+  planPropertyRename: (oldName: string, newName: string) => Promise<PropertyRenamePlan>
+  applyPropertyRename: (request: PropertyRenameApplyRequest) => Promise<PropertyRenameResult>
+}
+
+interface BookmarkApi {
+  get: () => Promise<BookmarkManifest>
+  save: (manifest: BookmarkManifest, expectedRevision: number) => Promise<BookmarkManifest>
+}
+
 interface SandboxApi {
   describeHtml: (src: string, notePath: string | null) => Promise<SandboxDescriptor>
   loadHtml: (
@@ -326,6 +351,7 @@ interface SandboxApi {
 
 export type AppTheme = 'light' | 'dark' | 'system'
 export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+export type DefaultNoteViewSetting = 'source' | 'live' | 'reading'
 export type ActivateOnCloseSetting = 'history' | 'right' | 'left'
 export type WhenClosingWithNoTabsSetting = 'keep_window_open' | 'close_window'
 export type KeymapOverrides = Record<string, string[]>
@@ -335,11 +361,18 @@ export interface WorkbenchSettings {
   whenClosingWithNoTabs: WhenClosingWithNoTabsSetting
 }
 
+export interface PagePreviewSettings {
+  enabled: boolean
+  requireModifier: boolean
+}
+
 export interface AppSettingsSnapshot {
-  version: 3
+  version: 5
   theme: AppTheme
   fileTreeSort: FileTreeSortSetting
+  defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
+  pagePreview: PagePreviewSettings
   workbench: WorkbenchSettings
   keymapOverrides: KeymapOverrides
 }
@@ -347,7 +380,9 @@ export interface AppSettingsSnapshot {
 export interface AppSettingsPatch {
   theme?: AppTheme
   fileTreeSort?: FileTreeSortSetting
+  defaultNoteView?: DefaultNoteViewSetting
   editorFontSize?: number
+  pagePreview?: Partial<PagePreviewSettings>
   workbench?: Partial<WorkbenchSettings>
   keymapOverrides?: KeymapOverrides
 }
@@ -376,6 +411,8 @@ declare global {
   interface Window {
     vaultApi: VaultApi
     indexApi: IndexApi
+    knowledgeApi: KnowledgeApi
+    bookmarkApi: BookmarkApi
     sandboxApi: SandboxApi
     aiApi: AiApi
     exportApi: ExportApi

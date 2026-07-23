@@ -29,6 +29,19 @@ AI-generated component theo trust model phải chạy Level 3/4. Nếu AI assist
   restore đầy đủ, editable `settings.json`/`keymap.json` và clone toàn bộ Zed catalog
   vẫn là candidate sau khi baseline này được chứng minh ổn định.
 
+## Current knowledge-utilities milestone
+
+- **GOAL-23 — Obsidian knowledge utilities**: delivered a shared seven-destination
+  context panel; static, full-note Page Preview across Reading, editor, Explorer,
+  Search, Backlinks, Outgoing, Bookmarks, and property links; safe outgoing-link
+  and unlinked-mention workflows; source-preserving typed properties with
+  rebuildable SQLite property search; durable grouped bookmarks; and exact
+  footnote source navigation.
+- Deliberate limits remain product boundaries: no plugin runtime, no dynamic
+  execution inside Page Preview, no nested/anchored/custom-tag YAML editing, no
+  Obsidian-only bookmark types, and no claim beyond the named footnote syntax
+  already supported by the Markdown pipeline.
+
 ## Next candidates
 
 Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):

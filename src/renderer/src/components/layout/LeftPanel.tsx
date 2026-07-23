@@ -3,10 +3,11 @@ import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
 import { SortMenu } from '@/components/SortMenu'
 import { Button } from '@/components/ui/button'
-import { FileTree } from '@/explorer/FileTree'
+import { FileTree, type FileTreeRevealRequest } from '@/explorer/FileTree'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { VaultInfo } from '@/vault/types'
+import type { BookmarkTarget } from '../../../../shared/bookmarks'
 
 interface LeftPanelProps {
   vault: VaultInfo | null
@@ -14,7 +15,9 @@ interface LeftPanelProps {
   noteIndex: NoteIndexController
   vaultSession: VaultSessionController
   commandActions: CommandActionRegistry
+  revealRequest: FileTreeRevealRequest | null
   onRequestDelete: (relativePath: string) => void
+  onAddBookmark: (target: BookmarkTarget, title?: string | null) => void | Promise<void>
 }
 
 export function LeftPanel({
@@ -23,7 +26,9 @@ export function LeftPanel({
   noteIndex,
   vaultSession,
   commandActions,
-  onRequestDelete
+  revealRequest,
+  onRequestDelete,
+  onAddBookmark
 }: LeftPanelProps): React.JSX.Element {
   return (
     <aside
@@ -82,6 +87,7 @@ export function LeftPanel({
             files={vault.treeFiles}
             notes={noteIndex.indexNotes}
             selectedPath={selectedPath}
+            revealRequest={revealRequest}
             sortMode={vaultSession.sortMode}
             onSelectFile={vaultSession.selectTreeFile}
             onDeleteFile={onRequestDelete}
@@ -93,6 +99,7 @@ export function LeftPanel({
               void vaultSession.handleRevealInExplorer(relativePath)
             }
             onCopyPath={(relativePath) => void vaultSession.handleCopyPath(relativePath)}
+            onBookmark={(target, title) => void onAddBookmark(target, title)}
           />
         ) : (
           <EmptyState

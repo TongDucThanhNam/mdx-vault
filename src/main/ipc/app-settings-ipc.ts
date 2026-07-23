@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   ACTIVATE_ON_CLOSE_VALUES,
   APP_THEME_VALUES,
+  DEFAULT_NOTE_VIEW_VALUES,
   FILE_TREE_SORT_VALUES,
   WHEN_CLOSING_WITH_NO_TABS_VALUES
 } from '../../shared/app-settings'
@@ -26,6 +27,7 @@ import type { IpcFailure, IpcResult } from './vault-ipc'
 const emptyPayloadSchema = z.undefined()
 const themeSchema = z.enum(APP_THEME_VALUES)
 const fileTreeSortSchema = z.enum(FILE_TREE_SORT_VALUES)
+const defaultNoteViewSchema = z.enum(DEFAULT_NOTE_VIEW_VALUES)
 const editorFontSizeSchema = z.number().finite().min(MIN_EDITOR_FONT_SIZE).max(MAX_EDITOR_FONT_SIZE)
 const actionIdSchema = z.string().trim().min(1).max(MAX_KEYMAP_ACTION_ID_LENGTH)
 const keyBindingSchema = z.string().trim().min(1).max(MAX_KEYMAP_BINDING_LENGTH)
@@ -44,7 +46,15 @@ const appSettingsPatchSchema: z.ZodType<AppSettingsPatch> = z
   .object({
     theme: themeSchema.optional(),
     fileTreeSort: fileTreeSortSchema.optional(),
+    defaultNoteView: defaultNoteViewSchema.optional(),
     editorFontSize: editorFontSizeSchema.optional(),
+    pagePreview: z
+      .object({
+        enabled: z.boolean().optional(),
+        requireModifier: z.boolean().optional()
+      })
+      .strict()
+      .optional(),
     workbench: workbenchPatchSchema.optional(),
     keymapOverrides: keymapOverridesSchema.optional()
   })

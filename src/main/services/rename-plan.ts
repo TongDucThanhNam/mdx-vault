@@ -3,8 +3,10 @@ import { posix as pathPosix } from 'path'
 import { visit } from 'unist-util-visit'
 
 import {
+  formatWikilinkSubpath,
   getFilenameStem,
   normalizeLinkKey,
+  parseWikilinkTarget,
   resolveWikilinkTarget,
   stripNoteExtension,
   type WikilinkNoteCandidate
@@ -225,8 +227,14 @@ function resolvesToRenamedNote(
 }
 
 function rewriteWikilinkTarget(target: string, newRelativePath: string): string {
-  const hasPath = target.includes('/') || target.includes('\\')
-  const hasExtension = /\.(mdx|md)$/i.test(target)
+  const reference = parseWikilinkTarget(target)
+
+  if (!reference) {
+    return target
+  }
+
+  const hasPath = reference.noteTarget.includes('/') || reference.noteTarget.includes('\\')
+  const hasExtension = /\.(mdx|md)$/i.test(reference.noteTarget)
   let rewritten: string
 
   if (hasPath) {
@@ -237,9 +245,12 @@ function rewriteWikilinkTarget(target: string, newRelativePath: string): string 
       : getFilenameStem(newRelativePath)
   }
 
-  return target.includes('\\') && !target.includes('/')
-    ? rewritten.replaceAll('/', '\\')
-    : rewritten
+  const normalizedRewritten =
+    reference.noteTarget.includes('\\') && !reference.noteTarget.includes('/')
+      ? rewritten.replaceAll('/', '\\')
+      : rewritten
+
+  return `${normalizedRewritten}${formatWikilinkSubpath(reference.subpath)}`
 }
 
 function findMarkdownDestinationRange(

@@ -15,6 +15,7 @@ import {
   getEffectiveBindings,
   type KeymapOverrides
 } from '../../../shared/keybindings'
+import type { KnowledgePanelId } from '../../../shared/knowledge'
 import {
   canonicalizeActionId,
   type KeybindingPlatform,
@@ -46,6 +47,8 @@ interface UseCommandActionsOptions {
   openEmptyTrash: () => void
   toggleLeftPanel: () => void
   toggleExplorerFocus: () => void
+  showKnowledgePanel: (panel: KnowledgePanelId) => void
+  addProperty: () => void
   focusEditor: () => void
   setViewMode: Dispatch<SetStateAction<ViewMode>>
   readingZoomEnabled: boolean
@@ -74,6 +77,8 @@ export function useCommandActions({
   openEmptyTrash,
   toggleLeftPanel,
   toggleExplorerFocus,
+  showKnowledgePanel,
+  addProperty,
   focusEditor,
   setViewMode,
   readingZoomEnabled,
@@ -118,6 +123,14 @@ export function useCommandActions({
       'workbench.focus-editor': focusEditor,
       'explorer.toggle-focus': toggleExplorerFocus,
       'view.toggle-left-panel': toggleLeftPanel,
+      'panel.showOutline': () => showKnowledgePanel('outline'),
+      'panel.showTags': () => showKnowledgePanel('tags'),
+      'panel.showBacklinks': () => showKnowledgePanel('backlinks'),
+      'panel.showOutgoingLinks': () => showKnowledgePanel('outgoing'),
+      'panel.showProperties': () => showKnowledgePanel('properties'),
+      'panel.showBookmarks': () => showKnowledgePanel('bookmarks'),
+      'panel.showFootnotes': () => showKnowledgePanel('footnotes'),
+      'property.add': addProperty,
       'insert.date': insertCurrentDate,
       'insert.time': insertCurrentTime,
       'view.source': () => setViewMode('source'),
@@ -137,6 +150,7 @@ export function useCommandActions({
     }),
     [
       createUniqueNote,
+      addProperty,
       focusEditor,
       insertCurrentDate,
       insertCurrentTime,
@@ -155,6 +169,7 @@ export function useCommandActions({
       toggleAiPanel,
       toggleExplorerFocus,
       toggleLeftPanel,
+      showKnowledgePanel,
       toggleTheme,
       zoomReadingIn,
       zoomReadingOut,
@@ -194,6 +209,14 @@ export function useCommandActions({
       'workbench.focus-editor': hasActiveItem,
       'explorer.toggle-focus': hasVault,
       'view.toggle-left-panel': true,
+      'panel.showOutline': hasVault,
+      'panel.showTags': hasVault,
+      'panel.showBacklinks': hasNote,
+      'panel.showOutgoingLinks': hasNote,
+      'panel.showProperties': hasNote,
+      'panel.showBookmarks': hasVault,
+      'panel.showFootnotes': hasNote,
+      'property.add': hasNote,
       'insert.date': hasNote,
       'insert.time': hasNote,
       'view.source': hasNote,

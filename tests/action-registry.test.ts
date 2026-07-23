@@ -61,6 +61,16 @@ const REQUIRED_WORKBENCH_IDS = [
 ] as const
 
 const REQUIRED_READING_ZOOM_IDS = ['view.zoom-in', 'view.zoom-out', 'view.zoom-reset'] as const
+const REQUIRED_KNOWLEDGE_PANEL_IDS = [
+  'panel.showOutline',
+  'panel.showTags',
+  'panel.showBacklinks',
+  'panel.showOutgoingLinks',
+  'panel.showProperties',
+  'panel.showBookmarks',
+  'panel.showFootnotes',
+  'property.add'
+] as const
 
 describe('workspace action registry', () => {
   test('defines every stable ID exactly once and preserves existing actions', () => {
@@ -71,7 +81,8 @@ describe('workspace action registry', () => {
     for (const id of [
       ...REQUIRED_EXISTING_IDS,
       ...REQUIRED_WORKBENCH_IDS,
-      ...REQUIRED_READING_ZOOM_IDS
+      ...REQUIRED_READING_ZOOM_IDS,
+      ...REQUIRED_KNOWLEDGE_PANEL_IDS
     ]) {
       expect(ids).toContain(id)
       expect(isStableActionId(id)).toBe(true)
@@ -189,7 +200,8 @@ describe('workspace action registry', () => {
       'workbench.reopen-closed-item',
       'explorer.toggle-focus',
       'view.toggle-left-panel',
-      ...REQUIRED_READING_ZOOM_IDS
+      ...REQUIRED_READING_ZOOM_IDS,
+      ...REQUIRED_KNOWLEDGE_PANEL_IDS
     ]) {
       expect(paletteIds).toContain(id)
     }

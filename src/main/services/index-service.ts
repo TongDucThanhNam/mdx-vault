@@ -3,15 +3,19 @@ import matter from 'gray-matter'
 import type { Heading, Link, Nodes, Root } from 'mdast'
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
 import { extname, posix as pathPosix } from 'path'
-import remarkFrontmatterImport from 'remark-frontmatter'
-import remarkGfmImport from 'remark-gfm'
-import remarkMdxImport from 'remark-mdx'
-import remarkParseImport from 'remark-parse'
-import { type Pluggable, unified } from 'unified'
 import { visit } from 'unist-util-visit'
 
-import { remarkWikilink } from '../../shared/remark-wikilink'
-import { getFilenameStem, normalizeLinkKey, parseWikilinkUrl } from '../../shared/wikilinks'
+import type { IndexedProperty } from '../../shared/knowledge'
+import { parseSourceAst } from '../../shared/markdown-source'
+import {
+  formatWikilinkSubpath,
+  getFilenameStem,
+  normalizeLinkKey,
+  normalizeWikilinkHeadingKey,
+  parseWikilinkTarget,
+  parseWikilinkUrl
+} from '../../shared/wikilinks'
+import { parseFrontmatterProperties, toIndexedProperties } from './frontmatter-properties'
 
 export interface NoteHeading {
   depth: number
@@ -21,9 +25,14 @@ export interface NoteHeading {
 }
 
 export interface NoteWikilink {
+  kind: 'wikilink' | 'markdown'
   target: string
   targetNormalized: string
   display: string
+  noteTarget: string
+  subpath: string | null
+  sourceFrom: number
+  sourceTo: number
 }
 
 export interface NoteIndex {
@@ -34,6 +43,7 @@ export interface NoteIndex {
   wikilinks: NoteWikilink[]
   tags: string[]
   components: string[]
+  properties: IndexedProperty[]
   body: string
   mtimeMs: number
   contentHash: string
@@ -47,24 +57,6 @@ interface BuildNoteIndexInput {
 
 type MdxJsxNode = MdxJsxFlowElement | MdxJsxTextElement
 
-const remarkParse = resolvePluginDefault(remarkParseImport)
-const remarkMdx = resolvePluginDefault(remarkMdxImport)
-const remarkGfm = resolvePluginDefault(remarkGfmImport)
-const remarkFrontmatter = resolvePluginDefault(remarkFrontmatterImport)
-
-const markdownProcessor = unified()
-  .use(remarkParse)
-  .use(remarkMdx)
-  .use(remarkGfm)
-  .use(remarkFrontmatter, ['yaml'])
-  .use(remarkWikilink)
-
-const markdownFallbackProcessor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkFrontmatter, ['yaml'])
-  .use(remarkWikilink)
-
 export function buildNoteIndex({ relativePath, source, mtimeMs }: BuildNoteIndexInput): NoteIndex {
   const parsedMatter = matter(source)
   const tree = parseSourceAst(source)
@@ -76,9 +68,10 @@ export function buildNoteIndex({ relativePath, source, mtimeMs }: BuildNoteIndex
     title,
     aliases: readStringArray(parsedMatter.data.aliases),
     headings,
-    wikilinks: extractWikilinks(tree, relativePath),
+    wikilinks: extractWikilinks(tree, relativePath, source),
     tags: readStringArray(parsedMatter.data.tags),
     components: extractComponents(tree),
+    properties: toIndexedProperties(parseFrontmatterProperties(source).properties),
     body: extractSearchBody(tree),
     mtimeMs,
     contentHash: hashContent(source)
@@ -120,7 +113,7 @@ function extractHeadings(tree: Root): NoteHeading[] {
     headings.push({
       depth: node.depth,
       text,
-      slug: slugify(text),
+      slug: normalizeWikilinkHeadingKey(text),
       position: headings.length
     })
   })
@@ -128,31 +121,54 @@ function extractHeadings(tree: Root): NoteHeading[] {
   return headings
 }
 
-function extractWikilinks(tree: Root, sourceRelativePath: string): NoteWikilink[] {
+function extractWikilinks(tree: Root, sourceRelativePath: string, source: string): NoteWikilink[] {
   const wikilinks: NoteWikilink[] = []
 
   visit(tree, 'link', (node: Link) => {
-    const target =
-      getWikilinkTarget(node) ?? resolveMarkdownLinkTarget(sourceRelativePath, node.url)
+    const wikilinkTarget = getWikilinkTarget(node)
+    const markdownTarget = wikilinkTarget
+      ? null
+      : resolveMarkdownLinkTarget(sourceRelativePath, node.url)
+    const target = wikilinkTarget ?? markdownTarget?.target
 
     if (!target) {
       return
     }
 
+    const reference = parseWikilinkTarget(target)
+
+    if (!reference) {
+      return
+    }
+
     const display = getWikilinkDataValue(node, 'display') ?? extractText(node).trim() ?? target
+    const backlinkTarget = reference.noteTarget || sourceRelativePath
+    const subpath = wikilinkTarget
+      ? formatWikilinkSubpath(reference.subpath)
+      : (markdownTarget?.subpath ?? null)
+    const sourceRange = readLinkSourceRange(node, source)
 
     wikilinks.push({
-      target,
-      targetNormalized: normalizeLinkKey(target),
-      display
+      kind: wikilinkTarget ? 'wikilink' : 'markdown',
+      target: wikilinkTarget ?? `${target}${subpath ?? ''}`,
+      targetNormalized: normalizeLinkKey(backlinkTarget),
+      display,
+      noteTarget: backlinkTarget,
+      subpath,
+      sourceFrom: sourceRange.from,
+      sourceTo: sourceRange.to
     })
   })
 
   return wikilinks
 }
 
-function resolveMarkdownLinkTarget(sourceRelativePath: string, url: string): string | null {
-  const rawPath = url.split(/[?#]/, 1)[0]
+function resolveMarkdownLinkTarget(
+  sourceRelativePath: string,
+  url: string
+): { target: string; subpath: string | null } | null {
+  const hashIndex = url.indexOf('#')
+  const rawPath = (hashIndex === -1 ? url : url.slice(0, hashIndex)).split('?', 1)[0]
 
   if (!rawPath || rawPath.startsWith('//') || /^[a-z][a-z\d+.-]*:/i.test(rawPath)) {
     return null
@@ -174,7 +190,45 @@ function resolveMarkdownLinkTarget(sourceRelativePath: string, url: string): str
     return null
   }
 
-  return resolvedPath
+  return {
+    target: resolvedPath,
+    subpath: hashIndex === -1 ? null : decodeFragment(url.slice(hashIndex))
+  }
+}
+
+function readLinkSourceRange(node: Link, source: string): { from: number; to: number } {
+  const from = node.position?.start.offset
+  const to = node.position?.end.offset
+
+  if (typeof from === 'number' && typeof to === 'number') {
+    return { from, to }
+  }
+
+  const targetRange = node.data?.targetRange
+  if (
+    targetRange &&
+    typeof targetRange === 'object' &&
+    'start' in targetRange &&
+    'end' in targetRange &&
+    typeof targetRange.start === 'number' &&
+    typeof targetRange.end === 'number'
+  ) {
+    const wikilinkStart = source.lastIndexOf('[[', targetRange.start)
+    const wikilinkEnd = source.indexOf(']]', targetRange.end)
+    if (wikilinkStart >= 0 && wikilinkEnd >= targetRange.end) {
+      return { from: wikilinkStart, to: wikilinkEnd + 2 }
+    }
+  }
+
+  return { from: 0, to: 0 }
+}
+
+function decodeFragment(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment)
+  } catch {
+    return fragment
+  }
 }
 
 function extractComponents(tree: Root): string[] {
@@ -268,15 +322,6 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
-function slugify(value: string): string {
-  return value
-    .normalize('NFKC')
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
-    .replace(/\s+/g, '-')
-}
-
 function normalizeVaultPath(relativePath: string): string {
   return relativePath.replaceAll('\\', '/')
 }
@@ -286,20 +331,4 @@ export function isMarkdownPath(relativePath: string): boolean {
   return extension === '.md' || extension === '.mdx'
 }
 
-export function parseSourceAst(source: string): Root {
-  try {
-    return markdownProcessor.runSync(markdownProcessor.parse(source)) as Root
-  } catch {
-    return markdownFallbackProcessor.runSync(markdownFallbackProcessor.parse(source)) as Root
-  }
-}
-
-function resolvePluginDefault<TPlugin extends Pluggable>(plugin: TPlugin): TPlugin {
-  if (typeof plugin === 'function') {
-    return plugin
-  }
-
-  const maybeModule = plugin as { default?: unknown }
-
-  return typeof maybeModule.default === 'function' ? (maybeModule.default as TPlugin) : plugin
-}
+export { parseSourceAst } from '../../shared/markdown-source'

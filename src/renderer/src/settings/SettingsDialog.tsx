@@ -67,7 +67,11 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
     id: 'editor',
     label: 'Editor',
     icon: FileText,
-    searchText: appSettingSearchText([APP_SETTINGS_CATALOG.editorFontSize])
+    searchText: appSettingSearchText([
+      APP_SETTINGS_CATALOG.editorFontSize,
+      APP_SETTINGS_CATALOG.pagePreviewEnabled,
+      APP_SETTINGS_CATALOG.pagePreviewRequireModifier
+    ])
   },
   {
     id: 'workbench',
@@ -122,6 +126,10 @@ export function SettingsDialog({
   const theme = settings.snapshot?.theme ?? APP_SETTINGS_CATALOG.theme.defaultValue
   const fileTreeSort =
     settings.snapshot?.fileTreeSort ?? APP_SETTINGS_CATALOG.fileTreeSort.defaultValue
+  const pagePreview = settings.snapshot?.pagePreview ?? {
+    enabled: APP_SETTINGS_CATALOG.pagePreviewEnabled.defaultValue,
+    requireModifier: APP_SETTINGS_CATALOG.pagePreviewRequireModifier.defaultValue
+  }
 
   const matchingSections = useMemo(
     () =>
@@ -329,7 +337,9 @@ export function SettingsDialog({
           {visibleSection === 'editor' ? (
             <EditorSection
               editorFontSize={editorFontSize}
+              pagePreview={pagePreview}
               settingsPending={settings.isPending || !settings.snapshot}
+              onPagePreviewChange={(patch) => void settings.updateSettings({ pagePreview: patch })}
               onEditorFontSizeChange={handleEditorFontSizeChange}
             />
           ) : null}
@@ -431,11 +441,17 @@ function GeneralSection({
 
 function EditorSection({
   editorFontSize,
+  pagePreview,
   settingsPending,
+  onPagePreviewChange,
   onEditorFontSizeChange
 }: {
   editorFontSize: number
+  pagePreview: { enabled: boolean; requireModifier: boolean }
   settingsPending: boolean
+  onPagePreviewChange: (
+    patch: Partial<{ enabled: boolean; requireModifier: boolean }>
+  ) => void | Promise<void>
   onEditorFontSizeChange: (fontSize: number) => void | Promise<void>
 }): React.JSX.Element {
   return (
@@ -444,6 +460,27 @@ function EditorSection({
       title="Editor"
       description="Tune the source editor while keeping the reading view unchanged."
     >
+      <SettingGroup
+        title={APP_SETTINGS_CATALOG.pagePreviewEnabled.label}
+        description={APP_SETTINGS_CATALOG.pagePreviewEnabled.description}
+      >
+        <ToggleSetting
+          id="settings-page-preview-enabled"
+          label="Preview linked notes on hover"
+          checked={pagePreview.enabled}
+          disabled={settingsPending}
+          onChange={(enabled) => void onPagePreviewChange({ enabled })}
+        />
+        <ToggleSetting
+          id="settings-page-preview-modifier"
+          label={APP_SETTINGS_CATALOG.pagePreviewRequireModifier.label}
+          description={APP_SETTINGS_CATALOG.pagePreviewRequireModifier.description}
+          checked={pagePreview.requireModifier}
+          disabled={settingsPending || !pagePreview.enabled}
+          onChange={(requireModifier) => void onPagePreviewChange({ requireModifier })}
+        />
+      </SettingGroup>
+
       <SettingGroup
         title={APP_SETTINGS_CATALOG.editorFontSize.label}
         description={APP_SETTINGS_CATALOG.editorFontSize.description}
@@ -487,6 +524,51 @@ function EditorSection({
         </div>
       </SettingGroup>
     </SettingsPage>
+  )
+}
+
+function ToggleSetting({
+  id,
+  label,
+  description,
+  checked,
+  disabled,
+  onChange
+}: {
+  id: string
+  label: string
+  description?: string
+  checked: boolean
+  disabled: boolean
+  onChange: (checked: boolean) => void
+}): React.JSX.Element {
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        'flex cursor-pointer items-start justify-between gap-4 border-2 border-foreground bg-card p-4',
+        disabled && 'cursor-not-allowed opacity-55'
+      )}
+    >
+      <span>
+        <span className="block font-mono text-[11px] font-bold uppercase tracking-wider">
+          {label}
+        </span>
+        {description ? (
+          <span className="mt-1 block max-w-xl text-xs leading-relaxed text-muted-foreground">
+            {description}
+          </span>
+        ) : null}
+      </span>
+      <input
+        id={id}
+        type="checkbox"
+        className="mt-0.5 size-5 shrink-0 accent-editorial-red"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+    </label>
   )
 }
 

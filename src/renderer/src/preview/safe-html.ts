@@ -77,7 +77,9 @@ const safeHtmlSchema: SanitizeSchema = {
   clobberPrefix: 'user-content-',
   protocols: {
     cite: ['http', 'https'],
-    href: ['http', 'https', 'mailto'],
+    // `remarkWikilink` emits this local-only scheme. The MDX anchor override
+    // consumes it as an app navigation intent; it never leaves the renderer.
+    href: ['http', 'https', 'mailto', 'wikilink'],
     src: ['http', 'https', 'data', 'blob']
   },
   required: {},

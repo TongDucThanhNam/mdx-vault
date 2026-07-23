@@ -2,7 +2,9 @@ import type { MDXComponents } from 'mdx/types'
 import {
   type AnchorHTMLAttributes,
   type ComponentType,
+  type FocusEvent,
   type ImgHTMLAttributes,
+  type PointerEvent,
   type ReactNode,
   useEffect,
   useMemo,
@@ -11,7 +13,13 @@ import {
 
 import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary } from '@/vault/types'
-import { parseWikilinkUrl, resolveWikilinkTarget } from '../../../shared/wikilinks'
+import {
+  parseWikilinkTarget,
+  parseWikilinkUrl,
+  resolveMarkdownNoteTarget,
+  resolveWikilinkTarget,
+  type WikilinkSubpath
+} from '../../../shared/wikilinks'
 import { MermaidAwarePre } from './MermaidAwarePre'
 import {
   type PreviewImageCache,
@@ -22,19 +30,24 @@ import { createRegistryComponents } from './registry'
 import { UnknownComponentPlaceholder } from './registry/messages'
 import { Interactive } from './sandbox/Interactive'
 import { SandboxedHTML } from './sandbox/SandboxedHTML'
+import type { WikilinkPreviewIntent } from './useWikilinkPreview'
 
 interface CreateMdxComponentsOptions {
   notes: IndexedNoteSummary[]
-  onNavigate: (relativePath: string) => void
+  onNavigate: (relativePath: string, subpath?: WikilinkSubpath | null) => void
   selectedPath: string | null
   imageCache: PreviewImageCache
+  onPreviewRequest?: (intent: WikilinkPreviewIntent) => void
+  onPreviewDismiss?: (relatedTarget?: EventTarget | null) => void
 }
 
 export function createMdxComponents({
   notes,
   onNavigate,
   selectedPath,
-  imageCache
+  imageCache,
+  onPreviewRequest,
+  onPreviewDismiss
 }: CreateMdxComponentsOptions): MDXComponents {
   const registryComponents = createRegistryComponents()
   const unknownComponents = new Map<string, ComponentType<Record<string, unknown>>>()
@@ -46,8 +59,12 @@ export function createMdxComponents({
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement>): ReactNode {
     const target = parseWikilinkUrl(href)
+    const markdownTarget = target
+      ? null
+      : resolveMarkdownNoteTarget(notes, href, selectedPath ?? undefined)
+    const reference = target ? parseWikilinkTarget(target) : (markdownTarget?.reference ?? null)
 
-    if (!target) {
+    if ((!target && !markdownTarget) || !reference) {
       return (
         <a href={href} {...props}>
           {children}
@@ -55,7 +72,10 @@ export function createMdxComponents({
       )
     }
 
-    const resolvedNote = resolveWikilinkTarget(notes, target)
+    const resolvedNote =
+      markdownTarget?.note ??
+      (target ? resolveWikilinkTarget(notes, target, selectedPath ?? undefined) : null)
+    const displayTarget = target ?? href ?? ''
 
     return (
       <button
@@ -66,11 +86,48 @@ export function createMdxComponents({
             ? 'text-[var(--editorial-blue)] decoration-[color-mix(in_srgb,var(--editorial-blue)_40%,transparent)] hover:decoration-[var(--editorial-blue)]'
             : 'text-muted-foreground decoration-dashed decoration-muted-foreground/50'
         )}
-        title={resolvedNote ? resolvedNote.relativePath : `Unresolved: ${target}`}
-        aria-label={resolvedNote ? `Open ${target}` : `Unresolved link ${target}`}
+        data-page-preview-path={resolvedNote?.relativePath}
+        data-page-preview-owned="true"
+        title={resolvedNote ? resolvedNote.relativePath : `Unresolved: ${displayTarget}`}
+        aria-label={resolvedNote ? `Open ${displayTarget}` : `Unresolved link ${displayTarget}`}
+        aria-haspopup={resolvedNote ? 'dialog' : undefined}
+        onPointerEnter={(event: PointerEvent<HTMLButtonElement>) => {
+          if (resolvedNote) {
+            const modifierKey = readModifierKey(event)
+            onPreviewRequest?.({
+              note: resolvedNote,
+              subpath: reference.subpath,
+              anchor: event.currentTarget,
+              trigger: 'pointer',
+              ...(modifierKey === undefined ? {} : { modifierKey })
+            })
+          }
+        }}
+        onPointerLeave={(event: PointerEvent<HTMLButtonElement>) => {
+          if (resolvedNote) {
+            onPreviewDismiss?.(event.relatedTarget)
+          }
+        }}
+        onFocus={(event: FocusEvent<HTMLButtonElement>) => {
+          if (resolvedNote) {
+            const modifierKey = readModifierKey(event)
+            onPreviewRequest?.({
+              note: resolvedNote,
+              subpath: reference.subpath,
+              anchor: event.currentTarget,
+              trigger: 'focus',
+              ...(modifierKey === undefined ? {} : { modifierKey })
+            })
+          }
+        }}
+        onBlur={(event: FocusEvent<HTMLButtonElement>) => {
+          if (resolvedNote) {
+            onPreviewDismiss?.(event.relatedTarget)
+          }
+        }}
         onClick={() => {
           if (resolvedNote) {
-            onNavigate(resolvedNote.relativePath)
+            onNavigate(resolvedNote.relativePath, reference.subpath)
           }
         }}
       >
@@ -254,4 +311,12 @@ function formatImageError(error: unknown): string {
 function isComponentName(name: string): boolean {
   const firstCharacter = name.at(0)
   return firstCharacter !== undefined && firstCharacter === firstCharacter.toLocaleUpperCase()
+}
+
+function readModifierKey(event: unknown): boolean | undefined {
+  if (!event || typeof event !== 'object') return undefined
+  const ctrlKey = 'ctrlKey' in event ? event.ctrlKey : undefined
+  const metaKey = 'metaKey' in event ? event.metaKey : undefined
+  if (typeof ctrlKey !== 'boolean' && typeof metaKey !== 'boolean') return undefined
+  return ctrlKey === true || metaKey === true
 }

@@ -162,6 +162,10 @@ export class VaultIndexRuntime {
     this.onDidChange?.()
   }
 
+  notifyChanged(): void {
+    this.onDidChange?.()
+  }
+
   async reindexRename(
     oldRelativePath: string,
     newRelativePath: string,

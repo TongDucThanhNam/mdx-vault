@@ -1,4 +1,4 @@
-import { FileSearch, Search, X } from 'lucide-react'
+import { BookmarkPlus, FileSearch, Search, X } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -8,14 +8,20 @@ import { containDialogTabKey } from '@/workbench/dialog-focus'
 
 interface SearchPaneProps {
   open: boolean
+  initialQuery?: string
+  initialQueryRequest?: number
   onOpenChange: (open: boolean) => void
   onSelectNote: (relativePath: string) => Promise<boolean>
+  onBookmarkQuery?: (query: string) => void | Promise<void>
 }
 
 export function SearchPane({
   open,
+  initialQuery = '',
+  initialQueryRequest = 0,
   onOpenChange,
-  onSelectNote
+  onSelectNote,
+  onBookmarkQuery
 }: SearchPaneProps): React.JSX.Element | null {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -29,8 +35,9 @@ export function SearchPane({
       return
     }
 
+    setQuery(initialQuery)
     window.setTimeout(() => inputRef.current?.focus(), 0)
-  }, [open])
+  }, [initialQuery, initialQueryRequest, open])
 
   useEffect(() => {
     if (!open) {
@@ -149,6 +156,17 @@ export function SearchPane({
             type="button"
             size="icon-xs"
             variant="ghost"
+            title="Bookmark this search"
+            aria-label="Bookmark this search"
+            disabled={!query.trim()}
+            onClick={() => void onBookmarkQuery?.(query.trim())}
+          >
+            <BookmarkPlus className="size-3.5" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
             title="Close"
             aria-label="Close search"
             onClick={() => onOpenChange(false)}
@@ -177,6 +195,7 @@ export function SearchPane({
                 <button
                   key={`${result.note.relativePath}-${result.snippet}`}
                   type="button"
+                  data-page-preview-path={result.note.relativePath}
                   className="w-full px-3 py-2.5 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
                   title={result.note.relativePath}
                   disabled={isOpening}

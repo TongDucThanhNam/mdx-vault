@@ -55,24 +55,24 @@ Mỗi mục phải đối chiếu bằng code với file evidence, verdict FULL 
 | # | Core plugin | mdx-vault | Evidence / thiếu gì |
 |---|-------------|:---:|---|
 | 1 | File explorer | ✅ | `FileTree.tsx` — create/rename/duplicate/trash/move/sort |
-| 2 | Search | ⚠️ | `SearchPane.tsx` + `DbService.search()` now support free text with `tag:`, `path:`, `file:`, and bounded `/regex/` operators plus visible invalid-regex errors. Still missing broader Obsidian operators (`line:` `section:` `block:` `task:` `[property:value]`), copy/history/embed-query polish |
+| 2 | Search | ⚠️ | `SearchPane.tsx` + `DbService.search()` support free text, `tag:`, `path:`, `file:`, bounded `/regex/`, and GOAL-23 property filters (`[property]`, `[property:value]`, `[property:null]`) with composition and bounds. Broader Obsidian operators (`line:`, `section:`, `block:`, `task:`), boolean grouping, copy/history, and embedded-query polish remain deferred |
 | 3 | Quick switcher | ⚠️ | `QuickSwitcher.tsx` now shows recent notes for empty query, visible alias matches, and create-from-switcher without overwrite. Still missing tab/new-pane behavior (`Ctrl+Enter`) because mdx-vault has no tabs yet |
 | 4 | Command palette | ⚠️ | `CommandPalette.tsx` now supports persistent pinned commands, recent-on-top empty-query ordering, and hotkey labels. Still far fewer commands than Obsidian and no hotkey editor/settings UI |
 | 5 | Backlinks | ⚠️ | `BacklinksPanel.tsx` now separates linked/unlinked mentions, shows context snippets, and supports filter/sort. Still missing backlinks-in-document and one-click linkification |
-| 6 | Outgoing links | ❌ | Chưa có panel. Gồm: links của note active + unlinked mentions chiều đi + nút "link hoá" 1-click |
+| 6 | Outgoing links | ✅ | GOAL-23 adds source-ordered wikilinks and vault-relative Markdown links, resolved/unresolved paths and subpaths, bounded prose-only unlinked mentions, ambiguity selection, and exact stale-safe one-range linkification |
 | 7 | Outline | ✅ | `OutlinePanel.tsx` (GOAL-12) |
 | 8 | Tags view | ✅ | `TagsPanel.tsx` (GOAL-12) |
 | 9 | Templates | ⚠️ | `vault-service.ts` supports `{{title}}`, `{{date}}`, `{{time}}`, plus allowlisted `{{date:FORMAT}}` / `{{time:FORMAT}}`; templates can be inserted at the editor cursor through command/slash surfaces. Still missing configurable template folder |
 | 10 | Daily notes | ⚠️ | Command `note.daily` + template `templates/daily.mdx` (hardcode). Thiếu: setting date format / folder (vd `YYYY/MMMM/…`), auto-link date, prev/next day nav |
 | 11 | Word count | ✅ | `App.tsx:849` words/chars/reading time. (Obsidian thêm: count theo selection) |
-| 12 | Page preview (hover) | ❌ | Hover `[[link]]` → popup render note. Áp dụng cả trong FileTree/Search/Backlinks. Modifier `Ctrl` khi hover trong editor |
-| 13 | Bookmarks | ❌ | Bookmark file/folder/search/heading/block, groups, drag reorder, panel riêng |
-| 14 | Properties view | ⚠️ | Chỉ **display** frontmatter trong preview (`MdxPreview.tsx`). Thiếu: form edit properties của note active, panel "All properties" toàn vault (sort theo tần suất, click → search, rename global) |
+| 12 | Page preview (hover) | ✅ | GOAL-23 provides one bounded static controller across Reading, editor, File Explorer, Search, Backlinks, Outgoing Links, Bookmarks, and property links. Full notes remain independently scrollable, nested heading subpaths resolve, dynamic islands stay inert, editor hover requires Ctrl/Cmd, and global enable/modifier settings persist |
+| 13 | Bookmarks | ⚠️ | GOAL-23 persists versioned groups and ordered file/folder/search/heading bookmarks in `.app/bookmarks.json`, including entry points, edit/remove, keyboard ordering, cross-group drag, rename repair, missing targets, and Page Preview. Obsidian block, web, graph, multi-selection, and tab-group bookmark types are deliberately unsupported |
+| 14 | Properties view | ⚠️ | GOAL-23 adds active-file typed editing, all-properties inventory/filter/sort/search, exact-key transactional global rename, and property search. Nested maps, YAML anchors/tags, bulk value editing, and Bases-style views remain deliberately read-only or deferred |
 | 15 | File recovery | ❌ | Đã có autosave + atomic write nhưng **không có snapshot history**: snapshot mỗi ≥5', giữ 7 ngày, diff view, restore/copy. (Điểm khác Obsidian: lưu ngoài vault) |
 | 16 | Note composer | ❌ | Merge 2 notes (update mọi backlink), extract selection → note mới (để lại link/embed/không gì), template `{{content}}/{{fromTitle}}/{{newTitle}}` |
 | 17 | Random note | ✅ | Command palette action opens a random indexed note from the current vault |
 | 18 | Slash commands | ✅ | Typing `/` at the start of an editor line opens a slash palette that can run commands and insert components/templates/date/time snippets |
-| 19 | Footnotes view | ❌ | Panel list footnotes của note active (footnote **render** trong preview thì đã có qua GFM pipeline) |
+| 19 | Footnotes view | ✅ | GOAL-23 lists named definitions, repeated/missing/unreferenced status and counts, then reveals exact editable definition/reference ranges with deterministic previous/next traversal. No unsupported inline-footnote syntax is claimed |
 | 20 | Graph view | ❌ | Global + local graph. Được nêu là invariant trong [product-vision.md](../product-vision.md) — deferred có chủ đích |
 | 21 | Canvas | ❌ | Deferred (effort 5) — xem bản research trước |
 | 22 | Bases | ❌ | Database views trên properties (bảng, filter, sort). Tương đương Dataview-lite. Ứng viên dài hạn |

@@ -18,8 +18,8 @@ declare function expect<T>(actual: T): {
   not: { toContain(expected: string): void }
 }
 
-describe('AppSettingsService v3', () => {
-  test('migrates a v1 settings file losslessly and supplies v3 workbench defaults', async () => {
+describe('AppSettingsService v5', () => {
+  test('migrates a v1 settings file losslessly and supplies current defaults', async () => {
     await withSettingsDirectory(async (root) => {
       await writeSettings(root, {
         version: 1,
@@ -30,11 +30,13 @@ describe('AppSettingsService v3', () => {
 
       const settings = await new AppSettingsService(root).read()
 
-      expect(settings.version).toBe(3)
+      expect(settings.version).toBe(5)
       expect(settings.lastVaultPath).toBe('C:\\notes')
       expect(settings.theme).toBe('dark')
       expect(settings.fileTreeSort).toBe('modified-desc')
+      expect(settings.defaultNoteView).toBe('reading')
       expect(settings.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
+      expect(settings.pagePreview).toEqual({ enabled: true, requireModifier: false })
       expect(settings.workbench).toEqual({
         activateOnClose: 'history',
         whenClosingWithNoTabs: 'keep_window_open'
@@ -43,7 +45,7 @@ describe('AppSettingsService v3', () => {
     })
   })
 
-  test('migrates every v2 field to v3 without changing its value', async () => {
+  test('migrates every v2 field to v5 without changing its value', async () => {
     await withSettingsDirectory(async (root) => {
       await writeSettings(root, {
         version: 2,
@@ -55,18 +57,43 @@ describe('AppSettingsService v3', () => {
 
       const settings = await new AppSettingsService(root).read()
 
-      expect(settings.version).toBe(3)
+      expect(settings.version).toBe(5)
       expect(settings.lastVaultPath).toBe('D:\\vault')
       expect(settings.theme).toBe('light')
       expect(settings.fileTreeSort).toBe('created-desc')
       expect(settings.editorFontSize).toBe(18.5)
+      expect(settings.defaultNoteView).toBe('reading')
     })
   })
 
-  test('returns clean v3 defaults for missing, corrupt, and non-object JSON', async () => {
+  test('migrates v4 page-preview defaults and preserves explicit v5 values', async () => {
+    await withSettingsDirectory(async (root) => {
+      await writeSettings(root, {
+        version: 4,
+        theme: 'dark',
+        defaultNoteView: 'live'
+      })
+      const service = new AppSettingsService(root)
+      expect((await service.read()).pagePreview).toEqual({
+        enabled: true,
+        requireModifier: false
+      })
+
+      await writeSettings(root, {
+        version: 5,
+        pagePreview: { enabled: false, requireModifier: true }
+      })
+      expect((await service.read()).pagePreview).toEqual({
+        enabled: false,
+        requireModifier: true
+      })
+    })
+  })
+
+  test('returns clean v5 defaults for missing, corrupt, and non-object JSON', async () => {
     await withSettingsDirectory(async (root) => {
       const service = new AppSettingsService(root)
-      expect((await service.read()).version).toBe(3)
+      expect((await service.read()).version).toBe(5)
 
       await writeFile(join(root, 'app-settings.json'), '{not-json', 'utf8')
       const corrupt = await service.read()
@@ -88,6 +115,7 @@ describe('AppSettingsService v3', () => {
         version: 3,
         theme: 'neon',
         fileTreeSort: 'size',
+        defaultNoteView: 'split',
         editorFontSize: 'large',
         workbench: {
           activateOnClose: 'newest',
@@ -97,9 +125,11 @@ describe('AppSettingsService v3', () => {
       const invalid = await service.read()
       expect(invalid.theme).toBe('system')
       expect(invalid.fileTreeSort).toBe('name')
+      expect(invalid.defaultNoteView).toBe('reading')
       expect(invalid.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
       expect(invalid.workbench.activateOnClose).toBe('history')
       expect(invalid.workbench.whenClosingWithNoTabs).toBe('keep_window_open')
+      expect(invalid.pagePreview).toEqual({ enabled: true, requireModifier: false })
 
       await writeSettings(root, { version: 3, editorFontSize: 8 })
       expect((await service.read()).editorFontSize).toBe(12)
@@ -164,7 +194,12 @@ describe('AppSettingsService v3', () => {
       const snapshot = await service.updateSettings({
         theme: 'dark',
         fileTreeSort: 'modified-desc',
+        defaultNoteView: 'source',
         editorFontSize: 18.5,
+        pagePreview: {
+          enabled: false,
+          requireModifier: true
+        },
         workbench: {
           activateOnClose: 'left',
           whenClosingWithNoTabs: 'close_window'
@@ -173,11 +208,13 @@ describe('AppSettingsService v3', () => {
 
       const persisted = await readFile(join(root, 'app-settings.json'), 'utf8')
       const files = await readdir(root)
-      expect(snapshot.version).toBe(3)
+      expect(snapshot.version).toBe(5)
       expect(snapshot.theme).toBe('dark')
+      expect(snapshot.defaultNoteView).toBe('source')
       expect(snapshot.workbench.activateOnClose).toBe('left')
+      expect(snapshot.pagePreview).toEqual({ enabled: false, requireModifier: true })
       expect('lastVaultPath' in snapshot).toBe(false)
-      expect(persisted).toContain('"version": 3')
+      expect(persisted).toContain('"version": 5')
       expect(persisted).not.toContain('apiKey')
       expect(persisted).not.toContain('must-not-survive')
       expect(persisted).not.toContain('also-secret')
@@ -194,6 +231,8 @@ describe('AppSettingsService v3', () => {
         service.setTheme('dark'),
         service.setFileTreeSort('modified-desc'),
         service.setEditorFontSize(17),
+        service.updateSettings({ defaultNoteView: 'live' }),
+        service.updateSettings({ pagePreview: { requireModifier: true } }),
         service.setLastVaultPath(root),
         service.updateSettings({ workbench: { activateOnClose: 'right' } }),
         service.updateSettings({
@@ -206,6 +245,8 @@ describe('AppSettingsService v3', () => {
       expect(settings.theme).toBe('dark')
       expect(settings.fileTreeSort).toBe('modified-desc')
       expect(settings.editorFontSize).toBe(17)
+      expect(settings.defaultNoteView).toBe('live')
+      expect(settings.pagePreview).toEqual({ enabled: true, requireModifier: true })
       expect(settings.lastVaultPath).toBe(root)
       expect(settings.workbench).toEqual({
         activateOnClose: 'right',

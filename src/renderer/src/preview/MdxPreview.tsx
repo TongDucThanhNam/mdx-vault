@@ -18,7 +18,9 @@ import type { IndexedNoteSummary } from '@/vault/types'
 import { remarkCallouts } from '../../../shared/remark-callouts'
 import { remarkMarks } from '../../../shared/remark-mark'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
+import type { WikilinkSubpath } from '../../../shared/wikilinks'
 import { createMdxComponents } from './mdx-components'
+import { usePagePreviewController } from './page-preview-context'
 import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
 import { PreviewImageCache } from './preview-image'
 import { isInteractiveNoteTheme, readPreviewMetadata } from './preview-metadata'
@@ -26,6 +28,8 @@ import { normalizeReadingWheelDelta } from './reading-zoom'
 import { rehypePreviewSourceMap } from './rehype-preview-source-map'
 import { PreviewRuntimeContext } from './runtime'
 import { rehypeSafeHtml } from './safe-html'
+import { useWikilinkPreview } from './useWikilinkPreview'
+import { WikilinkPreviewLayer } from './WikilinkPreview'
 import './interactive-note-theme.css'
 
 interface MdxPreviewProps {
@@ -37,7 +41,7 @@ interface MdxPreviewProps {
     position: number
     requestId: number
   } | null
-  onNavigate: (relativePath: string) => void
+  onNavigate: (relativePath: string, subpath?: WikilinkSubpath | null) => void
   onRevealLine: (line: number) => void
   isDarwin: boolean
   isPhysicalZoomModifierDown: () => boolean
@@ -80,9 +84,27 @@ export function MdxPreview({
   const [isCompiling, setIsCompiling] = useState(false)
   const [previewSelection, setPreviewSelection] = useState<PreviewTextSelection | null>(null)
   const imageCache = useMemo(() => new PreviewImageCache(), [selectedPath])
+  const sharedPagePreview = usePagePreviewController()
+  const localPagePreview = useWikilinkPreview()
+  const wikilinkPreview = sharedPagePreview ?? localPagePreview
   const components = useMemo(
-    () => createMdxComponents({ notes, onNavigate, selectedPath, imageCache }),
-    [notes, onNavigate, selectedPath, imageCache]
+    () =>
+      createMdxComponents({
+        notes,
+        onNavigate,
+        selectedPath,
+        imageCache,
+        onPreviewRequest: wikilinkPreview.requestPreview,
+        onPreviewDismiss: wikilinkPreview.scheduleDismiss
+      }),
+    [
+      notes,
+      onNavigate,
+      selectedPath,
+      imageCache,
+      wikilinkPreview.requestPreview,
+      wikilinkPreview.scheduleDismiss
+    ]
   )
   const previewMetadata = useMemo(() => readPreviewMetadata(source), [source])
   const runtimeValue = useMemo(() => ({ selectedPath }), [selectedPath])
@@ -291,6 +313,15 @@ export function MdxPreview({
           </Button>
         </div>
       ) : null}
+      {sharedPagePreview ? null : (
+        <WikilinkPreviewLayer
+          preview={wikilinkPreview.activePreview}
+          onNavigate={onNavigate}
+          onRetain={wikilinkPreview.retainPreview}
+          onDismiss={wikilinkPreview.dismissPreview}
+          onScheduleDismiss={wikilinkPreview.scheduleDismiss}
+        />
+      )}
     </div>
   )
 }

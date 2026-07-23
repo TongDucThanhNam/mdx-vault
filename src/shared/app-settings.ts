@@ -7,11 +7,17 @@ import {
 
 export type AppTheme = 'light' | 'dark' | 'system'
 export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
+export type DefaultNoteViewSetting = 'source' | 'live' | 'reading'
 export type ActivateOnCloseSetting = 'history' | 'right' | 'left'
 export type WhenClosingWithNoTabsSetting = 'keep_window_open' | 'close_window'
 export type KeymapOverrides = Record<string, string[]>
 export type AppSettingsCategory = 'General' | 'Editor' | 'Workbench' | 'Keymap'
-export type AppSettingControlKind = 'choice' | 'range' | 'keymap'
+export type AppSettingControlKind = 'choice' | 'range' | 'toggle' | 'keymap'
+
+export interface PagePreviewSettings {
+  enabled: boolean
+  requireModifier: boolean
+}
 
 export interface WorkbenchSettings {
   activateOnClose: ActivateOnCloseSetting
@@ -19,10 +25,12 @@ export interface WorkbenchSettings {
 }
 
 export interface AppSettingsSnapshot {
-  version: 3
+  version: 5
   theme: AppTheme
   fileTreeSort: FileTreeSortSetting
+  defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
+  pagePreview: PagePreviewSettings
   workbench: WorkbenchSettings
   keymapOverrides: KeymapOverrides
 }
@@ -30,7 +38,9 @@ export interface AppSettingsSnapshot {
 export interface AppSettingsPatch {
   theme?: AppTheme
   fileTreeSort?: FileTreeSortSetting
+  defaultNoteView?: DefaultNoteViewSetting
   editorFontSize?: number
+  pagePreview?: Partial<PagePreviewSettings>
   workbench?: Partial<WorkbenchSettings>
   keymapOverrides?: KeymapOverrides
 }
@@ -113,6 +123,56 @@ const editorFontSizeDefinition = {
   normalize: normalizeEditorFontSize
 } as const satisfies AppSettingDefinition<number>
 
+const defaultNoteViewDefinition = {
+  key: 'defaultNoteView',
+  category: 'Editor',
+  label: 'Default view for new tabs',
+  description: 'Choose how a Markdown or MDX note opens when it gets a new tab.',
+  control: 'choice',
+  defaultValue: 'reading',
+  searchTerms: ['open', 'tab', 'reading', 'live preview', 'source', 'markdown', 'mdx'],
+  options: [
+    {
+      value: 'reading',
+      label: 'Reading',
+      description: 'Open the rendered note'
+    },
+    {
+      value: 'live',
+      label: 'Live preview',
+      description: 'Edit with inline formatting'
+    },
+    {
+      value: 'source',
+      label: 'Source',
+      description: 'Edit the raw MDX source'
+    }
+  ],
+  normalize: normalizeDefaultNoteView
+} as const satisfies AppSettingDefinition<DefaultNoteViewSetting>
+
+const pagePreviewEnabledDefinition = {
+  key: 'pagePreview.enabled',
+  category: 'Editor',
+  label: 'Page preview',
+  description: 'Show a compact reading preview when a note link is held under the pointer.',
+  control: 'toggle',
+  defaultValue: true,
+  searchTerms: ['hover', 'link', 'popover', 'reading', 'preview'],
+  normalize: normalizeBooleanWithDefault(true)
+} as const satisfies AppSettingDefinition<boolean>
+
+const pagePreviewRequireModifierDefinition = {
+  key: 'pagePreview.requireModifier',
+  category: 'Editor',
+  label: 'Require modifier key',
+  description: 'Only show page previews while Command or Ctrl is held.',
+  control: 'toggle',
+  defaultValue: false,
+  searchTerms: ['command', 'ctrl', 'control', 'modifier', 'hover', 'preview'],
+  normalize: normalizeBooleanWithDefault(false)
+} as const satisfies AppSettingDefinition<boolean>
+
 const activateOnCloseDefinition = {
   key: 'workbench.activateOnClose',
   category: 'Workbench',
@@ -180,7 +240,10 @@ const keymapOverridesDefinition = {
 export const APP_SETTINGS_CATALOG = {
   theme: themeDefinition,
   fileTreeSort: fileTreeSortDefinition,
+  defaultNoteView: defaultNoteViewDefinition,
   editorFontSize: editorFontSizeDefinition,
+  pagePreviewEnabled: pagePreviewEnabledDefinition,
+  pagePreviewRequireModifier: pagePreviewRequireModifierDefinition,
   activateOnClose: activateOnCloseDefinition,
   whenClosingWithNoTabs: whenClosingWithNoTabsDefinition,
   keymapOverrides: keymapOverridesDefinition
@@ -188,6 +251,7 @@ export const APP_SETTINGS_CATALOG = {
 
 export const APP_THEME_VALUES = choiceValues(APP_SETTINGS_CATALOG.theme.options)
 export const FILE_TREE_SORT_VALUES = choiceValues(APP_SETTINGS_CATALOG.fileTreeSort.options)
+export const DEFAULT_NOTE_VIEW_VALUES = choiceValues(APP_SETTINGS_CATALOG.defaultNoteView.options)
 export const ACTIVATE_ON_CLOSE_VALUES = choiceValues(APP_SETTINGS_CATALOG.activateOnClose.options)
 export const WHEN_CLOSING_WITH_NO_TABS_VALUES = choiceValues(
   APP_SETTINGS_CATALOG.whenClosingWithNoTabs.options
@@ -201,10 +265,15 @@ export const DEFAULT_WORKBENCH_SETTINGS: Readonly<WorkbenchSettings> = {
 }
 
 export const DEFAULT_APP_SETTINGS_SNAPSHOT: Readonly<AppSettingsSnapshot> = {
-  version: 3,
+  version: 5,
   theme: APP_SETTINGS_CATALOG.theme.defaultValue,
   fileTreeSort: APP_SETTINGS_CATALOG.fileTreeSort.defaultValue,
+  defaultNoteView: APP_SETTINGS_CATALOG.defaultNoteView.defaultValue,
   editorFontSize: APP_SETTINGS_CATALOG.editorFontSize.defaultValue,
+  pagePreview: {
+    enabled: APP_SETTINGS_CATALOG.pagePreviewEnabled.defaultValue,
+    requireModifier: APP_SETTINGS_CATALOG.pagePreviewRequireModifier.defaultValue
+  },
   workbench: DEFAULT_WORKBENCH_SETTINGS,
   keymapOverrides: {}
 }
@@ -253,12 +322,22 @@ export function normalizeFileTreeSort(value: unknown): FileTreeSortSetting {
     : APP_SETTINGS_CATALOG.fileTreeSort.defaultValue
 }
 
+export function normalizeDefaultNoteView(value: unknown): DefaultNoteViewSetting {
+  return value === 'source' || value === 'live' || value === 'reading'
+    ? value
+    : APP_SETTINGS_CATALOG.defaultNoteView.defaultValue
+}
+
 export function normalizeEditorFontSize(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return APP_SETTINGS_CATALOG.editorFontSize.defaultValue
   }
   const { min, max } = APP_SETTINGS_CATALOG.editorFontSize.range
   return Math.min(max, Math.max(min, value))
+}
+
+function normalizeBooleanWithDefault(defaultValue: boolean): (value: unknown) => boolean {
+  return (value) => (typeof value === 'boolean' ? value : defaultValue)
 }
 
 export function normalizeActivateOnClose(value: unknown): ActivateOnCloseSetting {

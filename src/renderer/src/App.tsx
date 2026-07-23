@@ -15,6 +15,7 @@ import { useEditorFontSize } from '@/hooks/useEditorFontSize'
 import { useEditorInteractions } from '@/hooks/useEditorInteractions'
 import { useGlobalSurface } from '@/hooks/useGlobalSurface'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useKnowledgeUtilities } from '@/hooks/useKnowledgeUtilities'
 import { useNoteActions } from '@/hooks/useNoteActions'
 import { useNoteEditor } from '@/hooks/useNoteEditor'
 import { useNoteIndex } from '@/hooks/useNoteIndex'
@@ -26,11 +27,15 @@ import { useToast } from '@/hooks/useToast'
 import { useVaultSession } from '@/hooks/useVaultSession'
 import { useWorkbench } from '@/hooks/useWorkbench'
 import { deriveNoteTitle } from '@/lib/note-title'
+import { PagePreviewProvider } from '@/preview/PagePreviewProvider'
 import { SearchPane } from '@/search/SearchPane'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import { focusActiveDocument, focusExplorer, isExplorerFocused } from '@/workbench/document-focus'
+import { addBookmarkItem, type BookmarkTarget } from '../../shared/bookmarks'
+import type { KnowledgePanelId } from '../../shared/knowledge'
+import { resolveWikilinkHeading, type WikilinkSubpath } from '../../shared/wikilinks'
 
 interface DeleteRequest {
   relativePath: string
@@ -44,6 +49,9 @@ function App(): React.JSX.Element {
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [activeRightPanel, setActiveRightPanel] = useState<KnowledgePanelId>('outline')
+  const [propertyAddRequest, setPropertyAddRequest] = useState(0)
+  const [searchBookmark, setSearchBookmark] = useState({ query: '', requestId: 0 })
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
   const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
   const [keyRecorderActive, setKeyRecorderActive] = useState(false)
@@ -66,6 +74,13 @@ function App(): React.JSX.Element {
   const noteIndex = useNoteIndex({
     vault,
     selectedPath: selectedNotePath,
+    onError: setError
+  })
+  const knowledge = useKnowledgeUtilities({
+    vaultKey: vault?.name ?? null,
+    selectedPath: selectedNotePath,
+    editor,
+    noteIndex,
     onError: setError
   })
   const editorTabs = useWorkbench({
@@ -99,6 +114,17 @@ function App(): React.JSX.Element {
     showToast
   })
   const editorInteractions = useEditorInteractions({ editor, setAiPanelOpen })
+  const navigateWithSubpath = useCallback(
+    async (relativePath: string, subpath?: WikilinkSubpath | null): Promise<boolean> => {
+      const opened = await noteActions.navigateToNote(relativePath)
+      if (!opened || !subpath) return opened
+      const headings = await window.indexApi.headingsOfNote(relativePath)
+      const heading = resolveWikilinkHeading(headings, subpath)
+      if (heading) editorInteractions.revealHeading(heading)
+      return opened
+    },
+    [editorInteractions.revealHeading, noteActions.navigateToNote]
+  )
   const openFileFinder = useCallback(
     () => globalSurface.openSurface('file-finder'),
     [globalSurface.openSurface]
@@ -107,10 +133,10 @@ function App(): React.JSX.Element {
     () => globalSurface.openSurface('command-palette'),
     [globalSurface.openSurface]
   )
-  const openProjectSearch = useCallback(
-    () => globalSurface.openSurface('project-search'),
-    [globalSurface.openSurface]
-  )
+  const openProjectSearch = useCallback(() => {
+    setSearchBookmark((current) => ({ query: '', requestId: current.requestId + 1 }))
+    globalSurface.openSurface('project-search')
+  }, [globalSurface.openSurface])
   const openCreateNote = useCallback(
     () => globalSurface.openSurface('create-note'),
     [globalSurface.openSurface]
@@ -144,6 +170,31 @@ function App(): React.JSX.Element {
       focusExplorer()
     }
   }, [leftPanelOpen])
+  const showKnowledgePanel = useCallback((panel: KnowledgePanelId): void => {
+    setActiveRightPanel(panel)
+    setRightPanelOpen(true)
+  }, [])
+  const openBookmarkedSearch = useCallback(
+    (query: string): void => {
+      setSearchBookmark((current) => ({ query, requestId: current.requestId + 1 }))
+      globalSurface.openSurface('project-search')
+    },
+    [globalSurface.openSurface]
+  )
+  const addBookmark = useCallback(
+    async (target: BookmarkTarget, title: string | null = null): Promise<void> => {
+      if (!knowledge.bookmarks) return
+      const next = addBookmarkItem(knowledge.bookmarks, {
+        id: crypto.randomUUID(),
+        title,
+        target
+      })
+      if (await knowledge.saveBookmarks(next)) {
+        showToast('Bookmark added')
+      }
+    },
+    [knowledge, showToast]
+  )
   const commandActions = useCommandActions({
     vault,
     selectedPath: selectedNotePath,
@@ -165,6 +216,11 @@ function App(): React.JSX.Element {
     openEmptyTrash: () => setEmptyTrashOpen(true),
     toggleLeftPanel,
     toggleExplorerFocus,
+    showKnowledgePanel,
+    addProperty: () => {
+      showKnowledgePanel('properties')
+      setPropertyAddRequest((current) => current + 1)
+    },
     focusEditor: focusActiveDocument,
     setViewMode,
     readingZoomEnabled: isReadingZoomActionEnabled(selectedNotePath, viewMode),
@@ -188,222 +244,240 @@ function App(): React.JSX.Element {
   })
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <AppLayout
-        vault={vault}
-        selectedVaultPath={selectedVaultPath}
-        selectedNotePath={selectedNotePath}
-        error={error}
-        viewMode={viewMode}
-        aiPanelOpen={aiPanelOpen}
-        leftPanelOpen={leftPanelOpen}
-        rightPanelOpen={rightPanelOpen}
-        commandActions={commandActions}
-        editor={editor}
-        textEditor={textEditor}
-        noteIndex={noteIndex}
-        vaultSession={vaultSession}
-        noteActions={noteActions}
-        editorInteractions={editorInteractions}
-        editorTabs={editorTabs}
-        readingZoom={readingZoom}
-        setRightPanelOpen={setRightPanelOpen}
-        onRequestDelete={(relativePath) => setDeleteRequest({ relativePath })}
-        onError={setError}
-      />
+    <PagePreviewProvider
+      notes={noteIndex.indexNotes}
+      settings={settingsSnapshot.pagePreview}
+      onNavigate={(relativePath, subpath) => void navigateWithSubpath(relativePath, subpath)}
+    >
+      <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        <AppLayout
+          vault={vault}
+          selectedVaultPath={selectedVaultPath}
+          selectedNotePath={selectedNotePath}
+          error={error}
+          viewMode={viewMode}
+          aiPanelOpen={aiPanelOpen}
+          leftPanelOpen={leftPanelOpen}
+          rightPanelOpen={rightPanelOpen}
+          commandActions={commandActions}
+          editor={editor}
+          textEditor={textEditor}
+          noteIndex={noteIndex}
+          vaultSession={vaultSession}
+          noteActions={noteActions}
+          editorInteractions={editorInteractions}
+          editorTabs={editorTabs}
+          readingZoom={readingZoom}
+          knowledge={knowledge}
+          activeRightPanel={activeRightPanel}
+          propertyAddRequest={propertyAddRequest}
+          setRightPanelOpen={setRightPanelOpen}
+          setActiveRightPanel={setActiveRightPanel}
+          onOpenSearch={openBookmarkedSearch}
+          onAddBookmark={addBookmark}
+          onNavigateWithSubpath={navigateWithSubpath}
+          onRequestDelete={(relativePath) => setDeleteRequest({ relativePath })}
+          onError={setError}
+        />
 
-      <QuickSwitcher
-        open={globalSurface.isSurfaceOpen('file-finder')}
-        files={vault?.treeFiles ?? null}
-        notes={noteIndex.indexNotes}
-        openItemIds={editorTabs.state.mruIds}
-        recentItemIds={[...editorTabs.state.mruIds, ...editorTabs.state.closedIds]}
-        onOpenChange={(open) => {
-          if (!open) {
-            editorTabs.cancelPendingNavigation()
-          }
-          globalSurface.setSurfaceOpen('file-finder', open)
-        }}
-        onSelectFile={async (relativePath) => {
-          const opened = await editorTabs.openOrActivate(relativePath, { focus: false })
-          if (opened) {
+        <QuickSwitcher
+          open={globalSurface.isSurfaceOpen('file-finder')}
+          files={vault?.treeFiles ?? null}
+          notes={noteIndex.indexNotes}
+          openItemIds={editorTabs.state.mruIds}
+          recentItemIds={[...editorTabs.state.mruIds, ...editorTabs.state.closedIds]}
+          onOpenChange={(open) => {
+            if (!open) {
+              editorTabs.cancelPendingNavigation()
+            }
+            globalSurface.setSurfaceOpen('file-finder', open)
+          }}
+          onSelectFile={async (relativePath) => {
+            const opened = await editorTabs.openOrActivate(relativePath, { focus: false })
+            if (opened) {
+              globalSurface.completeSurface('file-finder')
+            }
+            return opened
+          }}
+          onCreateNote={async (query) => {
+            await noteActions.createNoteFromSwitcher(query)
             globalSurface.completeSurface('file-finder')
+          }}
+        />
+        <CommandPalette
+          open={globalSurface.isSurfaceOpen('command-palette')}
+          actions={commandActions.actions}
+          onOpenChange={(open) => {
+            if (!open) {
+              editorTabs.cancelPendingNavigation()
+            }
+            globalSurface.setSurfaceOpen('command-palette', open)
+          }}
+          onComplete={() => globalSurface.completeSurface('command-palette')}
+          onError={setError}
+        />
+        <SearchPane
+          open={globalSurface.isSurfaceOpen('project-search')}
+          initialQuery={searchBookmark.query}
+          initialQueryRequest={searchBookmark.requestId}
+          onBookmarkQuery={(query) => addBookmark({ kind: 'search', query }, `Search: ${query}`)}
+          onOpenChange={(open) => {
+            if (!open) {
+              editorTabs.cancelPendingNavigation()
+            }
+            globalSurface.setSurfaceOpen('project-search', open)
+          }}
+          onSelectNote={async (relativePath) => {
+            const opened = await noteActions.navigateToNote(relativePath)
+            if (opened) {
+              globalSurface.completeSurface('project-search')
+            }
+            return opened
+          }}
+        />
+        <ExportDialog
+          open={globalSurface.isSurfaceOpen('export')}
+          onOpenChange={(open) => globalSurface.setSurfaceOpen('export', open)}
+          noteRelativePath={selectedNotePath}
+          noteTitle={selectedNotePath ? deriveNoteTitle(selectedNotePath) : ''}
+        />
+        <CreateNoteDialog
+          open={globalSurface.isSurfaceOpen('create-note')}
+          onOpenChange={(open) => globalSurface.setSurfaceOpen('create-note', open)}
+          onCreate={async (relativePath, content) => {
+            await vaultSession.createNote(relativePath, content)
+            globalSurface.completeSurface('create-note')
+          }}
+        />
+        <SettingsDialog
+          open={globalSurface.isSurfaceOpen('settings')}
+          editorFontSize={editorFontSize}
+          onOpenChange={(open) => globalSurface.setSurfaceOpen('settings', open)}
+          onEditorFontSizeChange={setEditorFontSize}
+          onOpenAnotherVault={vaultSession.openVault}
+          appSettings={appSettings}
+          onKeyRecorderChange={setKeyRecorderActive}
+        />
+        <MruTabSwitcher
+          state={editorTabs.state.mruSwitch}
+          items={editorTabs.tabs}
+          onCommit={(relativePath) => void editorTabs.openOrActivate(relativePath)}
+          onCancel={editorTabs.cancelMruSwitch}
+        />
+        <ConfirmDialog
+          open={editorTabs.pendingMissingCloseItem !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              editorTabs.cancelDiscardMissingClose()
+            }
+          }}
+          title={`Discard changes to "${editorTabs.pendingMissingCloseItem ? deriveNoteTitle(editorTabs.pendingMissingCloseItem.relativePath) : ''}"?`}
+          description={
+            <>
+              This file was deleted outside mdx-vault, so its in-memory changes cannot be saved to
+              the original path. Discard closes the tab without recreating the file.
+            </>
           }
-          return opened
-        }}
-        onCreateNote={async (query) => {
-          await noteActions.createNoteFromSwitcher(query)
-          globalSurface.completeSurface('file-finder')
-        }}
-      />
-      <CommandPalette
-        open={globalSurface.isSurfaceOpen('command-palette')}
-        actions={commandActions.actions}
-        onOpenChange={(open) => {
-          if (!open) {
-            editorTabs.cancelPendingNavigation()
+          confirmLabel="Discard and close"
+          destructive
+          onConfirm={async () => {
+            await editorTabs.confirmDiscardMissingClose()
+          }}
+        />
+        <ConfirmDialog
+          open={vaultSession.renameRequest !== null}
+          onOpenChange={(open) => {
+            if (!open && !vaultSession.vaultOpsPending) {
+              vaultSession.setRenameRequest(null)
+            }
+          }}
+          title={`Update ${vaultSession.renameRequest?.plan.linkCount ?? 0} link${vaultSession.renameRequest?.plan.linkCount === 1 ? '' : 's'} in ${vaultSession.renameRequest?.plan.noteCount ?? 0} note${vaultSession.renameRequest?.plan.noteCount === 1 ? '' : 's'}?`}
+          description={
+            <>
+              Renaming to{' '}
+              <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                {vaultSession.renameRequest?.toRelativePath ?? ''}
+              </code>{' '}
+              can update every link that currently resolves to this note. Display aliases will stay
+              unchanged.
+            </>
           }
-          globalSurface.setSurfaceOpen('command-palette', open)
-        }}
-        onComplete={() => globalSurface.completeSurface('command-palette')}
-        onError={setError}
-      />
-      <SearchPane
-        open={globalSurface.isSurfaceOpen('project-search')}
-        onOpenChange={(open) => {
-          if (!open) {
-            editorTabs.cancelPendingNavigation()
+          confirmLabel="Update links"
+          secondaryLabel="Don't update"
+          isPending={vaultSession.vaultOpsPending}
+          onConfirm={async () => {
+            if (vaultSession.renameRequest) {
+              await vaultSession.commitRename(
+                vaultSession.renameRequest.fromRelativePath,
+                vaultSession.renameRequest.toRelativePath,
+                true
+              )
+            }
+          }}
+          onSecondary={async () => {
+            if (vaultSession.renameRequest) {
+              await vaultSession.commitRename(
+                vaultSession.renameRequest.fromRelativePath,
+                vaultSession.renameRequest.toRelativePath,
+                false
+              )
+            }
+          }}
+        />
+        <ConfirmDialog
+          open={deleteRequest !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeleteRequest(null)
+            }
+          }}
+          title={`Delete "${deleteRequest ? deriveNoteTitle(deleteRequest.relativePath) : ''}"?`}
+          description={
+            <>
+              The note will be moved to{' '}
+              <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                {'.trash/'}
+              </code>
+              . You can recover it from there with your file manager, or use “Empty trash” to remove
+              it permanently.
+            </>
           }
-          globalSurface.setSurfaceOpen('project-search', open)
-        }}
-        onSelectNote={async (relativePath) => {
-          const opened = await noteActions.navigateToNote(relativePath)
-          if (opened) {
-            globalSurface.completeSurface('project-search')
+          confirmLabel="Move to trash"
+          destructive
+          isPending={vaultSession.vaultOpsPending}
+          onConfirm={async () => {
+            if (deleteRequest) {
+              await vaultSession.handleDelete(deleteRequest.relativePath)
+            }
+          }}
+        />
+        <ConfirmDialog
+          open={emptyTrashOpen}
+          onOpenChange={setEmptyTrashOpen}
+          title="Empty trash?"
+          description={
+            <>
+              This permanently deletes{' '}
+              <strong className="text-foreground">
+                {vaultSession.trashCount} item{vaultSession.trashCount === 1 ? '' : 's'}
+              </strong>{' '}
+              from{' '}
+              <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                {'.trash/'}
+              </code>
+              . This cannot be undone.
+            </>
           }
-          return opened
-        }}
-      />
-      <ExportDialog
-        open={globalSurface.isSurfaceOpen('export')}
-        onOpenChange={(open) => globalSurface.setSurfaceOpen('export', open)}
-        noteRelativePath={selectedNotePath}
-        noteTitle={selectedNotePath ? deriveNoteTitle(selectedNotePath) : ''}
-      />
-      <CreateNoteDialog
-        open={globalSurface.isSurfaceOpen('create-note')}
-        onOpenChange={(open) => globalSurface.setSurfaceOpen('create-note', open)}
-        onCreate={async (relativePath, content) => {
-          await vaultSession.createNote(relativePath, content)
-          globalSurface.completeSurface('create-note')
-        }}
-      />
-      <SettingsDialog
-        open={globalSurface.isSurfaceOpen('settings')}
-        editorFontSize={editorFontSize}
-        onOpenChange={(open) => globalSurface.setSurfaceOpen('settings', open)}
-        onEditorFontSizeChange={setEditorFontSize}
-        onOpenAnotherVault={vaultSession.openVault}
-        appSettings={appSettings}
-        onKeyRecorderChange={setKeyRecorderActive}
-      />
-      <MruTabSwitcher
-        state={editorTabs.state.mruSwitch}
-        items={editorTabs.tabs}
-        onCommit={(relativePath) => void editorTabs.openOrActivate(relativePath)}
-        onCancel={editorTabs.cancelMruSwitch}
-      />
-      <ConfirmDialog
-        open={editorTabs.pendingMissingCloseItem !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            editorTabs.cancelDiscardMissingClose()
-          }
-        }}
-        title={`Discard changes to "${editorTabs.pendingMissingCloseItem ? deriveNoteTitle(editorTabs.pendingMissingCloseItem.relativePath) : ''}"?`}
-        description={
-          <>
-            This file was deleted outside mdx-vault, so its in-memory changes cannot be saved to the
-            original path. Discard closes the tab without recreating the file.
-          </>
-        }
-        confirmLabel="Discard and close"
-        destructive
-        onConfirm={async () => {
-          await editorTabs.confirmDiscardMissingClose()
-        }}
-      />
-      <ConfirmDialog
-        open={vaultSession.renameRequest !== null}
-        onOpenChange={(open) => {
-          if (!open && !vaultSession.vaultOpsPending) {
-            vaultSession.setRenameRequest(null)
-          }
-        }}
-        title={`Update ${vaultSession.renameRequest?.plan.linkCount ?? 0} link${vaultSession.renameRequest?.plan.linkCount === 1 ? '' : 's'} in ${vaultSession.renameRequest?.plan.noteCount ?? 0} note${vaultSession.renameRequest?.plan.noteCount === 1 ? '' : 's'}?`}
-        description={
-          <>
-            Renaming to{' '}
-            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
-              {vaultSession.renameRequest?.toRelativePath ?? ''}
-            </code>{' '}
-            can update every link that currently resolves to this note. Display aliases will stay
-            unchanged.
-          </>
-        }
-        confirmLabel="Update links"
-        secondaryLabel="Don't update"
-        isPending={vaultSession.vaultOpsPending}
-        onConfirm={async () => {
-          if (vaultSession.renameRequest) {
-            await vaultSession.commitRename(
-              vaultSession.renameRequest.fromRelativePath,
-              vaultSession.renameRequest.toRelativePath,
-              true
-            )
-          }
-        }}
-        onSecondary={async () => {
-          if (vaultSession.renameRequest) {
-            await vaultSession.commitRename(
-              vaultSession.renameRequest.fromRelativePath,
-              vaultSession.renameRequest.toRelativePath,
-              false
-            )
-          }
-        }}
-      />
-      <ConfirmDialog
-        open={deleteRequest !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteRequest(null)
-          }
-        }}
-        title={`Delete "${deleteRequest ? deriveNoteTitle(deleteRequest.relativePath) : ''}"?`}
-        description={
-          <>
-            The note will be moved to{' '}
-            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
-              {'.trash/'}
-            </code>
-            . You can recover it from there with your file manager, or use “Empty trash” to remove
-            it permanently.
-          </>
-        }
-        confirmLabel="Move to trash"
-        destructive
-        isPending={vaultSession.vaultOpsPending}
-        onConfirm={async () => {
-          if (deleteRequest) {
-            await vaultSession.handleDelete(deleteRequest.relativePath)
-          }
-        }}
-      />
-      <ConfirmDialog
-        open={emptyTrashOpen}
-        onOpenChange={setEmptyTrashOpen}
-        title="Empty trash?"
-        description={
-          <>
-            This permanently deletes{' '}
-            <strong className="text-foreground">
-              {vaultSession.trashCount} item{vaultSession.trashCount === 1 ? '' : 's'}
-            </strong>{' '}
-            from{' '}
-            <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
-              {'.trash/'}
-            </code>
-            . This cannot be undone.
-          </>
-        }
-        confirmLabel="Empty trash"
-        destructive
-        isPending={vaultSession.vaultOpsPending}
-        onConfirm={vaultSession.handleEmptyTrash}
-      />
-      {toast ? <ToastView key={toast.key} message={toast.message} variant={toast.variant} /> : null}
-    </div>
+          confirmLabel="Empty trash"
+          destructive
+          isPending={vaultSession.vaultOpsPending}
+          onConfirm={vaultSession.handleEmptyTrash}
+        />
+        {toast ? (
+          <ToastView key={toast.key} message={toast.message} variant={toast.variant} />
+        ) : null}
+      </div>
+    </PagePreviewProvider>
   )
 }
 

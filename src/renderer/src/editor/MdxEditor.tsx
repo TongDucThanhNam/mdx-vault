@@ -16,16 +16,19 @@ import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CommandAction } from '@/commands/actions'
 import { getScoredNotes } from '@/lib/fuzzy-match'
+import { usePagePreviewController } from '@/preview/page-preview-context'
 import { getRegistryInsertTemplates, type RegistryInsertTemplate } from '@/preview/registry'
 import type { IndexedNoteSummary } from '@/vault/types'
-import { getNoteLinkKeys } from '../../../shared/wikilinks'
+import { getNoteLinkKeys, type WikilinkSubpath } from '../../../shared/wikilinks'
 import { ComponentDefinitionPopover } from './ComponentDefinitionPopover'
 import { ComponentInsertPalette } from './ComponentInsertPalette'
+import { resolveEditorPreviewTarget } from './editor-page-preview'
 import { editorHighlightStyle, editorTheme } from './editor-theme'
 import {
   createGotoDefinitionExtension,
   type GotoDefinitionInvocation,
-  type GotoDefinitionTarget
+  type GotoDefinitionTarget,
+  resolveGotoTarget
 } from './goto-definition'
 import { InlineFormatToolbar } from './InlineFormatToolbar'
 import { createLivePreviewExtension, refreshLivePreviewEffect } from './live-preview'
@@ -34,6 +37,12 @@ import { SlashCommandPalette } from './SlashCommandPalette'
 
 export interface RevealLineRequest {
   line: number
+  requestId: number
+}
+
+export interface RevealSourceRangeRequest {
+  from: number
+  to: number
   requestId: number
 }
 
@@ -64,12 +73,14 @@ interface MdxEditorProps {
   displayMode: 'source' | 'live'
   /** Indexed notes used as the source for `[[` wikilink autocomplete. */
   notes?: IndexedNoteSummary[]
+  sourceRelativePath?: string
   commandActions?: CommandAction[]
   insertRequest?: EditorInsertRequest | null
   revealLineRequest?: RevealLineRequest | null
+  revealSourceRangeRequest?: RevealSourceRangeRequest | null
   onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
   onCommandError?: (message: string) => void
-  onNavigateToNote?: (relativePath: string) => void
+  onNavigateToNote?: (relativePath: string, subpath?: WikilinkSubpath | null) => void
   onNavigateDefinition?: (target: GotoDefinitionTarget) => void
   /**
    * Called when the user pastes or drops an image. The handler should persist
@@ -117,9 +128,11 @@ export function MdxEditor({
   onChange,
   displayMode,
   notes,
+  sourceRelativePath,
   commandActions = [],
   insertRequest,
   revealLineRequest,
+  revealSourceRangeRequest,
   onSelectionChange,
   onCommandError,
   onNavigateToNote,
@@ -150,15 +163,21 @@ export function MdxEditor({
     name: string
     position: { left: number; top: number }
   } | null>(null)
+  const pagePreview = usePagePreviewController()
 
   // Keep a ref of the latest notes so the wikilink completion source (created
   // once at editor mount) can read fresh data without recreating the extension
   // on every notes-array identity change.
   const notesRef = useRef<IndexedNoteSummary[]>(notes ?? [])
+  const sourceRelativePathRef = useRef(sourceRelativePath)
   useEffect(() => {
     notesRef.current = notes ?? []
     viewRef.current?.dispatch({ effects: refreshLivePreviewEffect.of(null) })
   }, [notes])
+
+  useEffect(() => {
+    sourceRelativePathRef.current = sourceRelativePath
+  }, [sourceRelativePath])
 
   useEffect(() => {
     onNavigateToNoteRef.current = onNavigateToNote
@@ -441,6 +460,7 @@ export function MdxEditor({
             initialDisplayModeRef.current === 'live'
               ? createLivePreviewExtension({
                   getNotes: () => notesRef.current,
+                  getSourceRelativePath: () => sourceRelativePathRef.current,
                   getOnNavigateToNote: () => onNavigateToNoteRef.current
                 })
               : []
@@ -461,6 +481,79 @@ export function MdxEditor({
 
   useEffect(() => {
     const view = viewRef.current
+    if (!view || !pagePreview) return
+    let activeKey: string | null = null
+
+    const requestAtPosition = (
+      position: number,
+      anchor: HTMLElement,
+      trigger: 'pointer' | 'focus',
+      modifierKey: boolean
+    ): void => {
+      if (trigger === 'pointer' && !modifierKey) {
+        if (activeKey) pagePreview.scheduleDismiss()
+        activeKey = null
+        return
+      }
+      const target = resolveGotoTarget(view.state.doc.toString(), position)
+      const resolved = resolveEditorPreviewTarget(
+        target,
+        notesRef.current,
+        sourceRelativePathRef.current
+      )
+      const key = resolved ? `${resolved.note.relativePath}:${target?.from}:${target?.to}` : null
+      if (!resolved || !key) {
+        if (activeKey) pagePreview.scheduleDismiss()
+        activeKey = null
+        return
+      }
+      if (key === activeKey) return
+      activeKey = key
+      pagePreview.requestPreview({
+        note: resolved.note,
+        subpath: resolved.subpath,
+        anchor,
+        trigger,
+        modifierKey
+      })
+    }
+
+    const onMouseMove = (event: MouseEvent): void => {
+      const position = view.posAtCoords({ x: event.clientX, y: event.clientY })
+      if (position === null) return
+      const anchor = event.target instanceof HTMLElement ? event.target : view.dom
+      requestAtPosition(position, anchor, 'pointer', event.ctrlKey || event.metaKey)
+    }
+    const onMouseLeave = (event: MouseEvent): void => {
+      activeKey = null
+      pagePreview.scheduleDismiss(event.relatedTarget)
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Control' && event.key !== 'Meta') return
+      const position = view.state.selection.main.head
+      const rect = view.coordsAtPos(position)
+      if (!rect) return
+      requestAtPosition(position, createRectAnchor(rect), 'focus', true)
+    }
+    const onBlur = (event: FocusEvent): void => {
+      activeKey = null
+      pagePreview.scheduleDismiss(event.relatedTarget)
+    }
+
+    view.dom.addEventListener('mousemove', onMouseMove)
+    view.dom.addEventListener('mouseleave', onMouseLeave)
+    view.dom.addEventListener('keydown', onKeyDown)
+    view.dom.addEventListener('focusout', onBlur)
+    return () => {
+      view.dom.removeEventListener('mousemove', onMouseMove)
+      view.dom.removeEventListener('mouseleave', onMouseLeave)
+      view.dom.removeEventListener('keydown', onKeyDown)
+      view.dom.removeEventListener('focusout', onBlur)
+    }
+  }, [pagePreview])
+
+  useEffect(() => {
+    const view = viewRef.current
 
     if (!view) {
       return
@@ -471,12 +564,13 @@ export function MdxEditor({
         displayMode === 'live'
           ? createLivePreviewExtension({
               getNotes: () => notesRef.current,
+              getSourceRelativePath: () => sourceRelativePathRef.current,
               getOnNavigateToNote: () => onNavigateToNoteRef.current
             })
           : []
       )
     })
-  }, [displayMode, displayModeCompartment])
+  }, [displayMode, displayModeCompartment, sourceRelativePath])
 
   useEffect(() => {
     const view = viewRef.current
@@ -532,6 +626,18 @@ export function MdxEditor({
     })
     view.focus()
   }, [revealLineRequest])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view || !revealSourceRangeRequest) return
+    const from = Math.min(Math.max(0, revealSourceRangeRequest.from), view.state.doc.length)
+    const to = Math.min(Math.max(from, revealSourceRangeRequest.to), view.state.doc.length)
+    view.dispatch({
+      selection: { anchor: from, head: to },
+      effects: EditorView.scrollIntoView(from, { y: 'center' })
+    })
+    view.focus()
+  }, [revealSourceRangeRequest])
 
   return (
     <div className="relative h-full overflow-hidden">
@@ -760,4 +866,16 @@ function formatError(error: unknown): string {
     return error.message
   }
   return String(error)
+}
+
+function createRectAnchor(rect: {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}): HTMLElement {
+  const domRect = new DOMRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
+  return {
+    getBoundingClientRect: () => domRect
+  } as HTMLElement
 }

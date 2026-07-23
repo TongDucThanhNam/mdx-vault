@@ -1,5 +1,6 @@
-import { ListTree } from 'lucide-react'
+import { BookmarkPlus, ListTree } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { NoteHeadingResult } from '@/vault/types'
 
@@ -7,12 +8,14 @@ interface OutlinePanelProps {
   headings: NoteHeadingResult[]
   selectedPath: string | null
   onSelectHeading: (heading: NoteHeadingResult) => void
+  onBookmarkHeading?: (heading: NoteHeadingResult) => void
 }
 
 export function OutlinePanel({
   headings,
   selectedPath,
-  onSelectHeading
+  onSelectHeading,
+  onBookmarkHeading
 }: OutlinePanelProps): React.JSX.Element {
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -38,22 +41,39 @@ export function OutlinePanel({
         ) : (
           <div className="space-y-1">
             {headings.map((heading) => (
-              <button
+              <div
                 key={`${heading.position}-${heading.slug}`}
-                type="button"
                 className={cn(
-                  'grid h-8 w-full grid-cols-[2rem_minmax(0,1fr)] items-center border-l-2 border-l-transparent text-left transition-colors hover:border-l-[var(--editorial-red)] hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                  'group flex h-8 w-full items-center border-l-2 border-l-transparent transition-colors hover:border-l-[var(--editorial-red)] hover:bg-foreground hover:text-background',
                   heading.depth > 1 && 'text-muted-foreground'
                 )}
                 style={{ paddingLeft: `${Math.max(0, heading.depth - 1) * 10}px` }}
-                title={heading.text}
-                onClick={() => onSelectHeading(heading)}
               >
-                <span className="font-mono text-[10px] font-bold tabular-nums opacity-70">
-                  H{heading.depth}
-                </span>
-                <span className="truncate text-sm font-medium">{heading.text}</span>
-              </button>
+                <button
+                  type="button"
+                  className="grid min-w-0 flex-1 grid-cols-[2rem_minmax(0,1fr)] items-center text-left focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                  title={heading.text}
+                  onClick={() => onSelectHeading(heading)}
+                >
+                  <span className="font-mono text-[10px] font-bold tabular-nums opacity-70">
+                    H{heading.depth}
+                  </span>
+                  <span className="truncate text-sm font-medium">{heading.text}</span>
+                </button>
+                {onBookmarkHeading ? (
+                  <Button
+                    type="button"
+                    size="icon-xs"
+                    variant="ghost"
+                    className="mr-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    title={`Bookmark ${heading.text}`}
+                    aria-label={`Bookmark ${heading.text}`}
+                    onClick={() => onBookmarkHeading(heading)}
+                  >
+                    <BookmarkPlus className="size-3" aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </div>
             ))}
           </div>
         )}

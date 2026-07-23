@@ -2,7 +2,12 @@ import DatabaseConstructor, { type Database as BetterSqliteDatabase } from 'bett
 import { createHash } from 'crypto'
 import { mkdirSync } from 'fs'
 import { basename, join } from 'path'
-
+import type {
+  IndexedProperty,
+  OutgoingLinkResult,
+  PropertyInventoryType,
+  PropertySummary
+} from '../../shared/knowledge'
 import { getNoteLinkKeys, normalizeLinkKey } from '../../shared/wikilinks'
 import type { NoteIndex } from './index-service'
 
@@ -89,12 +94,47 @@ interface TagSummaryRow {
   count: number
 }
 
-const SCHEMA_VERSION = 2
+interface OutgoingLinkRow {
+  kind: 'wikilink' | 'markdown'
+  target: string
+  note_target: string
+  target_normalized: string
+  subpath: string | null
+  display: string | null
+  source_from: number
+  source_to: number
+  position: number
+}
+
+interface PropertyRow {
+  name: string
+  normalized_name: string
+  type: IndexedProperty['type']
+  empty: number
+  editable: number
+  unsupported_reason: string | null
+  position: number
+}
+
+interface PropertyValueRow {
+  property_position: number
+  value: string
+}
+
+interface PropertySummaryRow {
+  name: string
+  normalized_name: string
+  types: string
+  use_count: number
+}
+
+const SCHEMA_VERSION = 3
 const MAX_SEARCH_QUERY_LENGTH = 300
 const MAX_SEARCH_LIMIT = 100
 const MAX_REGEX_PATTERN_LENGTH = 160
 const MAX_REGEX_SCAN_ROWS = 1000
 const MAX_BACKLINK_SCAN_ROWS = 1000
+const MAX_OUTGOING_LINKS = 500
 
 export class DbService {
   private readonly db: BetterSqliteDatabase
@@ -184,6 +224,8 @@ export class DbService {
       this.db.prepare('DELETE FROM note_links WHERE source_note_id = ?').run(noteId)
       this.db.prepare('DELETE FROM note_tags WHERE note_id = ?').run(noteId)
       this.db.prepare('DELETE FROM note_components WHERE note_id = ?').run(noteId)
+      this.db.prepare('DELETE FROM note_property_values WHERE note_id = ?').run(noteId)
+      this.db.prepare('DELETE FROM note_properties WHERE note_id = ?').run(noteId)
       this.db.prepare('DELETE FROM notes WHERE id = ?').run(noteId)
     })()
   }
@@ -363,6 +405,42 @@ export class DbService {
     return [...linkedBacklinks, ...unlinkedBacklinks]
   }
 
+  getOutgoingLinks(relativePath: string): OutgoingLinkResult[] {
+    const note = this.getNoteByRelativePath(relativePath)
+    if (!note) return []
+
+    const rows = this.db
+      .prepare(
+        `SELECT kind, target, note_target, target_normalized, subpath, display,
+                source_from, source_to, position
+         FROM note_links
+         WHERE source_note_id = ?
+         ORDER BY position ASC
+         LIMIT ?`
+      )
+      .all(note.id, MAX_OUTGOING_LINKS) as OutgoingLinkRow[]
+    const notes = this.listNotes()
+    const notesByLinkKey = new Map<string, IndexedNoteSummary[]>()
+    for (const candidate of notes) {
+      for (const key of getNoteLinkKeys(candidate)) {
+        const matches = notesByLinkKey.get(key) ?? []
+        matches.push(candidate)
+        notesByLinkKey.set(key, matches)
+      }
+    }
+
+    return rows.map((row) => ({
+      kind: row.kind,
+      target: row.target,
+      noteTarget: row.note_target,
+      subpath: row.subpath,
+      display: row.display ?? row.target,
+      sourceFrom: row.source_from,
+      sourceTo: row.source_to,
+      resolved: notesByLinkKey.get(row.target_normalized) ?? []
+    }))
+  }
+
   getHeadings(relativePath: string): NoteHeadingResult[] {
     const note = this.getNoteByRelativePath(relativePath)
 
@@ -417,6 +495,85 @@ export class DbService {
     return this.attachAliases(rows)
   }
 
+  getPropertiesForNote(relativePath: string): IndexedProperty[] {
+    const note = this.getNoteByRelativePath(relativePath)
+    if (!note) return []
+
+    const properties = this.db
+      .prepare(
+        `SELECT name, normalized_name, type, empty, editable, unsupported_reason, position
+         FROM note_properties
+         WHERE note_id = ?
+         ORDER BY position ASC`
+      )
+      .all(note.id) as PropertyRow[]
+    const values = this.db
+      .prepare(
+        `SELECT property_position, value
+         FROM note_property_values
+         WHERE note_id = ?
+         ORDER BY property_position ASC, value_position ASC`
+      )
+      .all(note.id) as PropertyValueRow[]
+    const valuesByPosition = new Map<number, string[]>()
+
+    for (const row of values) {
+      const current = valuesByPosition.get(row.property_position) ?? []
+      current.push(row.value)
+      valuesByPosition.set(row.property_position, current)
+    }
+
+    return properties.map((property) => ({
+      name: property.name,
+      normalizedName: property.normalized_name,
+      type: property.type,
+      values: valuesByPosition.get(property.position) ?? [],
+      empty: property.empty === 1,
+      editable: property.editable === 1,
+      unsupportedReason: property.unsupported_reason
+    }))
+  }
+
+  listProperties(): PropertySummary[] {
+    const rows = this.db
+      .prepare(
+        `SELECT
+           MIN(name) AS name,
+           normalized_name,
+           GROUP_CONCAT(DISTINCT type) AS types,
+           COUNT(*) AS use_count
+         FROM note_properties
+         GROUP BY normalized_name
+         ORDER BY normalized_name COLLATE NOCASE`
+      )
+      .all() as PropertySummaryRow[]
+
+    return rows.map((row) => {
+      const observedTypes = row.types.split(',').filter(Boolean)
+      const type: PropertyInventoryType =
+        observedTypes.length === 1 ? (observedTypes[0] as IndexedProperty['type']) : 'mixed'
+      return {
+        name: row.name,
+        normalizedName: row.normalized_name,
+        type,
+        useCount: row.use_count
+      }
+    })
+  }
+
+  listNotePathsWithProperty(propertyName: string): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT n.relative_path
+         FROM note_properties p
+         JOIN notes n ON n.id = p.note_id
+         WHERE p.normalized_name = ?
+         ORDER BY n.relative_path COLLATE NOCASE`
+      )
+      .all(normalizePropertyName(propertyName)) as Array<{ relative_path: string }>
+    return rows.map((row) => row.relative_path)
+  }
+
   clearAll(): void {
     this.db.transaction(() => {
       this.db.prepare('DELETE FROM notes_fts').run()
@@ -425,6 +582,8 @@ export class DbService {
       this.db.prepare('DELETE FROM note_links').run()
       this.db.prepare('DELETE FROM note_tags').run()
       this.db.prepare('DELETE FROM note_components').run()
+      this.db.prepare('DELETE FROM note_property_values').run()
+      this.db.prepare('DELETE FROM note_properties').run()
       this.db.prepare('DELETE FROM notes').run()
     })()
   }
@@ -436,23 +595,24 @@ export class DbService {
       return
     }
 
-    if (version === 1) {
+    if (version === 1 || version === 2) {
       this.db.exec(`
         BEGIN;
-        DELETE FROM notes_fts;
-        DELETE FROM note_aliases;
-        DELETE FROM note_headings;
-        DELETE FROM note_links;
-        DELETE FROM note_tags;
-        DELETE FROM note_components;
-        DELETE FROM notes;
-        PRAGMA user_version = ${SCHEMA_VERSION};
+        DROP TABLE IF EXISTS notes_fts;
+        DROP TABLE IF EXISTS note_property_values;
+        DROP TABLE IF EXISTS note_properties;
+        DROP TABLE IF EXISTS note_aliases;
+        DROP TABLE IF EXISTS note_headings;
+        DROP TABLE IF EXISTS note_links;
+        DROP TABLE IF EXISTS note_tags;
+        DROP TABLE IF EXISTS note_components;
+        DROP TABLE IF EXISTS notes;
+        PRAGMA user_version = 0;
         COMMIT;
       `)
-      return
     }
 
-    if (version !== 0) {
+    if (version !== 0 && version !== 1 && version !== 2) {
       throw new Error(`Unsupported index schema version: ${version}`)
     }
 
@@ -484,9 +644,14 @@ export class DbService {
 
       CREATE TABLE IF NOT EXISTS note_links (
         source_note_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
         target TEXT NOT NULL,
+        note_target TEXT NOT NULL,
         target_normalized TEXT NOT NULL,
+        subpath TEXT,
         display TEXT,
+        source_from INTEGER NOT NULL,
+        source_to INTEGER NOT NULL,
         position INTEGER NOT NULL,
         PRIMARY KEY (source_note_id, position)
       );
@@ -503,6 +668,28 @@ export class DbService {
         PRIMARY KEY (note_id, component_name)
       );
 
+      CREATE TABLE IF NOT EXISTS note_properties (
+        note_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        normalized_name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        empty INTEGER NOT NULL,
+        editable INTEGER NOT NULL,
+        unsupported_reason TEXT,
+        position INTEGER NOT NULL,
+        PRIMARY KEY (note_id, position),
+        UNIQUE (note_id, normalized_name)
+      );
+
+      CREATE TABLE IF NOT EXISTS note_property_values (
+        note_id TEXT NOT NULL,
+        property_position INTEGER NOT NULL,
+        value TEXT NOT NULL,
+        normalized_value TEXT NOT NULL,
+        value_position INTEGER NOT NULL,
+        PRIMARY KEY (note_id, property_position, value_position)
+      );
+
       CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts
         USING fts5(note_id UNINDEXED, title, body, tokenize = 'unicode61');
 
@@ -512,6 +699,10 @@ export class DbService {
         ON note_links(target_normalized);
       CREATE INDEX IF NOT EXISTS idx_notes_relative_path
         ON notes(relative_path);
+      CREATE INDEX IF NOT EXISTS idx_note_properties_name
+        ON note_properties(normalized_name);
+      CREATE INDEX IF NOT EXISTS idx_note_property_values
+        ON note_property_values(note_id, property_position, normalized_value);
 
       PRAGMA user_version = ${SCHEMA_VERSION};
     `)
@@ -523,6 +714,8 @@ export class DbService {
     this.db.prepare('DELETE FROM note_links WHERE source_note_id = ?').run(noteId)
     this.db.prepare('DELETE FROM note_tags WHERE note_id = ?').run(noteId)
     this.db.prepare('DELETE FROM note_components WHERE note_id = ?').run(noteId)
+    this.db.prepare('DELETE FROM note_property_values WHERE note_id = ?').run(noteId)
+    this.db.prepare('DELETE FROM note_properties WHERE note_id = ?').run(noteId)
 
     const insertAlias = this.db.prepare(
       'INSERT OR IGNORE INTO note_aliases (note_id, alias, alias_normalized) VALUES (?, ?, ?)'
@@ -532,14 +725,29 @@ export class DbService {
        VALUES (?, ?, ?, ?, ?)`
     )
     const insertLink = this.db.prepare(
-      `INSERT INTO note_links (source_note_id, target, target_normalized, display, position)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO note_links (
+         source_note_id, kind, target, note_target, target_normalized, subpath, display,
+         source_from, source_to, position
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insertTag = this.db.prepare(
       'INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?, ?)'
     )
     const insertComponent = this.db.prepare(
       'INSERT OR IGNORE INTO note_components (note_id, component_name) VALUES (?, ?)'
+    )
+    const insertProperty = this.db.prepare(
+      `INSERT INTO note_properties (
+         note_id, name, normalized_name, type, empty, editable, unsupported_reason, position
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    const insertPropertyValue = this.db.prepare(
+      `INSERT INTO note_property_values (
+         note_id, property_position, value, normalized_value, value_position
+       )
+       VALUES (?, ?, ?, ?, ?)`
     )
 
     note.aliases.forEach((alias) => {
@@ -549,13 +757,45 @@ export class DbService {
       insertHeading.run(noteId, heading.depth, heading.text, heading.slug, heading.position)
     })
     note.wikilinks.forEach((link, position) => {
-      insertLink.run(noteId, link.target, link.targetNormalized, link.display, position)
+      insertLink.run(
+        noteId,
+        link.kind,
+        link.target,
+        link.noteTarget,
+        link.targetNormalized,
+        link.subpath,
+        link.display,
+        link.sourceFrom,
+        link.sourceTo,
+        position
+      )
     })
     note.tags.forEach((tag) => {
       insertTag.run(noteId, tag)
     })
     note.components.forEach((componentName) => {
       insertComponent.run(noteId, componentName)
+    })
+    note.properties.forEach((property, propertyPosition) => {
+      insertProperty.run(
+        noteId,
+        property.name,
+        property.normalizedName,
+        property.type,
+        property.empty ? 1 : 0,
+        property.editable ? 1 : 0,
+        property.unsupportedReason,
+        propertyPosition
+      )
+      property.values.forEach((value, valuePosition) => {
+        insertPropertyValue.run(
+          noteId,
+          propertyPosition,
+          value,
+          normalizePropertyValue(value),
+          valuePosition
+        )
+      })
     })
   }
 
@@ -614,6 +854,45 @@ export class DbService {
     parsedQuery.files.forEach((fileFilter) => {
       whereClauses.push("lower(n.relative_path) LIKE ? ESCAPE '\\'")
       parameters.push(`%${escapeLike(fileFilter.toLocaleLowerCase())}%`)
+    })
+
+    parsedQuery.properties.forEach((property) => {
+      if (property.value === undefined) {
+        whereClauses.push(
+          `EXISTS (
+             SELECT 1
+             FROM note_properties p
+             WHERE p.note_id = n.id AND p.normalized_name = ?
+           )`
+        )
+        parameters.push(property.name)
+        return
+      }
+
+      if (property.value === null) {
+        whereClauses.push(
+          `EXISTS (
+             SELECT 1
+             FROM note_properties p
+             WHERE p.note_id = n.id AND p.normalized_name = ? AND p.empty = 1
+           )`
+        )
+        parameters.push(property.name)
+        return
+      }
+
+      whereClauses.push(
+        `EXISTS (
+           SELECT 1
+           FROM note_properties p
+           JOIN note_property_values pv
+             ON pv.note_id = p.note_id AND pv.property_position = p.position
+           WHERE p.note_id = n.id
+             AND p.normalized_name = ?
+             AND pv.normalized_value = ?
+         )`
+      )
+      parameters.push(property.name, normalizePropertyValue(property.value))
     })
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
@@ -717,7 +996,14 @@ interface ParsedSearchQuery {
   files: string[]
   regexes: RegExp[]
   regexLabels: string[]
+  properties: PropertySearchFilter[]
   hasFilters: boolean
+}
+
+interface PropertySearchFilter {
+  name: string
+  value: string | null | undefined
+  label: string
 }
 
 function parseSearchQuery(query: string): ParsedSearchQuery {
@@ -735,8 +1021,30 @@ function parseSearchQuery(query: string): ParsedSearchQuery {
   const files: string[] = []
   const regexes: RegExp[] = []
   const regexLabels: string[] = []
+  const properties: PropertySearchFilter[] = []
 
   for (const token of tokenizeSearchQuery(trimmedQuery)) {
+    const propertyMatch = /^\[([^:\]]+)(?::([^\]]*))?\]$/u.exec(token)
+
+    if (propertyMatch) {
+      const name = normalizePropertyName(propertyMatch[1])
+      const rawValue = propertyMatch[2]
+
+      if (name) {
+        properties.push({
+          name,
+          value:
+            rawValue === undefined
+              ? undefined
+              : normalizePropertyName(rawValue) === 'null'
+                ? null
+                : stripWrappingQuotes(rawValue.trim()),
+          label: token
+        })
+      }
+      continue
+    }
+
     const operatorMatch = /^(tag|path|file):(.+)$/i.exec(token)
 
     if (operatorMatch) {
@@ -775,12 +1083,14 @@ function parseSearchQuery(query: string): ParsedSearchQuery {
     files: uniqueNonEmpty(files),
     regexes,
     regexLabels,
+    properties,
     hasFilters:
       textTokens.length > 0 ||
       tags.length > 0 ||
       paths.length > 0 ||
       files.length > 0 ||
-      regexes.length > 0
+      regexes.length > 0 ||
+      properties.length > 0
   }
 }
 
@@ -828,6 +1138,16 @@ function tokenizeSearchQuery(query: string): string[] {
       }
 
       tokens.push(query.slice(start, index))
+      continue
+    }
+
+    if (query[index] === '[') {
+      const closingIndex = query.indexOf(']', index + 1)
+      if (closingIndex === -1) {
+        throw new Error('Invalid property search: missing closing bracket.')
+      }
+      tokens.push(query.slice(index, closingIndex + 1))
+      index = closingIndex + 1
       continue
     }
 
@@ -944,8 +1264,17 @@ function buildSearchMatchLabels(parsedQuery: ParsedSearchQuery): string[] {
     ...parsedQuery.tags.map((tag) => `tag:${tag}`),
     ...parsedQuery.paths.map((pathFilter) => `path:${pathFilter}`),
     ...parsedQuery.files.map((fileFilter) => `file:${fileFilter}`),
-    ...parsedQuery.regexLabels
+    ...parsedQuery.regexLabels,
+    ...parsedQuery.properties.map((property) => property.label)
   ]
+}
+
+function normalizePropertyName(value: string): string {
+  return value.trim().normalize('NFKC').toLocaleLowerCase()
+}
+
+function normalizePropertyValue(value: string): string {
+  return value.trim().normalize('NFKC').toLocaleLowerCase()
 }
 
 function findPlainMention(text: string, terms: string[]): string | null {

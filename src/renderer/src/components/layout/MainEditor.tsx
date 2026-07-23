@@ -18,10 +18,17 @@ import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
 import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
+import { formatError } from '@/lib/format-error'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
 import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
-import { resolveWikilinkTarget } from '../../../../shared/wikilinks'
+import {
+  formatWikilinkSubpath,
+  parseWikilinkTarget,
+  resolveWikilinkHeading,
+  resolveWikilinkTarget,
+  type WikilinkSubpath
+} from '../../../../shared/wikilinks'
 
 interface MainEditorProps {
   viewMode: ViewMode
@@ -66,6 +73,33 @@ export function MainEditor({
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
   const { factor: readingZoomFactor, adjustFromWheel: adjustReadingZoomFromWheel } = readingZoom
 
+  const handleNavigateWikilink = useCallback(
+    async (relativePath: string, subpath?: WikilinkSubpath | null): Promise<void> => {
+      onError(null)
+
+      try {
+        const opened = await noteActions.navigateToNote(relativePath)
+
+        if (!opened || subpath?.kind !== 'heading') {
+          return
+        }
+
+        const headings = await window.indexApi.headingsOfNote(relativePath)
+        const heading = resolveWikilinkHeading(headings, subpath)
+
+        if (!heading) {
+          onError(`Heading not found: ${relativePath}${formatWikilinkSubpath(subpath)}`)
+          return
+        }
+
+        editorInteractions.revealHeading(heading)
+      } catch (error) {
+        onError(formatError(error))
+      }
+    },
+    [editorInteractions, noteActions.navigateToNote, onError]
+  )
+
   const handleNavigateDefinition = useCallback(
     (target: GotoDefinitionTarget): void => {
       if (target.type === 'component') {
@@ -73,14 +107,18 @@ export function MainEditor({
       }
 
       if (target.type === 'wikilink') {
-        const resolvedNote = resolveWikilinkTarget(noteIndex.indexNotes, target.value)
+        const reference = parseWikilinkTarget(target.value)
+        const resolvedNote = resolveWikilinkTarget(
+          noteIndex.indexNotes,
+          target.value,
+          selectedPath ?? undefined
+        )
         if (!resolvedNote) {
           onError(`Wikilink target not found: [[${target.value}]]`)
           return
         }
 
-        onError(null)
-        noteActions.navigateToNote(resolvedNote.relativePath)
+        void handleNavigateWikilink(resolvedNote.relativePath, reference?.subpath)
         return
       }
 
@@ -98,9 +136,9 @@ export function MainEditor({
       noteActions.navigateToVaultFile(resolvedPath.relativePath)
     },
     [
-      noteActions.navigateToNote,
       noteActions.navigateToVaultFile,
       noteIndex.indexNotes,
+      handleNavigateWikilink,
       onError,
       selectedPath
     ]
@@ -165,7 +203,7 @@ export function MainEditor({
               readingZoomFactor={readingZoomFactor}
               notes={noteIndex.indexNotes}
               revealHeadingRequest={editorInteractions.previewHeadingRequest}
-              onNavigate={noteActions.navigateToNote}
+              onNavigate={handleNavigateWikilink}
               onRevealLine={editorInteractions.revealEditorLine}
               isDarwin={isDarwin}
               isPhysicalZoomModifierDown={isPhysicalModifierDown}
@@ -179,12 +217,14 @@ export function MainEditor({
                 onChange={editor.setContent}
                 displayMode={viewMode}
                 notes={noteIndex.indexNotes}
+                sourceRelativePath={selectedPath}
                 commandActions={commandActions.actions}
                 insertRequest={noteActions.editorInsertRequest}
                 revealLineRequest={editorInteractions.revealLineRequest}
+                revealSourceRangeRequest={editorInteractions.revealSourceRangeRequest}
                 onSelectionChange={editorInteractions.handleEditorSelectionChange}
                 onCommandError={onError}
-                onNavigateToNote={noteActions.navigateToNote}
+                onNavigateToNote={handleNavigateWikilink}
                 onNavigateDefinition={handleNavigateDefinition}
                 onSaveImage={editor.handleSaveImage}
               />

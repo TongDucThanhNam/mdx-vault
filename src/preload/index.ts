@@ -15,6 +15,7 @@ import type {
   AssistantEvent,
   PatchOperation
 } from '../shared/ai'
+import type { BookmarkManifest } from '../shared/bookmarks'
 import type {
   ExportMode,
   ExportPickTargetResult,
@@ -23,6 +24,16 @@ import type {
   ExportRunResult,
   ExportScanResult
 } from '../shared/export'
+import type {
+  KnowledgeNoteSnapshot,
+  LinkMentionRequest,
+  PropertyMutationRequest,
+  PropertyMutationResponse,
+  PropertyRenameApplyRequest,
+  PropertyRenamePlan,
+  PropertyRenameResult,
+  PropertySummary
+} from '../shared/knowledge'
 import type { RenamePlanPreview, RenameResult } from '../shared/rename'
 import type {
   SandboxDescriptor,
@@ -204,6 +215,27 @@ const indexApi = {
   }
 }
 
+const knowledgeApi = {
+  noteSnapshot: (relativePath: string): Promise<KnowledgeNoteSnapshot> =>
+    invokeKnowledge('knowledge:note-snapshot', { relativePath }),
+  propertyInventory: (): Promise<PropertySummary[]> =>
+    invokeKnowledge('knowledge:property-inventory'),
+  mutateProperty: (request: PropertyMutationRequest): Promise<PropertyMutationResponse> =>
+    invokeKnowledge('knowledge:mutate-property', request),
+  linkMention: (request: LinkMentionRequest): Promise<PropertyMutationResponse> =>
+    invokeKnowledge('knowledge:link-mention', request),
+  planPropertyRename: (oldName: string, newName: string): Promise<PropertyRenamePlan> =>
+    invokeKnowledge('knowledge:plan-property-rename', { oldName, newName }),
+  applyPropertyRename: (request: PropertyRenameApplyRequest): Promise<PropertyRenameResult> =>
+    invokeKnowledge('knowledge:apply-property-rename', request)
+}
+
+const bookmarkApi = {
+  get: (): Promise<BookmarkManifest> => invokeBookmarks('bookmarks:get'),
+  save: (manifest: BookmarkManifest, expectedRevision: number): Promise<BookmarkManifest> =>
+    invokeBookmarks('bookmarks:save', { manifest, expectedRevision })
+}
+
 const sandboxApi = {
   describeHtml: (src: string, notePath: string | null): Promise<SandboxDescriptor> =>
     invokeSandbox('sandbox:describe-html', { src, notePath }),
@@ -346,6 +378,8 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('vaultApi', vaultApi)
     contextBridge.exposeInMainWorld('indexApi', indexApi)
+    contextBridge.exposeInMainWorld('knowledgeApi', knowledgeApi)
+    contextBridge.exposeInMainWorld('bookmarkApi', bookmarkApi)
     contextBridge.exposeInMainWorld('sandboxApi', sandboxApi)
     contextBridge.exposeInMainWorld('aiApi', aiApi)
     contextBridge.exposeInMainWorld('exportApi', exportApi)
@@ -369,6 +403,26 @@ async function invokeVault<T>(channel: string, payload?: unknown): Promise<T> {
 }
 
 async function invokeIndex<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeKnowledge<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeBookmarks<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

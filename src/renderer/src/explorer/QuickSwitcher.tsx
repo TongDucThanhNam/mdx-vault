@@ -421,6 +421,7 @@ function FileFinderOption({
       ref={ref}
       id={id}
       type="button"
+      data-page-preview-path={result.kind === 'note' ? result.relativePath : undefined}
       role="option"
       tabIndex={-1}
       aria-selected={selected}

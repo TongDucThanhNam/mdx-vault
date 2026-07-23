@@ -4,8 +4,10 @@ import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { registerAiIpc } from './ipc/ai-ipc'
 import { registerAppSettingsIpc } from './ipc/app-settings-ipc'
+import { registerBookmarkIpc } from './ipc/bookmark-ipc'
 import { registerExportIpc } from './ipc/export-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
+import { registerKnowledgeIpc } from './ipc/knowledge-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
 import { registerWindowIpc, registerWindowStateEvents } from './ipc/window-ipc'
@@ -124,6 +126,8 @@ app.whenReady().then(() => {
     appSettings
   })
   registerIndexIpc({ onIndexChanged: broadcastIndexChanged })
+  registerKnowledgeIpc()
+  registerBookmarkIpc()
   registerSandboxIpc()
   registerAiIpc()
   registerExportIpc()

@@ -118,6 +118,7 @@ function BacklinkSection({
             <button
               key={`${backlink.kind}-${backlink.source.relativePath}-${backlink.target}-${index}`}
               type="button"
+              data-page-preview-path={backlink.source.relativePath}
               className="w-full border-l-2 border-l-transparent px-2 py-2 text-left transition-colors hover:border-l-[var(--editorial-red)] hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
               title={backlink.source.relativePath}
               onClick={() => onSelectNote(backlink.source.relativePath)}

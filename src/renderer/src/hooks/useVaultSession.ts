@@ -294,6 +294,18 @@ export function useVaultSession({
     [onError, showToast]
   )
 
+  const handleCopyRelativePath = useCallback(
+    async (relativePath: string): Promise<void> => {
+      try {
+        await navigator.clipboard.writeText(relativePath)
+        showToast(`Copied ${relativePath}`)
+      } catch (copyError) {
+        onError(formatError(copyError))
+      }
+    },
+    [onError, showToast]
+  )
+
   const handleEmptyTrash = useCallback(async (): Promise<void> => {
     setVaultOpsPending(true)
     onError(null)
@@ -469,6 +481,7 @@ export function useVaultSession({
     handleDuplicate,
     handleRevealInExplorer,
     handleCopyPath,
+    handleCopyRelativePath,
     handleEmptyTrash,
     handleSortModeChange,
     openVault

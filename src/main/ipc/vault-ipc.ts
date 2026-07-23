@@ -19,7 +19,12 @@ import type {
   VaultInfo,
   VaultTreeFile
 } from '../services/vault-service'
-import { getCurrentIndex, getCurrentVault, openCurrentVault } from '../services/vault-session'
+import {
+  getCurrentBookmarks,
+  getCurrentIndex,
+  getCurrentVault,
+  openCurrentVault
+} from '../services/vault-session'
 
 export interface IpcSuccess<T> {
   ok: true
@@ -237,6 +242,9 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
       const input = renameFilePayloadSchema.parse(payload)
       const vault = getCurrentVault()
       const index = getCurrentIndex()
+      const bookmarks = getCurrentBookmarks()
+      const bookmarkSnapshot = await bookmarks.load()
+      let bookmarkRevisionAfterApply: number | null = null
       const plan = input.updateLinks
         ? await planVaultRename(vault, index, input.fromRelativePath, input.toRelativePath)
         : undefined
@@ -249,8 +257,17 @@ export function registerVaultIpc(options: RegisterVaultIpcOptions = {}): void {
             result.newRelativePath,
             result.rewrittenFiles
           )
+          const bookmarkResult = await bookmarks.rewritePath(
+            input.fromRelativePath,
+            result.newRelativePath
+          )
+          bookmarkRevisionAfterApply =
+            bookmarkResult.after === bookmarkResult.before ? null : bookmarkResult.after.revision
         },
         onRolledBack: async () => {
+          if (bookmarkRevisionAfterApply !== null) {
+            await bookmarks.restore(bookmarkSnapshot, bookmarkRevisionAfterApply)
+          }
           await index.rebuild()
         }
       })

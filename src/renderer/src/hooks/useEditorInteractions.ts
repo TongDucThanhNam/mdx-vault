@@ -1,11 +1,16 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useMemo, useState } from 'react'
 import type { SelectionActionPalettePosition } from '@/ai/panels/AiSelectionActionPalette'
-import type { EditorSelectionSnapshot, RevealLineRequest } from '@/editor/MdxEditor'
+import type {
+  EditorSelectionSnapshot,
+  RevealLineRequest,
+  RevealSourceRangeRequest
+} from '@/editor/MdxEditor'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import { findHeadingLine } from '@/lib/editor-navigation'
 import type { NoteHeadingResult } from '@/vault/types'
 import type { SelectionRange } from '../../../shared/ai'
+import type { SourceRange } from '../../../shared/knowledge'
 
 export interface PreviewHeadingRequest {
   position: number
@@ -20,6 +25,8 @@ interface UseEditorInteractionsOptions {
 export function useEditorInteractions({ editor, setAiPanelOpen }: UseEditorInteractionsOptions) {
   const [editorSelection, setEditorSelection] = useState<EditorSelectionSnapshot | null>(null)
   const [revealLineRequest, setRevealLineRequest] = useState<RevealLineRequest | null>(null)
+  const [revealSourceRangeRequest, setRevealSourceRangeRequest] =
+    useState<RevealSourceRangeRequest | null>(null)
   const [previewHeadingRequest, setPreviewHeadingRequest] = useState<PreviewHeadingRequest | null>(
     null
   )
@@ -31,6 +38,14 @@ export function useEditorInteractions({ editor, setAiPanelOpen }: UseEditorInter
   const revealEditorLine = useCallback((line: number): void => {
     setRevealLineRequest({
       line,
+      requestId: Date.now()
+    })
+  }, [])
+
+  const revealEditorRange = useCallback((range: SourceRange): void => {
+    setRevealSourceRangeRequest({
+      from: range.from,
+      to: range.to,
       requestId: Date.now()
     })
   }, [])
@@ -92,12 +107,14 @@ export function useEditorInteractions({ editor, setAiPanelOpen }: UseEditorInter
   return {
     editorSelection,
     revealLineRequest,
+    revealSourceRangeRequest,
     previewHeadingRequest,
     aiPaletteOpen,
     aiPalettePosition,
     selectionForAssistant,
     setAiPaletteOpen,
     revealEditorLine,
+    revealEditorRange,
     revealHeading,
     handleEditorSelectionChange,
     openAiPalette,

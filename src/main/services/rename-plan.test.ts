@@ -92,6 +92,23 @@ describe('transactional rename planner', () => {
     )
   })
 
+  test('preserves heading subpaths while rewriting the note identity', () => {
+    const content = '[[folder/Target Note#Architecture#Caching|Cache section]]'
+    const plan = buildRenamePlan({
+      oldRelativePath: 'folder/Target Note.mdx',
+      newRelativePath: 'archive/Renamed Target.mdx',
+      notes: [
+        { relativePath: 'folder/Target Note.mdx', title: 'Target Note' },
+        { relativePath: 'Source.mdx', title: 'Source' }
+      ],
+      sources: [{ relativePath: 'Source.mdx', content }]
+    })
+
+    expect(applyRenameEdits(content, plan.files[0].edits)).toBe(
+      '[[archive/Renamed Target#Architecture#Caching|Cache section]]'
+    )
+  })
+
   test('preserves literal and encoded Markdown destination styles', () => {
     const content = [
       '[encoded](folder/Target%20Note.mdx)',
@@ -122,8 +139,20 @@ describe('transactional rename planner', () => {
     })
 
     expect(index.wikilinks.length).toBe(2)
-    expect(index.wikilinks[0].target).toBe('folder/Target Note.mdx')
+    expect(index.wikilinks[0].target).toBe('folder/Target Note.mdx#section')
+    expect(index.wikilinks[0].subpath).toBe('#section')
     expect(index.wikilinks[0].targetNormalized).toBe('folder/target note')
     expect(index.wikilinks[1].target).toBe('Target Note')
+  })
+
+  test('indexes a wikilink fragment against the note while preserving its raw target', () => {
+    const index = buildNoteIndex({
+      relativePath: 'sources/Source.mdx',
+      source: '[[folder/Target Note#Architecture#Caching|Cache section]]',
+      mtimeMs: 1
+    })
+
+    expect(index.wikilinks[0].target).toBe('folder/Target Note#Architecture#Caching')
+    expect(index.wikilinks[0].targetNormalized).toBe('folder/target note')
   })
 })

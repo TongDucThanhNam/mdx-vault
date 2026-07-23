@@ -1,4 +1,4 @@
-import { Activity, type Dispatch, type SetStateAction } from 'react'
+import { Activity, type Dispatch, type SetStateAction, useState } from 'react'
 import { AiSidePanel } from '@/ai/panels/AiSidePanel'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { AppStatusBar } from '@/components/AppStatusBar'
@@ -8,6 +8,7 @@ import { MainEditor } from '@/components/layout/MainEditor'
 import { RightPanel } from '@/components/layout/RightPanel'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
+import type { KnowledgeUtilitiesController } from '@/hooks/useKnowledgeUtilities'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
@@ -17,6 +18,9 @@ import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { VaultInfo } from '@/vault/types'
+import type { BookmarkTarget } from '../../../shared/bookmarks'
+import type { KnowledgePanelId, SourceRange } from '../../../shared/knowledge'
+import type { WikilinkSubpath } from '../../../shared/wikilinks'
 
 interface AppLayoutProps {
   vault: VaultInfo | null
@@ -36,7 +40,17 @@ interface AppLayoutProps {
   editorInteractions: EditorInteractionsController
   editorTabs: WorkbenchController
   readingZoom: ReadingZoomController
+  knowledge: KnowledgeUtilitiesController
+  activeRightPanel: KnowledgePanelId
+  propertyAddRequest: number
   setRightPanelOpen: Dispatch<SetStateAction<boolean>>
+  setActiveRightPanel: Dispatch<SetStateAction<KnowledgePanelId>>
+  onOpenSearch: (query: string) => void
+  onAddBookmark: (target: BookmarkTarget, title?: string | null) => void | Promise<void>
+  onNavigateWithSubpath: (
+    relativePath: string,
+    subpath?: WikilinkSubpath | null
+  ) => Promise<boolean>
   onRequestDelete: (relativePath: string) => void
   onError: (message: string | null) => void
 }
@@ -59,10 +73,21 @@ export function AppLayout({
   editorInteractions,
   editorTabs,
   readingZoom,
+  knowledge,
+  activeRightPanel,
+  propertyAddRequest,
   setRightPanelOpen,
+  setActiveRightPanel,
+  onOpenSearch,
+  onAddBookmark,
+  onNavigateWithSubpath,
   onRequestDelete,
   onError
 }: AppLayoutProps): React.JSX.Element {
+  const [explorerRevealRequest, setExplorerRevealRequest] = useState<{
+    path: string
+    requestId: number
+  } | null>(null)
   const noteSelected = selectedNotePath !== null
   const textSelected = selectedVaultPath !== null && textEditor.selectedPath === selectedVaultPath
   const activeEditor = textSelected ? textEditor : editor
@@ -136,7 +161,9 @@ export function AppLayout({
             noteIndex={noteIndex}
             vaultSession={vaultSession}
             commandActions={commandActions}
+            revealRequest={explorerRevealRequest}
             onRequestDelete={onRequestDelete}
+            onAddBookmark={onAddBookmark}
           />
         </Activity>
         <MainEditor
@@ -157,10 +184,48 @@ export function AppLayout({
         />
         <Activity mode={rightPanelOpen ? 'visible' : 'hidden'}>
           <RightPanel
+            activePanel={activeRightPanel}
             selectedPath={selectedNotePath}
+            source={editor.savedContent}
+            isDirty={editor.isDirty}
+            propertyAddRequest={propertyAddRequest}
             noteIndex={noteIndex}
+            knowledge={knowledge}
+            onActivePanelChange={setActiveRightPanel}
             onSelectHeading={editorInteractions.revealHeading}
+            onBookmarkHeading={(heading) => {
+              if (selectedNotePath) {
+                void onAddBookmark(
+                  {
+                    kind: 'heading',
+                    relativePath: selectedNotePath,
+                    heading: heading.text
+                  },
+                  heading.text
+                )
+              }
+            }}
+            onRevealRange={(range: SourceRange) => {
+              void commandActions.dispatch('view.source')
+              window.setTimeout(() => editorInteractions.revealEditorRange(range), 0)
+            }}
             onSelectNote={noteActions.navigateToNote}
+            onSelectBookmarkHeading={(relativePath, heading) =>
+              void onNavigateWithSubpath(relativePath, {
+                kind: 'heading',
+                segments: [heading]
+              })
+            }
+            onSelectBookmarkFolder={(relativePath) => {
+              if (!leftPanelOpen) {
+                void commandActions.dispatch('view.toggle-left-panel')
+              }
+              setExplorerRevealRequest((current) => ({
+                path: relativePath,
+                requestId: (current?.requestId ?? 0) + 1
+              }))
+            }}
+            onOpenSearch={onOpenSearch}
           />
         </Activity>
 

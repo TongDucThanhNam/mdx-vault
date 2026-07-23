@@ -49,12 +49,19 @@ describe('app settings IPC', () => {
 
     const updateResult = await requireHandler('app-settings:update')(mainFrameEvent(), {
       theme: 'dark',
+      defaultNoteView: 'source',
+      pagePreview: { enabled: false, requireModifier: true },
       workbench: { activateOnClose: 'right' },
       keymapOverrides: { 'file.open': ['Mod+O'] }
     })
 
     expect(updateResult.ok).toBe(true)
     expect((updateResult.data as AppSettingsSnapshot).theme).toBe('dark')
+    expect((updateResult.data as AppSettingsSnapshot).defaultNoteView).toBe('source')
+    expect((updateResult.data as AppSettingsSnapshot).pagePreview).toEqual({
+      enabled: false,
+      requireModifier: true
+    })
     expect((updateResult.data as AppSettingsSnapshot).workbench.activateOnClose).toBe('right')
     expect((updateResult.data as AppSettingsSnapshot).keymapOverrides['file.open'][0]).toBe('Mod+O')
   })
@@ -73,6 +80,8 @@ describe('app settings IPC', () => {
 
     for (const payload of [
       { editorFontSize: 100 },
+      { defaultNoteView: 'split' },
+      { pagePreview: { enabled: 'yes' } },
       { workbench: { activateOnClose: 'newest' } },
       { keymapOverrides: { 'file.open': 'Mod+P' } },
       { theme: 'dark', unexpected: true },
@@ -201,10 +210,12 @@ function childFrameEvent(): unknown {
 
 function createSnapshot(): AppSettingsSnapshot {
   return {
-    version: 3,
+    version: 5,
     theme: 'system',
     fileTreeSort: 'name',
+    defaultNoteView: 'reading',
     editorFontSize: 13.5,
+    pagePreview: { enabled: true, requireModifier: false },
     workbench: {
       activateOnClose: 'history',
       whenClosingWithNoTabs: 'keep_window_open'
@@ -216,6 +227,7 @@ function createSnapshot(): AppSettingsSnapshot {
 function cloneSnapshot(snapshot: AppSettingsSnapshot): AppSettingsSnapshot {
   return {
     ...snapshot,
+    pagePreview: { ...snapshot.pagePreview },
     workbench: { ...snapshot.workbench },
     keymapOverrides: Object.fromEntries(
       Object.entries(snapshot.keymapOverrides).map(([id, bindings]) => [id, [...bindings]])
@@ -231,6 +243,7 @@ function applyFakePatch(
     ...snapshot,
     ...patch,
     workbench: { ...snapshot.workbench, ...patch.workbench },
+    pagePreview: { ...snapshot.pagePreview, ...patch.pagePreview },
     keymapOverrides:
       patch.keymapOverrides === undefined
         ? snapshot.keymapOverrides

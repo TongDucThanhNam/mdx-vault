@@ -35,6 +35,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-15-transactional-rename.md    | Transactional rename + wikilink rewrite (fix F-01) | 12, 14    |
 | GOAL-16-plain-text-and-image-preview.md | Plain-text view/edit + vault-wide image preview | 01, 05, 15 |
 | GOAL-22-zed-like-workbench-ux.md   | Zed-like transactional workbench UX + native MDX vault behavior | 08, 14, 16, 20 |
+| GOAL-23-obsidian-knowledge-utilities.md | Page Preview, Outgoing Links, Properties, Bookmarks, Footnotes | 02, 13, 15, 18, 20, 22 |
 
 ## Trạng thái ký hiệu trong goal
 
