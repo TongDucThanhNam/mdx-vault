@@ -33,7 +33,8 @@ export const SELECTED_ACTIONS: readonly ActionDescriptor[] = [
   { id: 'make-interactive', label: 'Make interactive', mode: 'draft' },
   { id: 'refactor-this-mdx', label: 'Refactor this MDX', mode: 'template' },
   { id: 'fix-this-component', label: 'Fix this component', mode: 'draft' },
-  { id: 'explain', label: 'Explain', mode: 'chat' }
+  { id: 'explain', label: 'Explain', mode: 'chat' },
+  { id: 'open-chat', label: 'Ask anything about this note', mode: 'chat' }
 ] as const
 
 export function findAction(id: string): ActionDescriptor | null {

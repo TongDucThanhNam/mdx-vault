@@ -4,10 +4,17 @@ import { json } from '@codemirror/lang-json'
 import { python } from '@codemirror/lang-python'
 import { yaml } from '@codemirror/lang-yaml'
 import { syntaxHighlighting } from '@codemirror/language'
+import { setDiagnostics } from '@codemirror/lint'
 import { EditorState, type Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { useEffect, useRef } from 'react'
+import {
+  createInteractiveCodeIntelligenceExtensions,
+  type InteractiveCodeIntelligence,
+  mapInteractiveDiagnosticsForEditor
+} from '@/interactive/interactive-code-intelligence'
+import type { InteractiveDiagnostic } from '../../../shared/interactive-authoring'
 import { readEditorDocument } from './editor-document'
 import { editorHighlightStyle, editorTheme } from './editor-theme'
 
@@ -15,22 +22,39 @@ interface TextFileEditorProps {
   relativePath: string
   value: string
   onChange: (value: string) => void
+  intelligence?: InteractiveCodeIntelligence | null
+  diagnostics?: readonly InteractiveDiagnostic[]
+  revealRequest?: TextFileRevealRequest | null
+}
+
+export interface TextFileRevealRequest {
+  requestId: number
+  from: number
+  to: number
 }
 
 export function TextFileEditor({
   relativePath,
   value,
-  onChange
+  onChange,
+  intelligence = null,
+  diagnostics = [],
+  revealRequest = null
 }: TextFileEditorProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const initialPathRef = useRef(relativePath)
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
+  const intelligenceRef = useRef(intelligence)
 
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
+
+  useEffect(() => {
+    intelligenceRef.current = intelligence
+  }, [intelligence])
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -45,6 +69,9 @@ export function TextFileEditor({
           basicSetup,
           EditorState.lineSeparator.of(initialValueRef.current.includes('\r\n') ? '\r\n' : '\n'),
           getLanguageExtension(initialPathRef.current),
+          ...(isTypeScriptPath(initialPathRef.current)
+            ? [createInteractiveCodeIntelligenceExtensions(() => intelligenceRef.current)]
+            : []),
           syntaxHighlighting(editorHighlightStyle),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
@@ -85,6 +112,33 @@ export function TextFileEditor({
     }
   }, [value])
 
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) {
+      return
+    }
+    view.dispatch(
+      setDiagnostics(
+        view.state,
+        mapInteractiveDiagnosticsForEditor(diagnostics, relativePath, view.state.doc.length)
+      )
+    )
+  }, [diagnostics, relativePath])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view || !revealRequest) {
+      return
+    }
+    const from = Math.min(view.state.doc.length, Math.max(0, revealRequest.from))
+    const to = Math.min(view.state.doc.length, Math.max(from, revealRequest.to))
+    view.dispatch({
+      selection: { anchor: from, head: to },
+      effects: EditorView.scrollIntoView(from, { y: 'center' })
+    })
+    view.focus()
+  }, [revealRequest])
+
   return <div ref={containerRef} className="h-full overflow-hidden" />
 }
 
@@ -116,4 +170,9 @@ function getLanguageExtension(relativePath: string): Extension {
     default:
       return []
   }
+}
+
+function isTypeScriptPath(relativePath: string): boolean {
+  const extension = relativePath.split('.').at(-1)?.toLowerCase()
+  return extension === 'ts' || extension === 'tsx'
 }

@@ -199,7 +199,8 @@ async function runChatSession(
 
     const adapter = createOpenaiChat(
       settings.model as Parameters<typeof createOpenaiChat>[0],
-      apiKey
+      apiKey,
+      settings.baseUrl ? { baseURL: settings.baseUrl } : undefined
     )
 
     /**

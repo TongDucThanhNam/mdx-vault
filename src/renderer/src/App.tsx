@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CommandPalette } from '@/commands/CommandPalette'
 import { isReadingZoomActionEnabled } from '@/commands/reading-zoom-actions'
 import { AppLayout } from '@/components/AppLayout'
@@ -15,6 +15,7 @@ import { useCommandActions } from '@/hooks/useCommandActions'
 import { useEditorFontSize } from '@/hooks/useEditorFontSize'
 import { useEditorInteractions } from '@/hooks/useEditorInteractions'
 import { useGlobalSurface } from '@/hooks/useGlobalSurface'
+import { useInteractiveAuthoring } from '@/hooks/useInteractiveAuthoring'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useKnowledgeUtilities } from '@/hooks/useKnowledgeUtilities'
 import { useNoteActions } from '@/hooks/useNoteActions'
@@ -27,6 +28,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useToast } from '@/hooks/useToast'
 import { useVaultSession } from '@/hooks/useVaultSession'
 import { useWorkbench } from '@/hooks/useWorkbench'
+import { CreateInteractiveDialog } from '@/interactive/CreateInteractiveDialog'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { PagePreviewProvider } from '@/preview/PagePreviewProvider'
 import { SearchPane } from '@/search/SearchPane'
@@ -35,6 +37,7 @@ import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import { focusActiveDocument, focusExplorer, isExplorerFocused } from '@/workbench/document-focus'
 import { addBookmarkItem, type BookmarkTarget } from '../../shared/bookmarks'
+import type { InteractiveCreateResult } from '../../shared/interactive-authoring'
 import type { KnowledgePanelId } from '../../shared/knowledge'
 import { resolveWikilinkHeading, type WikilinkSubpath } from '../../shared/wikilinks'
 
@@ -56,6 +59,7 @@ function App(): React.JSX.Element {
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
   const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
   const [keyRecorderActive, setKeyRecorderActive] = useState(false)
+  const [starterProofProjectRoot, setStarterProofProjectRoot] = useState<string | null>(null)
 
   const { toast, showToast } = useToast()
   const globalSurface = useGlobalSurface()
@@ -97,6 +101,9 @@ function App(): React.JSX.Element {
     onError: setError,
     showToast
   })
+  useEffect(() => {
+    setStarterProofProjectRoot(null)
+  }, [editorTabs.state.sessionId])
   const vaultSession = useVaultSession({
     vault,
     setVault,
@@ -141,6 +148,10 @@ function App(): React.JSX.Element {
   }, [globalSurface.openSurface])
   const openCreateNote = useCallback(
     () => globalSurface.openSurface('create-note'),
+    [globalSurface.openSurface]
+  )
+  const openCreateInteractiveDialog = useCallback(
+    () => globalSurface.openSurface('create-interactive'),
     [globalSurface.openSurface]
   )
   const openExport = useCallback(
@@ -203,6 +214,25 @@ function App(): React.JSX.Element {
     },
     [knowledge, showToast]
   )
+  const handleStarterCreated = useCallback((result: InteractiveCreateResult): void => {
+    setStarterProofProjectRoot(result.projectRoot)
+  }, [])
+  const consumeStarterProofConsent = useCallback((projectRoot: string): void => {
+    setStarterProofProjectRoot((current) => (current === projectRoot ? null : current))
+  }, [])
+  const interactiveAuthoring = useInteractiveAuthoring({
+    hasVault: vault !== null,
+    editable: viewMode === 'source' || viewMode === 'live',
+    selectedNotePath,
+    editorSelection: editorInteractions.editorSelection,
+    editor,
+    workbench: editorTabs,
+    refreshVaultSnapshot: vaultSession.refreshVaultSnapshot,
+    openDialog: openCreateInteractiveDialog,
+    onStarterCreated: handleStarterCreated,
+    onError: setError,
+    showToast
+  })
   const commandActions = useCommandActions({
     vault,
     selectedPath: selectedNotePath,
@@ -215,6 +245,8 @@ function App(): React.JSX.Element {
     openVault: vaultSession.openVault,
     toggleTheme,
     openCreateNote,
+    openCreateInteractive: interactiveAuthoring.openCreateDialog,
+    interactiveCreateEnabled: interactiveAuthoring.canCreate,
     openFileFinder,
     openCommandPalette,
     openSearch: openProjectSearch,
@@ -281,6 +313,8 @@ function App(): React.JSX.Element {
           editorInteractions={editorInteractions}
           editorTabs={editorTabs}
           readingZoom={readingZoom}
+          starterProofProjectRoot={starterProofProjectRoot}
+          onConsumeStarterProofConsent={consumeStarterProofConsent}
           knowledge={knowledge}
           activeRightPanel={activeRightPanel}
           propertyAddRequest={propertyAddRequest}
@@ -360,6 +394,20 @@ function App(): React.JSX.Element {
           onCreate={async (relativePath, content) => {
             await vaultSession.createNote(relativePath, content)
             globalSurface.completeSurface('create-note')
+          }}
+        />
+        <CreateInteractiveDialog
+          open={globalSurface.isSurfaceOpen('create-interactive')}
+          isCreating={interactiveAuthoring.isCreating}
+          onOpenChange={(open) => {
+            if (!open) {
+              interactiveAuthoring.cancelCreateDialog()
+            }
+            globalSurface.setSurfaceOpen('create-interactive', open)
+          }}
+          onCreate={async (form) => {
+            await interactiveAuthoring.createInteractive(form)
+            globalSurface.completeSurface('create-interactive')
           }}
         />
         <SettingsDialog

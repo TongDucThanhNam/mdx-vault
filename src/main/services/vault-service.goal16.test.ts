@@ -114,12 +114,34 @@ describe('VaultService plain-text and vault image access', () => {
 
     try {
       await writeFixture(root, 'data.bin', 'plain text')
+      await writeFixture(root, 'note.md', '# Note')
       await writeFixture(root, 'note.mdx', '# Note')
 
       expect(await rejects(() => vault.readTextFile('data.bin'))).toBe(true)
       expect(await rejects(() => vault.writeTextFile('data.bin', 'changed'))).toBe(true)
+      expect(await rejects(() => vault.readTextFile('note.md'))).toBe(true)
+      expect(await rejects(() => vault.writeTextFile('note.md', 'changed'))).toBe(true)
       expect(await rejects(() => vault.readTextFile('note.mdx'))).toBe(true)
       expect(await rejects(() => vault.writeTextFile('note.mdx', 'changed'))).toBe(true)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('allows only a direct interactive project README through the text API', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mdx-vault-goal25-readme-'))
+    const vault = new VaultService(root)
+
+    try {
+      await writeFixture(root, 'interactives/counter/README.md', '# Counter')
+      await writeFixture(root, 'interactives/counter/notes/README.md', '# Nested')
+
+      expect(await vault.readTextFile('interactives/counter/README.md')).toBe('# Counter')
+      await vault.writeTextFile('interactives/counter/README.md', '# Updated')
+      expect(await vault.readTextFile('interactives/counter/README.md')).toBe('# Updated')
+      expect(await rejects(() => vault.readTextFile('interactives/counter/notes/README.md'))).toBe(
+        true
+      )
     } finally {
       await rm(root, { recursive: true, force: true })
     }

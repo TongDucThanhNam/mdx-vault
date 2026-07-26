@@ -54,6 +54,18 @@ AI-generated component theo trust model phải chạy Level 3/4. Nếu AI assist
 - Deliberate gaps remain explicit: tag nodes, attachment nodes, excluded-file
   settings, chronological time-lapse, and graph bookmark types.
 
+## Current interactive-authoring milestone
+
+GOAL-25 hoàn thiện authoring journey cho vault React interactive: một command tạo
+transactional scaffold + chèn note, dedicated responsive Interactive Proof surface,
+offline project-aware TypeScript intelligence, structured Problems navigation,
+session-scoped zero-capability proof và handoff từ AI approval vào cùng workbench.
+Normal note preview vẫn giữ content-hash permission review; AI không tự chạy code.
+
+Scope cố ý bounded ở một `interactives/<slug>/`, React/ReactDOM allowlist và fixed
+TypeScript virtual project. Generic LSP, Monaco, npm install trong vault, persisted
+authoring consent/props và permission expansion không thuộc milestone này.
+
 ## Next candidates
 
 Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):

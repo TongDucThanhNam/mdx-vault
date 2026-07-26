@@ -11,6 +11,31 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  - node_modules/@esbuild/**
+  - node_modules/esbuild/**
+  - node_modules/react/**
+  - node_modules/react-dom/**
+  - node_modules/scheduler/**
+extraResources:
+  - from: node_modules/typescript/lib
+    to: interactive-types/typescript
+    filter:
+      - lib*.d.ts
+  - from: node_modules/@types/react
+    to: interactive-types/@types/react
+    filter:
+      - '*.d.ts'
+      - package.json
+  - from: node_modules/@types/react-dom
+    to: interactive-types/@types/react-dom
+    filter:
+      - '*.d.ts'
+      - package.json
+  - from: node_modules/csstype
+    to: interactive-types/csstype
+    filter:
+      - index.d.ts
+      - package.json
 win:
   executableName: mdx-vault
 nsis:

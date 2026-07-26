@@ -14,6 +14,10 @@ import type {
   GraphViewManifest
 } from '../shared/graph'
 import type {
+  InteractiveCreatePayload,
+  InteractiveCreateResult
+} from '../shared/interactive-authoring'
+import type {
   KnowledgeNoteSnapshot,
   LinkMentionRequest,
   PropertyMutationRequest,
@@ -98,6 +102,12 @@ interface TagSummary {
 type SandboxKind = 'html' | 'interactive'
 type SandboxPermissionDecision = 'allow' | 'deny'
 type SandboxPermissionStatus = 'allowed' | 'denied' | 'prompt'
+type SandboxAuthoringProofResult =
+  | { status: 'ready'; document: SandboxDocument }
+  | {
+      status: 'issues'
+      diagnostics: import('../shared/interactive-authoring').InteractiveDiagnostic[]
+    }
 
 interface SandboxManifest {
   name: string
@@ -348,6 +358,11 @@ interface SandboxApi {
     instanceId: string,
     props: unknown
   ) => Promise<SandboxDocument>
+  loadAuthoringProof: (
+    projectRoot: string,
+    instanceId: string,
+    props: unknown
+  ) => Promise<SandboxAuthoringProofResult>
   setPermission: (
     kind: SandboxKind,
     src: string,
@@ -362,6 +377,10 @@ interface SandboxApi {
     contentHash: string,
     path: string
   ) => Promise<string>
+}
+
+interface InteractiveApi {
+  create: (input: InteractiveCreatePayload) => Promise<InteractiveCreateResult>
 }
 
 export type AppTheme = 'light' | 'dark' | 'system'
@@ -430,6 +449,7 @@ declare global {
     bookmarkApi: BookmarkApi
     graphApi: GraphApi
     sandboxApi: SandboxApi
+    interactiveApi: InteractiveApi
     aiApi: AiApi
     exportApi: ExportApi
     appApi: AppApi

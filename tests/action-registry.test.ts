@@ -28,6 +28,7 @@ import {
 const REQUIRED_EXISTING_IDS = [
   'note.new',
   'note.new-template',
+  'interactive.create',
   'note.daily',
   'note.random',
   'note.unique',

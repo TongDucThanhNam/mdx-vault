@@ -1,5 +1,6 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow, Menu, shell } from 'electron'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { registerAiIpc } from './ipc/ai-ipc'
@@ -8,6 +9,7 @@ import { registerBookmarkIpc } from './ipc/bookmark-ipc'
 import { registerExportIpc } from './ipc/export-ipc'
 import { registerGraphIpc } from './ipc/graph-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
+import { registerInteractiveAuthoringIpc } from './ipc/interactive-authoring-ipc'
 import { registerKnowledgeIpc } from './ipc/knowledge-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
 import { registerVaultIpc } from './ipc/vault-ipc'
@@ -25,6 +27,25 @@ import {
   WINDOW_SHORTCUT_WATCHER_OPTIONS
 } from './window-shortcut-policy'
 
+function configurePackagedEsbuildBinary(): void {
+  if (!app.isPackaged) {
+    return
+  }
+  const binaryPath = join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    'node_modules',
+    '@esbuild',
+    `${process.platform}-${process.arch}`,
+    process.platform === 'win32' ? 'esbuild.exe' : 'bin/esbuild'
+  )
+  if (!existsSync(binaryPath)) {
+    throw new Error('Packaged esbuild binary is missing.')
+  }
+  process.env['ESBUILD_BINARY_PATH'] = binaryPath
+}
+
+configurePackagedEsbuildBinary()
 configureDisposableUserData(app)
 registerSandboxDocumentScheme()
 
@@ -133,6 +154,7 @@ app.whenReady().then(() => {
   registerAiIpc()
   registerExportIpc()
   registerGraphIpc()
+  registerInteractiveAuthoringIpc({ onTreeChanged: broadcastVaultTreeChanged })
   registerWindowIpc()
   registerAppSettingsIpc(appSettings)
 

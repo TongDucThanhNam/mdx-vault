@@ -36,6 +36,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-16-plain-text-and-image-preview.md | Plain-text view/edit + vault-wide image preview | 01, 05, 15 |
 | GOAL-22-zed-like-workbench-ux.md   | Zed-like transactional workbench UX + native MDX vault behavior | 08, 14, 16, 20 |
 | GOAL-23-obsidian-knowledge-utilities.md | Page Preview, Outgoing Links, Properties, Bookmarks, Footnotes | 02, 13, 15, 18, 20, 22 |
+| GOAL-25-interactive-authoring-workbench.md | Transactional React interactive authoring + offline TypeScript proof desk | 05, 06, 16, 18, 22 |
 
 ## Trạng thái ký hiệu trong goal
 

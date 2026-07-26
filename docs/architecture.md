@@ -9,6 +9,7 @@ Electron
 │   │   ├── vault-ipc.ts         vault:open / list-files / read-file / write-file
 │   │   ├── index-ipc.ts         index:query / search / backlinks
 │   │   ├── graph-ipc.ts         graph:get-snapshot / get-config / save-config
+│   │   ├── interactive-authoring-ipc.ts  bounded create + zero-capability proof
 │   │   └── app-settings-ipc.ts  app-settings:get / update (main-frame only)
 │   ├── services/
 │   │   ├── vault-service.ts     đọc/ghi file, watcher (chokidar)
@@ -16,6 +17,8 @@ Electron
 │   │   ├── db-service.ts        SQLite (better-sqlite3, FTS5)
 │   │   ├── graph-query-service.ts bounded note topology from SQLite
 │   │   ├── graph-config-service.ts versioned per-vault graph preferences
+│   │   ├── interactive-authoring-service.ts transactional scaffold/rollback
+│   │   ├── interactive-typecheck-service.ts fixed offline semantic checker
 │   │   ├── app-settings.ts      settings v3, normalize + atomic persistence
 │   │   └── safe-path.ts         safeJoin() chống path traversal
 │   └── index.ts             BrowserWindow, app lifecycle
@@ -27,6 +30,7 @@ Electron
 ├── Renderer (src/renderer/src/)
 │   ├── app/                 App shell, layout, routing giữa các panel
 │   ├── editor/              CodeMirror 6 (source mode)
+│   ├── interactive/         Proof desk, language worker/client, diagnostics adapters
 │   ├── preview/             MDX compile + render, component registry, error boundary
 │   ├── workbench/           item state machine, transactions, focus adapters
 │   ├── graph/               shared React surface + imperative lazy Cytoscape adapter
@@ -40,6 +44,7 @@ Electron
 │   ├── app-settings.ts      typed definition catalog + normalization
 │   ├── graph.ts             zod graph/config/IPC contracts
 │   ├── graph-model.ts       pure collapse, ambiguity, BFS, filters, truncation
+│   ├── interactive-*.ts     project/create/proof/language protocols
 │   └── keybindings.ts       chord parser/resolver, conflict + reserved policy
 │
 └── Sandbox (iframe trong preview — Goal 05)
@@ -193,6 +198,40 @@ workbench chords như `Ctrl+W`; `AppMenuBar` trong renderer dispatch cùng actio
 registry. Trên macOS, native menu vẫn giữ các standard Edit roles/OS behavior và chỉ
 route những application actions được hỗ trợ. Clipboard, undo/redo và text navigation
 tiếp tục thuộc editor/input đang focus.
+
+## Interactive authoring domain (Goal 25)
+
+Một interactive React là project vật lý dưới `interactives/<slug>/`; mỗi file vẫn là
+một canonical workbench item, không có project tab ảo. Note header, Command Palette và
+slash command cùng dispatch `interactive.create` vào một controller. Controller save
+note và gửi UTF-16 insertion offset + expected content hash qua narrow
+`interactive:create`; main process re-read, validate path/symlink/collision, semantic
+typecheck + bundle app-owned starter, rồi commit `component.tsx`, `manifest.json`,
+`README.md` và note như một transaction có rollback.
+
+`InteractiveProofWorkbench` compose editor hiện có với Proof, session props và Problems.
+Project snapshots chỉ chứa bounded vault-relative source. TypeScript intelligence chạy
+trong renderer Web Worker được lazy-create cho active `.ts/.tsx`; worker dùng fixed
+ES2022/DOM/React virtual project, packaged declaration assets, project/file/request
+versions và không đọc vault, config, plugin hay network. Main compile path dùng cùng
+`InteractiveLanguageProject` semantic contract trước esbuild, nên manual scaffold,
+authoring proof và AI repair cùng một diagnostic model.
+Windows package copy fixed TypeScript/React declaration assets vào `resources` và
+unpack esbuild platform binary cùng React runtime closure, nên checker và bundler hoạt
+động offline mà không phụ thuộc cây `node_modules` của máy dev.
+
+Authoring proof là explicit mode riêng của sandbox contract. Compile/document creation
+vẫn ở main; code chỉ execute trong iframe `sandbox="allow-scripts"` qua custom readonly
+protocol. Consent cho `(vault session, project root)` chỉ ở renderer memory. Existing
+code bắt đầu `Not run`, trừ exact current hash đã được normal permission store allow;
+app-owned starter có thể bắt đầu proof sau transaction. Authoring mode không ghi
+permission decision, luôn ép network/filesystem/data off, và giữ last-known-good
+document khi source mới có compile issue. Note Reading preview tiếp tục dùng normal
+content-hash permission flow.
+
+Export services được dynamic-import khi `export:scan`/`export:run` thực sự được gọi.
+Việc này giữ React registry/export dependencies ngoài main startup chunk; packaged app
+không phải eagerly evaluate UI modules trước khi tạo BrowserWindow.
 
 ## Graph domain (Goal 24)
 

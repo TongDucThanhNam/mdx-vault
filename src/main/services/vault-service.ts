@@ -65,6 +65,7 @@ const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx'])
 const ASSET_DATA_EXTENSIONS = new Set(['.csv', '.json'])
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
 const TEXT_EXTENSIONS = new Set([
+  '.md',
   '.txt',
   '.csv',
   '.tsv',
@@ -180,8 +181,9 @@ export class VaultService {
   }
 
   async readTextFile(relativePath: string): Promise<string> {
+    const normalizedPath = normalizeDirectTextPath(relativePath)
     const target = await this.resolveExistingDirectFilePath(
-      relativePath,
+      normalizedPath,
       TEXT_EXTENSIONS,
       'Unsupported text file extension'
     )
@@ -199,8 +201,9 @@ export class VaultService {
   }
 
   async writeTextFile(relativePath: string, content: string): Promise<void> {
+    const normalizedPath = normalizeDirectTextPath(relativePath)
     const target = await this.resolveExistingDirectFilePath(
-      relativePath,
+      normalizedPath,
       TEXT_EXTENSIONS,
       'Unsupported text file extension'
     )
@@ -252,6 +255,19 @@ export class VaultService {
       'Only .md and .mdx files are allowed'
     )
     await this.writeExistingFile(target, content)
+  }
+
+  async writeFileIfUnchanged(
+    relativePath: string,
+    expectedContent: string,
+    content: string
+  ): Promise<void> {
+    const target = await this.resolveExistingDirectFilePath(
+      relativePath,
+      MARKDOWN_EXTENSIONS,
+      'Only .md and .mdx files are allowed'
+    )
+    await this.writeExistingFileIfContentMatches(target, expectedContent, content)
   }
 
   /**
@@ -783,6 +799,62 @@ export class VaultService {
 
     await writeDefault()
   }
+
+  private async writeExistingFileIfContentMatches(
+    target: string,
+    expectedContent: string,
+    content: string
+  ): Promise<void> {
+    const writeDefault = async (): Promise<void> => {
+      const handle = await open(target, constants.O_RDWR | constants.O_NOFOLLOW)
+
+      try {
+        const openedStats = await handle.stat()
+        if (!openedStats.isFile()) {
+          throw new Error('Vault path is not a file')
+        }
+
+        const currentContent = await handle.readFile('utf8')
+        if (currentContent !== expectedContent) {
+          throw new Error('Vault file changed since the expected revision')
+        }
+
+        const data = Buffer.from(content, 'utf8')
+        await handle.truncate(0)
+        let written = 0
+        while (written < data.byteLength) {
+          const result = await handle.write(data, written, data.byteLength - written, written)
+          written += result.bytesWritten
+        }
+        await handle.sync()
+
+        const [handleStats, pathStats] = await Promise.all([handle.stat(), stat(target)])
+        if (handleStats.dev !== pathStats.dev || handleStats.ino !== pathStats.ino) {
+          throw new Error('Vault file changed while it was being saved')
+        }
+      } finally {
+        await handle.close()
+      }
+    }
+
+    if (this.atomicWriteOverride) {
+      await this.atomicWriteOverride(target, content, writeDefault)
+      return
+    }
+
+    await writeDefault()
+  }
+}
+
+function normalizeDirectTextPath(relativePath: string): string {
+  const normalizedPath = normalizeVaultPath(relativePath)
+  if (
+    extname(normalizedPath).toLowerCase() === '.md' &&
+    !/^interactives\/[^/]+\/README\.md$/i.test(normalizedPath)
+  ) {
+    throw new Error('Markdown text access is limited to interactive README files')
+  }
+  return normalizedPath
 }
 
 function toVaultFile(relativePath: string): VaultFile {

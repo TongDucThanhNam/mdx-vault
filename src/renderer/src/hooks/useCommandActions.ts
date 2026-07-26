@@ -39,6 +39,8 @@ interface UseCommandActionsOptions {
   openVault: () => Promise<void>
   toggleTheme: () => Promise<void>
   openCreateNote: () => void
+  openCreateInteractive: () => void
+  interactiveCreateEnabled: boolean
   openFileFinder: () => void
   openCommandPalette: () => void
   openSearch: () => void
@@ -72,6 +74,8 @@ export function useCommandActions({
   openVault,
   toggleTheme,
   openCreateNote,
+  openCreateInteractive,
+  interactiveCreateEnabled,
   openFileFinder,
   openCommandPalette,
   openSearch,
@@ -111,6 +115,7 @@ export function useCommandActions({
     () => ({
       'note.new': openCreateNote,
       'note.new-template': openCreateNote,
+      'interactive.create': openCreateInteractive,
       'note.daily': openDailyNote,
       'note.random': openRandomNote,
       'note.unique': createUniqueNote,
@@ -168,6 +173,7 @@ export function useCommandActions({
       focusEditor,
       insertCurrentDate,
       insertCurrentTime,
+      openCreateInteractive,
       openCommandPalette,
       openCreateNote,
       openDailyNote,
@@ -210,6 +216,7 @@ export function useCommandActions({
     return {
       'note.new': hasVault,
       'note.new-template': hasVault,
+      'interactive.create': interactiveCreateEnabled,
       'note.daily': hasVault,
       'note.random': hasVault && indexNoteCount > 0,
       'note.unique': hasVault,
@@ -257,6 +264,7 @@ export function useCommandActions({
   }, [
     graphSurfaceActive,
     indexNoteCount,
+    interactiveCreateEnabled,
     readingZoomEnabled,
     selectedPath,
     trashCount,

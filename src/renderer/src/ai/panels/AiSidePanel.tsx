@@ -18,7 +18,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { AssistantContext, SelectionRange } from '../../../../shared/ai'
+import type {
+  AssistantApprovePatchOutput,
+  AssistantContext,
+  PatchOperation,
+  SelectionRange
+} from '../../../../shared/ai'
 import { createAssistantRuntime } from '../assistant-client'
 import { buildRegistryTemplateHints } from '../registry-hints'
 import { applyEvent } from '../state/apply-event'
@@ -34,7 +39,11 @@ interface AiSidePanelProps {
   noteContent: string
   selection: SelectionRange | null
   backlinks: ReadonlyArray<{ relativePath: string; display: string }>
-  onWriteFile: (relativePath: string, content: string) => Promise<void>
+  onApprovedPatch: (input: {
+    noteRelativePath: string
+    operations: PatchOperation[]
+    output: AssistantApprovePatchOutput
+  }) => Promise<void>
   onRequestActionPalette?: () => void
 }
 
@@ -54,6 +63,10 @@ interface StreamingState {
   error: { message: string; code?: string } | null
   diff: DiffReviewModel | null
   draftFiles: Array<{ relativePath: string; content: string }> | null
+  requestContext: {
+    noteRelativePath: string
+    noteContent: string
+  } | null
 }
 
 const INITIAL_STREAMING: StreamingState = {
@@ -65,7 +78,8 @@ const INITIAL_STREAMING: StreamingState = {
   proposal: null,
   error: null,
   diff: null,
-  draftFiles: null
+  draftFiles: null,
+  requestContext: null
 }
 
 export function AiSidePanel({
@@ -74,6 +88,7 @@ export function AiSidePanel({
   noteContent,
   selection,
   backlinks,
+  onApprovedPatch,
   onRequestActionPalette
 }: AiSidePanelProps): React.JSX.Element {
   const [settings, setSettings] = useState<import('../../../../shared/ai').AiPublicSettings | null>(
@@ -109,19 +124,25 @@ export function AiSidePanel({
   }, [])
 
   const handleProposal = useCallback(
-    async (proposal: import('../../../../shared/ai').PatchProposal) => {
-      if (!noteRelativePath) {
+    async (
+      proposal: import('../../../../shared/ai').PatchProposal,
+      requestContext: StreamingState['requestContext']
+    ) => {
+      if (!requestContext) {
         setStreaming((current) => ({
           ...current,
           busy: false,
-          error: { message: 'No note open — cannot preview patch.', code: 'NO_NOTE' }
+          error: {
+            message: 'The note that started this request is no longer available.',
+            code: 'NO_NOTE'
+          }
         }))
         return
       }
 
       try {
         const response = await runtime.applyPatch({
-          noteRelativePath,
+          noteRelativePath: requestContext.noteRelativePath,
           operations: proposal.patches
         })
 
@@ -139,7 +160,11 @@ export function AiSidePanel({
             ...current,
             busy: false,
             diff: textResult
-              ? { before: noteContent, after: textResult.resultText, fileLabel: noteRelativePath }
+              ? {
+                  before: requestContext.noteContent,
+                  after: textResult.resultText,
+                  fileLabel: requestContext.noteRelativePath
+                }
               : null,
             draftFiles: draftResult?.files ?? null
           }))
@@ -160,7 +185,7 @@ export function AiSidePanel({
         }))
       }
     },
-    [noteContent, noteRelativePath]
+    []
   )
 
   useEffect(() => {
@@ -179,7 +204,7 @@ export function AiSidePanel({
         }
 
         if (event.type === 'patch-proposal') {
-          void handleProposal(event.proposal).catch((error: unknown) => {
+          void handleProposal(event.proposal, current.requestContext).catch((error: unknown) => {
             setStreaming((prev) => ({
               ...prev,
               busy: false,
@@ -240,7 +265,11 @@ export function AiSidePanel({
         proposal: null,
         error: null,
         diff: null,
-        draftFiles: null
+        draftFiles: null,
+        requestContext: {
+          noteRelativePath,
+          noteContent
+        }
       })
 
       try {
@@ -273,15 +302,16 @@ export function AiSidePanel({
   }, [streaming.sessionId])
 
   const approve = useCallback(async () => {
-    if (!noteRelativePath) return
-
-    if (!streaming.proposal) return
+    if (!streaming.proposal || !streaming.requestContext) return
     setStreaming((current) => ({ ...current, busy: true }))
     try {
-      await runtime.approvePatch({
-        noteRelativePath,
-        operations: streaming.proposal.patches
+      const operations = streaming.proposal.patches
+      const targetNotePath = streaming.requestContext.noteRelativePath
+      const output = await runtime.approvePatch({
+        noteRelativePath: targetNotePath,
+        operations
       })
+      await onApprovedPatch({ noteRelativePath: targetNotePath, operations, output })
       setStreaming(INITIAL_STREAMING)
     } catch (error) {
       setStreaming((current) => ({
@@ -290,7 +320,7 @@ export function AiSidePanel({
         error: { message: error instanceof Error ? error.message : String(error) }
       }))
     }
-  }, [noteRelativePath, streaming.proposal])
+  }, [onApprovedPatch, streaming.proposal, streaming.requestContext])
 
   const reject = useCallback(() => {
     setStreaming(INITIAL_STREAMING)

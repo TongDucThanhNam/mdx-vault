@@ -119,6 +119,15 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     defaultBindings: bindings()
   }),
   action({
+    id: 'interactive.create',
+    title: 'New interactive',
+    description: 'Scaffold a React island and insert it at the editor caret.',
+    category: 'Interactives',
+    keywords: ['create', 'component', 'island', 'react', 'sandbox'],
+    context: 'Editor',
+    defaultBindings: bindings()
+  }),
+  action({
     id: 'note.daily',
     title: "Open today's daily note",
     description: 'Open or create the journal note for today.',

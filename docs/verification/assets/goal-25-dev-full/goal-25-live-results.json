@@ -1,0 +1,38 @@
+{
+  "offline": false,
+  "events": [
+    "disposable vault reopened through the normal startup path",
+    "existing denied component opened as Not run",
+    "authoring Run stayed memory-only and did not alter the denied decision",
+    "header action created and auto-ran an app-owned zero-capability starter",
+    "warm project-aware completion applied a safe React auto-import as one undoable edit without a network lookup",
+    "unsaved diagnostics appeared and saved compile failure retained last good proof",
+    "narrow Problems tab and exact-range navigation worked from the keyboard",
+    "local helper hover, signature help, F12 definition, and blocked package/root-escape imports were observed",
+    "runtime error reached Problems and recovered to the last-good proof",
+    "invalid manifest recovered; requested network/filesystem/data remained denied and permission bytes were unchanged",
+    "TypeScript and props errors both recovered to Ready",
+    "normal Reading preview required and stored explicit Allow",
+    "exact normally allowed hash auto-consented and refreshed after valid session props",
+    "changed source hash returned normal note preview to Review",
+    "existing AI action generated an approved component, opened the same Proof surface, and did not auto-run",
+    "renderer restart cleared authoring consent"
+  ],
+  "measurements": {
+    "create_to_surface_ms": 1166.86,
+    "create_to_ready_ms": 1390.73,
+    "cold_ready_ms": 907.5,
+    "first_diagnostics_ms": 113.4,
+    "warm_completion_ms": 63.3
+  },
+  "externalRequests": [],
+  "consoleErrors": [],
+  "pageErrors": ["goal25 runtime proof"],
+  "mockAiRequests": 1,
+  "screenshots": [
+    "goal-25-existing-not-run.png",
+    "goal-25-wide-ready.png",
+    "goal-25-wide-compile-issue.png",
+    "goal-25-narrow-problems.png"
+  ]
+}

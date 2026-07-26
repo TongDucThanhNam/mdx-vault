@@ -31,6 +31,10 @@ import type {
   GraphViewManifest
 } from '../shared/graph'
 import type {
+  InteractiveCreatePayload,
+  InteractiveCreateResult
+} from '../shared/interactive-authoring'
+import type {
   KnowledgeNoteSnapshot,
   LinkMentionRequest,
   PropertyMutationRequest,
@@ -42,6 +46,7 @@ import type {
 } from '../shared/knowledge'
 import type { RenamePlanPreview, RenameResult } from '../shared/rename'
 import type {
+  SandboxAuthoringProofResult,
   SandboxDescriptor,
   SandboxDocument,
   SandboxKind,
@@ -273,6 +278,17 @@ const sandboxApi = {
     props: unknown
   ): Promise<SandboxDocument> =>
     invokeSandbox('sandbox:load-interactive', { src, notePath, contentHash, instanceId, props }),
+  loadAuthoringProof: (
+    projectRoot: string,
+    instanceId: string,
+    props: unknown
+  ): Promise<SandboxAuthoringProofResult> =>
+    invokeSandbox('sandbox:load-authoring-proof', {
+      mode: 'authoring-proof',
+      projectRoot,
+      instanceId,
+      props
+    }),
   setPermission: (
     kind: SandboxKind,
     src: string,
@@ -289,6 +305,11 @@ const sandboxApi = {
     path: string
   ): Promise<string> =>
     invokeSandbox('sandbox:request-data', { kind, src, notePath, contentHash, path })
+}
+
+const interactiveApi = {
+  create: (input: InteractiveCreatePayload): Promise<InteractiveCreateResult> =>
+    invokeInteractive('interactive:create', input)
 }
 
 const aiApi = {
@@ -399,6 +420,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('bookmarkApi', bookmarkApi)
     contextBridge.exposeInMainWorld('graphApi', graphApi)
     contextBridge.exposeInMainWorld('sandboxApi', sandboxApi)
+    contextBridge.exposeInMainWorld('interactiveApi', interactiveApi)
     contextBridge.exposeInMainWorld('aiApi', aiApi)
     contextBridge.exposeInMainWorld('exportApi', exportApi)
     contextBridge.exposeInMainWorld('appApi', appApi)
@@ -461,6 +483,16 @@ async function invokeGraph<T>(channel: string, payload?: unknown): Promise<T> {
 }
 
 async function invokeSandbox<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeInteractive<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

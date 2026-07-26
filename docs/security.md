@@ -82,10 +82,35 @@ export function safeJoin(root: string, relativePath: string): string {
 - Dependencies ngoài allowlist (react, d3, ... — danh sách cụ thể quyết định ở Goal 05) → từ chối compile.
 - Component không có manifest → chỉ được chạy như Level 4.
 
+## Interactive authoring proof (Goal 25)
+
+Authoring proof không phải một permission-store bypass. Đây là mode typed riêng, chỉ
+sau explicit **Run isolated proof** cho active `(vault session, project root)`, hoặc
+ngay sau transaction tạo app-owned zero-capability starter. Consent chỉ nằm trong
+renderer memory, mất khi Stop/close project/switch vault/restart và không bao giờ được
+ghi vào normal content-hash permission store. AI approval không tạo consent chạy code.
+
+- Existing project mặc định `Not run`; exact current hash đã được normal store allow
+  có thể auto-consent authoring session, nhưng loader authoring không đọc/ghi store.
+- Main frame là caller duy nhất của authoring IPC; mọi payload/result validate zod,
+  dùng vault-relative path, bounded project snapshot và bounded preview props.
+- TypeScript worker và main semantic checker chỉ phân tích source như data; không emit
+  hay evaluate source, không load vault `tsconfig`, plugin, ATA/CDN hoặc package ngoài
+  fixed allowlist.
+- Proof document vẫn dùng custom readonly protocol, strict postMessage schema và
+  `<iframe sandbox="allow-scripts">`; không `allow-same-origin`, navigation, popup hay
+  Node integration.
+- Proof CSP luôn có `default-src 'none'` và `connect-src 'none'`. Manifest request cho
+  network/filesystem/data không mở capability; data RPC trả explicit denial.
+- Compile/runtime/manifest diagnostics strip absolute vault/app/temp paths. Source mới
+  lỗi không thay iframe đang chạy; last-known-good proof được giữ với trạng thái issue.
+- Normal note preview/export vẫn dùng exact content hash + manifest review. Source hash
+  đổi thì decision cũ không được reuse; authoring consent không truyền sang boundary đó.
+
 ## AI-generated code
 
 - AI không có quyền ghi file trực tiếp — chỉ trả patch, user approve.
-- Pipeline bắt buộc: generate → compile (typecheck) → lint → test đơn giản (mount được, props hợp lệ, không import ngoài allowlist, không gọi API cấm) → preview trong sandbox → repair loop → approve → lưu.
+- Pipeline bắt buộc: generate → semantic typecheck + compile → lint → test đơn giản (mount được, props hợp lệ, không import ngoài allowlist, không gọi API cấm) → preview trong sandbox → repair loop → approve → lưu.
 - Lưu provenance: prompt/source/context tạo ra component (trong manifest hoặc file cạnh nó).
 
 ## Known risks đã ghi nhận

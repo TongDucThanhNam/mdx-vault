@@ -100,6 +100,39 @@ describe('GOAL-05 sandbox security boundary', () => {
     }
   })
 
+  test('rejects semantic TypeScript errors before esbuild can transpile them', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mdx-vault-goal25-typecheck-'))
+    const service = new SandboxService(new VaultService(root))
+    const manifest: SandboxManifest = {
+      ...htmlManifest,
+      name: 'Typed draft',
+      runtime: 'react',
+      dependencies: {
+        react: '^19.0.0',
+        'react-dom': '^19.0.0'
+      }
+    }
+
+    try {
+      const result = await service.compileDraft(
+        `import { useState } from 'react'
+export default function TypedDraft() {
+  const [, setCount] = useState(0)
+  setCount('wrong type')
+  return null
+}`,
+        manifest
+      )
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.errors.join('; ')).toContain('TS2345')
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   test('rejects dataset reads through a junction that escapes the vault', async () => {
     const outside = await mkdtemp(join(tmpdir(), 'mdx-vault-outside-'))
     const manifest: SandboxManifest = {

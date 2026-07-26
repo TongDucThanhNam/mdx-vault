@@ -86,6 +86,37 @@ interactives/bayes-simulator/
   fallback.png        # optional — static fallback khi export
 ```
 
+App-owned create flow tạo đúng ba file bắt buộc trong một transaction:
+`component.tsx`, `manifest.json`, `README.md`; đồng thời chèn
+`<Interactive src="..." />` bằng đường dẫn POSIX tương đối từ note. Root là segment
+ngay sau `interactives/`; local `.ts/.tsx/.js/.jsx/.json` có thể nằm trong root đó,
+nhưng import không được escape root hoặc đi qua `.app`, `.trash`, `.git`,
+`node_modules` hay symlink.
+
+`manifest.json` của starter React mặc định zero-capability:
+
+```json
+{
+  "name": "React counter",
+  "version": "1.0.0",
+  "runtime": "react",
+  "permissions": {
+    "network": false,
+    "filesystem": false,
+    "dataPaths": []
+  },
+  "propsSchema": {},
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
+```
+
+Trong Interactive Proof, preview props chỉ là session input để thử component; app
+không tự ghi chúng trở lại MDX/manifest. Save source đang incomplete vẫn hợp lệ:
+Problems ledger/typecheck báo lỗi, còn proof giữ last-known-good document.
+
 ## Assets
 
 - Ảnh: `![alt](../assets/img.png)` — path tương đối trong vault.

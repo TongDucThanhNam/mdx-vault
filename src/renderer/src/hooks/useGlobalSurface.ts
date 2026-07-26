@@ -6,6 +6,7 @@ export type GlobalSurfaceId =
   | 'command-palette'
   | 'project-search'
   | 'create-note'
+  | 'create-interactive'
   | 'export'
   | 'settings'
 

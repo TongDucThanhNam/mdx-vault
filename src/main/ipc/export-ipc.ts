@@ -19,8 +19,7 @@ import {
   exportRunPayloadSchema,
   exportScanResultSchema
 } from '../../shared/export'
-import { SandboxExportBridge } from '../services/export-sandbox-bridge'
-import { ExportError, ExportService } from '../services/export-service'
+import type { ExportService } from '../services/export-service'
 import { getCurrentSandboxService } from '../services/sandbox-session'
 import { getCurrentVault } from '../services/vault-session'
 import type { IpcFailure, IpcResult } from './vault-ipc'
@@ -32,7 +31,7 @@ export function registerExportIpc(): void {
   ipcMain.handle('export:scan', (event, payload): Promise<IpcResult<ExportScanResult>> => {
     return handleExportRequest(event, async () => {
       const input = EXPORT_SCAN_PAYLOAD_SCHEMA.parse(payload)
-      const service = getExportService()
+      const service = await getExportService()
       const result = await service.scan(input.noteRelativePath)
       return EXPORT_SCAN_RESULT_SCHEMA.parse(result)
     })
@@ -52,7 +51,7 @@ export function registerExportIpc(): void {
   ipcMain.handle('export:run', (event, payload): Promise<IpcResult<ExportRunResult>> => {
     return handleExportRequest(event, async () => {
       const input = exportRunPayloadSchema.parse(payload)
-      const service = getExportService()
+      const service = await getExportService()
       return runWithProgress(event, input, service)
     })
   })
@@ -72,7 +71,11 @@ async function runWithProgress(
   return service.run(payload, emit)
 }
 
-function getExportService(): ExportService {
+async function getExportService(): Promise<ExportService> {
+  const [{ SandboxExportBridge }, { ExportService }] = await Promise.all([
+    import('../services/export-sandbox-bridge'),
+    import('../services/export-service')
+  ])
   return new ExportService(getCurrentVault(), new SandboxExportBridge(getCurrentSandboxService()))
 }
 
@@ -150,7 +153,7 @@ function toIpcError(error: unknown): IpcFailure['error'] {
     }
   }
 
-  if (error instanceof ExportError) {
+  if (isExportError(error)) {
     return {
       code: error.code,
       message: error.message
@@ -168,4 +171,13 @@ function toIpcError(error: unknown): IpcFailure['error'] {
     code: 'UNKNOWN_ERROR',
     message: 'Unknown export error'
   }
+}
+
+function isExportError(error: unknown): error is Error & { code: string } {
+  return (
+    error instanceof Error &&
+    error.name === 'ExportError' &&
+    'code' in error &&
+    typeof error.code === 'string'
+  )
 }

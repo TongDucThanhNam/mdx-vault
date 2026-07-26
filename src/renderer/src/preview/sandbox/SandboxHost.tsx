@@ -210,6 +210,18 @@ export function SandboxHost({
         return
       }
 
+      if (message.type === 'runtimeError') {
+        setState({
+          status: 'error',
+          title:
+            message.kind === 'unhandledrejection'
+              ? 'Unhandled promise rejection'
+              : 'Interactive runtime error',
+          message: message.message
+        })
+        return
+      }
+
       void handleRequestData({
         descriptor: state.descriptor,
         document: state.document,

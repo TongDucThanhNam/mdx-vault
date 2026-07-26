@@ -1,5 +1,6 @@
 import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
 import type { DefaultNoteViewSetting } from '../../../shared/app-settings'
+import { resolveInteractiveProjectPath } from '../../../shared/interactive-authoring'
 import type { FileWorkbenchItem, GraphWorkbenchItem, WorkbenchItemKind } from './types'
 import { createWorkbenchItem, GLOBAL_GRAPH_WORKBENCH_ID } from './workbench-state'
 
@@ -28,6 +29,9 @@ export function createGlobalGraphWorkbenchItem(): GraphWorkbenchItem {
 }
 
 function classifyWorkbenchItem(relativePath: string): WorkbenchItemKind {
+  if (resolveInteractiveProjectPath(relativePath)?.kind === 'readme') {
+    return 'text'
+  }
   if (isNotePath(relativePath)) {
     return 'note'
   }

@@ -117,6 +117,23 @@ Dark không phải "tối hơn" — là **tờ báo buổi tối**, cùng gramma
 - **Overlay có một owner.** Chỉ một global picker/settings surface nhận shortcut tại một thời điểm; scrim được phép vì nó biểu diễn ownership. Cancel restore invoking control nếu còn hợp lệ, successful navigation focus document. Dialog xác nhận nằm trên surface bị suspend và chặn mọi mutation phía sau.
 - **Settings giữ editorial system.** Sidebar category + searchable content cho General, Editor, Workbench và Keymap; mỗi row có label, mô tả, control/reset cùng baseline. Keymap chip hiển thị chord, conflict replacement phải explicit, recorder có focus ring rõ và không bắt phím chỉnh sửa ở background.
 
+### Interactive Proof grammar
+
+- Proof desk là composition của source + isolated evidence, không phải generic IDE
+  dashboard. Wide view dùng một hard 2px rule giữa Source và Proof; narrow view dùng
+  roving `Source | Proof | Problems` tabs để source không bị ép thành cột hẹp.
+- Header giữ project/root, explicit file labels và text state: `Not run`, `Checking`,
+  `Ready`, `Compile issue`, `Runtime issue`, `Stopped`. Missing required file luôn có
+  label/action chữ; Run/Stop/Refresh có accessible name và visible focus.
+- Diagnostic là **proof mark**: mono code + file:line:column, ví dụ
+  `TS2345 · component.tsx:12:9`. Editorial red đánh issue, result blue đánh proof
+  ready, nhưng icon/text/code luôn đi cùng nên màu không phải tín hiệu duy nhất.
+- Source giữ Courier Prime writing voice. Iframe proof không inherit app CSS; outer
+  chrome, props editor và Problems ledger vẫn dùng paper/chrome/ink, sharp corners,
+  hard rules, không gradient/glass/blur.
+- Keyboard order không phụ thuộc animation. Problem activation mở canonical file,
+  reveal exact range và focus editor; reduced motion không đổi layout hay semantics.
+
 ### Graph visualization grammar
 
 - Global and Local Graph reuse the paper/chrome/ink hierarchy: flat surfaces, hard

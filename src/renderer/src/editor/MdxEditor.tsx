@@ -47,6 +47,12 @@ export interface RevealSourceRangeRequest {
 }
 
 export interface EditorSelectionSnapshot {
+  /** UTF-16 document offset where the primary selection starts. */
+  from: number
+  /** UTF-16 document offset where the primary selection ends. */
+  to: number
+  /** UTF-16 document offset of the primary cursor head. */
+  head: number
   /** True when the selection is non-empty. */
   hasSelection: boolean
   /** 1-based line where the selection starts. */
@@ -471,6 +477,7 @@ export function MdxEditor({
 
     viewRef.current = view
     setLiveView(view)
+    onSelectionChangeRef.current?.(buildSelectionSnapshot(view))
 
     return () => {
       view.destroy()
@@ -798,6 +805,9 @@ function buildSelectionSnapshot(view: EditorView): EditorSelectionSnapshot {
   const text = view.state.sliceDoc(selection.from, selection.to)
 
   return {
+    from: selection.from,
+    to: selection.to,
+    head: selection.head,
     hasSelection: !selection.empty,
     startLine,
     startColumn: Math.max(0, selection.from - startLineInfo.from),

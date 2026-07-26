@@ -2,15 +2,16 @@ import { type IpcMainInvokeEvent, ipcMain } from 'electron'
 import { z } from 'zod'
 
 import {
+  type SandboxAuthoringProofResult,
   type SandboxDescriptor,
   type SandboxDocument,
+  sandboxAuthoringProofLoadPayloadSchema,
   sandboxDescribePayloadSchema,
   sandboxLoadPayloadSchema,
   sandboxRequestDataPayloadSchema,
   sandboxSetPermissionPayloadSchema
 } from '../../shared/sandbox'
-import { publishSandboxDocument } from '../services/sandbox-document-protocol'
-import { SandboxService } from '../services/sandbox-service'
+import { InteractiveCompileError, SandboxService } from '../services/sandbox-service'
 import { getCurrentVault } from '../services/vault-session'
 import type { IpcFailure, IpcResult } from './vault-ipc'
 
@@ -25,6 +26,43 @@ export function registerSandboxIpc(): void {
     }
   )
 
+  ipcMain.handle(
+    'sandbox:load-authoring-proof',
+    (event, payload): Promise<IpcResult<SandboxAuthoringProofResult>> => {
+      return handleSandboxRequest(event, async () => {
+        const input = sandboxAuthoringProofLoadPayloadSchema.parse(payload)
+        try {
+          const document = await getSandboxService().loadAuthoringProof(
+            input.projectRoot,
+            input.instanceId,
+            input.props
+          )
+          return { status: 'ready', document: await createFrameDocument(document) }
+        } catch (error) {
+          if (error instanceof InteractiveCompileError) {
+            return { status: 'issues', diagnostics: error.diagnostics }
+          }
+          return {
+            status: 'issues',
+            diagnostics: [
+              {
+                source: getAuthoringIssueSource(error),
+                severity: 'error',
+                code: 'PROOF_LOAD_FAILED',
+                message: getSafeAuthoringIssueMessage(error),
+                relativePath: null,
+                from: null,
+                to: null,
+                line: null,
+                column: null
+              }
+            ]
+          }
+        }
+      })
+    }
+  )
+
   ipcMain.handle('sandbox:load-html', (event, payload): Promise<IpcResult<SandboxDocument>> => {
     return handleSandboxRequest(event, async () => {
       const input = sandboxLoadPayloadSchema.parse(payload)
@@ -34,7 +72,7 @@ export function registerSandboxIpc(): void {
         input.contentHash,
         input.instanceId
       )
-      return createFrameDocument(document)
+      return await createFrameDocument(document)
     })
   })
 
@@ -60,7 +98,7 @@ export function registerSandboxIpc(): void {
           input.instanceId,
           input.props
         )
-        return createFrameDocument(document)
+        return await createFrameDocument(document)
       })
     }
   )
@@ -83,10 +121,11 @@ export function registerSandboxIpc(): void {
   })
 }
 
-function createFrameDocument(
+async function createFrameDocument(
   document: Awaited<ReturnType<SandboxService['loadHtml']>>
-): SandboxDocument {
+): Promise<SandboxDocument> {
   const { srcDoc, ...metadata } = document
+  const { publishSandboxDocument } = await import('../services/sandbox-document-protocol')
   return {
     ...metadata,
     documentUrl: publishSandboxDocument(srcDoc)
@@ -113,7 +152,7 @@ async function handleSandboxRequest<T>(
 }
 
 function assertMainFrame(event: IpcMainInvokeEvent): void {
-  if (event.senderFrame && event.senderFrame !== event.sender.mainFrame) {
+  if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame) {
     throw new Error('Sandbox IPC is only available to the main renderer frame')
   }
 }
@@ -131,6 +170,12 @@ function toIpcError(error: unknown): IpcFailure['error'] {
   }
 
   if (error instanceof Error) {
+    if (error.message.includes('main renderer frame')) {
+      return {
+        code: 'MAIN_FRAME_REQUIRED',
+        message: error.message
+      }
+    }
     return {
       code: 'SANDBOX_ERROR',
       message: error.message
@@ -141,4 +186,16 @@ function toIpcError(error: unknown): IpcFailure['error'] {
     code: 'UNKNOWN_ERROR',
     message: 'Unknown sandbox error'
   }
+}
+
+function getAuthoringIssueSource(error: unknown): 'manifest' | 'props' | 'project' {
+  const message = error instanceof Error ? error.message : ''
+  return message.includes('manifest') ? 'manifest' : message.includes('prop') ? 'props' : 'project'
+}
+
+function getSafeAuthoringIssueMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : 'Authoring proof could not be prepared'
+  return /^[\w\s"'().,:;/-]{1,2048}$/.test(message)
+    ? message
+    : 'Authoring proof could not be prepared'
 }

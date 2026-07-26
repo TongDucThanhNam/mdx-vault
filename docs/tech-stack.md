@@ -24,10 +24,21 @@
 
 ## Editor
 
-| Lib                                               | Ghi chú                                                   |
-| ------------------------------------------------- | --------------------------------------------------------- |
-| codemirror (basicSetup) + @codemirror/state, view | Editor source mode. Dùng basicSetup cho MVP.              |
-| @codemirror/lang-markdown                         | Kèm codeLanguages: javascript, html, yaml cho code fence. |
+| Lib                                               | Ghi chú                                                                                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| codemirror (basicSetup) + @codemirror/state, view | Editor source mode. Dùng basicSetup cho MVP.                                                                                                           |
+| @codemirror/lang-markdown                         | Kèm codeLanguages: javascript, html, yaml cho code fence.                                                                                              |
+| @codemirror/lint                                  | Lint gutter/underline/tooltip cho structured interactive diagnostics.                                                                                  |
+| TypeScript 5.9.3 + @typescript/vfs 1.6.4          | Runtime dependencies có chủ đích cho fixed offline ES2022/DOM/React virtual project trong lazy worker và main semantic checker.                        |
+
+Interactive `.ts/.tsx` giữ CodeMirror và thêm project-aware diagnostics, completion +
+single-file safe auto-import, hover, signature help và local go-to-definition. Standard
+libs, React 19 và ReactDOM declarations được đóng gói local; worker dùng versioned
+project/file/request protocol và không ATA, CDN, vault `tsconfig` hay TypeScript plugin.
+Đây không phải generic/full LSP.
+
+`@valtown/codemirror-ts` đã archived và không được dùng; Monaco, LSP server và remote
+type loader cũng nằm ngoài kiến trúc.
 
 ## Content pipeline (MDX)
 
@@ -57,11 +68,11 @@
 
 ## Khác
 
-| Lib                  | Ghi chú                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| react-error-boundary | Bọc MDX preview để lỗi compile/runtime không sập app.                                                                 |
-| esbuild (dev)        | Compile vault custom components (Goal 05).                                                                            |
-| recharts ^3.9        | Chart lib cho DataChart + đồ thị mini EquationSlider (Goal 04). User đã chốt thay vì tự vẽ SVG. Tương thích React 19. |
+| Lib                  | Ghi chú                                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| react-error-boundary | Bọc MDX preview để lỗi compile/runtime không sập app.                                                                                                                                                                       |
+| esbuild (runtime)    | Bundle vault custom components sau fixed-project TypeScript semantic check. Windows package ship platform binary và React runtime closure ngoài ASAR để native child process resolve được hoàn toàn offline (Goal 05/25). |
+| recharts ^3.9        | Chart lib cho DataChart + đồ thị mini EquationSlider (Goal 04). User đã chốt thay vì tự vẽ SVG. Tương thích React 19.                                                                                                     |
 
 ## Chưa cài (cài khi đến goal tương ứng)
 

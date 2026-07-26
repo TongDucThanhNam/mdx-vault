@@ -1,11 +1,13 @@
 import { createHash, randomUUID } from 'crypto'
-import { build, type Plugin } from 'esbuild'
+import type { Plugin } from 'esbuild'
 import fg from 'fast-glob'
 import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'fs/promises'
 import { dirname, extname, isAbsolute, posix as pathPosix, relative, resolve } from 'path'
 import { z } from 'zod'
 
+import type { InteractiveDiagnostic } from '../../shared/interactive-authoring'
 import {
+  getSandboxPropsValidationErrors,
   type SandboxDescriptor,
   type SandboxKind,
   type SandboxManifest,
@@ -19,10 +21,18 @@ const permissionStoreRelativePath = '.app/sandbox-permissions.json'
 const componentCacheRelativeDir = '.app/component-cache'
 const sandboxDraftsRelativeDir = '.app/sandbox-drafts'
 const dependencyAllowlist = new Set(['react', 'react-dom'])
+let esbuildModule: Promise<typeof import('esbuild')> | null = null
 
 export type SandboxDraftCompileResult =
   | { ok: true; contentHash: string; script: string }
-  | { ok: false; errors: string[] }
+  | { ok: false; errors: string[]; diagnostics?: InteractiveDiagnostic[] }
+
+export class InteractiveCompileError extends Error {
+  constructor(readonly diagnostics: InteractiveDiagnostic[]) {
+    super(diagnostics.map(formatInteractiveDiagnostic).join('; '))
+    this.name = 'InteractiveCompileError'
+  }
+}
 
 export interface SandboxSourceDocument {
   kind: SandboxKind
@@ -150,11 +160,23 @@ export class SandboxService {
     const manifestValidation = sandboxManifestSchema.safeParse(manifestDraft)
 
     if (!manifestValidation.success) {
+      const diagnostics = manifestValidation.error.issues.map(
+        (issue): InteractiveDiagnostic => ({
+          source: 'manifest',
+          severity: 'error',
+          code: 'MANIFEST_INVALID',
+          message: `${issue.path.join('.') || 'manifest'}: ${issue.message}`,
+          relativePath: 'interactives/draft/manifest.json',
+          from: null,
+          to: null,
+          line: null,
+          column: null
+        })
+      )
       return {
         ok: false,
-        errors: manifestValidation.error.issues.map(
-          (issue) => `${issue.path.join('.') || 'manifest'}: ${issue.message}`
-        )
+        errors: diagnostics.map(formatInteractiveDiagnostic),
+        diagnostics
       }
     }
 
@@ -170,6 +192,7 @@ export class SandboxService {
 
       const script = await this.buildInteractiveBundle({
         rootPath: draftRoot,
+        projectRoot: 'interactives/draft',
         manifest: manifestValidation.data
       })
 
@@ -182,7 +205,22 @@ export class SandboxService {
 
       return { ok: true, contentHash, script }
     } catch (error) {
-      return { ok: false, errors: [formatBuildError(error)] }
+      const diagnostics =
+        error instanceof InteractiveCompileError
+          ? error.diagnostics
+          : [
+              createCompileDiagnostic({
+                source: 'project',
+                code: 'COMPILE_FAILED',
+                message: formatBuildError(error),
+                relativePath: null
+              })
+            ]
+      return {
+        ok: false,
+        errors: diagnostics.map(formatInteractiveDiagnostic),
+        diagnostics
+      }
     } finally {
       await rm(draftRoot, { recursive: true, force: true })
     }
@@ -200,7 +238,12 @@ export class SandboxService {
     validateProps(descriptor.manifest, props)
 
     const target = await this.resolveInteractiveTarget(src, notePath)
-    const script = await this.compileInteractive(target.rootPath, descriptor.manifest, contentHash)
+    const script = await this.compileInteractive(
+      target.rootPath,
+      target.rootRelativePath,
+      descriptor.manifest,
+      contentHash
+    )
 
     return {
       kind: 'interactive',
@@ -210,6 +253,39 @@ export class SandboxService {
       instanceId,
       srcDoc: createSandboxHtmlDocument({
         title: descriptor.manifest.name,
+        instanceId,
+        bodyHtml: '<div id="root"></div>',
+        runtimeScript: script
+      })
+    }
+  }
+
+  async loadAuthoringProof(
+    projectRoot: string,
+    instanceId: string,
+    props: unknown
+  ): Promise<SandboxSourceDocument> {
+    const target = await this.resolveInteractiveTarget(projectRoot, null)
+    const manifest = await this.readManifest(target.rootRelativePath)
+    if (manifest.data.runtime !== 'react') {
+      throw new Error('Authoring proof requires manifest runtime "react"')
+    }
+    validateProps(manifest.data, props)
+    const contentHash = await this.hashInteractive(target.rootPath, manifest.raw)
+    const script = await this.buildInteractiveBundle({
+      rootPath: target.rootPath,
+      projectRoot: target.rootRelativePath,
+      manifest: manifest.data
+    })
+
+    return {
+      kind: 'interactive',
+      src: target.rootRelativePath,
+      resolvedPath: target.rootRelativePath,
+      contentHash,
+      instanceId,
+      srcDoc: createSandboxHtmlDocument({
+        title: `${manifest.data.name} isolated proof`,
         instanceId,
         bodyHtml: '<div id="root"></div>',
         runtimeScript: script
@@ -453,12 +529,13 @@ export class SandboxService {
 
   private async compileInteractive(
     rootPath: string,
+    projectRoot: string,
     manifest: SandboxManifest,
     contentHash: string
   ): Promise<string> {
     const cachePath = safeJoin(
       this.vault.rootPath,
-      `${componentCacheRelativeDir}/${contentHash}.js`
+      `${componentCacheRelativeDir}/typed-v1-${contentHash}.js`
     )
 
     try {
@@ -467,7 +544,7 @@ export class SandboxService {
       // Cache miss: compile below.
     }
 
-    const script = await this.buildInteractiveBundle({ rootPath, manifest })
+    const script = await this.buildInteractiveBundle({ rootPath, projectRoot, manifest })
 
     await mkdir(dirname(cachePath), { recursive: true })
     await writeFile(cachePath, script, 'utf8')
@@ -479,12 +556,37 @@ export class SandboxService {
    *  left to the caller — live path caches; the draft path discards. */
   private async buildInteractiveBundle({
     rootPath,
+    projectRoot,
     manifest
   }: {
     rootPath: string
+    projectRoot: string
     manifest: SandboxManifest
   }): Promise<string> {
+    const { typecheckInteractiveRoot } = await import('./interactive-typecheck-service')
+    let typeDiagnostics: InteractiveDiagnostic[]
     try {
+      typeDiagnostics = await typecheckInteractiveRoot({ rootPath, projectRoot })
+    } catch (error) {
+      throw new InteractiveCompileError([
+        createCompileDiagnostic({
+          source: 'project',
+          code: 'TYPECHECK_UNAVAILABLE',
+          message: formatBuildError(error),
+          relativePath: null
+        })
+      ])
+    }
+    const blockingTypeDiagnostics = typeDiagnostics.filter(
+      (diagnostic) => diagnostic.severity === 'error'
+    )
+    if (blockingTypeDiagnostics.length > 0) {
+      throw new InteractiveCompileError(blockingTypeDiagnostics)
+    }
+
+    try {
+      esbuildModule ??= import('esbuild')
+      const { build } = await esbuildModule
       const result = await build({
         absWorkingDir: rootPath,
         bundle: true,
@@ -515,7 +617,7 @@ export class SandboxService {
 
       return script
     } catch (error) {
-      throw new Error(formatBuildError(error))
+      throw new InteractiveCompileError(normalizeEsbuildDiagnostics(error, rootPath, projectRoot))
     }
   }
 
@@ -652,6 +754,19 @@ function createSandboxBootstrapScript(instanceId: string): string {
     }
   });
 
+  window.addEventListener('error', function (event) {
+    var message = String(event.message || 'Interactive runtime error').slice(0, 8192);
+    var stack = event.error && event.error.stack ? String(event.error.stack).slice(0, 16384) : null;
+    post({ type: 'runtimeError', kind: 'error', message: message, stack: stack });
+  });
+
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event.reason;
+    var message = reason && reason.message ? String(reason.message) : String(reason || 'Unhandled promise rejection');
+    var stack = reason && reason.stack ? String(reason.stack).slice(0, 16384) : null;
+    post({ type: 'runtimeError', kind: 'unhandledrejection', message: message.slice(0, 8192), stack: stack });
+  });
+
   window.addEventListener('load', postResize);
 
   if ('ResizeObserver' in window) {
@@ -771,49 +886,10 @@ function createDependencyGuardPlugin(rootPath: string, manifest: SandboxManifest
 }
 
 function validateProps(manifest: SandboxManifest, props: unknown): void {
-  if (!props || typeof props !== 'object' || Array.isArray(props)) {
-    if (Object.keys(manifest.propsSchema).length === 0) {
-      return
-    }
-
-    throw new Error('Interactive props must be an object')
+  const errors = getSandboxPropsValidationErrors(manifest, props)
+  if (errors.length > 0) {
+    throw new Error(errors.join('; '))
   }
-
-  const input = props as Record<string, unknown>
-  const allowedKeys = new Set(Object.keys(manifest.propsSchema))
-  const extraKey = Object.keys(input).find((key) => !allowedKeys.has(key))
-
-  if (extraKey) {
-    throw new Error(`Unknown interactive prop: ${extraKey}`)
-  }
-
-  for (const [key, expectedType] of Object.entries(manifest.propsSchema)) {
-    const value = input[key]
-
-    if (!matchesManifestType(value, expectedType)) {
-      throw new Error(`Invalid prop "${key}": expected ${expectedType}`)
-    }
-  }
-}
-
-function matchesManifestType(value: unknown, expectedType: string): boolean {
-  if (expectedType === 'array') {
-    return Array.isArray(value)
-  }
-
-  if (expectedType === 'object') {
-    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-  }
-
-  if (expectedType === 'number') {
-    return typeof value === 'number' && Number.isFinite(value)
-  }
-
-  if (expectedType === 'string' || expectedType === 'boolean') {
-    return typeof value === expectedType
-  }
-
-  return false
 }
 
 function normalizeVaultReference(input: string, notePath: string | null): string {
@@ -899,7 +975,9 @@ function isPathInside(rootPath: string, targetPath: string): boolean {
 }
 
 function getCompilerNodePaths(): string[] {
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
   const candidates = [
+    ...(resourcesPath ? [resolve(resourcesPath, 'app.asar.unpacked', 'node_modules')] : []),
     resolve(process.cwd(), 'node_modules'),
     resolve(__dirname, '../../node_modules'),
     resolve(__dirname, '../node_modules')
@@ -993,6 +1071,100 @@ function formatBuildError(error: unknown): string {
   }
 
   return String(error)
+}
+
+function normalizeEsbuildDiagnostics(
+  error: unknown,
+  rootPath: string,
+  projectRoot: string
+): InteractiveDiagnostic[] {
+  const buildErrors =
+    error instanceof Error && 'errors' in error
+      ? (
+          error as {
+            errors?: Array<{
+              text?: string
+              location?: {
+                file?: string
+                line?: number
+                column?: number
+                length?: number
+              } | null
+            }>
+          }
+        ).errors
+      : undefined
+
+  const diagnostics = (buildErrors ?? []).map((entry) => {
+    const location = entry.location
+    const file = location?.file
+    let relativePath: string | null = null
+    if (file && file !== 'mdx-vault-runner.tsx') {
+      const absoluteFile = isAbsolute(file) ? file : resolve(rootPath, file)
+      if (isPathInside(rootPath, absoluteFile)) {
+        const projectRelativePath = relative(rootPath, absoluteFile).replaceAll('\\', '/')
+        relativePath = `${projectRoot}/${projectRelativePath}`
+      }
+    }
+
+    return createCompileDiagnostic({
+      source: 'esbuild',
+      code: 'ESBUILD',
+      message: sanitizeCompileMessage(entry.text || 'Interactive bundle failed', rootPath),
+      relativePath,
+      line: location?.line ?? null,
+      column: location?.column === undefined ? null : location.column + 1
+    })
+  })
+
+  return diagnostics.length > 0
+    ? diagnostics
+    : [
+        createCompileDiagnostic({
+          source: 'esbuild',
+          code: 'ESBUILD',
+          message: sanitizeCompileMessage(formatBuildError(error), rootPath),
+          relativePath: null
+        })
+      ]
+}
+
+function createCompileDiagnostic({
+  source,
+  code,
+  message,
+  relativePath,
+  line = null,
+  column = null
+}: Pick<InteractiveDiagnostic, 'source' | 'code' | 'message' | 'relativePath'> &
+  Partial<Pick<InteractiveDiagnostic, 'line' | 'column'>>): InteractiveDiagnostic {
+  return {
+    source,
+    severity: 'error',
+    code,
+    message,
+    relativePath,
+    from: null,
+    to: null,
+    line,
+    column
+  }
+}
+
+function formatInteractiveDiagnostic(diagnostic: InteractiveDiagnostic): string {
+  const location = diagnostic.relativePath
+    ? `${diagnostic.relativePath}${diagnostic.line ? `:${diagnostic.line}:${diagnostic.column ?? 1}` : ''}`
+    : 'interactive'
+  return `${diagnostic.code} · ${location} · ${diagnostic.message}`
+}
+
+function sanitizeCompileMessage(message: string, rootPath: string): string {
+  const normalizedRoot = rootPath.replaceAll('\\', '/')
+  return message
+    .replaceAll(rootPath, '<interactive>')
+    .replaceAll(normalizedRoot, '<interactive>')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function escapeHtml(value: string): string {

@@ -1,4 +1,4 @@
-import { Save } from 'lucide-react'
+import { Blocks, Save } from 'lucide-react'
 import { lazy, Suspense, useCallback, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandActionRegistry } from '@/commands/actions'
@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { EditorHeader } from '@/components/layout/EditorHeader'
 import { EditorTabs } from '@/components/layout/EditorTabs'
 import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/VaultFilePreview'
+import { Button } from '@/components/ui/button'
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import type { GotoDefinitionTarget } from '@/editor/goto-definition'
 import { MdxEditor } from '@/editor/MdxEditor'
@@ -18,10 +19,13 @@ import { usePhysicalZoomModifier } from '@/hooks/usePhysicalZoomModifier'
 import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
+import { InteractiveProofWorkbench } from '@/interactive/InteractiveProofWorkbench'
 import { formatError } from '@/lib/format-error'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
 import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
+import type { VaultTreeFile } from '@/vault/types'
+import { resolveInteractiveProjectPath } from '../../../../shared/interactive-authoring'
 import {
   formatWikilinkSubpath,
   parseWikilinkTarget,
@@ -47,6 +51,9 @@ interface MainEditorProps {
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
   readingZoom: ReadingZoomController
+  vaultTreeFiles: readonly VaultTreeFile[]
+  starterProofProjectRoot: string | null
+  onConsumeStarterProofConsent: (projectRoot: string) => void
   onCopyPath: (relativePath: string) => void
   onCopyRelativePath: (relativePath: string) => void
   onRevealInExplorer: (relativePath: string) => void
@@ -66,6 +73,9 @@ export function MainEditor({
   noteActions,
   editorInteractions,
   readingZoom,
+  vaultTreeFiles,
+  starterProofProjectRoot,
+  onConsumeStarterProofConsent,
   onCopyPath,
   onCopyRelativePath,
   onRevealInExplorer,
@@ -77,9 +87,10 @@ export function MainEditor({
     width: number
     height: number
   } | null>(null)
-  const noteSelected = isNotePath(selectedPath)
+  const interactiveProjectPath = selectedPath ? resolveInteractiveProjectPath(selectedPath) : null
+  const noteSelected = isNotePath(selectedPath) && !interactiveProjectPath
   const imageSelected = isPreviewableVaultImagePath(selectedPath)
-  const textSelected = isEditableTextPath(selectedPath)
+  const textSelected = isEditableTextPath(selectedPath) || interactiveProjectPath?.kind === 'readme'
   const activeItem = editorTabs.activeItem
   const activeItemMissing = activeItem?.id === selectedPath && activeItem.missing
   const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
@@ -181,10 +192,22 @@ export function MainEditor({
       {activeItem?.kind === 'graph' ? null : (
         <EditorHeader selectedPath={selectedPath}>
           {noteSelected ? (
-            <ViewModeToggle
-              value={viewMode}
-              onChange={(mode) => void commandActions.dispatch(`view.${mode}`)}
-            />
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                disabled={commandActions.getAction('interactive.create')?.disabled}
+                onClick={() => void commandActions.dispatch('interactive.create')}
+              >
+                <Blocks aria-hidden="true" />
+                New interactive
+              </Button>
+              <ViewModeToggle
+                value={viewMode}
+                onChange={(mode) => void commandActions.dispatch(`view.${mode}`)}
+              />
+            </>
           ) : selectedPath ? (
             <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
               {imageSelected && selectedImageMetadata
@@ -286,7 +309,7 @@ export function MainEditor({
             }
             onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
           />
-        ) : textSelected ? (
+        ) : selectedPath && textSelected ? (
           textEditor.isLoadingFile ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading file…
@@ -295,6 +318,23 @@ export function MainEditor({
             <NoVaultFilePreview
               relativePath={selectedPath}
               onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
+            />
+          ) : interactiveProjectPath && !activeItemMissing ? (
+            <InteractiveProofWorkbench
+              activeRelativePath={selectedPath}
+              value={textEditor.content}
+              savedContent={textEditor.savedContent}
+              treeFiles={vaultTreeFiles}
+              vaultSessionId={editorTabs.state.sessionId}
+              starterConsented={starterProofProjectRoot === interactiveProjectPath.projectRoot}
+              onConsumeStarterConsent={() =>
+                onConsumeStarterProofConsent(interactiveProjectPath.projectRoot)
+              }
+              onChange={textEditor.setContent}
+              onSave={textEditor.saveCurrentFile}
+              onOpenFile={editorTabs.openOrActivate}
+              getSavedContent={() => textEditor.savedContentRef.current}
+              onRevealProject={onRevealInExplorer}
             />
           ) : (
             <TextFileEditor

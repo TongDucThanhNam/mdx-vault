@@ -17,6 +17,7 @@ import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
+import { completeInteractiveAiHandoff } from '@/interactive/interactive-ai-handoff'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { VaultInfo } from '@/vault/types'
 import type { BookmarkTarget } from '../../../shared/bookmarks'
@@ -41,6 +42,8 @@ interface AppLayoutProps {
   editorInteractions: EditorInteractionsController
   editorTabs: WorkbenchController
   readingZoom: ReadingZoomController
+  starterProofProjectRoot: string | null
+  onConsumeStarterProofConsent: (projectRoot: string) => void
   knowledge: KnowledgeUtilitiesController
   activeRightPanel: KnowledgePanelId
   propertyAddRequest: number
@@ -74,6 +77,8 @@ export function AppLayout({
   editorInteractions,
   editorTabs,
   readingZoom,
+  starterProofProjectRoot,
+  onConsumeStarterProofConsent,
   knowledge,
   activeRightPanel,
   propertyAddRequest,
@@ -180,6 +185,9 @@ export function AppLayout({
           noteActions={noteActions}
           editorInteractions={editorInteractions}
           readingZoom={readingZoom}
+          vaultTreeFiles={vault?.treeFiles ?? []}
+          starterProofProjectRoot={starterProofProjectRoot}
+          onConsumeStarterProofConsent={onConsumeStarterProofConsent}
           onCopyPath={(relativePath) => void vaultSession.handleCopyPath(relativePath)}
           onCopyRelativePath={(relativePath) =>
             void vaultSession.handleCopyRelativePath(relativePath)
@@ -263,7 +271,15 @@ export function AppLayout({
                 relativePath: entry.source.relativePath,
                 display: entry.display
               }))}
-              onWriteFile={editor.writeFileFromAssistant}
+              onApprovedPatch={(input) =>
+                completeInteractiveAiHandoff(input, {
+                  refreshVaultSnapshot: vaultSession.refreshVaultSnapshot,
+                  getSelectedNotePath: () => editor.selectedPathRef.current,
+                  readFile: window.vaultApi.readFile,
+                  restoreNoteBuffer: editor.restoreFileBuffer,
+                  openOrActivate: editorTabs.openOrActivate
+                }).then(() => undefined)
+              }
               onRequestActionPalette={editorInteractions.openAiPalette}
             />
           </aside>
