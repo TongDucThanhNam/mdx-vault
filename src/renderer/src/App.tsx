@@ -9,6 +9,7 @@ import type { ViewMode } from '@/components/ViewModeToggle'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { ExportDialog } from '@/export/ExportDialog'
+import { dispatchGraphSurfaceCommand } from '@/graph/graph-commands'
 import { DEFAULT_APP_SETTINGS_SNAPSHOT, useAppSettings } from '@/hooks/useAppSettings'
 import { useCommandActions } from '@/hooks/useCommandActions'
 import { useEditorFontSize } from '@/hooks/useEditorFontSize'
@@ -90,6 +91,7 @@ function App(): React.JSX.Element {
     viewMode,
     setViewMode,
     setSelectedVaultPath,
+    defaultNoteView: settingsSnapshot.defaultNoteView,
     activateOnClose: settingsSnapshot.workbench.activateOnClose,
     whenClosingWithNoTabs: settingsSnapshot.workbench.whenClosingWithNoTabs,
     onError: setError,
@@ -174,6 +176,12 @@ function App(): React.JSX.Element {
     setActiveRightPanel(panel)
     setRightPanelOpen(true)
   }, [])
+  const fitGraphView = useCallback((): void => {
+    dispatchGraphSurfaceCommand('fit-view')
+  }, [])
+  const toggleGraphSettings = useCallback((): void => {
+    dispatchGraphSurfaceCommand('toggle-settings')
+  }, [])
   const openBookmarkedSearch = useCallback(
     (query: string): void => {
       setSearchBookmark((current) => ({ query, requestId: current.requestId + 1 }))
@@ -217,6 +225,11 @@ function App(): React.JSX.Element {
     toggleLeftPanel,
     toggleExplorerFocus,
     showKnowledgePanel,
+    graphSurfaceActive:
+      editorTabs.activeItem?.kind === 'graph' ||
+      (rightPanelOpen && activeRightPanel === 'local-graph' && selectedNotePath !== null),
+    fitGraphView,
+    toggleGraphSettings,
     addProperty: () => {
       showKnowledgePanel('properties')
       setPropertyAddRequest((current) => current + 1)

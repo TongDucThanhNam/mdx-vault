@@ -20,7 +20,11 @@ import { formatError } from '@/lib/format-error'
 import { cn } from '@/lib/utils'
 import packageJson from '../../../../package.json'
 import type { AiPublicSettings } from '../../../shared/ai'
-import { APP_SETTINGS_CATALOG, appSettingSearchText } from '../../../shared/app-settings'
+import {
+  APP_SETTINGS_CATALOG,
+  appSettingSearchText,
+  type DefaultNoteViewSetting
+} from '../../../shared/app-settings'
 import type { KeybindingPlatform } from '../../../shared/workspace-actions'
 import { KeymapSettings } from './KeymapSettings'
 import { keymapMatchesQuery } from './keymap-search'
@@ -68,6 +72,7 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
     label: 'Editor',
     icon: FileText,
     searchText: appSettingSearchText([
+      APP_SETTINGS_CATALOG.defaultNoteView,
       APP_SETTINGS_CATALOG.editorFontSize,
       APP_SETTINGS_CATALOG.pagePreviewEnabled,
       APP_SETTINGS_CATALOG.pagePreviewRequireModifier
@@ -126,6 +131,8 @@ export function SettingsDialog({
   const theme = settings.snapshot?.theme ?? APP_SETTINGS_CATALOG.theme.defaultValue
   const fileTreeSort =
     settings.snapshot?.fileTreeSort ?? APP_SETTINGS_CATALOG.fileTreeSort.defaultValue
+  const defaultNoteView =
+    settings.snapshot?.defaultNoteView ?? APP_SETTINGS_CATALOG.defaultNoteView.defaultValue
   const pagePreview = settings.snapshot?.pagePreview ?? {
     enabled: APP_SETTINGS_CATALOG.pagePreviewEnabled.defaultValue,
     requireModifier: APP_SETTINGS_CATALOG.pagePreviewRequireModifier.defaultValue
@@ -216,6 +223,10 @@ export function SettingsDialog({
         )
       }
     }
+  }
+
+  const handleDefaultNoteViewChange = async (nextView: DefaultNoteViewSetting): Promise<void> => {
+    await settings.updateSettings({ defaultNoteView: nextView })
   }
 
   return (
@@ -336,10 +347,12 @@ export function SettingsDialog({
           ) : null}
           {visibleSection === 'editor' ? (
             <EditorSection
+              defaultNoteView={defaultNoteView}
               editorFontSize={editorFontSize}
               pagePreview={pagePreview}
               settingsPending={settings.isPending || !settings.snapshot}
               onPagePreviewChange={(patch) => void settings.updateSettings({ pagePreview: patch })}
+              onDefaultNoteViewChange={handleDefaultNoteViewChange}
               onEditorFontSizeChange={handleEditorFontSizeChange}
             />
           ) : null}
@@ -440,26 +453,44 @@ function GeneralSection({
 }
 
 function EditorSection({
+  defaultNoteView,
   editorFontSize,
   pagePreview,
   settingsPending,
   onPagePreviewChange,
+  onDefaultNoteViewChange,
   onEditorFontSizeChange
 }: {
+  defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
   pagePreview: { enabled: boolean; requireModifier: boolean }
   settingsPending: boolean
   onPagePreviewChange: (
     patch: Partial<{ enabled: boolean; requireModifier: boolean }>
   ) => void | Promise<void>
+  onDefaultNoteViewChange: (view: DefaultNoteViewSetting) => void | Promise<void>
   onEditorFontSizeChange: (fontSize: number) => void | Promise<void>
 }): React.JSX.Element {
   return (
     <SettingsPage
       eyebrow="Writing voice"
       title="Editor"
-      description="Tune the source editor while keeping the reading view unchanged."
+      description="Choose how new notes open, then tune the source editor without changing the reading view."
     >
+      <SettingGroup
+        title={APP_SETTINGS_CATALOG.defaultNoteView.label}
+        description={APP_SETTINGS_CATALOG.defaultNoteView.description}
+      >
+        <ChoiceGroup
+          name="settings-default-note-view"
+          label={APP_SETTINGS_CATALOG.defaultNoteView.label}
+          value={defaultNoteView}
+          options={APP_SETTINGS_CATALOG.defaultNoteView.options}
+          disabled={settingsPending}
+          onChange={(value) => void onDefaultNoteViewChange(value as DefaultNoteViewSetting)}
+        />
+      </SettingGroup>
+
       <SettingGroup
         title={APP_SETTINGS_CATALOG.pagePreviewEnabled.label}
         description={APP_SETTINGS_CATALOG.pagePreviewEnabled.description}

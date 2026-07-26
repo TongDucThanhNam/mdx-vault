@@ -249,6 +249,33 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     defaultBindings: bindings()
   }),
   action({
+    id: 'graph.open-global',
+    title: 'Open Graph view',
+    description: 'Open the vault-wide note graph as a workbench item.',
+    category: 'Graph',
+    keywords: ['network', 'links', 'vault'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'graph.fit-view',
+    title: 'Graph: Fit view',
+    description: 'Fit the visible graph topology within its viewport.',
+    category: 'Graph',
+    keywords: ['center', 'zoom', 'canvas'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'graph.toggle-settings',
+    title: 'Graph: Toggle settings',
+    description: 'Open or close settings for the visible graph.',
+    category: 'Graph',
+    keywords: ['filters', 'groups', 'forces'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
     id: 'explorer.toggle-focus',
     title: 'Explorer: Toggle focus',
     description: 'Show or focus the Explorer, or return focus to the active document.',
@@ -326,6 +353,15 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     description: 'Show definitions and references for the current note.',
     category: 'Context',
     keywords: ['sidebar', 'references', 'citations'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'panel.showLocalGraph',
+    title: 'Context: Open Local Graph',
+    description: 'Show the local note graph in the context panel.',
+    category: 'Context',
+    keywords: ['sidebar', 'links', 'network', 'neighbors'],
     context: 'Workspace',
     defaultBindings: bindings()
   }),

@@ -117,6 +117,25 @@ Dark không phải "tối hơn" — là **tờ báo buổi tối**, cùng gramma
 - **Overlay có một owner.** Chỉ một global picker/settings surface nhận shortcut tại một thời điểm; scrim được phép vì nó biểu diễn ownership. Cancel restore invoking control nếu còn hợp lệ, successful navigation focus document. Dialog xác nhận nằm trên surface bị suspend và chặn mọi mutation phía sau.
 - **Settings giữ editorial system.** Sidebar category + searchable content cho General, Editor, Workbench và Keymap; mỗi row có label, mô tả, control/reset cùng baseline. Keymap chip hiển thị chord, conflict replacement phải explicit, recorder có focus ring rõ và không bắt phím chỉnh sửa ở background.
 
+### Graph visualization grammar
+
+- Global and Local Graph reuse the paper/chrome/ink hierarchy: flat surfaces, hard
+  two-pixel rules, sharp corners, mono metadata, and no gradients, glass, remote fonts,
+  or decorative blur.
+- Resolved notes are paper circles with ink strokes. The active note adds a thick red
+  stroke; unresolved targets use a dashed, translucent node; ambiguous targets use a
+  double-stroked diamond; orphans remain neutral and visibly disconnected.
+- Up to eight ordered query groups use a small theme-aware categorical exception
+  (`slate`, `blue`, `red`, `green`, `gold`, `violet`, `cyan`, `orange`). The first
+  matching group owns color and shape, while all matches remain visible in semantic
+  details. Shape/stroke cues keep color from being the only signal.
+- Degree changes node size within bounded settings. Edges stay straight and simple;
+  optional arrowheads indicate direction. Hover and selection emphasize the immediate
+  neighborhood and mute unrelated topology.
+- Canvas pixels are never the accessibility tree. A DOM node navigator, selection
+  details, counts, paths, groups, ambiguity candidates, and actions mirror essential
+  information. Reduced motion disables layout animation without changing topology.
+
 ## Component vocabulary
 
 - **`.mdx-preview`** — prose surface (xem `src/renderer/src/globals.css:159`). Đây là nơi editorial style đậm nhất.

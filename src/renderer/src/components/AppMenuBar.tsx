@@ -190,6 +190,11 @@ export function AppMenuBar({
             disabled={getAction('note.search')?.disabled}
             onSelect={() => runAction('note.search')}
           />
+          <MenuItem
+            label="Open Global Graph"
+            disabled={getAction('graph.open-global')?.disabled}
+            onSelect={() => runAction('graph.open-global')}
+          />
           <MenuSeparator />
           <MenuItem
             label="Command Palette…"

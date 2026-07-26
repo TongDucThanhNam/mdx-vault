@@ -1,0 +1,48 @@
+[MainEditor] src/renderer/src/components/layout/MainEditor.tsx (full mapped source)
+  [source] src/renderer/src/components/layout/MainEditor.tsx
+  [scope] full · layout signals only
+  [component inventory]
+    [component] MainEditor @ src/renderer/src/components/layout/MainEditor.tsx:52
+  [conditional and semantic hierarchy]
+    [node line 46] onCopyPath: (relativePath: string) => void
+    [node line 47] onCopyRelativePath: (relativePath: string) => void
+    [node line 48] onRevealInExplorer: (relativePath: string) => void
+    [node line 49] onError: (message: string | null) => void
+    [node line 90] if (!opened || subpath?.kind !== 'heading') {
+    [node line 97] if (!heading) {
+    [node line 112] if (target.type === 'component') {
+    [node line 116] if (target.type === 'wikilink') {
+    [node line 123] if (!resolvedNote) {
+    [node line 133] if (resolvedPath.kind !== 'vault') {
+    [node line 154] return (
+    [node line 155] <section
+    [node line 165] {readingFullView ? null : (
+    [node line 167] <EditorTabs
+    [node line 180] <EditorHeader selectedPath={selectedPath}>
+    [node line 181] {noteSelected ? (
+    [node line 182] <ViewModeToggle
+    [node line 186] ) : selectedPath ? (
+    [node line 198] {activeItemMissing && !readingFullView ? (
+    [node line 207] {noteSelected ? (
+    [node line 208] editor.isLoadingFile ? (
+    [node line 212] ) : editor.selectedPath !== selectedPath ? (
+    [node line 213] <EmptyState
+    [node line 214] icon={<Save className="size-5" aria-hidden="true" />}
+    [node line 218] ) : viewMode === 'reading' ? (
+    [node line 219] <MdxPreview
+    [node line 232] ) : (
+    [node line 234] <MdxEditor
+    [node line 250] <AiSelectionActionPalette
+    [node line 260] ) : imageSelected && !activeItemMissing && editorTabs.activeImageObjectUrl ? (
+    [node line 261] <VaultImagePreview
+    [node line 270] ) : textSelected ? (
+    [node line 271] textEditor.isLoadingFile ? (
+    [node line 275] ) : textEditor.selectedPath !== selectedPath ? (
+    [node line 276] <NoVaultFilePreview
+    [node line 280] ) : (
+    [node line 281] <TextFileEditor
+    [node line 288] ) : selectedPath ? (
+    [node line 289] <NoVaultFilePreview
+    [node line 293] ) : (
+    [node line 294] <EmptyState
+    [node line 295] icon={<Save className="size-5" aria-hidden="true" />}

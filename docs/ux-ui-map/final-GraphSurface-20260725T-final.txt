@@ -1,0 +1,78 @@
+[GraphSurface] src/renderer/src/graph/GraphSurface.tsx (full mapped source)
+  [source] src/renderer/src/graph/GraphSurface.tsx
+  [scope] down
+  [component inventory]
+    [component] GraphSurface @ src/renderer/src/graph/GraphSurface.tsx:47
+    [component] GraphSurfaceState @ src/renderer/src/graph/GraphSurface.tsx:494
+  [conditional and semantic hierarchy]
+    [node line 60] const scope = useMemo<GraphScope | null>(() => {
+    [node line 61] if (!hasVault) return null
+    [node line 62] if (mode === 'global') return { kind: 'global' }
+    [node line 73] const [contextRequest, setContextRequest] = useState<GraphContextRequest | null>(null)
+    [node line 75] const containerRef = useRef<HTMLDivElement>(null)
+    [node line 76] const canvasRef = useRef<HTMLButtonElement>(null)
+    [node line 77] const settingsButtonRef = useRef<HTMLButtonElement>(null)
+    [node line 78] const contextMenuRef = useRef<HTMLDivElement>(null)
+    [node line 79] const adapterRef = useRef<CytoscapeGraphAdapter | null>(null)
+    [node line 92] if (node?.status === 'resolved' && node.relativePath) {
+    [node line 106] return () => {
+    [node line 116] if (!snapshot || snapshot.nodes.length === 0 || !container) {
+    [node line 123] if (adapterRef.current) {
+    [node line 139] onSelectNode: (nodeId) => {
+    [node line 141] if (!nodeId) setContextRequest(null)
+    [node line 144] onContextNode: (request) => {
+    [node line 150] if (disposed || adapterGenerationRef.current !== generation) {
+    [node line 159] if (disposed || adapterGenerationRef.current !== generation) return
+    [node line 165] return () => {
+    [node line 181] if (command === 'fit-view') {
+    [node line 192] if (selectedNodeId && !graph.snapshot?.nodes.some((node) => node.id === selectedNodeId)) {
+    [node line 203] const handleCanvasKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+    [node line 205] switch (event.key) {
+    [node line 233] if (selectedNodeId) {
+    [node line 239] if (contextRequest) {
+    [node line 242] } else if (selectedNodeId) {
+    [node line 267] return (
+    [node line 268] <section
+    [node line 278] <header className="flex min-h-11 flex-wrap items-center gap-2 border-b-2 border-foreground bg-chrome px-2 py-1.5">
+    [node line 280] <Waypoints className="size-4 shrink-0 text-editorial-red" aria-hidden="true" />
+    [node line 282] <h2 className="truncate font-display text-sm font-black">
+    [node line 285] <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+    [node line 294] <Search
+    [node line 299] <input
+    [node line 308] {mode === 'local' && 'depth' in config.settings ? (
+    [node line 311] <select
+    [node line 330] <Button
+    [node line 339] <Focus aria-hidden="true" />
+    [node line 341] <Button
+    [node line 350] <RotateCcw aria-hidden="true" />
+    [node line 352] <Button
+    [node line 362] <Settings2 aria-hidden="true" />
+    [node line 367] {config.recovery ? (
+    [node line 369] <SlidersHorizontal className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+    [node line 370] <p className="font-mono text-[9px] leading-relaxed uppercase tracking-wider">
+    [node line 385] <button
+    [node line 393] <p id={`${mode}-graph-instructions`} className="sr-only">
+    [node line 399] {state ? (
+    [node line 400] <GraphSurfaceState
+    [node line 410] {graph.snapshot?.truncated ? (
+    [node line 419] {contextRequest && selectedNode ? (
+    [node line 437] if (event.key === 'Escape') {
+    [node line 443] <Button
+    [node line 451] <X aria-hidden="true" />
+    [node line 453] <GraphNodeDetails node={selectedNode} {...nodeActions} />
+    [node line 458] <GraphNodeNavigator
+    [node line 470] <p className="sr-only" aria-live="polite">
+    [node line 476] <GraphSettingsDialog
+    [node line 499] onRetry: () => void
+    [node line 501] const copy: Record<GraphSurfaceStateId, { title: string; detail: string }> = {
+    [node line 551] return (
+    [node line 554] <Waypoints className="mx-auto mb-3 size-6 text-editorial-red" aria-hidden="true" />
+    [node line 555] <h3 className="font-display text-lg font-black">{message.title}</h3>
+    [node line 556] <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{message.detail}</p>
+    [node line 557] {state === 'loading' ? (
+    [node line 558] <RefreshCw
+    [node line 563] {retryable ? (
+    [node line 564] <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onRetry}>
+    [node line 565] <RefreshCw aria-hidden="true" />
+    [node line 581] if (!media) return
+    [node line 584] return () => media.removeEventListener('change', update)

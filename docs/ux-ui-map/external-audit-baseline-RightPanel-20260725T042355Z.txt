@@ -1,0 +1,35 @@
+[RightPanel] src/renderer/src/components/layout/RightPanel.tsx (full mapped source)
+  [source] src/renderer/src/components/layout/RightPanel.tsx
+  [scope] full · layout signals only
+  [component inventory]
+    [component] RightPanel @ src/renderer/src/components/layout/RightPanel.tsx:74
+    [component] ActiveIcon @ src/renderer/src/components/layout/RightPanel.tsx:77
+    [component] ActiveNavigationPanel @ src/renderer/src/components/layout/RightPanel.tsx:122
+  [conditional and semantic hierarchy]
+    [node line 64] onActivePanelChange: (panel: KnowledgePanelId) => void
+    [node line 66] onBookmarkHeading: (heading: NoteHeadingResult) => void
+    [node line 67] onRevealRange: (range: SourceRange) => void
+    [node line 69] onSelectBookmarkHeading: (relativePath: string, heading: string) => void
+    [node line 70] onSelectBookmarkFolder: (relativePath: string) => void
+    [node line 71] onOpenSearch: (query: string) => void
+    [node line 79] return (
+    [node line 80] <aside
+    [node line 85] <ActiveIcon
+    [node line 92] <select
+    [node line 106] <ChevronDown
+    [node line 116] <ActiveNavigationPanel {...props} />
+    [node line 138] switch (activePanel) {
+    [node line 140] return (
+    [node line 141] <OutlinePanel
+    [node line 149] return (
+    [node line 150] <TagsPanel
+    [node line 160] return (
+    [node line 161] <BacklinksPanel
+    [node line 168] return (
+    [node line 169] <OutgoingLinksPanel
+    [node line 177] return (
+    [node line 178] <PropertiesPanel
+    [node line 189] return (
+    [node line 190] <BookmarksPanel
+    [node line 200] return (
+    [node line 201] <FootnotesPanel

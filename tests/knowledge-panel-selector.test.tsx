@@ -38,13 +38,14 @@ const panels: Array<[KnowledgePanelId, string]> = [
   ['outgoing', 'Outgoing links'],
   ['properties', 'Properties'],
   ['bookmarks', 'Bookmarks'],
-  ['footnotes', 'Footnotes']
+  ['footnotes', 'Footnotes'],
+  ['local-graph', 'Local graph']
 ]
 
 describe('context utility selector', () => {
-  test('keeps all seven destinations in one keyboard-native selector at fixed panel width', () => {
+  test('keeps all eight destinations in one keyboard-native selector at fixed panel width', () => {
     const html = renderPanel('outline')
-    expect((html.match(/<option/g) ?? []).length).toBe(7)
+    expect((html.match(/<option/g) ?? []).length).toBe(8)
     expect(html).toContain('aria-label="Context utilities"')
     expect(html).toContain('id="context-utility-selector"')
     for (const [id, label] of panels) {
@@ -66,7 +67,11 @@ function renderPanel(activePanel: KnowledgePanelId): string {
   return renderToStaticMarkup(
     createElement(RightPanel, {
       activePanel,
+      hasVault: true,
+      vaultSessionId: 1,
       selectedPath: null,
+      localGraphRoot: null,
+      localGraphUnavailableReason: 'no-active-note',
       source: '',
       isDirty: false,
       propertyAddRequest: 0,
@@ -79,7 +84,10 @@ function renderPanel(activePanel: KnowledgePanelId): string {
       onSelectNote: async () => true,
       onSelectBookmarkHeading: () => undefined,
       onSelectBookmarkFolder: () => undefined,
-      onOpenSearch: () => undefined
+      onOpenSearch: () => undefined,
+      onBookmarkNote: () => undefined,
+      onCopyRelativePath: () => undefined,
+      onRevealInExplorer: () => undefined
     })
   )
 }

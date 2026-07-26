@@ -42,6 +42,18 @@ AI-generated component theo trust model phải chạy Level 3/4. Nếu AI assist
   Obsidian-only bookmark types, and no claim beyond the named footnote syntax
   already supported by the Markdown pipeline.
 
+## Current graph milestone
+
+- **GOAL-24 — Global and Local Graph View**: substantial notes-only Obsidian
+  Graph View parity over the local SQLite note/link index. Global Graph is a
+  deduplicated virtual workbench item; Local Graph follows the active note in
+  the right panel. Both share bounded filtering/groups, unresolved and
+  ambiguous targets, orphans, depth 1–4, accessible node navigation, pointer
+  interactions, lazy Cytoscape/CoSE rendering, and versioned per-vault
+  `.app/graph-view.json` preferences.
+- Deliberate gaps remain explicit: tag nodes, attachment nodes, excluded-file
+  settings, chronological time-lapse, and graph bookmark types.
+
 ## Next candidates
 
 Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):
@@ -54,7 +66,6 @@ Xem chi tiết phân tích, feature matrix 49×8, top-10 + rejected features t�
 
 ## Ngoài roadmap (chưa có goal — đừng tự làm)
 
-- Graph view
 - Git sync / bất kỳ sync nào (Git trước, custom sync là bẫy roadmap)
 - Marketplace/library cho interactive blocks (chỉ sau khi sandbox model đã vững)
 - Mobile, collaboration, publish site

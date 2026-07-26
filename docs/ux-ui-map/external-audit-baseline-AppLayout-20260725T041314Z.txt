@@ -1,0 +1,34 @@
+[AppLayout] src/renderer/src/components/AppLayout.tsx (full mapped source)
+  [source] src/renderer/src/components/AppLayout.tsx
+  [scope] full · layout signals only
+  [component inventory]
+    [component] AppLayout @ src/renderer/src/components/AppLayout.tsx:59
+  [conditional and semantic hierarchy]
+    [node line 47] setRightPanelOpen: Dispatch<SetStateAction<boolean>>
+    [node line 48] setActiveRightPanel: Dispatch<SetStateAction<KnowledgePanelId>>
+    [node line 49] onOpenSearch: (query: string) => void
+    [node line 50] onAddBookmark: (target: BookmarkTarget, title?: string | null) => void | Promise<void>
+    [node line 51] onNavigateWithSubpath: (
+    [node line 55] onRequestDelete: (relativePath: string) => void
+    [node line 56] onError: (message: string | null) => void
+    [node line 96] const activeEditorPath = selectedNotePath ?? (textSelected ? textEditor.selectedPath : null)
+    [node line 111] return (
+    [node line 113] <a
+    [node line 119] {readingFullView ? null : (
+    [node line 120] <AppTopBar
+    [node line 137] if (activeEditorPath) {
+    [node line 145] {error ? (
+    [node line 155] <main
+    [node line 162] <Activity mode={leftPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
+    [node line 163] <LeftPanel
+    [node line 174] <MainEditor
+    [node line 195] <Activity mode={rightPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
+    [node line 196] <RightPanel
+    [node line 207] if (selectedNotePath) {
+    [node line 230] if (!leftPanelOpen) {
+    [node line 235] requestId: (current?.requestId ?? 0) + 1
+    [node line 242] <Activity mode={aiPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
+    [node line 243] <aside className="min-h-0 min-w-0 border-l-2 border-foreground bg-chrome">
+    [node line 244] <AiSidePanel
+    [node line 260] {readingFullView ? null : (
+    [node line 261] <AppStatusBar

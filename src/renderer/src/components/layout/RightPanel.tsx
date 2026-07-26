@@ -7,8 +7,11 @@ import {
   Link2,
   ListTree,
   type LucideIcon,
-  Network
+  Network,
+  Waypoints
 } from 'lucide-react'
+import { lazy, Suspense } from 'react'
+import type { LocalGraphUnavailableReason } from '@/graph/local-graph-state'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { KnowledgeUtilitiesController } from '@/hooks/useKnowledgeUtilities'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -25,6 +28,11 @@ import { TagsPanel } from '@/panels/TagsPanel'
 import type { NoteHeadingResult } from '@/vault/types'
 import type { KnowledgePanelId, SourceRange } from '../../../../shared/knowledge'
 
+const LazyGraphSurface = lazy(async () => {
+  const module = await import('@/graph/GraphSurface')
+  return { default: module.GraphSurface }
+})
+
 interface NavigationOption {
   id: KnowledgePanelId
   label: string
@@ -38,7 +46,8 @@ const NAVIGATION_OPTIONS: readonly NavigationOption[] = [
   { id: 'outgoing', label: 'Outgoing links', icon: Network },
   { id: 'properties', label: 'Properties', icon: Braces },
   { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { id: 'footnotes', label: 'Footnotes', icon: Footprints }
+  { id: 'footnotes', label: 'Footnotes', icon: Footprints },
+  { id: 'local-graph', label: 'Local graph', icon: Waypoints }
 ]
 
 type RightPanelIndex = Pick<
@@ -54,8 +63,12 @@ type RightPanelIndex = Pick<
 >
 
 interface RightPanelProps {
+  hasVault: boolean
+  vaultSessionId: number
   activePanel: KnowledgePanelId
   selectedPath: string | null
+  localGraphRoot: string | null
+  localGraphUnavailableReason: LocalGraphUnavailableReason | null
   source: string
   isDirty: boolean
   propertyAddRequest: number
@@ -69,6 +82,9 @@ interface RightPanelProps {
   onSelectBookmarkHeading: (relativePath: string, heading: string) => void
   onSelectBookmarkFolder: (relativePath: string) => void
   onOpenSearch: (query: string) => void
+  onBookmarkNote: (relativePath: string, title: string) => void | Promise<void>
+  onCopyRelativePath: (relativePath: string) => void
+  onRevealInExplorer: (relativePath: string) => void
 }
 
 export function RightPanel(props: RightPanelProps): React.JSX.Element {
@@ -120,8 +136,12 @@ export function RightPanel(props: RightPanelProps): React.JSX.Element {
 }
 
 function ActiveNavigationPanel({
+  hasVault,
+  vaultSessionId,
   activePanel,
   selectedPath,
+  localGraphRoot,
+  localGraphUnavailableReason,
   source,
   isDirty,
   propertyAddRequest,
@@ -133,7 +153,10 @@ function ActiveNavigationPanel({
   onSelectNote,
   onSelectBookmarkHeading,
   onSelectBookmarkFolder,
-  onOpenSearch
+  onOpenSearch,
+  onBookmarkNote,
+  onCopyRelativePath,
+  onRevealInExplorer
 }: RightPanelProps): React.JSX.Element {
   switch (activePanel) {
     case 'outline':
@@ -205,6 +228,30 @@ function ActiveNavigationPanel({
           isDirty={isDirty}
           onRevealRange={onRevealRange}
         />
+      )
+    case 'local-graph':
+      return (
+        <Suspense
+          fallback={
+            <div className="grid h-full place-items-center p-4 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Loading local graph…
+            </div>
+          }
+        >
+          <LazyGraphSurface
+            mode="local"
+            compact
+            hasVault={hasVault}
+            vaultSessionId={vaultSessionId}
+            rootRelativePath={localGraphRoot}
+            localUnavailableReason={localGraphUnavailableReason}
+            activeRelativePath={localGraphRoot}
+            onOpenNote={onSelectNote}
+            onBookmarkNote={onBookmarkNote}
+            onCopyRelativePath={onCopyRelativePath}
+            onRevealInExplorer={onRevealInExplorer}
+          />
+        </Suspense>
       )
   }
 }

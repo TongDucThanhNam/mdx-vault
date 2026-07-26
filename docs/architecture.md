@@ -8,17 +8,20 @@ Electron
 │   ├── ipc/                 IPC handlers (validate input bằng zod)
 │   │   ├── vault-ipc.ts         vault:open / list-files / read-file / write-file
 │   │   ├── index-ipc.ts         index:query / search / backlinks
+│   │   ├── graph-ipc.ts         graph:get-snapshot / get-config / save-config
 │   │   └── app-settings-ipc.ts  app-settings:get / update (main-frame only)
 │   ├── services/
 │   │   ├── vault-service.ts     đọc/ghi file, watcher (chokidar)
 │   │   ├── index-service.ts     parse MDX AST → metadata
 │   │   ├── db-service.ts        SQLite (better-sqlite3, FTS5)
+│   │   ├── graph-query-service.ts bounded note topology from SQLite
+│   │   ├── graph-config-service.ts versioned per-vault graph preferences
 │   │   ├── app-settings.ts      settings v3, normalize + atomic persistence
 │   │   └── safe-path.ts         safeJoin() chống path traversal
 │   └── index.ts             BrowserWindow, app lifecycle
 │
 ├── Preload (src/preload/)
-│   └── contextBridge: expose window.vaultApi / window.indexApi / window.appApi
+│   └── contextBridge: expose window.vaultApi / window.indexApi / window.graphApi / window.appApi
 │       — API hẹp, typed
 │
 ├── Renderer (src/renderer/src/)
@@ -26,6 +29,7 @@ Electron
 │   ├── editor/              CodeMirror 6 (source mode)
 │   ├── preview/             MDX compile + render, component registry, error boundary
 │   ├── workbench/           item state machine, transactions, focus adapters
+│   ├── graph/               shared React surface + imperative lazy Cytoscape adapter
 │   ├── commands/            action registry + command palette
 │   ├── settings/            searchable General/Editor/Workbench/Keymap UI
 │   ├── explorer/            file tree, File Finder
@@ -34,6 +38,8 @@ Electron
 │
 ├── Shared (src/shared/)
 │   ├── app-settings.ts      typed definition catalog + normalization
+│   ├── graph.ts             zod graph/config/IPC contracts
+│   ├── graph-model.ts       pure collapse, ambiguity, BFS, filters, truncation
 │   └── keybindings.ts       chord parser/resolver, conflict + reserved policy
 │
 └── Sandbox (iframe trong preview — Goal 05)
@@ -63,6 +69,7 @@ Ranh giới trách nhiệm:
       tests.ts
   /.app                 app-managed, có thể xóa & rebuild
     index.sqlite
+    graph-view.json      durable graph preferences; preserve if corrupt/unsupported
     component-cache/
 ```
 
@@ -99,7 +106,9 @@ CREATE TABLE note_components (note_id TEXT NOT NULL, component_name TEXT NOT NUL
 CREATE VIRTUAL TABLE notes_fts USING fts5(note_id, title, body);
 ```
 
-Index là cache: mất/corrupt → rebuild từ files, không mất dữ liệu người dùng.
+SQLite index và component cache là cache: mất/corrupt → rebuild từ files. Versioned
+metadata such as `graph-view.json` and bookmarks is durable app state and is not
+silently replaced when corrupt.
 
 ## IPC conventions
 
@@ -121,9 +130,11 @@ chối thay vì âm thầm tạo lại path. Việc tạo mới chỉ đi qua c�
 
 Renderer có một workbench domain làm source of truth cho vòng đời document. Một
 `WorkbenchState` chứa `items` theo thứ tự hiển thị, `activeId`, MRU order, bounded
-closed stack, transient MRU switch và `sessionId` của vault. Mỗi item giữ canonical
+closed stack, transient MRU switch và `sessionId` của vault. File items giữ canonical
 vault-relative path, kind, dirty/missing/autosave state và view state (cursor,
-selection, scroll, view mode). Cùng một path trong một vault chỉ có một item.
+selection, scroll, view mode). Virtual items are explicit discriminated variants;
+the Global Graph uses stable ID `virtual:graph:global` and has no path or file
+capability. Cùng một file path trong một vault chỉ có một item.
 
 `useWorkbench` là coordinator mỏng giữa pure state transitions và I/O adapters:
 
@@ -182,6 +193,32 @@ workbench chords như `Ctrl+W`; `AppMenuBar` trong renderer dispatch cùng actio
 registry. Trên macOS, native menu vẫn giữ các standard Edit roles/OS behavior và chỉ
 route những application actions được hỗ trợ. Clipboard, undo/redo và text navigation
 tiếp tục thuộc editor/input đang focus.
+
+## Graph domain (Goal 24)
+
+Graph View is a notes-only projection of the current vault's rebuildable SQLite index.
+`GraphQueryService` performs one bounded bulk read, reuses the Search grammar for file
+membership and ordered groups, then delegates duplicate collapse, unresolved/ambiguous
+ghosts, visible degree, local incoming/outgoing BFS, orphan filtering, and deterministic
+truncation to pure shared functions. Initial hard caps are 2,500 returned nodes, 10,000
+edges, 300 query characters, eight groups, and local depth four.
+
+The bridge exposes only JSON/zod graph contracts and vault-relative paths. Every graph
+handler requires the main frame, validates request and response, and rejects a result
+when the vault session changes during the request. The renderer never reads note files
+for topology and never receives the absolute vault root.
+
+Global Graph is a deduplicated virtual workbench item. Local Graph is the eighth
+controlled Right Panel destination and clears whenever the active item is not a present
+editable note. Both compose the same lazy `GraphSurface`; React owns filters, semantic
+states, settings, navigator/details, and existing note-action ports, while the isolated
+Cytoscape adapter owns only its canvas, built-in CoSE layout, viewport/events,
+`ResizeObserver`, theme synchronization, layout stop, and destruction.
+
+Vault-scoped preferences live in `.app/graph-view.json` rather than global device
+settings or SQLite. Main process reads/writes version 1 through an atomic serialized
+queue with optimistic revisions. Missing files produce defaults; corrupt or unsupported
+bytes remain untouched and the renderer reports the relative recovery path.
 
 ## AI layer (Goal 06)
 

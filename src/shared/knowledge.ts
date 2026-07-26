@@ -24,6 +24,7 @@ export type KnowledgePanelId =
   | 'properties'
   | 'bookmarks'
   | 'footnotes'
+  | 'local-graph'
 
 export type OutgoingLinkKind = 'wikilink' | 'markdown'
 

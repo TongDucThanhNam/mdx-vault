@@ -7,6 +7,7 @@ import { LeftPanel } from '@/components/layout/LeftPanel'
 import { MainEditor } from '@/components/layout/MainEditor'
 import { RightPanel } from '@/components/layout/RightPanel'
 import type { ViewMode } from '@/components/ViewModeToggle'
+import { resolveLocalGraphContext } from '@/graph/local-graph-state'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { KnowledgeUtilitiesController } from '@/hooks/useKnowledgeUtilities'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -97,6 +98,7 @@ export function AppLayout({
   const activeIsLoading = activeEditorAvailable ? activeEditor.isLoadingFile : false
   const activeIsSaving = activeEditorAvailable ? activeEditor.isSaving : false
   const activeLastSavedAt = activeEditorAvailable ? activeEditor.lastSavedAt : null
+  const localGraphContext = resolveLocalGraphContext(editorTabs.activeItem)
   const gridTemplateColumns = [
     leftPanelOpen ? '280px' : null,
     'minmax(0, 1fr)',
@@ -167,6 +169,7 @@ export function AppLayout({
           />
         </Activity>
         <MainEditor
+          hasVault={vault !== null}
           viewMode={viewMode}
           selectedPath={selectedVaultPath}
           editorTabs={editorTabs}
@@ -177,15 +180,26 @@ export function AppLayout({
           noteActions={noteActions}
           editorInteractions={editorInteractions}
           readingZoom={readingZoom}
+          onCopyPath={(relativePath) => void vaultSession.handleCopyPath(relativePath)}
+          onCopyRelativePath={(relativePath) =>
+            void vaultSession.handleCopyRelativePath(relativePath)
+          }
           onRevealInExplorer={(relativePath) =>
             void vaultSession.handleRevealInExplorer(relativePath)
+          }
+          onBookmarkNote={(relativePath, title) =>
+            onAddBookmark({ kind: 'file', relativePath }, title)
           }
           onError={onError}
         />
         <Activity mode={rightPanelOpen ? 'visible' : 'hidden'}>
           <RightPanel
+            hasVault={vault !== null}
+            vaultSessionId={editorTabs.state.sessionId}
             activePanel={activeRightPanel}
             selectedPath={selectedNotePath}
+            localGraphRoot={localGraphContext.rootRelativePath}
+            localGraphUnavailableReason={localGraphContext.unavailableReason}
             source={editor.savedContent}
             isDirty={editor.isDirty}
             propertyAddRequest={propertyAddRequest}
@@ -226,6 +240,15 @@ export function AppLayout({
               }))
             }}
             onOpenSearch={onOpenSearch}
+            onBookmarkNote={(relativePath, title) =>
+              onAddBookmark({ kind: 'file', relativePath }, title)
+            }
+            onCopyRelativePath={(relativePath) =>
+              void vaultSession.handleCopyRelativePath(relativePath)
+            }
+            onRevealInExplorer={(relativePath) =>
+              void vaultSession.handleRevealInExplorer(relativePath)
+            }
           />
         </Activity>
 

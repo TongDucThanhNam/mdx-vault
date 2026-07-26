@@ -1,0 +1,89 @@
+[EditorTabs] src/renderer/src/components/layout/EditorTabs.tsx (full mapped source)
+  [source] src/renderer/src/components/layout/EditorTabs.tsx
+  [scope] full · layout signals only
+  [component inventory]
+    [component] EditorTabs @ src/renderer/src/components/layout/EditorTabs.tsx:41
+    [component] EditorTab @ src/renderer/src/components/layout/EditorTabs.tsx:261
+    [component] EditorTabContextMenu @ src/renderer/src/components/layout/EditorTabs.tsx:438
+    [component] TabContextMenuItem @ src/renderer/src/components/layout/EditorTabs.tsx:521
+  [conditional and semantic hierarchy]
+    [node line 16] onActivate: (id: string) => void
+    [node line 17] onClose: (id: string) => Promise<boolean>
+    [node line 18] onCloseItems: (ids: readonly string[]) => Promise<boolean>
+    [node line 19] onCopyPath: (relativePath: string) => void
+    [node line 20] onCopyRelativePath: (relativePath: string) => void
+    [node line 21] onRevealInExplorer: (relativePath: string) => void
+    [node line 52] const tablistRef = useRef<HTMLDivElement>(null)
+    [node line 54] const pendingFocusAfterCloseRef = useRef<PendingFocusAfterClose | null>(null)
+    [node line 73] : (items[0]?.id ?? null)
+    [node line 80] if (pendingFocus && !itemIds.has(pendingFocus.closingId)) {
+    [node line 87] if (targetId) {
+    [node line 93] if (activeChanged && activeId && itemIds.has(activeId)) {
+    [node line 94] if (focusableId !== activeId) {
+    [node line 101] if (!focusableId || !itemIds.has(focusableId)) {
+    [node line 114] if (currentIndex < 0 || items.length === 0) {
+    [node line 119] if (destination === 'first') {
+    [node line 121] } else if (destination === 'last') {
+    [node line 123] } else if (destination === 'previous') {
+    [node line 130] if (targetId) {
+    [node line 139] if (tablistRef.current?.contains(document.activeElement)) {
+    [node line 153] if (pendingFocus?.closingId === id && tabRefs.current.has(id)) {
+    [node line 163] if (
+    [node line 172] const activeTab = tablistRef.current?.querySelector<HTMLButtonElement>(
+    [node line 175] const fallbackTab = tablistRef.current?.querySelector<HTMLButtonElement>('[role="tab"]')
+    [node line 176] const destination = preferredTab?.isConnected ? preferredTab : (activeTab ?? fallbackTab)
+    [node line 178] if (destination?.isConnected) {
+    [node line 199] if (items.length === 0) {
+    [node line 203] return (
+    [node line 212] <EditorTab
+    [node line 215] if (element) {
+    [node line 243] ref: (element: HTMLButtonElement | null) => void
+    [node line 249] onActivate: (id: string) => void
+    [node line 250] onClose: (id: string) => void
+    [node line 251] onCloseItems: (ids: readonly string[], preferredFocusId: string) => Promise<boolean>
+    [node line 252] onCopyPath: (relativePath: string) => void
+    [node line 253] onCopyRelativePath: (relativePath: string) => void
+    [node line 254] onRevealInExplorer: (relativePath: string) => void
+    [node line 255] onRestoreContextMenuFocus: (preferredId: string) => void
+    [node line 256] onFocus: (id: string) => void
+    [node line 257] onMoveFocus: (id: string, destination: 'previous' | 'next' | 'first' | 'last') => void
+    [node line 289] return (
+    [node line 290] <ContextMenuPrimitive.Root>
+    [node line 301] if (event.button === 1) {
+    [node line 307] {isActive ? (
+    [node line 314] <ContextMenuPrimitive.Trigger asChild>
+    [node line 315] <button
+    [node line 328] if (event.nativeEvent.isComposing) {
+    [node line 332] switch (event.key) {
+    [node line 352] if (!event.repeat) {
+    [node line 366] {item.missing ? (
+    [node line 367] <FileWarning
+    [node line 375] {showDirectory ? (
+    [node line 383] {item.dirty ? (
+    [node line 393] <button
+    [node line 407] <X className="size-3" aria-hidden="true" />
+    [node line 411] <EditorTabContextMenu
+    [node line 431] onCloseItems: (ids: readonly string[], preferredFocusId: string) => Promise<boolean>
+    [node line 432] onCopyPath: (relativePath: string) => void
+    [node line 433] onCopyRelativePath: (relativePath: string) => void
+    [node line 434] onRevealInExplorer: (relativePath: string) => void
+    [node line 435] onRestoreFocus: (preferredId: string) => void
+    [node line 456] return (
+    [node line 457] <ContextMenuPrimitive.Portal>
+    [node line 458] <ContextMenuPrimitive.Content
+    [node line 467] if (restoreFocusAfterCloseRef.current) {
+    [node line 474] <TabContextMenuItem
+    [node line 479] <TabContextMenuItem
+    [node line 484] <TabContextMenuItem
+    [node line 489] <TabContextMenuItem
+    [node line 494] <TabContextMenuItem
+    [node line 499] <TabContextMenuItem label="Close All" onSelect={() => close(closeTargets.all)} />
+    [node line 501] <ContextMenuPrimitive.Separator className="my-1 h-px bg-foreground" />
+    [node line 503] <TabContextMenuItem label="Copy Path" onSelect={() => onCopyPath(item.relativePath)} />
+    [node line 504] <TabContextMenuItem
+    [node line 509] <ContextMenuPrimitive.Separator className="my-1 h-px bg-foreground" />
+    [node line 511] <TabContextMenuItem
+    [node line 530] onSelect: () => void
+    [node line 532] return (
+    [node line 533] <ContextMenuPrimitive.Item
+    [node line 539] {shortcut ? (

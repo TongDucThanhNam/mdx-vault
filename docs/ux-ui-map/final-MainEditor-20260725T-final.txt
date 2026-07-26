@@ -1,0 +1,54 @@
+[MainEditor] src/renderer/src/components/layout/MainEditor.tsx (full mapped source)
+  [source] src/renderer/src/components/layout/MainEditor.tsx
+  [scope] down
+  [component inventory]
+    [component] LazyGraphSurface @ src/renderer/src/components/layout/MainEditor.tsx:34
+    [component] MainEditor @ src/renderer/src/components/layout/MainEditor.tsx:59
+  [conditional and semantic hierarchy]
+    [node line 52] onCopyPath: (relativePath: string) => void
+    [node line 53] onCopyRelativePath: (relativePath: string) => void
+    [node line 54] onRevealInExplorer: (relativePath: string) => void
+    [node line 55] onBookmarkNote: (relativePath: string, title: string) => void | Promise<void>
+    [node line 56] onError: (message: string | null) => void
+    [node line 99] if (!opened || subpath?.kind !== 'heading') {
+    [node line 106] if (!heading) {
+    [node line 121] if (target.type === 'component') {
+    [node line 125] if (target.type === 'wikilink') {
+    [node line 132] if (!resolvedNote) {
+    [node line 142] if (resolvedPath.kind !== 'vault') {
+    [node line 163] return (
+    [node line 164] <section
+    [node line 174] {readingFullView ? null : (
+    [node line 176] <EditorTabs
+    [node line 189] {activeItem?.kind === 'graph' ? null : (
+    [node line 190] <EditorHeader selectedPath={selectedPath}>
+    [node line 191] {noteSelected ? (
+    [node line 192] <ViewModeToggle
+    [node line 196] ) : selectedPath ? (
+    [node line 209] {activeItemMissing && !readingFullView ? (
+    [node line 218] {activeItem?.kind === 'graph' ? (
+    [node line 219] <Suspense
+    [node line 226] <LazyGraphSurface
+    [node line 236] ) : noteSelected ? (
+    [node line 237] editor.isLoadingFile ? (
+    [node line 241] ) : editor.selectedPath !== selectedPath ? (
+    [node line 242] <EmptyState
+    [node line 243] icon={<Save className="size-5" aria-hidden="true" />}
+    [node line 247] ) : viewMode === 'reading' ? (
+    [node line 248] <MdxPreview
+    [node line 261] ) : (
+    [node line 263] <MdxEditor
+    [node line 279] <AiSelectionActionPalette
+    [node line 289] ) : imageSelected && !activeItemMissing && editorTabs.activeImageObjectUrl ? (
+    [node line 290] <VaultImagePreview
+    [node line 299] ) : textSelected ? (
+    [node line 300] textEditor.isLoadingFile ? (
+    [node line 304] ) : textEditor.selectedPath !== selectedPath ? (
+    [node line 305] <NoVaultFilePreview
+    [node line 309] ) : (
+    [node line 310] <TextFileEditor
+    [node line 317] ) : selectedPath ? (
+    [node line 318] <NoVaultFilePreview
+    [node line 322] ) : (
+    [node line 323] <EmptyState
+    [node line 324] icon={<Save className="size-5" aria-hidden="true" />}

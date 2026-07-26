@@ -1,4 +1,5 @@
 import { BookmarkService } from './bookmark-service'
+import { GraphConfigService } from './graph-config-service'
 import { bindCurrentSandboxService } from './sandbox-session'
 import { VaultIndexRuntime } from './vault-index-runtime'
 import { VaultService } from './vault-service'
@@ -9,6 +10,8 @@ type TreeChangeCallback = () => void
 let currentVault: VaultService | null = null
 let currentIndex: VaultIndexRuntime | null = null
 let currentBookmarks: BookmarkService | null = null
+let currentGraphConfig: GraphConfigService | null = null
+let vaultSessionRevision = 0
 
 export async function openCurrentVault(
   root: string,
@@ -24,6 +27,8 @@ export async function openCurrentVault(
   currentVault = vault
   currentIndex = index
   currentBookmarks = new BookmarkService(vault.rootPath)
+  currentGraphConfig = new GraphConfigService(vault.rootPath)
+  vaultSessionRevision += 1
 
   try {
     await index.start()
@@ -31,6 +36,8 @@ export async function openCurrentVault(
     currentVault = null
     currentIndex = null
     currentBookmarks = null
+    currentGraphConfig = null
+    vaultSessionRevision += 1
     await index.close()
     throw error
   }
@@ -61,12 +68,29 @@ export function getCurrentBookmarks(): BookmarkService {
   return currentBookmarks
 }
 
+export function getCurrentGraphConfig(): GraphConfigService {
+  if (!currentGraphConfig) {
+    throw new Error('No vault graph configuration store is open')
+  }
+  return currentGraphConfig
+}
+
+export function getCurrentVaultSessionRevision(): number {
+  return vaultSessionRevision
+}
+
 export async function closeCurrentVault(): Promise<void> {
   const index = currentIndex
+  const hadOpenVault = Boolean(currentVault || currentIndex)
 
   currentVault = null
   currentIndex = null
   currentBookmarks = null
+  currentGraphConfig = null
+
+  if (hadOpenVault) {
+    vaultSessionRevision += 1
+  }
 
   if (index) {
     await index.close()

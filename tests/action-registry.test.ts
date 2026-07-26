@@ -61,6 +61,12 @@ const REQUIRED_WORKBENCH_IDS = [
 ] as const
 
 const REQUIRED_READING_ZOOM_IDS = ['view.zoom-in', 'view.zoom-out', 'view.zoom-reset'] as const
+const REQUIRED_GRAPH_IDS = [
+  'graph.open-global',
+  'graph.fit-view',
+  'graph.toggle-settings',
+  'panel.showLocalGraph'
+] as const
 const REQUIRED_KNOWLEDGE_PANEL_IDS = [
   'panel.showOutline',
   'panel.showTags',
@@ -82,6 +88,7 @@ describe('workspace action registry', () => {
       ...REQUIRED_EXISTING_IDS,
       ...REQUIRED_WORKBENCH_IDS,
       ...REQUIRED_READING_ZOOM_IDS,
+      ...REQUIRED_GRAPH_IDS,
       ...REQUIRED_KNOWLEDGE_PANEL_IDS
     ]) {
       expect(ids).toContain(id)
@@ -201,6 +208,7 @@ describe('workspace action registry', () => {
       'explorer.toggle-focus',
       'view.toggle-left-panel',
       ...REQUIRED_READING_ZOOM_IDS,
+      ...REQUIRED_GRAPH_IDS,
       ...REQUIRED_KNOWLEDGE_PANEL_IDS
     ]) {
       expect(paletteIds).toContain(id)

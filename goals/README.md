@@ -4,7 +4,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 
 ## Quy tắc
 
-1. **Mỗi session một goal.** Làm theo đúng thứ tự 01 → 13. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
+1. **Mỗi session một goal.** Làm theo đúng thứ tự dependency trong bảng. Không nhảy cóc — mỗi goal giả định goal trước đã xong.
 2. Cách giao cho Codex: mở session mới trong repo và ra lệnh, ví dụ:
    ```
    Đọc AGENTS.md, sau đó thực thi goals/GOAL-01-app-shell-and-vault.md.

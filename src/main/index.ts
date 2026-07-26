@@ -6,6 +6,7 @@ import { registerAiIpc } from './ipc/ai-ipc'
 import { registerAppSettingsIpc } from './ipc/app-settings-ipc'
 import { registerBookmarkIpc } from './ipc/bookmark-ipc'
 import { registerExportIpc } from './ipc/export-ipc'
+import { registerGraphIpc } from './ipc/graph-ipc'
 import { registerIndexIpc } from './ipc/index-ipc'
 import { registerKnowledgeIpc } from './ipc/knowledge-ipc'
 import { registerSandboxIpc } from './ipc/sandbox-ipc'
@@ -131,6 +132,7 @@ app.whenReady().then(() => {
   registerSandboxIpc()
   registerAiIpc()
   registerExportIpc()
+  registerGraphIpc()
   registerWindowIpc()
   registerAppSettingsIpc(appSettings)
 

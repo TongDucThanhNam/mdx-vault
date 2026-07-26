@@ -20,16 +20,38 @@ export interface WorkbenchViewState {
   viewMode?: WorkbenchViewMode
 }
 
-export interface WorkbenchItem {
+export interface GraphWorkbenchViewState {
+  selectedNodeId?: string
+  zoom?: number
+  pan?: { x: number; y: number }
+}
+
+interface WorkbenchItemBase {
+  id: string
+  dirty: boolean
+  missing: boolean
+  autosavePaused: boolean
+}
+
+export interface FileWorkbenchItem extends WorkbenchItemBase {
   /** Canonical vault-relative path. IDs are scoped by WorkbenchState.sessionId. */
   id: string
   relativePath: string
   kind: WorkbenchItemKind
-  dirty: boolean
-  missing: boolean
-  autosavePaused: boolean
   viewState?: WorkbenchViewState
 }
+
+export interface GraphWorkbenchItem extends WorkbenchItemBase {
+  id: 'virtual:graph:global'
+  kind: 'graph'
+  resource: { kind: 'global-graph' }
+  dirty: false
+  missing: false
+  autosavePaused: false
+  viewState?: GraphWorkbenchViewState
+}
+
+export type WorkbenchItem = FileWorkbenchItem | GraphWorkbenchItem
 
 export interface MruSwitchState {
   originId: string

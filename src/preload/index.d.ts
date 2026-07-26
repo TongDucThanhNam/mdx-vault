@@ -8,6 +8,12 @@ import type {
   ExportScanResult
 } from '../shared/export'
 import type {
+  GraphConfigLoadResult,
+  GraphSnapshot,
+  GraphSnapshotRequest,
+  GraphViewManifest
+} from '../shared/graph'
+import type {
   KnowledgeNoteSnapshot,
   LinkMentionRequest,
   PropertyMutationRequest,
@@ -317,6 +323,15 @@ interface BookmarkApi {
   save: (manifest: BookmarkManifest, expectedRevision: number) => Promise<BookmarkManifest>
 }
 
+interface GraphApi {
+  getSnapshot: (request: GraphSnapshotRequest) => Promise<GraphSnapshot>
+  getConfig: () => Promise<GraphConfigLoadResult>
+  saveConfig: (
+    manifest: GraphViewManifest,
+    expectedRevision: number
+  ) => Promise<GraphConfigLoadResult>
+}
+
 interface SandboxApi {
   describeHtml: (src: string, notePath: string | null) => Promise<SandboxDescriptor>
   loadHtml: (
@@ -413,6 +428,7 @@ declare global {
     indexApi: IndexApi
     knowledgeApi: KnowledgeApi
     bookmarkApi: BookmarkApi
+    graphApi: GraphApi
     sandboxApi: SandboxApi
     aiApi: AiApi
     exportApi: ExportApi

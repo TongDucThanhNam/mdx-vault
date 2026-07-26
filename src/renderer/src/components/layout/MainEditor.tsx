@@ -1,5 +1,5 @@
 import { Save } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
@@ -30,7 +30,13 @@ import {
   type WikilinkSubpath
 } from '../../../../shared/wikilinks'
 
+const LazyGraphSurface = lazy(async () => {
+  const module = await import('@/graph/GraphSurface')
+  return { default: module.GraphSurface }
+})
+
 interface MainEditorProps {
+  hasVault: boolean
   viewMode: ViewMode
   selectedPath: string | null
   editorTabs: WorkbenchController
@@ -41,11 +47,15 @@ interface MainEditorProps {
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
   readingZoom: ReadingZoomController
+  onCopyPath: (relativePath: string) => void
+  onCopyRelativePath: (relativePath: string) => void
   onRevealInExplorer: (relativePath: string) => void
+  onBookmarkNote: (relativePath: string, title: string) => void | Promise<void>
   onError: (message: string | null) => void
 }
 
 export function MainEditor({
+  hasVault,
   viewMode,
   selectedPath,
   editorTabs,
@@ -56,7 +66,10 @@ export function MainEditor({
   noteActions,
   editorInteractions,
   readingZoom,
+  onCopyPath,
+  onCopyRelativePath,
   onRevealInExplorer,
+  onBookmarkNote,
   onError
 }: MainEditorProps): React.JSX.Element {
   const [imageMetadata, setImageMetadata] = useState<{
@@ -154,28 +167,35 @@ export function MainEditor({
     >
       <EditorTabs
         items={editorTabs.tabs}
-        activeId={editorTabs.activePath}
+        activeId={editorTabs.activeId}
         onActivate={(relativePath) => void editorTabs.openOrActivate(relativePath)}
         onClose={(relativePath) =>
           commandActions.dispatch('workbench.close-item', { id: relativePath })
         }
+        onCloseItems={editorTabs.closeItems}
+        onCopyPath={onCopyPath}
+        onCopyRelativePath={onCopyRelativePath}
+        onRevealInExplorer={onRevealInExplorer}
+        closeShortcut={commandActions.getAction('workbench.close-item')?.hotkeys?.[0]}
       />
-      <EditorHeader selectedPath={selectedPath}>
-        {noteSelected ? (
-          <ViewModeToggle
-            value={viewMode}
-            onChange={(mode) => void commandActions.dispatch(`view.${mode}`)}
-          />
-        ) : selectedPath ? (
-          <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
-            {imageSelected && selectedImageMetadata
-              ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
-              : textSelected
-                ? `${getFileExtension(selectedPath)} · Editable`
-                : 'Read only'}
-          </span>
-        ) : null}
-      </EditorHeader>
+      {activeItem?.kind === 'graph' ? null : (
+        <EditorHeader selectedPath={selectedPath}>
+          {noteSelected ? (
+            <ViewModeToggle
+              value={viewMode}
+              onChange={(mode) => void commandActions.dispatch(`view.${mode}`)}
+            />
+          ) : selectedPath ? (
+            <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
+              {imageSelected && selectedImageMetadata
+                ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
+                : textSelected
+                  ? `${getFileExtension(selectedPath)} · Editable`
+                  : 'Read only'}
+            </span>
+          ) : null}
+        </EditorHeader>
+      )}
       {activeItemMissing ? (
         <div
           role="status"
@@ -185,7 +205,25 @@ export function MainEditor({
         </div>
       ) : null}
       <div className="relative min-h-0 flex-1">
-        {noteSelected ? (
+        {activeItem?.kind === 'graph' ? (
+          <Suspense
+            fallback={
+              <div className="grid h-full place-items-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                Loading graph renderer…
+              </div>
+            }
+          >
+            <LazyGraphSurface
+              mode="global"
+              vaultSessionId={editorTabs.state.sessionId}
+              hasVault={hasVault}
+              onOpenNote={(relativePath) => noteActions.navigateToNote(relativePath)}
+              onBookmarkNote={onBookmarkNote}
+              onCopyRelativePath={onCopyRelativePath}
+              onRevealInExplorer={onRevealInExplorer}
+            />
+          </Suspense>
+        ) : noteSelected ? (
           editor.isLoadingFile ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading file…

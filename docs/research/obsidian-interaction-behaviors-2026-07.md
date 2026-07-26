@@ -369,6 +369,24 @@ The app was launched against `%TEMP%\\mdx-vault-goal14-audit`. The live tree exp
 
 The mdx file-menu crop is [here](evidence/obsidian-interactions-2026-07/mdx-vault-file-context-menu.png). Other high-risk results are stronger as filesystem/code evidence than as screenshots: the report records exact before/action/after text and the relevant handler paths.
 
+### GOAL-24 Graph interaction follow-up
+
+GOAL-24 adds substantial notes-only Graph View parity without changing the
+document/editor shortcut boundary. The production Electron pass used a disposable
+profile and vault copy. It observed lazy graph chunk loading, hover adjacency,
+pointer select/context/drag, background pan, wheel zoom, fit/reset, resolved-node
+Open/Bookmark/Copy actions, explicit ambiguity candidates, and no fake action for
+unresolved nodes. Keyboard checks covered canvas `+`/`-`, arrows and accelerated
+Shift-pan, node-list Arrow/Enter opening, Escape selection clearing, and focus return
+from node actions/settings.
+
+Local Graph measured 318 px wide with no horizontal overflow, followed the active note,
+changed from 4 nodes/4 edges at depth one to 7/7 at depth four, and replaced prior
+topology with a specific unsupported-item state when Global Graph became active.
+Dark theme and reduced-motion topology both completed. Six graph open/close cycles
+produced garbage-collected heap samples of 20.40, 20.63, 21.04, 21.20, 21.14, and
+21.22 MiB, so retained heap was not monotonically increasing.
+
 ### Code-to-contract findings
 
 - Rename is atomic and path-safe, but terminates after filesystem rename and index replacement. Neither [`vault-service.ts:176`](../../src/main/services/vault-service.ts#L176) nor [`vault-ipc.ts:175`](../../src/main/ipc/vault-ipc.ts#L175) enumerates or rewrites references.

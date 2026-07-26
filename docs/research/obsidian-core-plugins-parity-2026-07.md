@@ -73,7 +73,7 @@ Mỗi mục phải đối chiếu bằng code với file evidence, verdict FULL 
 | 17 | Random note | ✅ | Command palette action opens a random indexed note from the current vault |
 | 18 | Slash commands | ✅ | Typing `/` at the start of an editor line opens a slash palette that can run commands and insert components/templates/date/time snippets |
 | 19 | Footnotes view | ✅ | GOAL-23 lists named definitions, repeated/missing/unreferenced status and counts, then reveals exact editable definition/reference ranges with deterministic previous/next traversal. No unsupported inline-footnote syntax is claimed |
-| 20 | Graph view | ❌ | Global + local graph. Được nêu là invariant trong [product-vision.md](../product-vision.md) — deferred có chủ đích |
+| 20 | Graph view | ⚠️ | GOAL-24 delivers substantial notes-only parity: bounded Global and Local Graph, incoming/outgoing depth 1–4, Search-grammar filters and ordered groups, unresolved/ambiguous targets, orphans, arrows/display/CoSE forces, pointer + DOM keyboard navigation, a virtual graph tab, and per-vault settings. Tag nodes, attachment nodes, excluded-file settings, chronological time-lapse, and graph bookmark types remain deferred |
 | 21 | Canvas | ❌ | Deferred (effort 5) — xem bản research trước |
 | 22 | Bases | ❌ | Database views trên properties (bảng, filter, sort). Tương đương Dataview-lite. Ứng viên dài hạn |
 | 23 | Workspaces | ❌ | Save/load/delete layout theo tên (tabs + sidebar state). mdx-vault chưa có tabs nên chưa làm được |

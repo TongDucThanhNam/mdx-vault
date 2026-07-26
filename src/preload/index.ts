@@ -25,6 +25,12 @@ import type {
   ExportScanResult
 } from '../shared/export'
 import type {
+  GraphConfigLoadResult,
+  GraphSnapshot,
+  GraphSnapshotRequest,
+  GraphViewManifest
+} from '../shared/graph'
+import type {
   KnowledgeNoteSnapshot,
   LinkMentionRequest,
   PropertyMutationRequest,
@@ -236,6 +242,17 @@ const bookmarkApi = {
     invokeBookmarks('bookmarks:save', { manifest, expectedRevision })
 }
 
+const graphApi = {
+  getSnapshot: (request: GraphSnapshotRequest): Promise<GraphSnapshot> =>
+    invokeGraph('graph:get-snapshot', request),
+  getConfig: (): Promise<GraphConfigLoadResult> => invokeGraph('graph:get-config'),
+  saveConfig: (
+    manifest: GraphViewManifest,
+    expectedRevision: number
+  ): Promise<GraphConfigLoadResult> =>
+    invokeGraph('graph:save-config', { manifest, expectedRevision })
+}
+
 const sandboxApi = {
   describeHtml: (src: string, notePath: string | null): Promise<SandboxDescriptor> =>
     invokeSandbox('sandbox:describe-html', { src, notePath }),
@@ -380,6 +397,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('indexApi', indexApi)
     contextBridge.exposeInMainWorld('knowledgeApi', knowledgeApi)
     contextBridge.exposeInMainWorld('bookmarkApi', bookmarkApi)
+    contextBridge.exposeInMainWorld('graphApi', graphApi)
     contextBridge.exposeInMainWorld('sandboxApi', sandboxApi)
     contextBridge.exposeInMainWorld('aiApi', aiApi)
     contextBridge.exposeInMainWorld('exportApi', exportApi)
@@ -423,6 +441,16 @@ async function invokeKnowledge<T>(channel: string, payload?: unknown): Promise<T
 }
 
 async function invokeBookmarks<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+
+  if (!result.ok) {
+    throw new VaultApiError(result.error.code, result.error.message)
+  }
+
+  return result.data
+}
+
+async function invokeGraph<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
 
   if (!result.ok) {

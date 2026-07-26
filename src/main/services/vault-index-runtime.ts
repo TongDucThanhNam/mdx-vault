@@ -17,6 +17,7 @@ export class VaultIndexRuntime {
   private readonly onDidChange?: IndexChangeCallback
   private readonly onTreeDidChange?: TreeChangeCallback
   private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private indexRevision = 0
   private treeChangeTimer: ReturnType<typeof setTimeout> | null = null
   private watcher: FSWatcher | null = null
 
@@ -49,6 +50,10 @@ export class VaultIndexRuntime {
     return this.db
   }
 
+  get revision(): string {
+    return `index:${this.indexRevision}`
+  }
+
   async start(): Promise<void> {
     await this.scanVault()
     await this.startWatcher()
@@ -77,7 +82,7 @@ export class VaultIndexRuntime {
   async rebuild(): Promise<void> {
     this.db.clearAll()
     await this.scanVault()
-    this.onDidChange?.()
+    this.emitIndexChanged()
   }
 
   async scanVault(): Promise<void> {
@@ -98,7 +103,7 @@ export class VaultIndexRuntime {
     }
 
     if (changed) {
-      this.onDidChange?.()
+      this.emitIndexChanged()
     }
   }
 
@@ -130,7 +135,7 @@ export class VaultIndexRuntime {
       this.db.updateNoteMtime(normalizedPath, mtimeMs)
 
       if (emitChange) {
-        this.onDidChange?.()
+        this.emitIndexChanged()
       }
 
       return true
@@ -145,7 +150,7 @@ export class VaultIndexRuntime {
     )
 
     if (emitChange) {
-      this.onDidChange?.()
+      this.emitIndexChanged()
     }
 
     return true
@@ -159,11 +164,11 @@ export class VaultIndexRuntime {
     }
 
     this.db.deleteNote(normalizedPath)
-    this.onDidChange?.()
+    this.emitIndexChanged()
   }
 
   notifyChanged(): void {
-    this.onDidChange?.()
+    this.emitIndexChanged()
   }
 
   async reindexRename(
@@ -190,7 +195,7 @@ export class VaultIndexRuntime {
       await this.indexFile(path, false)
     }
 
-    this.onDidChange?.()
+    this.emitIndexChanged()
   }
 
   private startWatcher(): Promise<void> {
@@ -270,6 +275,11 @@ export class VaultIndexRuntime {
       this.treeChangeTimer = null
       this.onTreeDidChange?.()
     }, DEBOUNCE_MS)
+  }
+
+  private emitIndexChanged(): void {
+    this.indexRevision += 1
+    this.onDidChange?.()
   }
 }
 

@@ -124,7 +124,7 @@ export function MruTabSwitcher({
                 tabIndex={-1}
                 aria-selected={isHighlighted}
                 aria-label={getAccessibleLabel(item, label, directory)}
-                title={item.relativePath}
+                title={item.kind === 'graph' ? 'Global Graph' : item.relativePath}
                 className={cn(
                   'group relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-3 py-2 text-left outline-none transition-colors motion-reduce:transition-none',
                   isHighlighted
@@ -189,6 +189,13 @@ export function MruTabSwitcher({
 }
 
 function getItemPresentation(item: WorkbenchItem): { label: string; directory: string } {
+  if (item.kind === 'graph') {
+    return {
+      label: 'Graph',
+      directory: 'Global'
+    }
+  }
+
   const normalizedPath = item.relativePath.replaceAll('\\', '/')
   const segments = normalizedPath.split('/')
 

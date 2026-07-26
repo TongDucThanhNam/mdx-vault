@@ -2,6 +2,8 @@ import DatabaseConstructor, { type Database as BetterSqliteDatabase } from 'bett
 import { createHash } from 'crypto'
 import { mkdirSync } from 'fs'
 import { basename, join } from 'path'
+import { MAX_GRAPH_EDGES, MAX_GRAPH_NODES, MAX_GRAPH_QUERY_LENGTH } from '../../shared/graph'
+import type { GraphSourceLink, GraphSourceNote } from '../../shared/graph-model'
 import type {
   IndexedProperty,
   OutgoingLinkResult,
@@ -51,6 +53,16 @@ export interface NoteHeadingResult {
 export interface TagSummary {
   tag: string
   count: number
+}
+
+export interface GraphSourceData {
+  notes: GraphSourceNote[]
+  links: GraphSourceLink[]
+  totals: {
+    notes: number
+    links: number
+  }
+  sourceTruncated: boolean
 }
 
 interface NoteRow {
@@ -106,6 +118,12 @@ interface OutgoingLinkRow {
   position: number
 }
 
+interface GraphLinkRow {
+  source_relative_path: string
+  target: string
+  target_normalized: string
+}
+
 interface PropertyRow {
   name: string
   normalized_name: string
@@ -129,7 +147,7 @@ interface PropertySummaryRow {
 }
 
 const SCHEMA_VERSION = 3
-const MAX_SEARCH_QUERY_LENGTH = 300
+const MAX_SEARCH_QUERY_LENGTH = MAX_GRAPH_QUERY_LENGTH
 const MAX_SEARCH_LIMIT = 100
 const MAX_REGEX_PATTERN_LENGTH = 160
 const MAX_REGEX_SCAN_ROWS = 1000
@@ -308,6 +326,77 @@ export class DbService {
     })
 
     return results.slice(0, resultLimit)
+  }
+
+  matchGraphNotePaths(query: string, limit = MAX_GRAPH_NODES): string[] {
+    const parsedQuery = parseSearchQuery(query)
+    const resultLimit = Math.min(Math.max(1, Math.floor(limit)), MAX_GRAPH_NODES)
+    const ftsQuery = toFtsQuery(parsedQuery.text)
+
+    if (!parsedQuery.hasFilters && !ftsQuery) {
+      return []
+    }
+
+    const rows = this.runSearchQuery(parsedQuery, ftsQuery, resultLimit)
+
+    return rows
+      .filter(
+        (row) =>
+          matchesFileFilters(row.relative_path, parsedQuery.files) &&
+          matchesRegexFilters(buildSearchableText(row), parsedQuery.regexes)
+      )
+      .slice(0, resultLimit)
+      .map((row) => row.relative_path)
+  }
+
+  getGraphSourceData(nodeLimit = MAX_GRAPH_NODES, edgeLimit = MAX_GRAPH_EDGES): GraphSourceData {
+    const boundedNodeLimit = Math.min(Math.max(1, Math.floor(nodeLimit)), MAX_GRAPH_NODES)
+    const boundedEdgeLimit = Math.min(Math.max(1, Math.floor(edgeLimit)), MAX_GRAPH_EDGES)
+    const noteRows = this.db
+      .prepare(
+        `SELECT id, relative_path, title, mtime_ms, content_hash
+         FROM notes
+         ORDER BY relative_path COLLATE NOCASE, relative_path
+         LIMIT ?`
+      )
+      .all(boundedNodeLimit) as NoteRow[]
+    const notes = this.attachAliases(noteRows).map((note) => ({
+      relativePath: note.relativePath,
+      title: note.title,
+      aliases: note.aliases
+    }))
+    const links = this.db
+      .prepare(
+        `SELECT
+           n.relative_path AS source_relative_path,
+           l.note_target AS target,
+           l.target_normalized
+         FROM note_links l
+         JOIN notes n ON n.id = l.source_note_id
+         ORDER BY n.relative_path COLLATE NOCASE, n.relative_path, l.position
+         LIMIT ?`
+      )
+      .all(boundedEdgeLimit) as GraphLinkRow[]
+    const noteCount = this.db.prepare('SELECT COUNT(*) AS count FROM notes').get() as {
+      count: number
+    }
+    const linkCount = this.db.prepare('SELECT COUNT(*) AS count FROM note_links').get() as {
+      count: number
+    }
+
+    return {
+      notes,
+      links: links.map((row) => ({
+        sourceRelativePath: row.source_relative_path,
+        target: row.target,
+        targetNormalized: row.target_normalized
+      })),
+      totals: {
+        notes: noteCount.count,
+        links: linkCount.count
+      },
+      sourceTruncated: noteCount.count > boundedNodeLimit || linkCount.count > boundedEdgeLimit
+    }
   }
 
   getBacklinks(relativePath: string): BacklinkResult[] {

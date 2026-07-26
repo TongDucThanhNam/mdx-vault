@@ -3,6 +3,7 @@ import type {
   CloseActiveIntent,
   CloseAuthorization,
   CloseRequirement,
+  FileWorkbenchItem,
   MruSwitchState,
   WhenClosingWithNoTabs,
   WorkbenchItem,
@@ -14,6 +15,7 @@ import type {
 } from './types'
 
 export const DEFAULT_CLOSED_ITEM_LIMIT = 20
+export const GLOBAL_GRAPH_WORKBENCH_ID = 'virtual:graph:global' as const
 
 export interface CreateWorkbenchItemInput {
   relativePath: string
@@ -98,7 +100,28 @@ export function canonicalizeWorkbenchPath(relativePath: string): string {
   return segments.join('/')
 }
 
-export function createWorkbenchItem(input: CreateWorkbenchItemInput): WorkbenchItem {
+export function createWorkbenchItem(input: CreateWorkbenchItemInput): FileWorkbenchItem
+export function createWorkbenchItem(input: WorkbenchItem): WorkbenchItem
+export function createWorkbenchItem(
+  input: CreateWorkbenchItemInput | WorkbenchItem
+): WorkbenchItem {
+  if (input.kind === 'graph') {
+    return {
+      id: GLOBAL_GRAPH_WORKBENCH_ID,
+      kind: 'graph',
+      resource: { kind: 'global-graph' },
+      dirty: false,
+      missing: false,
+      autosavePaused: false,
+      viewState: input.viewState
+        ? {
+            ...input.viewState,
+            pan: input.viewState.pan ? { ...input.viewState.pan } : undefined
+          }
+        : undefined
+    }
+  }
+
   const relativePath = canonicalizeWorkbenchPath(input.relativePath)
   const missing = input.missing ?? false
 
@@ -113,8 +136,20 @@ export function createWorkbenchItem(input: CreateWorkbenchItemInput): WorkbenchI
   }
 }
 
-export function isEditableWorkbenchItem(item: WorkbenchItem): boolean {
+export function isEditableWorkbenchItem(
+  item: WorkbenchItem
+): item is FileWorkbenchItem & { kind: 'note' | 'text' } {
   return item.kind === 'note' || item.kind === 'text'
+}
+
+export function isFileWorkbenchItem(
+  item: WorkbenchItem
+): item is Exclude<WorkbenchItem, { kind: 'graph' }> {
+  return item.kind !== 'graph'
+}
+
+export function canonicalizeWorkbenchItemId(id: string): string {
+  return id === GLOBAL_GRAPH_WORKBENCH_ID ? id : canonicalizeWorkbenchPath(id)
 }
 
 export function getCloseRequirement(item: WorkbenchItem): CloseRequirement {
@@ -147,7 +182,7 @@ export function openOrActivateWorkbenchItem(
 }
 
 export function activateWorkbenchItem(state: WorkbenchState, id: string): WorkbenchState {
-  const canonicalId = canonicalizeWorkbenchPath(id)
+  const canonicalId = canonicalizeWorkbenchItemId(id)
 
   if (!state.items.some((item) => item.id === canonicalId)) {
     return state
@@ -194,7 +229,7 @@ export function closeWorkbenchItem(
   id: string,
   options: CloseWorkbenchItemOptions = {}
 ): WorkbenchState {
-  const canonicalId = canonicalizeWorkbenchPath(id)
+  const canonicalId = canonicalizeWorkbenchItemId(id)
   const itemIndex = state.items.findIndex((item) => item.id === canonicalId)
 
   if (itemIndex === -1) {
@@ -224,7 +259,7 @@ export function commitTransactionalWorkbenchClose(
   state: WorkbenchState,
   options: TransactionalCloseOptions
 ): WorkbenchState | false {
-  const canonicalId = canonicalizeWorkbenchPath(options.id)
+  const canonicalId = canonicalizeWorkbenchItemId(options.id)
   const item = state.items.find((candidate) => candidate.id === canonicalId)
   if (!item || (state.activeId === canonicalId) !== options.wasActive) {
     return false
@@ -274,7 +309,7 @@ export function resolveReopenCandidate(
   let candidateId: string | null = null
 
   for (const id of state.closedIds) {
-    if (exists(id)) {
+    if (id === GLOBAL_GRAPH_WORKBENCH_ID || exists(id)) {
       candidateId = id
       break
     }
@@ -312,11 +347,12 @@ export function renameWorkbenchItem(
   id: string,
   newRelativePath: string
 ): WorkbenchState {
-  const canonicalId = canonicalizeWorkbenchPath(id)
+  const canonicalId = canonicalizeWorkbenchItemId(id)
   const newId = canonicalizeWorkbenchPath(newRelativePath)
   const itemIndex = state.items.findIndex((item) => item.id === canonicalId)
+  const currentItem = state.items[itemIndex]
 
-  if (itemIndex === -1 || state.items[itemIndex]?.kind !== 'note' || canonicalId === newId) {
+  if (!currentItem || currentItem.kind !== 'note' || canonicalId === newId) {
     return state
   }
 
@@ -325,7 +361,6 @@ export function renameWorkbenchItem(
   }
 
   const items = [...state.items]
-  const currentItem = items[itemIndex]
   items[itemIndex] = {
     ...currentItem,
     id: newId,
@@ -351,7 +386,7 @@ export function deleteWorkbenchItem(
   id: string,
   activateOnClose: ActivateOnClose = 'history'
 ): WorkbenchState {
-  const canonicalId = canonicalizeWorkbenchPath(id)
+  const canonicalId = canonicalizeWorkbenchItemId(id)
   if (state.items.find((item) => item.id === canonicalId)?.kind !== 'note') {
     return state
   }
@@ -373,19 +408,27 @@ export function deleteWorkbenchItem(
 }
 
 export function markWorkbenchItemMissing(state: WorkbenchState, id: string): WorkbenchState {
-  return updateWorkbenchItem(state, id, (item) => ({
-    ...item,
-    missing: true,
-    autosavePaused: true
-  }))
+  return updateWorkbenchItem(state, id, (item) =>
+    item.kind === 'graph'
+      ? item
+      : {
+          ...item,
+          missing: true,
+          autosavePaused: true
+        }
+  )
 }
 
 export function markWorkbenchItemPresent(state: WorkbenchState, id: string): WorkbenchState {
-  return updateWorkbenchItem(state, id, (item) => ({
-    ...item,
-    missing: false,
-    autosavePaused: false
-  }))
+  return updateWorkbenchItem(state, id, (item) =>
+    item.kind === 'graph'
+      ? item
+      : {
+          ...item,
+          missing: false,
+          autosavePaused: false
+        }
+  )
 }
 
 export function setWorkbenchItemDirty(
@@ -407,14 +450,18 @@ export function captureWorkbenchViewState(
   id: string,
   viewState: WorkbenchViewState
 ): WorkbenchState {
-  return updateWorkbenchItem(state, id, (item) => ({
-    ...item,
-    viewState: {
-      ...item.viewState,
-      ...viewState,
-      selection: viewState.selection ? { ...viewState.selection } : item.viewState?.selection
-    }
-  }))
+  return updateWorkbenchItem(state, id, (item) =>
+    item.kind === 'graph'
+      ? item
+      : {
+          ...item,
+          viewState: {
+            ...item.viewState,
+            ...viewState,
+            selection: viewState.selection ? { ...viewState.selection } : item.viewState?.selection
+          }
+        }
+  )
 }
 
 export function startMruSwitch(state: WorkbenchState, direction: 1 | -1 = 1): WorkbenchState {
@@ -589,7 +636,7 @@ function updateWorkbenchItem(
   id: string,
   update: (item: WorkbenchItem) => WorkbenchItem
 ): WorkbenchState {
-  const canonicalId = canonicalizeWorkbenchPath(id)
+  const canonicalId = canonicalizeWorkbenchItemId(id)
   const index = state.items.findIndex((item) => item.id === canonicalId)
 
   if (index === -1) {

@@ -79,6 +79,46 @@ describe('in-app menu action routing', () => {
       }
     }
   })
+
+  test('routes Global Graph through the shared action registry', () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+    const dispatched: string[] = []
+    const graphAction: CommandAction = {
+      id: 'graph.open-global',
+      title: 'Open Global Graph',
+      description: 'Open the graph.',
+      category: 'Navigation',
+      hotkeys: [],
+      disabled: false,
+      run: () => undefined
+    }
+    const commandActions: CommandActionRegistry = {
+      actions: [graphAction],
+      dispatch: async (actionId) => {
+        dispatched.push(actionId)
+        return true
+      },
+      getAction: (actionId) => (actionId === graphAction.id ? graphAction : undefined),
+      isEnabled: () => true
+    }
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { windowApi: { platform: 'win32' } }
+    })
+
+    try {
+      const graphItem = findMenuItem(createMenu(commandActions), 'Open Global Graph')
+      expect(graphItem?.props.disabled).toBe(false)
+      graphItem?.props.onSelect()
+      expect(dispatched).toEqual(['graph.open-global'])
+    } finally {
+      if (originalWindow) {
+        Object.defineProperty(globalThis, 'window', originalWindow)
+      } else {
+        Reflect.deleteProperty(globalThis, 'window')
+      }
+    }
+  })
 })
 
 function createFileOpenRegistry(overrides: KeymapOverrides): CommandActionRegistry {
@@ -122,14 +162,24 @@ function createMenu(commandActions: CommandActionRegistry): ReactElement {
 function findMenuItem(
   node: ReactNode,
   label: string
-): ReactElement<{ label: string; shortcut?: string; onSelect: () => void }> | null {
+): ReactElement<{
+  label: string
+  shortcut?: string
+  disabled?: boolean
+  onSelect: () => void
+}> | null {
   if (!isValidElement(node)) {
     return null
   }
 
   const props = node.props as { children?: ReactNode; label?: unknown; onSelect?: unknown }
   if (props.label === label && typeof props.onSelect === 'function') {
-    return node as ReactElement<{ label: string; shortcut?: string; onSelect: () => void }>
+    return node as ReactElement<{
+      label: string
+      shortcut?: string
+      disabled?: boolean
+      onSelect: () => void
+    }>
   }
 
   for (const child of Children.toArray(props.children)) {

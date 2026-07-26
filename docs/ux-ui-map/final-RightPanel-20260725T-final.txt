@@ -1,0 +1,42 @@
+[RightPanel] src/renderer/src/components/layout/RightPanel.tsx (full mapped source)
+  [source] src/renderer/src/components/layout/RightPanel.tsx
+  [scope] down
+  [component inventory]
+    [component] LazyGraphSurface @ src/renderer/src/components/layout/RightPanel.tsx:31
+    [component] RightPanel @ src/renderer/src/components/layout/RightPanel.tsx:90
+    [component] ActiveIcon @ src/renderer/src/components/layout/RightPanel.tsx:93
+    [component] ActiveNavigationPanel @ src/renderer/src/components/layout/RightPanel.tsx:138
+  [conditional and semantic hierarchy]
+    [node line 77] onActivePanelChange: (panel: KnowledgePanelId) => void
+    [node line 79] onBookmarkHeading: (heading: NoteHeadingResult) => void
+    [node line 80] onRevealRange: (range: SourceRange) => void
+    [node line 82] onSelectBookmarkHeading: (relativePath: string, heading: string) => void
+    [node line 83] onSelectBookmarkFolder: (relativePath: string) => void
+    [node line 84] onOpenSearch: (query: string) => void
+    [node line 85] onBookmarkNote: (relativePath: string, title: string) => void | Promise<void>
+    [node line 86] onCopyRelativePath: (relativePath: string) => void
+    [node line 87] onRevealInExplorer: (relativePath: string) => void
+    [node line 95] return (
+    [node line 96] <aside
+    [node line 101] <ActiveIcon
+    [node line 108] <select
+    [node line 122] <ChevronDown
+    [node line 132] <ActiveNavigationPanel {...props} />
+    [node line 161] switch (activePanel) {
+    [node line 163] return (
+    [node line 164] <OutlinePanel
+    [node line 172] return (
+    [node line 173] <TagsPanel
+    [node line 183] return (
+    [node line 184] <BacklinksPanel
+    [node line 191] return (
+    [node line 192] <OutgoingLinksPanel
+    [node line 200] return (
+    [node line 201] <PropertiesPanel
+    [node line 212] return (
+    [node line 213] <BookmarksPanel
+    [node line 223] return (
+    [node line 224] <FootnotesPanel
+    [node line 233] return (
+    [node line 234] <Suspense
+    [node line 241] <LazyGraphSurface

@@ -1,5 +1,5 @@
 import type { PreparedPreviewImage } from '../preview/preview-image'
-import type { WorkbenchItem, WorkbenchItemKind } from './types'
+import type { FileWorkbenchItem, WorkbenchItemKind } from './types'
 
 export interface CachedWorkbenchBuffer {
   kind: 'note' | 'text'
@@ -38,7 +38,7 @@ export type PreparedDocumentResult =
 export type ControllerPreparedDocumentResult = PreparedDocumentResult | { status: 'failed' }
 
 export interface PrepareWorkbenchDocumentOptions {
-  item: WorkbenchItem
+  item: FileWorkbenchItem
   cachedBuffer?: CachedWorkbenchBuffer
   readNote: (relativePath: string) => Promise<string>
   readText: (relativePath: string) => Promise<string>
@@ -211,7 +211,7 @@ export function releasePreparedWorkbenchDocument(prepared: PreparedWorkbenchDocu
   prepared.image?.release()
 }
 
-function toPreparedDocument(item: WorkbenchItem): PreparedWorkbenchDocument {
+function toPreparedDocument(item: FileWorkbenchItem): PreparedWorkbenchDocument {
   return {
     id: item.id,
     relativePath: item.relativePath,

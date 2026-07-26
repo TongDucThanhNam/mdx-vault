@@ -10,7 +10,6 @@ import type { NoteEditorController } from '@/hooks/useNoteEditor'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import { formatError } from '@/lib/format-error'
 import { type PreparedPreviewImage, PreviewImageCache } from '@/preview/preview-image'
-import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
 import type { VaultInfo, VaultTreeFile } from '@/vault/types'
 import { runWorkbenchControllerTransaction } from '@/workbench/controller-transaction'
 import { focusActiveDocument } from '@/workbench/document-focus'
@@ -21,25 +20,30 @@ import {
   prepareWorkbenchDocumentForController,
   releasePreparedWorkbenchDocument
 } from '@/workbench/editor-adapter'
+import { selectNextBatchCloseCandidate } from '@/workbench/tab-context-actions'
 import type {
   ActivateOnClose,
+  FileWorkbenchItem,
   WhenClosingWithNoTabs,
   WorkbenchItem,
-  WorkbenchItemKind,
   WorkbenchState,
   WorkbenchViewState
 } from '@/workbench/types'
+import {
+  createGlobalGraphWorkbenchItem,
+  createWorkbenchItemForPath
+} from '@/workbench/workbench-item'
 import {
   activateVisualWorkbenchItem,
   cancelMruSwitch,
   captureWorkbenchViewState,
   closeWorkbenchItem,
   commitTransactionalWorkbenchClose,
-  createWorkbenchItem,
   createWorkbenchRequestCoordinator,
   createWorkbenchState,
   cycleMruSwitch,
   deleteWorkbenchItem,
+  GLOBAL_GRAPH_WORKBENCH_ID,
   getMruSwitchCommitTarget,
   markWorkbenchItemMissing,
   markWorkbenchItemPresent,
@@ -53,6 +57,7 @@ import {
   setWorkbenchItemDirty,
   startMruSwitch
 } from '@/workbench/workbench-state'
+import type { DefaultNoteViewSetting } from '../../../shared/app-settings'
 
 interface UseWorkbenchOptions {
   vault: VaultInfo | null
@@ -61,6 +66,7 @@ interface UseWorkbenchOptions {
   viewMode: ViewMode
   setViewMode: Dispatch<SetStateAction<ViewMode>>
   setSelectedVaultPath: Dispatch<SetStateAction<string | null>>
+  defaultNoteView: DefaultNoteViewSetting
   activateOnClose: ActivateOnClose
   whenClosingWithNoTabs: WhenClosingWithNoTabs
   onError: (message: string | null) => void
@@ -75,12 +81,15 @@ interface OpenWorkbenchOptions {
 export interface WorkbenchController {
   state: WorkbenchState
   tabs: WorkbenchItem[]
+  activeId: string | null
   activePath: string | null
   activeItem: WorkbenchItem | null
   activeImageObjectUrl: string | null
-  pendingMissingCloseItem: WorkbenchItem | null
+  pendingMissingCloseItem: FileWorkbenchItem | null
   openOrActivate: (relativePath: string, options?: OpenWorkbenchOptions) => Promise<boolean>
+  openGlobalGraph: (options?: Pick<OpenWorkbenchOptions, 'focus'>) => Promise<boolean>
   closeItem: (relativePath: string) => Promise<boolean>
+  closeItems: (relativePaths: readonly string[]) => Promise<boolean>
   closeActiveItem: () => Promise<boolean>
   confirmDiscardMissingClose: () => Promise<boolean>
   cancelDiscardMissingClose: () => void
@@ -106,6 +115,7 @@ export function useWorkbench({
   viewMode,
   setViewMode,
   setSelectedVaultPath,
+  defaultNoteView,
   activateOnClose,
   whenClosingWithNoTabs,
   onError,
@@ -117,6 +127,7 @@ export function useWorkbench({
   const stateRef = useRef(state)
   const vaultRef = useRef(vault)
   const viewModeRef = useRef(viewMode)
+  const defaultNoteViewRef = useRef(defaultNoteView)
   const activateOnCloseRef = useRef(activateOnClose)
   const whenClosingWithNoTabsRef = useRef(whenClosingWithNoTabs)
   const coordinatorRef = useRef(createWorkbenchRequestCoordinator())
@@ -129,6 +140,7 @@ export function useWorkbench({
   stateRef.current = state
   vaultRef.current = vault
   viewModeRef.current = viewMode
+  defaultNoteViewRef.current = defaultNoteView
   activateOnCloseRef.current = activateOnClose
   whenClosingWithNoTabsRef.current = whenClosingWithNoTabs
   editorControllerRef.current = editor
@@ -146,7 +158,12 @@ export function useWorkbench({
     (nextState: WorkbenchState): void => {
       stateRef.current = nextState
       setState(nextState)
-      setSelectedVaultPath(nextState.activeId)
+      const activeItem = nextState.activeId
+        ? nextState.items.find((item) => item.id === nextState.activeId)
+        : null
+      setSelectedVaultPath(
+        activeItem && activeItem.kind !== 'graph' ? activeItem.relativePath : null
+      )
     },
     [setSelectedVaultPath]
   )
@@ -242,7 +259,7 @@ export function useWorkbench({
 
   const prepareItemLoad = useCallback(
     async (
-      item: WorkbenchItem,
+      item: FileWorkbenchItem,
       isCurrent: () => boolean = () => true
     ): Promise<PreparedWorkbenchDocument | null> => {
       const result = await prepareWorkbenchDocumentForController(
@@ -290,7 +307,7 @@ export function useWorkbench({
   }, [])
 
   const restoreItemView = useCallback(
-    (item: WorkbenchItem, focus: boolean): void => {
+    (item: FileWorkbenchItem, focus: boolean): void => {
       const requestId = restoreViewRequestRef.current + 1
       restoreViewRequestRef.current = requestId
       if (item.kind === 'note') {
@@ -329,10 +346,97 @@ export function useWorkbench({
     [setViewMode]
   )
 
+  const openGlobalGraph = useCallback(
+    async (options: Pick<OpenWorkbenchOptions, 'focus'> = {}): Promise<boolean> => {
+      const currentState = stateRef.current
+      const existingItem = currentState.items.find((item) => item.id === GLOBAL_GRAPH_WORKBENCH_ID)
+      const destination =
+        existingItem?.kind === 'graph' ? existingItem : createGlobalGraphWorkbenchItem()
+
+      if (currentState.activeId === destination.id) {
+        cancelPendingNavigation()
+        commitState(openOrActivateWorkbenchItem(currentState, destination))
+        if (options.focus !== false) {
+          focusActiveDocument()
+        }
+        return true
+      }
+
+      const capturedId = currentState.activeId
+      let capturedView: WorkbenchViewState | null = null
+      cacheActiveBuffer()
+      onError(null)
+
+      const result = await runWorkbenchControllerTransaction({
+        coordinator: coordinatorRef.current,
+        store: { getState: () => stateRef.current, commit: commitState },
+        operation: existingItem ? 'activate' : 'open',
+        targetId: destination.id,
+        prepare: async () => {
+          if (!(await saveActiveItem())) {
+            return false
+          }
+          return { value: destination }
+        },
+        captureLatest: () => {
+          const latestState = stateRef.current
+          const latestOrigin = capturedId
+            ? latestState.items.find((candidate) => candidate.id === capturedId)
+            : null
+          capturedView =
+            latestOrigin && latestOrigin.kind !== 'graph' && latestState.activeId === capturedId
+              ? captureCurrentViewState(latestOrigin, viewModeRef.current)
+              : null
+        },
+        transition: (latestState, prepared) => {
+          const latestOrigin = capturedId
+            ? latestState.items.find((candidate) => candidate.id === capturedId)
+            : null
+          if (
+            prepared.id !== destination.id ||
+            (latestOrigin &&
+              latestState.activeId === latestOrigin.id &&
+              !isEditableItemBufferClean(latestOrigin))
+          ) {
+            return false
+          }
+
+          const capturedState =
+            capturedId && capturedView
+              ? captureWorkbenchViewState(latestState, capturedId, capturedView)
+              : latestState
+          return openOrActivateWorkbenchItem(capturedState, prepared)
+        },
+        commit: () => {
+          if (options.focus !== false) {
+            window.setTimeout(focusActiveDocument, 0)
+          }
+        }
+      })
+
+      reportTransactionFailure(result, onError)
+      return result.status === 'committed'
+    },
+    [
+      cacheActiveBuffer,
+      cancelPendingNavigation,
+      commitState,
+      isEditableItemBufferClean,
+      onError,
+      saveActiveItem
+    ]
+  )
+
   const openOrActivate = useCallback(
     async (relativePath: string, options: OpenWorkbenchOptions = {}): Promise<boolean> => {
+      if (relativePath === GLOBAL_GRAPH_WORKBENCH_ID) {
+        return openGlobalGraph(options)
+      }
+
       const currentState = stateRef.current
-      const existingItem = currentState.items.find((item) => item.id === relativePath)
+      const existingItem = currentState.items.find(
+        (item): item is FileWorkbenchItem => item.id === relativePath && item.kind !== 'graph'
+      )
       const vaultFile =
         options.knownFile?.relativePath === relativePath
           ? options.knownFile
@@ -362,7 +466,11 @@ export function useWorkbench({
       }
 
       const destination =
-        existingItem ?? createWorkbenchItemFromVaultFile(vaultFile as VaultTreeFile)
+        existingItem ??
+        createWorkbenchItemForPath(
+          (vaultFile as VaultTreeFile).relativePath,
+          defaultNoteViewRef.current
+        )
       const destinationForLoad = {
         ...destination,
         missing: Boolean(destination.missing && !vaultFile),
@@ -398,7 +506,7 @@ export function useWorkbench({
             ? latestState.items.find((candidate) => candidate.id === capturedId)
             : null
           capturedView =
-            latestOrigin && latestState.activeId === capturedId
+            latestOrigin && latestOrigin.kind !== 'graph' && latestState.activeId === capturedId
               ? captureCurrentViewState(latestOrigin, viewModeRef.current)
               : null
         },
@@ -428,7 +536,7 @@ export function useWorkbench({
         },
         commit: (prepared, committedState) => {
           const committedItem = committedState.items.find((item) => item.id === destination.id)
-          if (!committedItem) {
+          if (!committedItem || committedItem.kind === 'graph') {
             releasePreparedWorkbenchDocument(prepared)
             return
           }
@@ -462,6 +570,7 @@ export function useWorkbench({
       commitState,
       isEditableItemBufferClean,
       onError,
+      openGlobalGraph,
       prepareItemLoad,
       restoreItemView,
       saveActiveItem
@@ -517,7 +626,7 @@ export function useWorkbench({
           ) {
             return false
           }
-          if (destination) {
+          if (destination && destination.kind !== 'graph') {
             preparedDestination = await prepareItemLoad(destination, () =>
               coordinatorRef.current.isCurrent(token)
             )
@@ -533,11 +642,13 @@ export function useWorkbench({
             ? latestState.items.find((candidate) => candidate.id === capturedActiveId)
             : null
           capturedView =
-            latestActiveItem && latestState.activeId === capturedActiveId
+            latestActiveItem &&
+            latestActiveItem.kind !== 'graph' &&
+            latestState.activeId === capturedActiveId
               ? captureCurrentViewState(latestActiveItem, viewModeRef.current)
               : null
         },
-        transition: (latestState, prepared) => {
+        transition: (latestState) => {
           const stateWithLatestView =
             capturedActiveId && capturedView && latestState.activeId === capturedActiveId
               ? captureWorkbenchViewState(latestState, capturedActiveId, capturedView)
@@ -548,7 +659,7 @@ export function useWorkbench({
             wasActive,
             discardMissing,
             activeBufferClean: isEditableItemBufferClean(item),
-            preparedDestinationId: prepared?.id ?? null,
+            preparedDestinationId: destination?.id ?? null,
             activateOnClose: activateOnCloseRef.current
           })
         },
@@ -558,6 +669,11 @@ export function useWorkbench({
 
           const nextActiveItem = getActiveItem(committedState)
           if (wasActive && nextActiveItem) {
+            if (nextActiveItem.kind === 'graph') {
+              window.setTimeout(() => focusActiveDocument(), 0)
+              committedEditor = true
+              return
+            }
             if (!prepared) {
               return
             }
@@ -609,6 +725,47 @@ export function useWorkbench({
   const closeItem = useCallback(
     (relativePath: string): Promise<boolean> => closeItemInternal(relativePath, false),
     [closeItemInternal]
+  )
+
+  const closeItems = useCallback(
+    async (relativePaths: readonly string[]): Promise<boolean> => {
+      const pendingIds = new Set(relativePaths)
+
+      while (pendingIds.size > 0) {
+        const currentState = stateRef.current
+        const liveIds = new Set(currentState.items.map((item) => item.id))
+        for (const pendingId of pendingIds) {
+          if (!liveIds.has(pendingId)) {
+            pendingIds.delete(pendingId)
+          }
+        }
+
+        const candidate = selectNextBatchCloseCandidate(
+          currentState.items,
+          currentState.activeId,
+          pendingIds
+        )
+        if (!candidate) {
+          return true
+        }
+
+        if (candidate.requiresActivation) {
+          const activated = await openOrActivate(candidate.id, { focus: false })
+          if (!activated) {
+            return false
+          }
+        }
+
+        const closed = await closeItem(candidate.id)
+        if (!closed) {
+          return false
+        }
+        pendingIds.delete(candidate.id)
+      }
+
+      return true
+    },
+    [closeItem, openOrActivate]
   )
 
   const closeActiveItem = useCallback(async (): Promise<boolean> => {
@@ -674,14 +831,19 @@ export function useWorkbench({
 
     const opened = await openOrActivate(file.relativePath)
     if (opened) {
-      commitState(reopenWorkbenchItem(stateRef.current, createWorkbenchItemFromVaultFile(file)))
+      commitState(
+        reopenWorkbenchItem(
+          stateRef.current,
+          createWorkbenchItemForPath(file.relativePath, defaultNoteViewRef.current)
+        )
+      )
     }
     return opened
   }, [commitState, openOrActivate, showToast])
 
   const reloadActiveItem = useCallback(async (): Promise<boolean> => {
     const activeItem = getActiveItem(stateRef.current)
-    if (!activeItem || activeItem.missing) {
+    if (!activeItem || activeItem.kind === 'graph' || activeItem.missing) {
       return false
     }
     if (!isEditableItemBufferClean(activeItem)) {
@@ -726,7 +888,7 @@ export function useWorkbench({
     }
 
     const reloadedItem = result.state.items.find((item) => item.id === activeItem.id)
-    if (!reloadedItem) {
+    if (!reloadedItem || reloadedItem.kind === 'graph') {
       return false
     }
 
@@ -797,7 +959,11 @@ export function useWorkbench({
   const commitNoteRename = useCallback(
     (fromRelativePath: string, toRelativePath: string): boolean => {
       const currentState = stateRef.current
-      const captured = captureCurrentViewState(getActiveItem(currentState), viewModeRef.current)
+      const currentActive = getActiveItem(currentState)
+      const captured =
+        currentActive?.kind !== 'graph'
+          ? captureCurrentViewState(currentActive, viewModeRef.current)
+          : null
       let preparedState = currentState
       if (currentState.activeId === fromRelativePath && captured) {
         preparedState = captureWorkbenchViewState(preparedState, fromRelativePath, captured)
@@ -841,7 +1007,7 @@ export function useWorkbench({
         operation: 'delete',
         targetId: relativePath,
         prepare: async (token) => {
-          if (!destination) {
+          if (!destination || destination.kind === 'graph') {
             return true
           }
           preparedDestination = await prepareItemLoad(destination, () =>
@@ -865,7 +1031,7 @@ export function useWorkbench({
           const nextActiveItem = getActiveItem(nextState)
           if (
             nextState.items.some((item) => item.id === relativePath) ||
-            (wasActive && nextActiveItem?.id !== preparedDestination?.id)
+            (wasActive && nextActiveItem?.id !== destination?.id)
           ) {
             return false
           }
@@ -888,7 +1054,9 @@ export function useWorkbench({
 
       bufferCacheRef.current.delete(relativePath)
       const nextItem = getActiveItem(result.state)
-      if (wasActive && nextItem && preparedDestination) {
+      if (wasActive && nextItem?.kind === 'graph') {
+        window.setTimeout(() => focusActiveDocument(), 0)
+      } else if (wasActive && nextItem && nextItem.kind !== 'graph' && preparedDestination) {
         commitItemLoad(preparedDestination)
         restoreItemView(nextItem, true)
       } else if (wasActive) {
@@ -958,6 +1126,9 @@ export function useWorkbench({
     let nextState = stateRef.current
 
     for (const item of nextState.items) {
+      if (item.kind === 'graph') {
+        continue
+      }
       const exists = availablePaths.has(item.relativePath)
       nextState = exists
         ? markWorkbenchItemPresent(nextState, item.id)
@@ -965,7 +1136,7 @@ export function useWorkbench({
     }
 
     const activeItem = getActiveItem(nextState)
-    if (activeItem) {
+    if (activeItem && activeItem.kind !== 'graph') {
       const missing = !availablePaths.has(activeItem.relativePath)
       if (activeItem.kind === 'note') {
         editorControllerRef.current.markCurrentFileMissing(activeItem.relativePath, missing)
@@ -986,18 +1157,24 @@ export function useWorkbench({
       ? activeImagePreview.objectUrl
       : null
   const pendingMissingCloseItem = pendingMissingCloseId
-    ? (state.items.find((item) => item.id === pendingMissingCloseId) ?? null)
+    ? (state.items.find(
+        (item): item is FileWorkbenchItem =>
+          item.id === pendingMissingCloseId && item.kind !== 'graph'
+      ) ?? null)
     : null
 
   return {
     state,
     tabs: state.items,
-    activePath: state.activeId,
+    activeId: state.activeId,
+    activePath: activeItem?.kind === 'graph' ? null : (activeItem?.relativePath ?? null),
     activeItem,
     activeImageObjectUrl,
     pendingMissingCloseItem,
     openOrActivate,
+    openGlobalGraph,
     closeItem,
+    closeItems,
     closeActiveItem,
     confirmDiscardMissingClose,
     cancelDiscardMissingClose,
@@ -1017,32 +1194,12 @@ export function useWorkbench({
   }
 }
 
-function createWorkbenchItemFromVaultFile(file: VaultTreeFile): WorkbenchItem {
-  return createWorkbenchItem({
-    relativePath: file.relativePath,
-    kind: classifyWorkbenchItem(file.relativePath)
-  })
-}
-
-function classifyWorkbenchItem(relativePath: string): WorkbenchItemKind {
-  if (isNotePath(relativePath)) {
-    return 'note'
-  }
-  if (isEditableTextPath(relativePath)) {
-    return 'text'
-  }
-  if (isPreviewableVaultImagePath(relativePath)) {
-    return 'image'
-  }
-  return 'unsupported'
-}
-
 function getActiveItem(state: WorkbenchState): WorkbenchItem | null {
   return state.activeId ? (state.items.find((item) => item.id === state.activeId) ?? null) : null
 }
 
 function captureCurrentViewState(
-  item: WorkbenchItem | null,
+  item: FileWorkbenchItem | null,
   viewMode: ViewMode
 ): WorkbenchViewState | null {
   if (!item) {

@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 import type { CommandAction, CommandActionRegistry } from '@/commands/actions'
+import { createGraphActionHandlers, getGraphActionEnabledState } from '@/commands/graph-actions'
 import {
   createReadingZoomActionHandlers,
   type ReadingZoomActionHandlersInput
@@ -48,6 +49,9 @@ interface UseCommandActionsOptions {
   toggleLeftPanel: () => void
   toggleExplorerFocus: () => void
   showKnowledgePanel: (panel: KnowledgePanelId) => void
+  graphSurfaceActive: boolean
+  fitGraphView: () => void
+  toggleGraphSettings: () => void
   addProperty: () => void
   focusEditor: () => void
   setViewMode: Dispatch<SetStateAction<ViewMode>>
@@ -78,6 +82,9 @@ export function useCommandActions({
   toggleLeftPanel,
   toggleExplorerFocus,
   showKnowledgePanel,
+  graphSurfaceActive,
+  fitGraphView,
+  toggleGraphSettings,
   addProperty,
   focusEditor,
   setViewMode,
@@ -121,6 +128,12 @@ export function useCommandActions({
       'workbench.next-item': () => workbench.activateVisual(1),
       'workbench.previous-item': () => workbench.activateVisual(-1),
       'workbench.focus-editor': focusEditor,
+      ...createGraphActionHandlers({
+        openGlobalGraph: () => workbench.openGlobalGraph(),
+        fitView: fitGraphView,
+        toggleSettings: toggleGraphSettings,
+        showLocalGraph: () => showKnowledgePanel('local-graph')
+      }),
       'explorer.toggle-focus': toggleExplorerFocus,
       'view.toggle-left-panel': toggleLeftPanel,
       'panel.showOutline': () => showKnowledgePanel('outline'),
@@ -151,6 +164,7 @@ export function useCommandActions({
     [
       createUniqueNote,
       addProperty,
+      fitGraphView,
       focusEditor,
       insertCurrentDate,
       insertCurrentTime,
@@ -168,6 +182,7 @@ export function useCommandActions({
       setViewMode,
       toggleAiPanel,
       toggleExplorerFocus,
+      toggleGraphSettings,
       toggleLeftPanel,
       showKnowledgePanel,
       toggleTheme,
@@ -176,6 +191,7 @@ export function useCommandActions({
       workbench.activateVisual,
       workbench.closeActiveItem,
       workbench.closeItem,
+      workbench.openGlobalGraph,
       workbench.reopenClosedItem,
       workbench.saveActiveItem,
       workbench.startMruSwitch
@@ -186,6 +202,7 @@ export function useCommandActions({
     const hasVault = vault !== null
     const hasNote = selectedPath !== null
     const hasActiveItem = workbench.activeItem !== null
+    const hasLocalGraphNote = workbench.activeItem?.kind === 'note' && !workbench.activeItem.missing
     const activeEditable =
       workbench.activeItem?.kind === 'note' || workbench.activeItem?.kind === 'text'
     const hasSeveralItems = workbench.tabs.length > 1
@@ -207,6 +224,11 @@ export function useCommandActions({
       'workbench.next-item': hasSeveralItems,
       'workbench.previous-item': hasSeveralItems,
       'workbench.focus-editor': hasActiveItem,
+      ...getGraphActionEnabledState({
+        hasVault,
+        hasNote: hasLocalGraphNote,
+        graphSurfaceActive
+      }),
       'explorer.toggle-focus': hasVault,
       'view.toggle-left-panel': true,
       'panel.showOutline': hasVault,
@@ -233,6 +255,7 @@ export function useCommandActions({
       'vault.empty-trash': hasVault && trashCount > 0
     }
   }, [
+    graphSurfaceActive,
     indexNoteCount,
     readingZoomEnabled,
     selectedPath,
