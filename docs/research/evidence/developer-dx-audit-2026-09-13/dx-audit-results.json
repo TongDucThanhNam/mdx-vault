@@ -1,0 +1,246 @@
+{
+  "launchReceipt": {
+    "launchCommand": "MDX_VAULT_TEST_USER_DATA=C:/Users/terasumi/AppData/Local/Temp/mdx-vault-dx-profile-r13 bun run dev -- --remoteDebuggingPort 9333",
+    "cdpEndpoint": "http://127.0.0.1:9333",
+    "port": 9333,
+    "profileDir": "C:\\Users\\terasumi\\AppData\\Local\\Temp\\mdx-vault-dx-profile-r13",
+    "ownershipBeforeMutation": {
+      "connectedMainIsOurApp": true,
+      "connectedMainPid": 26100,
+      "childProcessUsesDeclaredProfile": true,
+      "decision": "accepted"
+    },
+    "profileFreshBeforeMutation": true,
+    "settingsMarkerFoundInDeclaredProfile": true
+  },
+  "checks": {
+    "explorer_escape_focus_restored": {
+      "restored": false,
+      "activeTag": "BODY",
+      "activeAria": null
+    },
+    "quickopen_arrow_enter_open": {
+      "arrowSelectedSecondOption": true,
+      "openedNotAlpha": true,
+      "focusInDocument": true
+    },
+    "find_panel_source": {
+      "buttons": [
+        "next",
+        "previous",
+        "all",
+        "replace",
+        "replace all",
+        "\u00d7"
+      ],
+      "checkboxes": [
+        "case",
+        "re",
+        "word"
+      ],
+      "findField": true,
+      "replaceField": true
+    },
+    "settings_ctrlp_blocked": true,
+    "reading_escape_focus_restored": true,
+    "dirty_indicator_shown_while_typing": true,
+    "dirty_buffer_quickopen_escape": {
+      "tokenIntact": true,
+      "focusInEditor": true,
+      "stillDirty": true
+    },
+    "autosave_persists_to_disk": true,
+    "dirty_again_before_explicit_save": true,
+    "explicit_save": {
+      "indicatorCleared": true,
+      "tokenOnDisk": true
+    },
+    "tab_switch_preserves_text": true,
+    "search_case_insensitive_default": {
+      "resultPaths": [
+        "notes/Alpha.mdx"
+      ],
+      "count": 1,
+      "alert": null,
+      "empty": false
+    },
+    "search_regex": {
+      "resultPaths": [
+        "notes/Alpha.mdx"
+      ],
+      "count": 1,
+      "alert": null,
+      "empty": false
+    },
+    "search_path_filter": {
+      "resultPaths": [
+        "notes/Alpha.mdx"
+      ],
+      "count": 1,
+      "alert": null,
+      "empty": false
+    },
+    "search_file_filter": {
+      "resultPaths": [
+        "notes/Second.mdx"
+      ],
+      "count": 1,
+      "alert": null,
+      "empty": false
+    },
+    "search_tsx_coverage_miss": true,
+    "search_invalid_regex": {
+      "resultPaths": [],
+      "count": 0,
+      "alert": "Invalid regex search: missing closing slash.",
+      "empty": false
+    },
+    "search_deep_match_reveal": {
+      "fixtureNeedleLine": 801,
+      "fixtureTotalLines": 1602,
+      "caretLineAfterOpen": 1603,
+      "revealedToSectionHeading": false,
+      "matchItselfSelected": false
+    }
+  },
+  "navigationMatrix": [
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "note Source",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+P Escape",
+      "surface": "note Source",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": "focus returns to editor"
+    },
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "note Live",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "plain .tsx text editor",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "explorer",
+      "focus": "tree focus",
+      "outcome": "pass",
+      "note": "focused by clicking the notes tree row"
+    },
+    {
+      "shortcut": "Ctrl+P repeat",
+      "surface": "picker open",
+      "focus": "picker input",
+      "outcome": "pass",
+      "note": "modal guard keeps the picker; no second action"
+    },
+    {
+      "shortcut": "Ctrl+P Enter",
+      "surface": "second ranked option",
+      "focus": "picker input",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+F find",
+      "surface": "note Source",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": "selection='sharp'"
+    },
+    {
+      "shortcut": "Ctrl+F Escape",
+      "surface": "note Source",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+F find",
+      "surface": "note Live",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": "selection='sharp'"
+    },
+    {
+      "shortcut": "Ctrl+F find",
+      "surface": "plain .tsx text editor",
+      "focus": "editor focus",
+      "outcome": "pass",
+      "note": "selection='Probe' (case-insensitive default)"
+    },
+    {
+      "shortcut": "Ctrl+F",
+      "surface": "explorer",
+      "focus": "tree focus",
+      "outcome": "pass",
+      "note": "no panel opens; unbound outside editors"
+    },
+    {
+      "shortcut": "Ctrl+Shift+F",
+      "surface": "project search",
+      "focus": "note Source editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+Shift+F",
+      "surface": "project search",
+      "focus": "note Live editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+Shift+F",
+      "surface": "project search",
+      "focus": "plain .tsx editor focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+Shift+F",
+      "surface": "project search",
+      "focus": "tree focus",
+      "outcome": "pass",
+      "note": ""
+    },
+    {
+      "shortcut": "Ctrl+Shift+F",
+      "surface": "quick-open picker open",
+      "focus": "picker input",
+      "outcome": "pass",
+      "note": "modal guard keeps the picker open"
+    },
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "settings surface",
+      "focus": "settings dialog",
+      "outcome": "pass",
+      "note": "modal guard: picker does not open above Settings"
+    },
+    {
+      "shortcut": "Ctrl+P",
+      "surface": "reading surface",
+      "focus": "reading content",
+      "outcome": "pass",
+      "note": "Reading has no editor; Workspace context dispatches"
+    }
+  ],
+  "fixture": {
+    "vault": "C:\\Users\\terasumi\\AppData\\Local\\Temp\\mdx-vault-dx-audit-8x0qhpn7",
+    "largeFileLines": 1602,
+    "needleLine": 801
+  }
+}

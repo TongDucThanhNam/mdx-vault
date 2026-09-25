@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VLXD Product-Variant Model — Interactive Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+
+/* ============================================================
+   FORMAT B — INTERACTIVE NOTE
+   body SCROLL tự do → random access, Ctrl+F, skim được
+   ============================================================ */
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Lora",serif;
+}
+
+.masthead{
+  position:sticky; top:0; z-index:50; height:40px;
+  padding:0 1.5rem; background:var(--ink);
+  border-bottom:2px solid var(--ink);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+
+.page{max-width:820px;margin:0 auto;padding:2.5rem 2rem 6rem}
+
+.frontmatter{
+  font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.7;
+  background:var(--paper-dark);border:2px solid var(--ink);
+  padding:1rem 1.2rem;margin-bottom:2.5rem;white-space:pre;overflow-x:auto;
+}
+.frontmatter .k{color:var(--accent);font-weight:700}
+.frontmatter .v{color:var(--result)}
+
+h1{font-family:"Playfair Display",serif;font-size:2.5rem;font-weight:900;line-height:1.15;margin-bottom:.4rem}
+.subtitle{font-family:"Courier Prime",monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:2rem}
+
+h2{font-family:"Playfair Display",serif;font-size:1.7rem;font-weight:700;margin:3rem 0 1rem;padding-top:1rem;border-top:2px solid var(--ink);scroll-margin-top:56px}
+h2 .tag{
+  font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700;
+  vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.6rem;
+  background:var(--ink);color:var(--paper);text-transform:uppercase;
+}
+h2 .tag.w{background:var(--accent)}
+h2 .tag.e{background:var(--result)}
+
+p{font-size:1rem;line-height:1.85;margin-bottom:.9rem;color:#222}
+strong{color:var(--ink)}
+code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:2px 7px;font-size:.85rem}
+.formula-line{font-family:"Courier Prime",monospace;font-size:1.05rem;background:var(--paper);border:2px solid var(--ink);padding:.7rem 1rem;margin:.8rem 0;display:block;box-shadow:3px 3px 0 var(--ink)}
+.highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem;line-height:1.65}
+.highlight-box strong{color:var(--accent)}
+.superseded-box{background:#f5d5d5;border:3px solid var(--accent);border-left:6px solid var(--accent);padding:1rem 1.2rem;margin:1rem 0 2rem;font-size:.92rem;line-height:1.7}
+.superseded-box strong{color:var(--accent);font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:.4rem}
+
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;text-align:left;background:var(--ink);color:var(--paper);padding:.5rem .7rem}
+td{border:1px solid var(--ink);padding:.55rem .7rem;line-height:1.55;vertical-align:top}
+tr:nth-child(even) td{background:var(--paper-dark)}
+
+.mm-grid{display:grid;grid-template-columns:130px 1fr;border:2px solid var(--ink);margin:1rem 0}
+.mm-grid>div{padding:.6rem .9rem;font-size:.9rem;line-height:1.6;border-bottom:1px solid var(--line)}
+.mm-grid>div:nth-last-child(-n+2){border-bottom:none}
+.mm-key{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;background:var(--paper-dark);border-right:2px solid var(--ink);display:flex;align-items:center}
+.mm-key.conflict{color:var(--accent)}
+
+.trace{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.9;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.3rem;margin:1rem 0;white-space:pre;overflow-x:auto}
+.trace .hit{color:var(--result);font-weight:700}
+.trace .miss{color:var(--accent);font-weight:700}
+
+/* ===== WIDGET FRAME ===== */
+.widget{border:2px solid var(--ink);box-shadow:var(--shadow);margin:1.4rem 0 2rem;background:var(--paper)}
+.widget-head{display:flex;justify-content:space-between;align-items:center;padding:.55rem 1rem;background:var(--paper-dark);border-bottom:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.widget-status{background:var(--ink);color:var(--paper);padding:.15rem .6rem;font-size:.7rem}
+.widget-body{padding:1.3rem}
+.widget-misconception{font-family:"Courier Prime",monospace;font-size:.75rem;padding:.45rem 1rem;border-bottom:2px dashed var(--line);background:var(--paper)}
+.widget-misconception b{color:var(--accent)}
+
+.gate{border:2px dashed var(--accent);padding:1rem 1.2rem;margin-bottom:1.2rem;background:var(--paper)}
+.gate-q{font-family:"Lora",serif;font-size:.95rem;margin-bottom:.8rem;line-height:1.6}
+.gate-q b{color:var(--accent)}
+.gate-opts{display:flex;gap:.6rem;flex-wrap:wrap}
+.gate-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.8rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.gate-btn:hover{background:var(--ink);color:var(--paper)}
+.gate-btn.chosen{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:none;transform:translate(2px,2px)}
+.gate-verdict{margin-top:.9rem;font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.7;display:none;padding:.7rem 1rem;border:2px solid var(--ink);background:var(--paper-dark)}
+.gate-verdict.show{display:block}
+.gate-verdict .right{color:var(--result);font-weight:700}
+.gate-verdict .wrong{color:var(--accent);font-weight:700}
+
+.lab-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.82rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.lab-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.lab-btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.lab-btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lab-btn.accent:hover:not(:disabled){background:#b71c1c}
+.lab-btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.lab-slider{-webkit-appearance:none;width:150px;height:4px;background:var(--ink);outline:none;cursor:pointer}
+.lab-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);border:2px solid var(--ink);cursor:pointer}
+.slider-label{font-family:"Courier Prime",monospace;font-size:.82rem;text-transform:uppercase;letter-spacing:1px}
+.controls-row{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--ink)}
+
+/* ===== TIER 2 — STATIC VISUALS ===== */
+.ascii-flow{font-family:"Courier Prime",monospace;font-size:.82rem;line-height:1.55;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;white-space:pre;overflow-x:auto;box-shadow:3px 3px 0 var(--ink)}
+.ascii-flow .good{color:var(--result);font-weight:700}
+.ascii-flow .bad{color:var(--accent);font-weight:700}
+.ascii-flow .box{color:var(--ink);font-weight:700}
+.er-diagram{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.45;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;white-space:pre;overflow-x:auto;box-shadow:3px 3px 0 var(--ink)}
+.er-diagram .pk{color:var(--accent);font-weight:700}
+.er-diagram .fk{color:var(--result);font-weight:700}
+.ascii-mockup{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.5;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;white-space:pre;overflow-x:auto;box-shadow:3px 3px 0 var(--ink)}
+.tenant-diagram{font-family:"Courier Prime",monospace;font-size:.82rem;line-height:1.55;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;white-space:pre;overflow-x:auto;box-shadow:3px 3px 0 var(--ink)}
+.tenant-diagram .shared{color:var(--result);font-weight:700}
+.tenant-diagram .a{color:var(--accent);font-weight:700}
+.tenant-diagram .b{color:#2b5797;font-weight:700}
+
+.primer{border:2px dashed var(--ink);padding:.8rem 1.1rem;margin:0 0 2.2rem;background:var(--paper)}
+.primer-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.primer-row{font-size:.88rem;line-height:1.7;margin:.3rem 0}
+.primer-row b{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--paper-dark);padding:1px 6px;border:1px solid var(--ink)}
+.primer-row a{color:var(--result);font-weight:700;text-decoration:none;font-family:"Courier Prime",monospace;font-size:.72rem;white-space:nowrap}
+
+/* WAC slider widget */
+.wac-display{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.wac-pane{border:2px solid var(--ink);padding:.8rem 1rem;background:var(--paper-dark)}
+.wac-pane-title{font-family:"Courier Prime",monospace;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+.wac-row{display:grid;grid-template-columns:90px 1fr;gap:.5rem;font-family:"Courier Prime",monospace;font-size:.8rem;margin:.25rem 0;align-items:center}
+.wac-num{font-weight:700;color:var(--ink)}
+.wac-num.delta-up{color:var(--accent)}
+.wac-num.delta-down{color:var(--result)}
+.wac-summary{font-family:"Courier Prime",monospace;font-size:.9rem;background:var(--paper);border:2px solid var(--ink);padding:.6rem 1rem;margin-top:.8rem;text-align:center;box-shadow:2px 2px 0 var(--ink)}
+.wac-summary b{color:var(--accent);font-size:1.1rem}
+
+.evidence-empty{font-family:"Courier Prime",monospace;font-size:.82rem;color:var(--accent);font-weight:700}
+.cmd{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--ink);color:var(--paper);padding:.6rem .9rem;display:block;margin:.4rem 0;white-space:pre;overflow-x:auto}
+
+.q-item{border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.q-head{padding:.8rem 1rem;font-size:.95rem;line-height:1.6;display:flex;gap:.8rem;align-items:baseline}
+.q-level{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;background:var(--ink);color:var(--paper);padding:.15rem .5rem;white-space:nowrap;text-transform:uppercase;letter-spacing:1px}
+.q-actions{padding:0 1rem .8rem}
+.q-answer{display:none;border-top:2px dashed var(--line);padding:.8rem 1rem;font-size:.9rem;line-height:1.7;background:var(--paper-dark)}
+.q-answer.show{display:block}
+
+.links-list{list-style:none}
+.links-list li{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:2}
+.links-list a,.wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+
+.note-meta{font-family:"Courier Prime",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:4rem;padding-top:1rem;border-top:2px solid var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">VLXD · business-analyst · domain</span>
+  <span class="brand-sub">Interactive Note · Format B · Superseded</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">vlxd-product-variant-model</span>
+<span class="k">type:</span> <span class="v">concept</span>   <span class="k">layer:</span> <span class="v">domain/inventory</span>   <span class="k">priority:</span> <span class="v">P1</span>
+<span class="k">maturity_target:</span> <span class="v">L2</span>   <span class="k">current_maturity:</span> <span class="v">L1</span>
+<span class="k">labs:</span> <span class="v">—</span>
+<span class="k">review_interval_days:</span> <span class="v">30</span>   <span class="k">next_review:</span> <span class="v">2026-08-12</span></div>
+
+<h1>VLXD Product-Variant Model</h1>
+<div class="subtitle">Day 0 · Layer 1/2 · Concept Note · SUPERSEDED 2026-07-12</div>
+
+<div class="superseded-box">
+  <strong>⚠ SUPERSEDED (2026-07-12)</strong>
+  Note này dùng WAC + <code>avg_cost</code> trên variant. Mô hình CANONICAL của VLXD là
+  <strong>FIFO cost layer</strong> (xem <code>business-analyst/domain/06-inventory-fifo.md</code>, INV-07);
+  Variant <strong>KHÔNG</strong> có field giá vốn nhập tay (<code>business-analyst/01-master-data.md §4.9</code>).
+  Giữ note để tham khảo tư duy Product/Variant/Batch, <strong>KHÔNG dùng WAC làm chuẩn
+  triển khai</strong>. Quyết định:
+  <span class="wikilink">[[VLXD Decision - Product-Variant Cost and Brand]]</span>.
+</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa — lần đầu: đọc 30 giây · đọc lại: bỏ qua</div>
+  <div class="primer-row"><b>Variant</b> — danh tính hàng hóa (một cấu hình cụ thể của Product). Không phụ thuộc giá nhập hay lô. <a href="#variant-la-gi">↓ §1</a></div>
+  <div class="primer-row"><b>Batch (Lô nhập)</b> — một lần nhập kho: <code>qty_received</code>, <code>unit_cost</code>, <code>received_at</code>. <a href="#batch-la-gi">↓ §1</a></div>
+  <div class="primer-row"><b>WAC</b> — Weighted Average Cost. Giá vốn bình quân gia quyền = (Σ qty_i × unit_cost_i) / Σ qty_i. <a href="#wac-formula">↓ §2.2</a></div>
+  <div class="primer-row"><b>Snapshot</b> — lưu giá trị tại thời điểm phát sinh để sau này không bị tính lại khi state gốc đổi. <a href="#snapshot-warning">↓ §3.2</a></div>
+  <div class="primer-row" style="font-size:.78rem;opacity:.7;font-family:'Courier Prime',monospace">Kiến thức nền assume sẵn (không giải thích lại): SQL/ER cơ bản, vai trò Manager/Staff trong bán lẻ VLXD, khái niệm <code>current_stock</code>. → prerequisites trong frontmatter.</div>
+</div>
+
+<h2 id="one-liner">One-liner <span class="tag">[T]</span></h2>
+<p><strong>Vấn đề cốt lõi không phải là "có tạo variant mới không" — mà là bạn đang nhầm lẫn giữa <em>danh tính hàng hóa</em> và <em>lịch sử nhập hàng</em>. Tách thêm tầng Lô nhập (Batch) + dùng WAC để giải quyết.</strong></p>
+
+<h2 id="mental-model">Mental Model <span class="tag">[T]</span></h2>
+<div class="mm-grid">
+  <div class="mm-key">Extends</div>
+  <div>Mô hình Product/Item đơn giản: tách <strong>Product</strong> (loại hàng: "Ván ép") khỏi <strong>Variant</strong> (cấu hình cụ thể: "1m×2m, dày 6mm, NSX Nam Hưng"). Thêm tầng <strong>Batch</strong> bên dưới Variant.</div>
+  <div class="mm-key conflict">Conflicts</div>
+  <div>Tư duy "Variant = danh tính + giá nhập + tồn kho theo lô" — Variant KHÔNG chứa thông tin giá-vốn-lô. Mỗi lần nhập là MỘT dòng lịch sử, không phải một biến thể hàng hóa mới. <em>(correction được widget 1 phơi bày — không spoil ở đây)</em></div>
+  <div class="mm-key">Requires</div>
+  <div>Hiểu khái niệm bảng quan hệ (FK), trigger cập nhật giá trị dẫn xuất (avg_cost) khi insert batch, và pattern snapshot trên dòng dữ liệu lịch sử (OrderItem).</div>
+  <div class="mm-key">Misapplication</div>
+  <div>Dùng WAC khi cần biết <em>đúng từng xu nhập vào lãi/lỗ</em> (kiểu kế toán quản trị theo lô) — sai vì WAC trộn lẫn các lô. Áp dụng cho ngành có FIFO bắt buộc (dược phẩm, hóa chất) — sai vì pháp lý đòi tracking từng lô.</div>
+</div>
+
+<h2 id="diagnosis">Chẩn đoán bệnh gốc rễ <span class="tag">[T]</span></h2>
+<p>Câu hỏi "Lô cũ 100k, lô mới 120k → có tạo variant mới không?" xuất phát từ việc <strong>nhét quá nhiều trách nhiệm vào Variant</strong>.</p>
+
+<div class="ascii-flow"><span class="bad">❌ Tư duy sai</span>
+  <span class="box">Variant</span> = danh tính + giá nhập + tồn kho theo lô
+
+<span class="good">✅ Tư duy đúng</span>
+  <span class="box">Variant</span>      = danh tính thuần túy
+  <span class="box">Batch</span>        = lịch sử nhập theo từng lô
+  <span class="box">WAC</span>          = giá vốn tại thời điểm bán</div>
+
+<h3 id="variant-la-gi">Variant là gì?</h3>
+<p>Là câu trả lời cho: <em>"Đây là loại hàng gì?"</em></p>
+<p>Ván ép · khổ 1m×2m · dày 6mm · NSX Nam Hưng → <strong>1 variant duy nhất, mãi mãi</strong>.</p>
+
+<h3 id="batch-la-gi">Batch là gì?</h3>
+<p>Là câu trả lời cho: <em>"Lần này nhập bao nhiêu, giá bao nhiêu?"</em></p>
+<ul style="margin:.6rem 0 .9rem 1.5rem;font-family:'Courier Prime',monospace;font-size:.88rem;line-height:1.7">
+  <li>Lô 15/05: 200 tấm @ 100k → 1 batch record</li>
+  <li>Lô 20/05: 150 tấm @ 120k → 1 batch record khác</li>
+</ul>
+
+<h2 id="data-model">Data Model — từ UX ngược về DB <span class="tag">[T]</span></h2>
+
+<h3 id="er-diagram">Sơ đồ thực thể</h3>
+<div class="er-diagram"><span class="pk">PRODUCT</span> ||--o{ VARIANT : "có nhiều"
+<span class="pk">PRODUCT</span> {
+  uuid  id
+  string name
+  string description
+  string usage
+  uuid  category_id
+}
+
+VARIANT ||--o{ VARIANT_ATTRIBUTE  : "có"
+VARIANT ||--o{ <span class="fk">INVENTORY_BATCH</span> : "nhập theo lô"
+VARIANT ||--o{ <span class="fk">ORDER_ITEM</span>     : "được bán"
+<span class="pk">VARIANT</span> {
+  uuid    id
+  uuid    product_id           <span class="fk">→ PRODUCT</span>
+  string  sku
+  decimal selling_price
+  decimal <span class="bad">avg_cost</span>          <em>(deprecated 2026-07-12)</em>
+  int     current_stock
+  string  barcode
+}
+
+ATTRIBUTE_DEFINITION ||--o{ VARIANT_ATTRIBUTE : "định nghĩa"
+ATTRIBUTE_DEFINITION {
+  uuid   id
+  string name
+  string unit
+}
+
+VARIANT_ATTRIBUTE {
+  uuid variant_id              <span class="fk">→ VARIANT</span>
+  uuid attribute_definition_id <span class="fk">→ ATTRIBUTE_DEFINITION</span>
+  string value
+}
+
+INVENTORY_BATCH {
+  uuid    id
+  uuid    variant_id           <span class="fk">→ VARIANT</span>
+  uuid    purchase_order_id    <span class="fk">→ PURCHASE_ORDER</span>
+  decimal unit_cost
+  int     qty_received
+  int     qty_remaining
+  date    received_at
+}
+
+PURCHASE_ORDER ||--o{ INVENTORY_BATCH : "chứa"
+PURCHASE_ORDER {
+  uuid   id
+  uuid   supplier_id
+  date   order_date
+  string status
+}</div>
+
+<div class="highlight-box"><strong>Tại sao <code>avg_cost</code> nằm trên Variant?</strong> Đây là giá vốn bình quân gia quyền (WAC) — được cập nhật mỗi lần nhập. Nó là snapshot hiện tại, dùng để tính lợi nhuận khi bán. Không cần join vào Batch mỗi lần xuất hóa đơn. <em>[Lưu ý: trong model canonical, field này bị loại bỏ — xem SUPERSEDED note phía trên.]</em></div>
+
+<h3 id="wac-formula">Giải bài toán giá — Phương pháp WAC</h3>
+<p>Khi nhập lô mới, hệ thống tự tính lại <code>avg_cost</code> theo công thức:</p>
+<div class="formula-line">avg_cost_mới = (tồn_hiện_tại × avg_cost_cũ + qty_mới × giá_nhập_mới)
+                            ─────────────────────────────────────────────────────
+                                        (tồn_hiện_tại + qty_mới)</div>
+
+<p><strong>Ví dụ cụ thể — dữ liệu sẽ dùng cho Widget 1 bên dưới:</strong></p>
+<table>
+  <tr><th>Thời điểm</th><th>Tồn kho</th><th>avg_cost</th></tr>
+  <tr><td>Trước lô mới</td><td>50 tấm</td><td>100,000đ</td></tr>
+  <tr><td>Nhập lô mới</td><td>+80 tấm @ 120,000đ</td><td>—</td></tr>
+  <tr><td><em>Sau khi nhập</em></td><td><em>130 tấm</em></td><td><em>???</em> — <strong>dự đoán trước khi xem widget</strong></td></tr>
+</table>
+
+<div class="highlight-box"><strong>Tại sao không dùng FIFO?</strong> FIFO chính xác hơn nhưng phức tạp hơn nhiều (phải track <code>qty_remaining</code> từng batch khi bán). WAC là chuẩn phổ biến nhất tại Việt Nam cho bán lẻ VLXD — đơn giản, đủ chính xác, dễ kiểm toán.</div>
+
+<!-- WIDGET-1: WAC Recalculator — gate + slider -->
+<div class="widget" id="widget-wac">
+  <div class="widget-head">
+    <span>🎛 Widget 1 — WAC Recalculator</span>
+    <span class="widget-status" id="w1-status">LOCKED</span>
+  </div>
+  <div class="widget-misconception">
+    Misconception nhắm tới: <b>"Nhập giá cao hơn → tạo variant mới để giữ WAC cũ"</b>
+    và <b>"avg_cost mới = giá nhập mới"</b>. Thực tế: WAC trộn cả tồn cũ lẫn lô mới.
+  </div>
+  <div class="widget-body">
+
+    <div class="gate" id="w1-gate">
+      <div class="gate-q">
+        Cho trước: <b>tồn 50 tấm @ avg_cost 100,000đ</b>. Nhập lô mới <b>80 tấm @ 120,000đ</b>.
+        Theo công thức WAC, <b>avg_cost mới</b> của variant sau khi nhập là bao nhiêu?
+      </div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="100000">100,000đ (giữ nguyên)</button>
+        <button class="gate-btn" data-pred="112308">112,308đ (trộn)</button>
+        <button class="gate-btn" data-pred="120000">120,000đ (lô mới)</button>
+      </div>
+      <div class="gate-verdict" id="w1-verdict"></div>
+    </div>
+
+    <p style="font-family:'Courier Prime',monospace;font-size:.78rem;margin:.3rem 0 .7rem;opacity:.75">
+      ▸ Slider dưới đây là <b>honor-system</b>: dự đoán con số <i>trước khi kéo</i> — đây là cách duy nhất để biết bạn đã nội tâm hoá WAC.
+    </p>
+
+    <div class="wac-display">
+      <div class="wac-pane">
+        <div class="wac-pane-title">TRƯỚC KHI NHẬP (state ban đầu)</div>
+        <div class="wac-row"><span>Tồn hiện tại:</span><span class="wac-num">50 tấm</span></div>
+        <div class="wac-row"><span>avg_cost cũ:</span><span class="wac-num">100,000đ</span></div>
+        <div class="wac-row"><span>Giá trị tồn:</span><span class="wac-num">5,000,000đ</span></div>
+      </div>
+      <div class="wac-pane">
+        <div class="wac-pane-title">LÔ NHẬP MỚI (slider bên dưới)</div>
+        <div class="wac-row"><span>qty nhập:</span><span class="wac-num" id="w1-qty">80 tấm</span></div>
+        <div class="wac-row"><span>giá nhập:</span><span class="wac-num">120,000đ (cố định)</span></div>
+        <div class="wac-row"><span>Giá trị lô:</span><span class="wac-num" id="w1-lot-val">9,600,000đ</span></div>
+      </div>
+    </div>
+
+    <div class="wac-display" style="grid-template-columns:1fr;margin-top:0">
+      <div class="wac-pane" style="background:var(--paper)">
+        <div class="wac-pane-title">SAU KHI NHẬP (WAC mới)</div>
+        <div class="wac-row"><span>Tổng tồn:</span><span class="wac-num" id="w1-total">130 tấm</span></div>
+        <div class="wac-row"><span>Tổng giá trị:</span><span class="wac-num" id="w1-total-val">14,600,000đ</span></div>
+        <div class="wac-summary">
+          avg_cost mới = <b id="w1-new-cost">112,308đ</b>
+          &nbsp;<span style="opacity:.6;font-size:.78rem" id="w1-delta">(↑ 12,308đ so với cũ)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <span class="slider-label">qty nhập: <span id="w1-qty-label">80</span></span>
+      <input type="range" min="10" max="200" step="10" value="80" class="lab-slider" id="w1-slider" disabled>
+      <button class="lab-btn" id="w1-reset" disabled>Reset</button>
+    </div>
+  </div>
+
+  <div class="cmp-block" style="margin:0 1rem 1rem;border:2px solid var(--ink);background:var(--paper-dark);padding:.8rem 1rem">
+    <div class="cmp-divider">RECAP TĨNH — cho lần đọc thứ N, sau khi đã qua gate</div>
+    <p style="font-size:.9rem;line-height:1.7;margin:.4rem 0">
+      Công thức WAC: <code>avg_cost_mới = (tồn_cũ × avg_cost_cũ + qty_mới × giá_nhập_mới) / (tồn_cũ + qty_mới)</code>.
+      Khi <b>qty_mới</b> rất nhỏ so với <b>tồn_cũ</b>, <code>avg_cost_mới</code> gần như không đổi (WAC "đề kháng" với dao động giá nhập).
+      Khi <b>tồn_cũ = 0</b>, <code>avg_cost_mới = giá_nhập_mới</code> (trường hợp đặc biệt ở nhánh G của luồng Purchase).
+      <strong>Quan trọng:</strong> WAC KHÔNG trả lời "lô nào đã bán" — chỉ trả lời "giá vốn trung bình của <em>toàn bộ tồn hiện tại</em>".
+    </p>
+  </div>
+</div>
+
+<h2 id="backend-logic">Backend Logic — Luồng nghiệp vụ <span class="tag">[T]</span></h2>
+
+<h3>3.1 Luồng Nhập hàng (Purchase)</h3>
+<div class="trace">A  Staff tạo Phiếu nhập (chọn variant, qty, giá nhập)
+ ↓
+B  Tạo PurchaseOrder + PurchaseOrderItem
+ ↓
+C  Duyệt phiếu nhập (Manager approve)
+ ↓
+D  Tạo InventoryBatch record (unit_cost=120k, qty=80)
+ ↓
+E  Variant đã có tồn kho chưa?
+ ├─ Có  → F  Tính WAC mới (avg_cost = weighted average)
+ └─ Chưa → G  avg_cost = giá nhập lô này
+ ↓
+H  UPDATE variant SET avg_cost = WAC_mới, current_stock += qty
+ ↓
+I  Ghi InventoryTransaction (type=IN, unit_cost=120k)
+ ↓
+ ✅ Hoàn tất nhập kho</div>
+
+<h3>3.2 Luồng Bán hàng (POS Sale)</h3>
+<div class="trace">A  POS: Quét barcode / tìm variant
+ ↓
+B  Thêm vào giỏ (selling_price từ variant)
+ ↓
+C  Xác nhận đơn hàng
+ ↓
+D  Tạo Order + OrderItem
+   (unit_cost = variant.avg_cost <span class="hit">TẠI THỜI ĐIỂM BÁN</span>)
+ ↓
+E  UPDATE variant SET current_stock -= qty
+ ↓
+F  Ghi InventoryTransaction (type=OUT, unit_cost=avg_cost snapshot)
+ ↓
+G  In hóa đơn</div>
+
+<div class="highlight-box" id="snapshot-warning"><strong>Snapshot giá vốn khi bán</strong> — Bắt buộc lưu <code>unit_cost</code> vào <code>OrderItem</code> tại thời điểm bán. Nếu sau đó nhập thêm và WAC thay đổi, dữ liệu lịch sử lợi nhuận vẫn chính xác. <strong>Không được tính ngược lại.</strong></div>
+
+<!-- WIDGET-2: Snapshot Decision — gate cứng -->
+<div class="widget" id="widget-snap">
+  <div class="widget-head">
+    <span>🎛 Widget 2 — Snapshot Decision</span>
+    <span class="widget-status" id="w2-status">LOCKED</span>
+  </div>
+  <div class="widget-misconception">
+    Misconception nhắm tới: <b>"Có thể tính lại COGS/order cũ bằng WAC hiện tại"</b>
+    và <b>"OrderItem không cần unit_cost vì đã có variant.avg_cost"</b>.
+  </div>
+  <div class="widget-body">
+
+    <div class="gate" id="w2-gate">
+      <div class="gate-q">
+        Nhập lô mới làm WAC variant thay đổi từ <b>100,000đ</b> → <b>112,308đ</b>.
+        Một <code>OrderItem</code> bán ngày hôm qua đã snapshot <code>unit_cost = 100,000đ</code>.
+        Khi tính lợi nhuận đơn đó <b>hôm nay</b>, lấy giá trị nào?
+      </div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="snapshot">100,000đ — snapshot lúc bán</button>
+        <button class="gate-btn" data-pred="wac">112,308đ — WAC hiện tại</button>
+        <button class="gate-btn" data-pred="avg2">Trung bình (106,154đ)</button>
+      </div>
+      <div class="gate-verdict" id="w2-verdict"></div>
+    </div>
+
+    <div style="margin-top:1rem;padding:.8rem 1rem;background:var(--paper-dark);border:2px solid var(--ink);font-family:'Courier Prime',monospace;font-size:.82rem;line-height:1.7">
+      <b>Trace tay:</b><br>
+      ─ Đơn bán hôm qua: qty=10, selling_price=145,000đ, unit_cost=<span class="hit">100,000đ</span> (snapshot)<br>
+      ─ Lợi nhuận đơn đó = 10 × (145,000 − 100,000) = <span class="hit">450,000đ</span> — ĐÓNG BĂNG mãi mãi<br>
+      ─ Hôm nay WAC đổi 112,308đ. Nếu dùng WAC hiện tại: lợi nhuận = 10 × (145,000 − 112,308) = <span class="miss">326,920đ</span> — SAI<br>
+      ─ Lịch sử lợi nhuận <b>không được phép thay đổi</b> khi state hiện tại thay đổi.
+    </div>
+  </div>
+
+  <div class="cmp-block" style="margin:0 1rem 1rem;border:2px solid var(--ink);background:var(--paper-dark);padding:.8rem 1rem">
+    <div class="cmp-divider">RECAP TĮNH — cho lần đọc thứ N, sau khi đã qua gate</div>
+    <p style="font-size:.9rem;line-height:1.7;margin:.4rem 0">
+      <strong>Pattern: snapshot tại thời điểm phát sinh.</strong> OrderItem phải lưu <code>unit_cost</code>
+      riêng — không join sang <code>variant.avg_cost</code>. Nếu bạn join, bạn đang biến "lợi nhuận lịch sử"
+      thành "lợi nhuận hiện tại phủ lên", và bất kỳ lần nhập kho nào cũng sẽ <em>viết lại lịch sử</em> —
+      đây là loại bug khó truy vết nhất trong hệ thống kế toán.
+    </p>
+  </div>
+</div>
+
+<h2 id="ux">UX/UI — Thiết kế theo nghiệp vụ <span class="tag">[T]</span></h2>
+
+<h3>4.1 Màn hình quản lý Variant</h3>
+<div class="highlight-box" style="background:#dce6f5;border-color:var(--result)"><strong style="color:var(--result)">📟 Lab tương tác:</strong> Mockup §4.1 chỉ là sketch editorial. Để thấy UI render thật (role gating toggle, lịch sử lô động) → mở <span class="wikilink">[[vlxd-variant-ui-lab]]</span> (Format A Lab, dual-panel React render).</div>
+<div class="ascii-mockup">┌─────────────────────────────────────────────────────────┐
+│  Ván ép > Ván ép Nam Hưng 1m×2m 6mm                     │
+├────────────────────┬────────────────────────────────────┤
+│  Thuộc tính        │  Tồn kho &amp; Giá                     │
+│  ─────────────     │  ─────────────────────────────      │
+│  Khổ: 1m × 2m     │  Tồn hiện tại:    130 tấm           │
+│  Độ dày: 6mm       │  Giá vốn TB (WAC): 112,308đ        │
+│  NSX: Nam Hưng     │  Giá bán:         145,000đ         │
+│  Barcode: xxxxxxx  │  Biên lợi nhuận:  ~29%             │
+│                    │                                     │
+├────────────────────┴────────────────────────────────────┤
+│  Lịch sử lô nhập                               [+ Nhập] │
+│  ─────────────────────────────────────────────────────── │
+│  15/05  Lô #001  200 tấm  @ 100,000đ  Còn: 50 tấm      │
+│  20/05  Lô #002   80 tấm  @ 120,000đ  Còn: 80 tấm      │
+└─────────────────────────────────────────────────────────┘</div>
+
+<div class="highlight-box"><strong>UX insight:</strong> Staff thấy được <em>lịch sử lô nhập</em> nhưng khi bán chỉ thấy <em>1 giá bán duy nhất</em> — không bị rối. Manager thấy thêm WAC và biên lợi nhuận. Phân quyền theo role.</div>
+
+<h3>4.2 Màn hình POS — Tìm &amp; lọc Variant</h3>
+<div class="ascii-flow">A  Search box "ván ép"
+ ↓
+B  Kết quả: danh sách Product
+ ↓
+C  Lọc cascading theo attributes
+ ├─ D  Khổ:      1m×2m / 1.2m×2.4m
+ ├─ E  Độ dày:   6mm / 9mm / 12mm
+ └─ F  NSX:      Nam Hưng / Thái Lan
+ ↓
+G  → Highlight Variant match
+    → Enter / click để thêm vào đơn</div>
+
+<h2 id="multi-tenant">Kiến trúc Sync — Multi-tenant <span class="tag">[T]</span></h2>
+<div class="highlight-box"><strong>Điểm cần chú ý cho multi-tenant:</strong> Mỗi tenant (cửa hàng/chi nhánh) có <em>schema riêng</em> hoặc <code>tenant_id</code> trong mọi bảng. <code>avg_cost</code> và <code>current_stock</code> là <strong>per-tenant</strong> — không share giữa chi nhánh.</div>
+
+<div class="tenant-diagram">┌─────────────────────────────────────────────────────────────────┐
+│                <span class="shared">SHARED CATALOG (optional)</span>                  │
+│  Product master · Attribute definitions · Brand taxonomy         │
+└───────────────┬─────────────────────────────┬───────────────────┘
+                │ Sync catalog                │ Sync catalog
+                ▼                             ▼
+┌───────────────────────────┐  ┌───────────────────────────┐
+│ <span class="a">Tenant A — Cửa hàng Quận 1</span>   │  │ <span class="b">Tenant B — Bình Dương</span>     │
+│ variant.avg_cost = 112k   │  │ variant.avg_cost = 105k   │
+│ stock            = 130    │  │ stock            = 200    │
+│ POS / WMS / reports riêng │  │ POS / WMS / reports riêng │
+└───────────────────────────┘  └───────────────────────────┘</div>
+
+<h2 id="roadmap">Roadmap cho Fresher <span class="tag">[T]</span></h2>
+
+<div class="highlight-box"><strong>Thứ tự implement từ đơn giản đến phức tạp</strong></div>
+
+<p><strong>Phase 1 — Core (làm trước):</strong></p>
+<ol style="margin:.5rem 0 .9rem 1.5rem;line-height:1.7">
+  <li>Product + Variant + AttributeDefinition CRUD</li>
+  <li>Màn hình nhập kho đơn giản → cập nhật <code>current_stock</code> và <code>avg_cost</code></li>
+  <li>POS cơ bản: tìm variant → tạo Order → trừ tồn</li>
+</ol>
+
+<p><strong>Phase 2 — Chính xác hóa:</strong></p>
+<ol start="4" style="margin:.5rem 0 .9rem 1.5rem;line-height:1.7">
+  <li>Thêm <code>InventoryBatch</code> để lưu lịch sử lô nhập</li>
+  <li>Thêm <code>InventoryTransaction</code> để audit trail</li>
+  <li>Snapshot <code>unit_cost</code> vào <code>OrderItem</code></li>
+</ol>
+
+<p><strong>Phase 3 — Nâng cao:</strong></p>
+<ol start="7" style="margin:.5rem 0 .9rem 1.5rem;line-height:1.7">
+  <li>Báo cáo lợi nhuận theo thời gian</li>
+  <li>Cảnh báo tồn kho thấp</li>
+  <li>Multi-tenant isolation</li>
+</ol>
+
+<div class="highlight-box" style="border-color:var(--result);background:#dce6f5"><strong style="color:var(--result)">Kết luận:</strong> Không cần tạo variant mới khi giá thay đổi. Chỉ cần <strong>thêm Batch record</strong> + <strong>tính lại WAC</strong>. Đây là pattern chuẩn của mọi hệ thống ERP/POS — bạn đang đi đúng hướng khi đặt câu hỏi này sớm. <em>(Tuy nhiên: pattern này đã bị thay thế bởi FIFO cost layer trong canonical — xem SUPERSEDED ở đầu note.)</em></div>
+
+<h2 id="evidence">Evidence Log <span class="tag e">[E]</span></h2>
+<p>Con số WAC trong bảng §2.2 (112,308đ) là minh hoạ, chưa chạy benchmark thật trên dataset VLXD. <strong>Note đã SUPERSEDED — bảng này không cần điền thêm cho mục đích triển khai.</strong> Giữ trống để không giả lập evidence.</p>
+<table>
+  <tr><th>Benchmark</th><th>Lệnh / Nguồn</th><th>Kết quả</th></tr>
+  <tr><td>WAC recalculation (50@100k + 80@120k)</td><td><span class="cmd">(50*100000 + 80*120000) / 130
+= 14600000 / 130
+= 112307.69 → 112,308đ</span></td><td>Minh hoạ lý thuyết, không phải benchmark máy thật</td></tr>
+  <tr><td>So sánh WAC vs FIFO trên dataset thật</td><td>—</td><td class="evidence-empty">[ CHƯA CÓ — và không cần, do note SUPERSEDED ]</td></tr>
+  <tr><td>Snapshot unit_cost: drift trong báo cáo lợi nhuận khi WAC thay đổi</td><td>—</td><td class="evidence-empty">[ CHƯA CÓ — chuyển sang note FIFO mới ]</td></tr>
+</table>
+
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Trả lời từ trí nhớ <em>trước</em> khi bấm reveal. Sai → quay lại đúng section được link.</p>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>Variant đang có <code>current_stock = 50</code>, <code>avg_cost = 100,000đ</code>. Nhập lô mới 80 tấm @ 120,000đ. <code>avg_cost</code> sau nhập bằng bao nhiêu?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><strong>112,308đ</strong> — (50×100k + 80×120k) / 130 = 14,600,000 / 130 ≈ 112,307.69. <em>Lưu ý: KHÔNG bằng 120,000đ — WAC trộn lẫn giá cũ và mới.</em> (→ <a href="#wac-formula" class="wikilink">§2.2 WAC Formula</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 4</span><span>Một OrderItem bán ngày hôm qua có <code>unit_cost = 100,000đ</code> (snapshot lúc đó). Hôm nay WAC của variant đã tăng lên 112,308đ do nhập lô mới. Khi tính lợi nhuận đơn hàng đó hôm nay, lấy giá trị nào?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><strong>100,000đ (snapshot)</strong> — KHÔNG dùng WAC hiện tại. Lịch sử lợi nhuận phải đứng yên khi state gốc thay đổi. Nếu dùng WAC hiện tại, mọi báo cáo lợi nhuận sẽ "nhảy" mỗi lần nhập kho. (→ <a href="#snapshot-warning" class="wikilink">§3.2 Snapshot Warning</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 5</span><span>Hai chi nhánh cùng bán một Variant "Ván ép Nam Hưng 1m×2m 6mm". Có nên share chung <code>avg_cost</code> và <code>current_stock</code> giữa hai chi nhánh không? Tại sao?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><strong>KHÔNG.</strong> Hai chi nhánh nhập hàng độc lập với nhà cung cấp / thời điểm / giá khác nhau → <code>avg_cost</code> và <code>current_stock</code> là per-tenant. Chỉ share <em>Product master</em>, <em>Attribute definitions</em>, <em>Brand taxonomy</em> (catalog). (→ <a href="#multi-tenant" class="wikilink">§5 Multi-tenant</a>)</div>
+</div>
+
+<h2 id="links">Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>Supersedes / Canonical: <span class="wikilink">[[VLXD Decision - Product-Variant Cost and Brand]]</span></li>
+  <li>Replacement model: <span class="wikilink">[[business-analyst/domain/06-inventory-fifo]]</span> (FIFO cost layer — INV-07)</li>
+  <li>Master data rules: <span class="wikilink">[[business-analyst/01-master-data]] §4.9</span> (Variant không có field giá vốn nhập tay)</li>
+  <li>Prereq: <span class="wikilink">[[business-analyst/01-master-data]]</span>, <span class="wikilink">[[vlxd-pos-flow]]</span></li>
+  <li>Bridge: <span class="wikilink">[[vlxd-inventory-batch]]</span> (khái niệm Batch vẫn còn trong canonical, chỉ phương pháp giá thành đổi)</li>
+  <li>Source: VLXD Manager — phân tích Product-Variant (note nội bộ, đã superseded)</li>
+</ul>
+
+<div class="note-meta">Format B · 3 tầng medium: text / static visual / widget · 2/3 widget budget · prerequisite closure · spoiler ordering · body scrolls · STATUS: SUPERSEDED 2026-07-12</div>
+
+</main>
+<script>
+/* ============================================================
+   WIDGET 1 — WAC Recalculator
+   GATE (commit once) + PARAM slider (honor-system)
+   ============================================================ */
+(function(){
+  const W = { prediction: null };
+
+  const statusEl  = document.getElementById('w1-status');
+  const gateBtns  = document.querySelectorAll('#w1-gate .gate-btn');
+  const verdictEl = document.getElementById('w1-verdict');
+  const slider    = document.getElementById('w1-slider');
+  const btnReset  = document.getElementById('w1-reset');
+
+  const elQty      = document.getElementById('w1-qty');
+  const elQtyLbl   = document.getElementById('w1-qty-label');
+  const elLotVal   = document.getElementById('w1-lot-val');
+  const elTotal    = document.getElementById('w1-total');
+  const elTotalVal = document.getElementById('w1-total-val');
+  const elNewCost  = document.getElementById('w1-new-cost');
+  const elDelta    = document.getElementById('w1-delta');
+
+  const OLD_QTY  = 50;
+  const OLD_COST = 100000;
+  const NEW_PRICE = 120000;
+  const OLD_VAL   = OLD_QTY * OLD_COST; // 5,000,000
+
+  const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+
+  function render(qty){
+    const lotVal   = qty * NEW_PRICE;
+    const total    = OLD_QTY + qty;
+    const totalVal = OLD_VAL + lotVal;
+    const newCost  = totalVal / total;
+    const delta    = newCost - OLD_COST;
+    const deltaSign = delta >= 0 ? '↑' : '↓';
+    const deltaLabel = Math.abs(delta) >= 1000
+      ? Math.round(Math.abs(delta)/1000) + 'k'
+      : Math.round(Math.abs(delta)) + 'đ';
+
+    elQty.textContent     = qty + ' tấm';
+    elQtyLbl.textContent  = qty;
+    elLotVal.textContent  = fmt(lotVal);
+    elTotal.textContent   = total + ' tấm';
+    elTotalVal.textContent= fmt(totalVal);
+    elNewCost.textContent = fmt(Math.round(newCost));
+    elDelta.textContent   = '(' + deltaSign + ' ' + deltaLabel + ' so với cũ)';
+  }
+
+  function finishGate(){
+    const correct = (W.prediction === '112308');
+    if (correct) {
+      verdictEl.innerHTML =
+        'Bạn đoán <span class="right">' + fmt(parseInt(W.prediction)) + '</span> — ' +
+        'thực tế: <span class="right">112,308đ</span>. Đúng. WAC = (50×100k + 80×120k) / 130 = 112,308đ.';
+    } else {
+      const label = W.prediction === '100000' ? '100,000đ' : '120,000đ';
+      verdictEl.innerHTML =
+        'Bạn đoán <span class="wrong">' + label + '</span> — ' +
+        'thực tế: <span class="right">112,308đ</span>. ' +
+        (W.prediction === '100000'
+          ? 'WAC không "đóng băng" khi nhập lô mới — nó trộn lẫn tồn cũ với lô mới theo trọng số qty.'
+          : 'WAC không "reset" về giá nhập mới — phần tồn cũ 50 tấm @ 100k vẫn kéo trung bình xuống.');
+    }
+    verdictEl.classList.add('show');
+    statusEl.textContent = 'DONE';
+  }
+
+  gateBtns.forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      [slider, btnReset].forEach(x => x.disabled = false);
+      statusEl.textContent = 'READY';
+      finishGate();
+    });
+  });
+
+  slider.addEventListener('input', () => {
+    render(parseInt(slider.value, 10));
+  });
+
+  btnReset.addEventListener('click', () => {
+    slider.value = 80;
+    render(80);
+  });
+
+  // init display (controls disabled, gate LOCKED)
+  render(80);
+  statusEl.textContent = 'LOCKED';
+})();
+
+/* ============================================================
+   WIDGET 2 — Snapshot Decision (GATE cứng, commit MỘT LẦN)
+   ============================================================ */
+(function(){
+  const W = { prediction: null };
+  const statusEl  = document.getElementById('w2-status');
+  const gateBtns  = document.querySelectorAll('#w2-gate .gate-btn');
+  const verdictEl = document.getElementById('w2-verdict');
+
+  gateBtns.forEach(b => {
+    b.addEventListener('click', () => {
+      if (W.prediction !== null) return;
+      W.prediction = b.dataset.pred;
+      b.classList.add('chosen');
+      statusEl.textContent = 'DONE';
+      finish();
+    });
+  });
+
+  function finish(){
+    const p = W.prediction;
+    const right = '<span class="right">ĐÚNG</span>';
+    const wrong = '<span class="wrong">SAI</span>';
+    let html;
+    if (p === 'snapshot') {
+      html = 'Bạn chọn <b>snapshot 100,000đ</b> — ' + right + '. ' +
+             'OrderItem phải giữ nguyên giá trị tại thời điểm phát sinh. ' +
+             'Lịch sử lợi nhuận đóng băng, không bị viết lại khi variant.avg_cost thay đổi.';
+    } else if (p === 'wac') {
+      html = 'Bạn chọn <b>WAC hiện tại 112,308đ</b> — ' + wrong + '. ' +
+             'Đây là loại bug nguy hiểm nhất: mỗi lần nhập kho sẽ <em>viết lại</em> lịch sử lợi nhuận, ' +
+             'báo cáo P&amp;L "nhảy" không kiểm soát. Snapshot là bắt buộc.';
+    } else {
+      html = 'Bạn chọn <b>trung bình 106,154đ</b> — ' + wrong + '. ' +
+             'Không có cơ sở nào để trộn hai giá trị này. Snapshot là nguồn chân lý duy nhất cho dòng lịch sử.';
+    }
+    verdictEl.innerHTML = html;
+    verdictEl.classList.add('show');
+  }
+})();
+</script>
+</body>
+</html>

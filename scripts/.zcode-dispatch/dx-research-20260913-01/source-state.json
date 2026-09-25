@@ -1,0 +1,2347 @@
+{
+  "baseline": {
+    "kind": "paths",
+    "paths": [
+      "AGENTS.md",
+      "DESIGN.md",
+      "src",
+      "tests",
+      "scripts",
+      "goals",
+      "docs/research",
+      "docs/verification",
+      "docs/security.md",
+      "docs/architecture.md",
+      "package.json",
+      "bun.lock",
+      "biome.json",
+      "electron.vite.config.ts"
+    ],
+    "files": {
+      "AGENTS.md": {
+        "hash": "2631b798e1f49ced404d4db593c699361d60b3870b9f2e54e69e10527d16848e",
+        "size": 7054
+      },
+      "DESIGN.md": {
+        "hash": "d425c10be7737ffb9237bec44258306c902453c5a5e294851d405fbcc243f0fe",
+        "size": 13088
+      },
+      "src/main/env.d.ts": {
+        "hash": "46200102dec339a348070fb5b1f0d8e90cef117700410d803149d92aa59e8457",
+        "size": 197
+      },
+      "src/main/index.ts": {
+        "hash": "d4a51ebf25d1dce6608ec6e8dba99315ea3d70f406fc167beef75b675c90a1d6",
+        "size": 6613
+      },
+      "src/main/ipc/ai-ipc.ts": {
+        "hash": "db52cb7b3273416d74982431f7bbcff8b1ff91293cd25045ce1e2f4e0ec99d8f",
+        "size": 7441
+      },
+      "src/main/ipc/app-settings-ipc.ts": {
+        "hash": "22cf1ff628819cb1f5a0160b9f40b4780ced115aeb84c4282fcef6a0f72a3b3a",
+        "size": 8049
+      },
+      "src/main/ipc/bookmark-ipc.ts": {
+        "hash": "c7040921b2cf77fae016076557d02ee0a736cb4e68976edbcb23dde6896e5383",
+        "size": 1987
+      },
+      "src/main/ipc/export-ipc.ts": {
+        "hash": "a19d3f7073050af0c85f8c77740b2ea9ebaa60d64b44d34c93ce9316e84ecd48",
+        "size": 4999
+      },
+      "src/main/ipc/graph-ipc.ts": {
+        "hash": "d12d8fba2c8ecf2cdbf11c76757aa29792c4b6979bb2d4dd56362e3d017944af",
+        "size": 4776
+      },
+      "src/main/ipc/index-ipc.ts": {
+        "hash": "71f185e08336b68e0ec523d8d852edfd91c2ff2d4c13ec1c375032d93bd4689e",
+        "size": 3459
+      },
+      "src/main/ipc/interactive-authoring-ipc.ts": {
+        "hash": "68bf9490f24d91961e50195af4985191e69a1c32844d1d893a1939d39f60187e",
+        "size": 3128
+      },
+      "src/main/ipc/knowledge-ipc.ts": {
+        "hash": "e28c6a47e37d8db260e08dc59834ada2c4159b6ffd23e6c4150904943c4c0ae8",
+        "size": 6679
+      },
+      "src/main/ipc/sandbox-ipc.ts": {
+        "hash": "23705a2be8bc5196a1712499a1217a7fdb5e3842ee8a59a6168261ea803a2c0d",
+        "size": 6120
+      },
+      "src/main/ipc/vault-ipc.ts": {
+        "hash": "cf24cfcbc57d0ca85007c349d38845c5911eca8bb21da95c3df47807cd12b8c8",
+        "size": 14488
+      },
+      "src/main/ipc/window-ipc.ts": {
+        "hash": "c227b730134e74322af9e7aafa105bfb66ca671e68212eb34ce6d6bffe8e4b6e",
+        "size": 2826
+      },
+      "src/main/services/ai-approval-service.test.ts": {
+        "hash": "20459041f568df7d1c7600a8e1a8a099b39d8429ea2750d88ec7755e80d39d19",
+        "size": 3823
+      },
+      "src/main/services/ai-approval-service.ts": {
+        "hash": "48b54732483034361f7a8ea7cc564f80f0f8760991357283d83d72e32f3584c4",
+        "size": 2716
+      },
+      "src/main/services/ai-patch-engine.ts": {
+        "hash": "d78dfeb9ae721392a9c220c22df47cec01f9f2ccf3cddbeb1e60fb95332d1cc6",
+        "size": 9820
+      },
+      "src/main/services/ai-repair-loop.test.ts": {
+        "hash": "f67071cb39f9874a2537a0d18636c4f83f2e87660ac684fbd56c60f5515d568d",
+        "size": 1504
+      },
+      "src/main/services/ai-repair-loop.ts": {
+        "hash": "f96a0081d87a709490f74835f7140662a81ff13f131b93425a948be16dca4d1a",
+        "size": 5166
+      },
+      "src/main/services/ai-settings.ts": {
+        "hash": "4ed67d9ab69df81819f66ca3a80e21a1a9e78ef09acf3599594609bc06a08d9b",
+        "size": 7523
+      },
+      "src/main/services/ai-system-prompt.ts": {
+        "hash": "5e2ae43350b019f22c4a560a63bcd4d9c58021d64febc2a3f523c66ba6592568",
+        "size": 9167
+      },
+      "src/main/services/ai-tanstack-adapter.ts": {
+        "hash": "cf50f724d6691c521dd18376aef1fbef38307efe8fe335dc657bebdfd86b03fd",
+        "size": 21861
+      },
+      "src/main/services/ai-tools.ts": {
+        "hash": "f4c536c81256c730b503317a06356cc0fb85bc1643e0308a888792e92850126e",
+        "size": 8581
+      },
+      "src/main/services/app-settings.test.ts": {
+        "hash": "965b7ef523c6c640d22534918667eb07d471c886dfff7bc18ba47f1cbb4e2bf2",
+        "size": 13766
+      },
+      "src/main/services/app-settings.ts": {
+        "hash": "bf63eb8bc9d639095603a76592308eee4a5144e77d1d77577cf6df994f9762e6",
+        "size": 16096
+      },
+      "src/main/services/bookmark-service.ts": {
+        "hash": "d12b3bf5c2e10bcfab4711dccb2d6aa7ea71d6065f4d7d40ee4c107c62c8d077",
+        "size": 6233
+      },
+      "src/main/services/db-service.ts": {
+        "hash": "c143b1e4f4b0d43a11499c996a451fe4b02b3a26870fa0512d0cd8af99619eaf",
+        "size": 45159
+      },
+      "src/main/services/export-asset-collector.ts": {
+        "hash": "ee51fbfb950b32b04338435f13e49b6aca222c83ea4487a1bd620dc448c6bf18",
+        "size": 8309
+      },
+      "src/main/services/export-bundler.ts": {
+        "hash": "9d4c89a9f12afccf9aa1b6f34cded351f82957da99f4f021005dff8bd7a0b845",
+        "size": 10623
+      },
+      "src/main/services/export-ir.ts": {
+        "hash": "939d942b0b03ceae0e2c3622724db8db513c0f352ab236e0f23f43a740c626fc",
+        "size": 35654
+      },
+      "src/main/services/export-leak-check.ts": {
+        "hash": "9116b46313f58a0357893746ee609ed1cec8f608a928af5700c46e97b9bca014",
+        "size": 4025
+      },
+      "src/main/services/export-renderer.ts": {
+        "hash": "ffd1930aa38141ab3b0c553f2ebaec32e70d09fa8d17c1ddd8b2f50f50d12507",
+        "size": 614
+      },
+      "src/main/services/export-sandbox-bridge.ts": {
+        "hash": "6438e3003f8e41813d16b32442069d574da757f6e6fc23e5c58f4b46ffea4d15",
+        "size": 4516
+      },
+      "src/main/services/export-service.ts": {
+        "hash": "2154dc5d0bac8117e9555af2a1e80007371ab584aa4abddf7fc87c95fcf7532c",
+        "size": 22138
+      },
+      "src/main/services/export-static-snapshot.ts": {
+        "hash": "fc959c8d10f4d8762d126fde48452711ebfd3ffd2ac5f1023bcb88c42617cc76",
+        "size": 14787
+      },
+      "src/main/services/export-template.ts": {
+        "hash": "4cd9c1a09e9d70d07dc41ac6b8aaa1dc4ae64e066885aafec471745a1c19ce7e",
+        "size": 17196
+      },
+      "src/main/services/frontmatter-properties.ts": {
+        "hash": "a378374f7aeb4a2cb5860f0cd699ebfbe21678c22f76e9d21006c8ddb664f5f4",
+        "size": 15633
+      },
+      "src/main/services/graph-config-service.ts": {
+        "hash": "61f053e26268c1a333d88ebb1fa071d0959439ddf5ec4a8db5f0948ab8483e69",
+        "size": 3553
+      },
+      "src/main/services/graph-query-service.ts": {
+        "hash": "9cdfb44beba48e5133caafa5884137260a363dee6ccc8b21fe1edb54884f551d",
+        "size": 2311
+      },
+      "src/main/services/index-service.ts": {
+        "hash": "19128de078d6e3396a313d4a3b058091355be24302ed770d9ab57416526f97ab",
+        "size": 8144
+      },
+      "src/main/services/interactive-authoring-service.ts": {
+        "hash": "dd929fdffb9dc76e7c53f7de193a17790c84bd2070c507e4db82c212c41f0d22",
+        "size": 11056
+      },
+      "src/main/services/interactive-type-libraries.ts": {
+        "hash": "df777a473cb22dce24abbabf2775fbe7e51c46ed33150193efc4d1e5197b8681",
+        "size": 2806
+      },
+      "src/main/services/interactive-typecheck-service.ts": {
+        "hash": "75bc436c181a46b31bc45cb2eac5c5f1ab2cbf492313b92c0d42e7e6784cbb36",
+        "size": 1326
+      },
+      "src/main/services/property-service.ts": {
+        "hash": "f4cd06b559fc1c718887f57447929dbbaa4232e92cf105e0b6ea71c27973ff4b",
+        "size": 6379
+      },
+      "src/main/services/rename-plan.test.ts": {
+        "hash": "ae4531bfbf20444d09b9a23460d9356220d7cdf3e6bc0f6a1cb2f538e52783b7",
+        "size": 5731
+      },
+      "src/main/services/rename-plan.ts": {
+        "hash": "73dad5a4506db3cb41d90e40ca98864a9e51058d8a59ed001c430c67480d7354",
+        "size": 10639
+      },
+      "src/main/services/rename-service.ts": {
+        "hash": "d344b88248c33864e737004dd9ac00ecfe7bdaaa6aa3de7b4788e022023a52c0",
+        "size": 1329
+      },
+      "src/main/services/safe-path.ts": {
+        "hash": "b9bbcb88f8b430589267845c5954fc48c75f5cee26d66619652e15c64eedff2b",
+        "size": 498
+      },
+      "src/main/services/sandbox-document-protocol.ts": {
+        "hash": "c508996c0519ffe119810f261f64ff96cc5b41fbba842ad33f31a8585e7cb65c",
+        "size": 2818
+      },
+      "src/main/services/sandbox-service.goal05.test.ts": {
+        "hash": "6fcefbf58f8617fe3ca2bbc0f24959397f702cf96abd180c25397fd6b9fada8c",
+        "size": 6586
+      },
+      "src/main/services/sandbox-service.ts": {
+        "hash": "3b83f7cd69a4202d0ac7733342eb0952d842f158601b24b1187c76f83c2509c8",
+        "size": 34325
+      },
+      "src/main/services/sandbox-session.ts": {
+        "hash": "765651109df76c2d7ad38f33bbcb56b93c12111bb4fd899b57bbb6ff4198e0c0",
+        "size": 627
+      },
+      "src/main/services/test-user-data.ts": {
+        "hash": "e01973460f5a15b15b0315ecc482bdd053b5f546a31757b3c32f124cbde530d2",
+        "size": 1531
+      },
+      "src/main/services/vault-index-runtime.ts": {
+        "hash": "3bfdb39645c5f4989bee9fda20fcb3ba7cd2ddedb0dacf985eb213ffda5038b4",
+        "size": 7483
+      },
+      "src/main/services/vault-service.goal04.test.ts": {
+        "hash": "1b310f1b332e6ef0e0bd0b6f15479108002f8c867f11108a3198d00ce02be7ad",
+        "size": 2220
+      },
+      "src/main/services/vault-service.goal16.test.ts": {
+        "hash": "3717e1eeee70142ea16d472cdc367902e69291523f3171c0a2b69a89faf3a8f6",
+        "size": 9864
+      },
+      "src/main/services/vault-service.goal22.test.ts": {
+        "hash": "8990e9adfbe48ecef68abef66ea172e7cef24394f7ed4d4fe039efc42abbeb0e",
+        "size": 3029
+      },
+      "src/main/services/vault-service.listing.test.ts": {
+        "hash": "3a92c87b77c5d81272c5fbd8d8095dba5cb3950d6edf5488cea6b6336ca4a4aa",
+        "size": 3113
+      },
+      "src/main/services/vault-service.rename.test.ts": {
+        "hash": "c254a18d03d1b2898be7e5a6a23bdd68947ca7ab9a0350c9fcd4842d6bbb0d0b",
+        "size": 2927
+      },
+      "src/main/services/vault-service.ts": {
+        "hash": "4bd132eaa93f9386e5b421fa9460067491c75c11884ab1aea8e0f9d31d517c2e",
+        "size": 34673
+      },
+      "src/main/services/vault-session.ts": {
+        "hash": "f4b74756ed4688696be03c6c6ae23c1ce93921b771c420ab85dc435f2f895a9a",
+        "size": 2481
+      },
+      "src/main/window-shortcut-policy.ts": {
+        "hash": "d933c7bfa3dc40ebd5993953922c364b1511a6f5f1389f8cde4b664bc1b99aad",
+        "size": 4589
+      },
+      "src/preload/index.d.ts": {
+        "hash": "25dff7a2ada9756dd809c3cf1660f9071b30b1ac4865eeafc3263ce007cbffe2",
+        "size": 14044
+      },
+      "src/preload/index.ts": {
+        "hash": "6180a1c6a0360cd213b65229fe1f8e5d0acb9ea4b7480f5cc3821a7663416545",
+        "size": 18956
+      },
+      "src/renderer/index.html": {
+        "hash": "aaae4be1aaed497427c0fe7f4a680866196cf68bf6bb17a53d1fe3ea957cf744",
+        "size": 739
+      },
+      "src/renderer/src/App.tsx": {
+        "hash": "06e28b657ce3b29fb154c9d3dafdc60860696c70b988a42c47b246134c162cb1",
+        "size": 24102
+      },
+      "src/renderer/src/ai/assistant-client.ts": {
+        "hash": "a3cf2383aaa8fa864ec44b1a749278df53abaec761d9d7a7d9d550c02582c897",
+        "size": 4617
+      },
+      "src/renderer/src/ai/panels/AiComposer.tsx": {
+        "hash": "8d96f73d09d72c6bc6434824df6e342fd383dc93f05a6ae6a4619c3c4f118670",
+        "size": 2534
+      },
+      "src/renderer/src/ai/panels/AiContextBanner.tsx": {
+        "hash": "85ec60c13569ccc11f1279857547402ed8dc8f7d841861528919876a69e91575",
+        "size": 2309
+      },
+      "src/renderer/src/ai/panels/AiDiffReview.tsx": {
+        "hash": "6f10b79bc772434d49adb820e06da03f2a0f805373cefb785b6f466857c1046b",
+        "size": 4490
+      },
+      "src/renderer/src/ai/panels/AiMessageList.tsx": {
+        "hash": "57b71e4407108a0a7742f8e0624301973c097ebdeaef56aa52724c973a26a813",
+        "size": 6879
+      },
+      "src/renderer/src/ai/panels/AiSelectionActionPalette.tsx": {
+        "hash": "b2b7af04d6e19475e4a7e113eb97d9bded527b1edc5a2e3c15013914abbdbcf7",
+        "size": 6706
+      },
+      "src/renderer/src/ai/panels/AiSettingsPanel.tsx": {
+        "hash": "080a41b522d7ecb5578503d49988180f2f87d8fe4e93ccba87b36fbdd2734c51",
+        "size": 8979
+      },
+      "src/renderer/src/ai/panels/AiSidePanel.tsx": {
+        "hash": "edbe6323789a2561478846925b9da761b05df82efd32aa26a53aa055a1c0f97e",
+        "size": 14469
+      },
+      "src/renderer/src/ai/registry-hints.ts": {
+        "hash": "2341c4f1363d5035015f548f1d9e7cb3c6c3f335ac957be6753bcadfad85d7ed",
+        "size": 4808
+      },
+      "src/renderer/src/ai/runtime.ts": {
+        "hash": "0179f3b3a663826b22273a16d2ffcd8f7ce75f3701b4a1f988b9da50ff390f6b",
+        "size": 3065
+      },
+      "src/renderer/src/ai/selected-actions.ts": {
+        "hash": "1e8aec91906dc7c0f9e4832142a35958f359de7fed8b24d6878b5d3a5784a2e0",
+        "size": 2160
+      },
+      "src/renderer/src/ai/state/apply-event.ts": {
+        "hash": "1e79781e7607e1281f38fd1584b3ded634972a5976c708b75cc2ff8e4ce9dabf",
+        "size": 1550
+      },
+      "src/renderer/src/assets/base.css": {
+        "hash": "8799a5b8dd828d66e7dfd0d2b6d37894f418f78238b1a2ec053e2ada24aa79ed",
+        "size": 1372
+      },
+      "src/renderer/src/assets/electron.svg": {
+        "hash": "fb4e2a0e6a6d214b410cf320d725796a5dca53eacdcef031da125e10ede5f91b",
+        "size": 5822
+      },
+      "src/renderer/src/assets/main.css": {
+        "hash": "1afac7392482373ac85cd93d9d92bcf7b5b20a4d89130c58155a389d9c450611",
+        "size": 3023
+      },
+      "src/renderer/src/assets/wavy-lines.svg": {
+        "hash": "0e62c37fa5f5ba85499762705080ead1f9af3954439ece59661c3d389d826cb2",
+        "size": 1782
+      },
+      "src/renderer/src/commands/CommandPalette.tsx": {
+        "hash": "1292770375d8fe0d25c049059add2733f20e57ef4269127fefe9608dd2cf7420",
+        "size": 16386
+      },
+      "src/renderer/src/commands/actions.ts": {
+        "hash": "657c9663ab25d76120e2bd95ab01a4991314c0054e2d394ef922a96db6c35d82",
+        "size": 666
+      },
+      "src/renderer/src/commands/graph-actions.ts": {
+        "hash": "bd860232d084581170f67249bb251b6688052050dabebbb2d369ee10f7e2af0a",
+        "size": 1086
+      },
+      "src/renderer/src/commands/reading-full-view-action.ts": {
+        "hash": "1faf0f07b3c5f88beb79fde3a240d7a656b8d298c253e047aeb2e0aa7dee3724",
+        "size": 241
+      },
+      "src/renderer/src/commands/reading-zoom-actions.ts": {
+        "hash": "bb3a9f2b7e710cfbb1606fe2c33b9b1c1ca3df7b2d9a87c81dccd4e113652ab1",
+        "size": 1100
+      },
+      "src/renderer/src/components/AppLayout.tsx": {
+        "hash": "df1d5166c683612e6e21121520e582602f9713fa47b9e8b63a36976e463c0514",
+        "size": 15453
+      },
+      "src/renderer/src/components/AppMenuBar.tsx": {
+        "hash": "75b2cb78d15624ed967e95e94723308509bfffacf40842d0c89f126c19b71976",
+        "size": 12061
+      },
+      "src/renderer/src/components/AppStatusBar.tsx": {
+        "hash": "c77eb17dde4a82de7ee9124809b99e13273273500c173d52760d280685fb978c",
+        "size": 7316
+      },
+      "src/renderer/src/components/AppTopBar.tsx": {
+        "hash": "baa36285911b4af9c3167939f39ab23536b6e4b1c38ba0af3df5f4e35af01ac1",
+        "size": 3859
+      },
+      "src/renderer/src/components/ConfirmDialog.tsx": {
+        "hash": "edbcda70e1c269112240d85b5c24d9610c59c416075319675ea33213edd42114",
+        "size": 2838
+      },
+      "src/renderer/src/components/EmptyState.tsx": {
+        "hash": "58eae2182ffb905614b670bf1945534e7507ce831f75f163c72fc3ac073fcfac",
+        "size": 849
+      },
+      "src/renderer/src/components/SortMenu.tsx": {
+        "hash": "1cf47d03e7416e19c4e3cf9c2f603e3b2a7dbc755779e4270155d8c08dcc594a",
+        "size": 4194
+      },
+      "src/renderer/src/components/ToastView.tsx": {
+        "hash": "09332dbd3f8e063e46a8d201c47529215a00b8b105908b9d77fadd8f5ec2eeca",
+        "size": 1391
+      },
+      "src/renderer/src/components/ViewModeToggle.tsx": {
+        "hash": "660d5b6816ce8f36d724ecd91a99638d4a694afa149c750058c8a74a182982d3",
+        "size": 1956
+      },
+      "src/renderer/src/components/WindowControls.tsx": {
+        "hash": "f7ee971849b859db05074ab7cf980d586d3ae85b72c4add123f093e36fb19743",
+        "size": 2148
+      },
+      "src/renderer/src/components/layout/EditorHeader.tsx": {
+        "hash": "d84148b494184e64195fe84b616e12bfbebc4c5d3a88e62d57c8ec2c7163b1fb",
+        "size": 1859
+      },
+      "src/renderer/src/components/layout/EditorTabs.tsx": {
+        "hash": "a715464c72ace68fd4a30047a2edfa229cdf503dcde700e68a795d8a06c6e188",
+        "size": 19099
+      },
+      "src/renderer/src/components/layout/LeftPanel.tsx": {
+        "hash": "657ab01a8c673dafdad12dfd622d2002edd86929618a0428510f7a301a53babe",
+        "size": 4918
+      },
+      "src/renderer/src/components/layout/MainEditor.tsx": {
+        "hash": "d2d4ab04d2faaaa433f9abc1f5725de5e84a37db790acda6d29346e75ff7be7c",
+        "size": 16033
+      },
+      "src/renderer/src/components/layout/MruTabSwitcher.tsx": {
+        "hash": "847ed78b3d55453962098dd1a119d7acb40c1ae3476542b1b397ed5ac4cdf582",
+        "size": 7376
+      },
+      "src/renderer/src/components/layout/ResponsiveSupplementaryDock.tsx": {
+        "hash": "f69a136668618543eefcf55c439c9419392a45c7aac0d26dfab4728f0262d5ca",
+        "size": 5661
+      },
+      "src/renderer/src/components/layout/RightPanel.tsx": {
+        "hash": "7789cf920a2829d38ced1622017a4e04bcbcec036a13cbc9da689df76b451b46",
+        "size": 8092
+      },
+      "src/renderer/src/components/layout/VaultFilePreview.tsx": {
+        "hash": "5974a25d1e9baf0f42f2e95de70941c47748af1044e6e6749daa2d4031219a63",
+        "size": 2787
+      },
+      "src/renderer/src/components/layout/living-outline.ts": {
+        "hash": "a406ce66ef412d060283f1fa0898d45c6d00dd9fee86c388d77a71e5dc079b04",
+        "size": 2161
+      },
+      "src/renderer/src/components/layout/workspace-layout.ts": {
+        "hash": "944e223ab9060a3cc128fdae1e1e7be4db7d848c0495c944394f5e8737aebbe4",
+        "size": 2302
+      },
+      "src/renderer/src/components/titlebar-actions.ts": {
+        "hash": "5f53f3d86b44f8611938f61b9833a06032662cecec590ab3b60900aeded80be0",
+        "size": 233
+      },
+      "src/renderer/src/components/ui/alert-dialog.tsx": {
+        "hash": "d6ca5ace7e079377fa587e0cb47e03655aa18d154b80b544ba4a4c45ccca3ede",
+        "size": 3737
+      },
+      "src/renderer/src/components/ui/button.tsx": {
+        "hash": "b07daba46ef5c20ad984ba2195ea3757ebcda87517f822e5dc6c1760995f2f3c",
+        "size": 2373
+      },
+      "src/renderer/src/components/ui/dialog.tsx": {
+        "hash": "4084612cbf05257a15aaae3499e0217e06a621be6190d281a5b50e7993743b08",
+        "size": 4502
+      },
+      "src/renderer/src/editor/ComponentDefinitionPopover.tsx": {
+        "hash": "396232a6ebe2e936e049766e420e3f189463ad9f9cd418ef5554830e97ccbe62",
+        "size": 8174
+      },
+      "src/renderer/src/editor/ComponentInsertPalette.tsx": {
+        "hash": "0cc8243296729f7b5f536e48e879c9f8a210a6859d092255e1b8a20ca0383fa9",
+        "size": 4407
+      },
+      "src/renderer/src/editor/EditorAppearance.tsx": {
+        "hash": "e6328d55acf8511bfb8b19f03c356feee2b1104242ab9e3b4336628e3389c0d2",
+        "size": 9768
+      },
+      "src/renderer/src/editor/MdxEditor.tsx": {
+        "hash": "c8e280517aff0c3f7a244b4995d4683f539a8b8cecceb80fbfa718d1445981b3",
+        "size": 24881
+      },
+      "src/renderer/src/editor/SlashCommandPalette.tsx": {
+        "hash": "e3ce6a52c12c780f8c318c31906f35799811f9a2b58bac7f5cd219d28461b74a",
+        "size": 7198
+      },
+      "src/renderer/src/editor/TextFileEditor.tsx": {
+        "hash": "745f6dbc00a43542b536dbbbef267ace49f823c2ebb54214c05a0b0ca12a0d51",
+        "size": 6437
+      },
+      "src/renderer/src/editor/editor-analysis-client.ts": {
+        "hash": "708d8c442e3ca08718abf7d54156bc57d207776917579e3101736ce526387e80",
+        "size": 2824
+      },
+      "src/renderer/src/editor/editor-analysis.worker.ts": {
+        "hash": "a7af3c052d5fe7ed1582e24b06b65dec307518c9099d15a500c81a6e5621e8d2",
+        "size": 1288
+      },
+      "src/renderer/src/editor/editor-document.ts": {
+        "hash": "b50bcd9d4b05087745a1462eec34f4bde2a5e4498c798809f304b2b6c3d83d69",
+        "size": 147
+      },
+      "src/renderer/src/editor/editor-keymap.ts": {
+        "hash": "b09585d02eef0686e3ff8307e6fbd71e557005be0df260dbba3eaa8f582349a4",
+        "size": 1716
+      },
+      "src/renderer/src/editor/editor-preferences-context.ts": {
+        "hash": "8db7256761d06ba69123774f789e4a010ae36bb36588fcd5ce441f3a4efc36bb",
+        "size": 2289
+      },
+      "src/renderer/src/editor/editor-preferences.tsx": {
+        "hash": "215d92db87e1b25799458815b48140d1e72864e5b2a6ca22558b8d7b8ec49284",
+        "size": 2110
+      },
+      "src/renderer/src/editor/editor-selection.ts": {
+        "hash": "8d06f6ad559aab0aabdc59a3d9731a1fe545ded062fa0880a5e21cc38ace0109",
+        "size": 1731
+      },
+      "src/renderer/src/editor/editor-theme.ts": {
+        "hash": "8a846825900b38698bc452eac715c6adf71ea48a3631fdaeb9326c8d46ab0887",
+        "size": 11825
+      },
+      "src/renderer/src/editor/editor-view-state.ts": {
+        "hash": "fceafc38159eb5d8b29ccdf07544f2dc1277695315af052fdffd56031eb52c1f",
+        "size": 1911
+      },
+      "src/renderer/src/editor/goto-definition.ts": {
+        "hash": "833d0b763e45078b19c8d31283fb9bf0069fb3490a1a4378d28f8d8da06f04bd",
+        "size": 9068
+      },
+      "src/renderer/src/editor/live-preview.ts": {
+        "hash": "1a1d862e55fce054daf9d38fa5ea5a057161eb2d205c182ac16acfec16a8aac5",
+        "size": 20202
+      },
+      "src/renderer/src/editor/markdown-formatting.ts": {
+        "hash": "156020d2806c1cd745f72f74a0fc1c58495c843672b319b9aa437382933d45cd",
+        "size": 3381
+      },
+      "src/renderer/src/editor/mdx-highlight.ts": {
+        "hash": "39196adbd864dfe804373cebcad52dc7586ca2302a19ab8c037bd2cef1b8dfa3",
+        "size": 21876
+      },
+      "src/renderer/src/editor/mdx-language-intelligence.ts": {
+        "hash": "b8c260db14ef7c4a26a1c2366c6f39bbd1902ad52e3eb987fc1b6a1e34e52526",
+        "size": 3186
+      },
+      "src/renderer/src/editor/mdx-registry-intelligence.ts": {
+        "hash": "b4136d70e4ef56070304bb17e87fc7fb84a46b7616b077aca02d37cf9f620ae4",
+        "size": 8229
+      },
+      "src/renderer/src/editor/mdx-source-diagnostics.ts": {
+        "hash": "3b012dc347784c229846acff4841e56bcd60dc6a5cb76ad3d843d4f4cedbd9bb",
+        "size": 1262
+      },
+      "src/renderer/src/editor/source-editor-extensions.ts": {
+        "hash": "4b9918199579fb58c1bf382db48979b8d25a7e67a63bb4c8f6125051153c7ee9",
+        "size": 2799
+      },
+      "src/renderer/src/editor/source-editor-setup.ts": {
+        "hash": "4cff6729797765f0706fe6682af2f2bdf7fba4fd302c4526b627119936fca0d0",
+        "size": 1575
+      },
+      "src/renderer/src/env.d.ts": {
+        "hash": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+        "size": 38
+      },
+      "src/renderer/src/explorer/CreateNoteDialog.tsx": {
+        "hash": "a5925d26b6a985ca66ba84fa56120f5c0c968649fd6964b8df13244720397836",
+        "size": 7462
+      },
+      "src/renderer/src/explorer/FileTree.tsx": {
+        "hash": "1bdd74e1bfb2d0902fe47f194c7138cb0a96275f63755fbbcbe723f875ef2a31",
+        "size": 16624
+      },
+      "src/renderer/src/explorer/QuickSwitcher.tsx": {
+        "hash": "5341c4990976daddc0c5e0508ab4fa0baf815745f539e7aa993f305fef516da2",
+        "size": 16781
+      },
+      "src/renderer/src/explorer/create-note-path.ts": {
+        "hash": "ffa9fd51d7cfe9dbaf481f23eec605876833cb73a57a10ab1fe4811488fd2c59",
+        "size": 2035
+      },
+      "src/renderer/src/explorer/file-tree-activation.ts": {
+        "hash": "423e6365e79f18119ee256850cad11768cf544792496f61194527dbcc84e350e",
+        "size": 790
+      },
+      "src/renderer/src/export/ExportDialog.tsx": {
+        "hash": "9735d88b1d60c9bb10c1fb568fe3d090d9ebc4f73fa14e3c222b4fdcfe7c378c",
+        "size": 16432
+      },
+      "src/renderer/src/globals.css": {
+        "hash": "2fc1cc719561cab32cd30f5220a3e7923ad932b5761aa8446e256742eece5dfb",
+        "size": 17631
+      },
+      "src/renderer/src/graph/GraphNodeNavigator.tsx": {
+        "hash": "92c2dfdd1cf45c37f82850e514183b248805d9f949623be01ad1b079077370a6",
+        "size": 9183
+      },
+      "src/renderer/src/graph/GraphSettingsDialog.tsx": {
+        "hash": "919527a7cd59b8d9c088e7379c2144e2f250877104948b6b0fece965b8ea2fb1",
+        "size": 14834
+      },
+      "src/renderer/src/graph/GraphSurface.tsx": {
+        "hash": "ea65791f22d164c9106302abb0e927eb496764db3561c85004da5585eedba012",
+        "size": 19951
+      },
+      "src/renderer/src/graph/cytoscape-adapter.ts": {
+        "hash": "30def91a26dff5c8480c33c86ad7b088ce6115cf72d19168be905af624c00aab",
+        "size": 12933
+      },
+      "src/renderer/src/graph/graph-commands.ts": {
+        "hash": "ef977bec5b0fe05b067fa3906cc8f1a0bdf2239e2925b118cc995fe129118d7c",
+        "size": 895
+      },
+      "src/renderer/src/graph/graph-query-settings.ts": {
+        "hash": "05c3e76f90894ea600fd1a8cf1639d676222663f35b7482b379610c1ab56109d",
+        "size": 998
+      },
+      "src/renderer/src/graph/graph-request-coordinator.ts": {
+        "hash": "7049e1fc7a4e4e5ea27c62695cc976846c92ffedd380d8d7fde237bfd420d129",
+        "size": 499
+      },
+      "src/renderer/src/graph/graph-save-scheduler.ts": {
+        "hash": "3cfcb288291d71d06dc3d74d07810744b77d0a5d7dc590c9ec4dc454eaadb188",
+        "size": 911
+      },
+      "src/renderer/src/graph/graph-surface-state.ts": {
+        "hash": "44804117279c0e736deccf0ced74419d3ddf54c56005c26568aaa92922a24242",
+        "size": 1766
+      },
+      "src/renderer/src/graph/load-cytoscape.ts": {
+        "hash": "63855a64756b8bdc0d011640188cee9355de3c7dc1d5309a84816f7005f63d33",
+        "size": 176
+      },
+      "src/renderer/src/graph/local-graph-state.ts": {
+        "hash": "c351dac3fe0aece341036955aecbfb06a843bf84645ff815b3b85c7194939c0b",
+        "size": 804
+      },
+      "src/renderer/src/graph/use-graph-controller.ts": {
+        "hash": "becaf33451e07ccb4b6c651a9e5ec1d741f01d3af4bc8a3f6749e7da77defbdd",
+        "size": 9751
+      },
+      "src/renderer/src/hooks/useAppSettings.ts": {
+        "hash": "d30da3613ad44871fe38ed5a6a6155c4f7af46774b993de0297f1d3c18692c09",
+        "size": 4996
+      },
+      "src/renderer/src/hooks/useCommandActions.ts": {
+        "hash": "de391c05d56c132f45bd35140cdd1f4f7ca4e3f6955a478cdbd5cf12f38b022f",
+        "size": 13078
+      },
+      "src/renderer/src/hooks/useEditorInteractions.ts": {
+        "hash": "fa9bd249ab53e2bad0114c515169da4c29c0d5942b5a0e687cfec3dd5dbf6dec",
+        "size": 3769
+      },
+      "src/renderer/src/hooks/useGlobalSurface.ts": {
+        "hash": "a5b8c571f1096190fc99ebf28cb7422ae542c9716cd691b02ea4e11ca55bbd77",
+        "size": 3268
+      },
+      "src/renderer/src/hooks/useInteractiveAuthoring.ts": {
+        "hash": "7b542eeae6ee5008a76c8f4bff3e16415f6037f688b7e0135e9185b55a0824aa",
+        "size": 5463
+      },
+      "src/renderer/src/hooks/useInteractiveProject.ts": {
+        "hash": "d5e3b4485b1d820f191cfe6b35ae170dd6cb11a3384eefa79aaba7784e276b24",
+        "size": 13229
+      },
+      "src/renderer/src/hooks/useInteractiveProof.ts": {
+        "hash": "f5264f8cbba86ac04ae4b4af2ac3dda0ee91b2124efc71dd1e46fd915a34c95f",
+        "size": 8028
+      },
+      "src/renderer/src/hooks/useInterfacePreferences.ts": {
+        "hash": "d9ff7ebf7fca0aeb613725ac9a92f0cff42dbf7b75c371f2c708ac3cac4dee42",
+        "size": 457
+      },
+      "src/renderer/src/hooks/useKeyboardShortcuts.ts": {
+        "hash": "c24bcb60b2a716d938cd78791431ba17271348379741cf3f2fe4e4c5bf568a0c",
+        "size": 6531
+      },
+      "src/renderer/src/hooks/useKnowledgeUtilities.ts": {
+        "hash": "0de864a3b02fa9ad72a25377491f424f8f67551c714df65010eaae5d7bc85b8c",
+        "size": 8251
+      },
+      "src/renderer/src/hooks/useLivingOutline.ts": {
+        "hash": "05c04d2c994921b9180af71cd355ebf12cc8955afebe641e62e98a09b9e5582a",
+        "size": 2482
+      },
+      "src/renderer/src/hooks/useNoteActions.ts": {
+        "hash": "671a76c0f75ea30138dcbb8064b382099e355d6e403cd3afbb5c03968337940b",
+        "size": 6591
+      },
+      "src/renderer/src/hooks/useNoteEditor.ts": {
+        "hash": "ac968da98185d1e0ae51845efc46085d1b4c51d17587152a49f93acf9d611471",
+        "size": 8955
+      },
+      "src/renderer/src/hooks/useNoteIndex.ts": {
+        "hash": "925fc9dec9506c4037d31e1dff7dfedcd1021d705d2a9dccbca282befa07876d",
+        "size": 5497
+      },
+      "src/renderer/src/hooks/usePhysicalZoomModifier.ts": {
+        "hash": "6e45c33d3e1491ade89dcfebb251d5eb8a486463b548f17c4a0fdd62298bb15f",
+        "size": 1406
+      },
+      "src/renderer/src/hooks/useReadingZoom.ts": {
+        "hash": "72eb4dc67e67ace5c883a86d8681b5c585ea662be825fe1e89a5b13e27e93962",
+        "size": 7917
+      },
+      "src/renderer/src/hooks/useRecentNotes.ts": {
+        "hash": "e6ff34827f8bd6881272c302f3e06ba4bdf09092e9f60a7635bb67085325916d",
+        "size": 673
+      },
+      "src/renderer/src/hooks/useTextFileEditor.ts": {
+        "hash": "f9994d0388601a6e310d96ad85a91dee00533190ec50c1f31ce5cf0c7152ab08",
+        "size": 6649
+      },
+      "src/renderer/src/hooks/useTheme.ts": {
+        "hash": "65115a0877241ad903aec07a2628beffb964ce0b281d3bd90ae6a1d5fd9329b9",
+        "size": 2379
+      },
+      "src/renderer/src/hooks/useToast.ts": {
+        "hash": "99a6be63b7b5b23189b7e5e766f4ebd507ac47374466d161c43dc2b4377911ed",
+        "size": 778
+      },
+      "src/renderer/src/hooks/useVaultSession.ts": {
+        "hash": "8d02fdc25705e2d2de97b292f4dc1b8febca4f68ffa39b08decde900d0afa95d",
+        "size": 14159
+      },
+      "src/renderer/src/hooks/useWorkbench.ts": {
+        "hash": "5656e491ba151b68132af3634453ce78c80546909d9d2aa6ec9ab6c3593aed64",
+        "size": 42109
+      },
+      "src/renderer/src/i18n/I18nProvider.tsx": {
+        "hash": "2ed54e4eaffbb5bc293b9131c3fe6a7ee0e10d3eaaac6201dc938ec321d40ea1",
+        "size": 1379
+      },
+      "src/renderer/src/i18n/catalog.ts": {
+        "hash": "dbdb8445e04124c37ee59359c98ac79d40130b49c909f0b9fd06729cd290dca9",
+        "size": 5018
+      },
+      "src/renderer/src/i18n/context.ts": {
+        "hash": "399441fd5745a184cfaedd2a262b98475c36049786d6c71d324a263943b96c0f",
+        "size": 434
+      },
+      "src/renderer/src/i18n/locale.ts": {
+        "hash": "e1ee2f3a3590baabbd549ef0607ae1f7f1c2bb8974b4b4ace8be5b2ad0b73e4c",
+        "size": 659
+      },
+      "src/renderer/src/i18n/useI18n.ts": {
+        "hash": "59ab10517c0c5869fcc8d3a01bbfe1f8eae458cc01e32aacf6d72afcde3b9a34",
+        "size": 286
+      },
+      "src/renderer/src/input/keyboard-context.ts": {
+        "hash": "ff707576643be41088ec672de5658d5bc87d1fb3cff54480a41c049317a1730c",
+        "size": 1840
+      },
+      "src/renderer/src/input/physical-modifier.ts": {
+        "hash": "8274bfffb8927d63c614b557adf8a992c288eafc24ec42516de17706ea7529f2",
+        "size": 1067
+      },
+      "src/renderer/src/interactive/CreateInteractiveDialog.tsx": {
+        "hash": "30cbd77332f696733c5028e29a6936c0467606d2cc93a68532081ffa96497341",
+        "size": 9367
+      },
+      "src/renderer/src/interactive/InteractiveProofFrame.tsx": {
+        "hash": "a0c7e3586997bd8016ea0cb9a29b6d6c7d3bd7cfb8c8db5828c2f85fe690fdb8",
+        "size": 2820
+      },
+      "src/renderer/src/interactive/InteractiveProofWorkbench.tsx": {
+        "hash": "0b05d0d11bed9b263bded3bb1bf441422f0f561136809132230d8504d502bd48",
+        "size": 16946
+      },
+      "src/renderer/src/interactive/interactive-ai-handoff.ts": {
+        "hash": "9b073e313d42c65f30a5cc56cac3f37c5b13aa865ec1a59d67f2946d307bebd1",
+        "size": 2558
+      },
+      "src/renderer/src/interactive/interactive-authoring-controller.ts": {
+        "hash": "c1a99286ab8430014a5031758d416e4421f19e204ee721076971c8726a8d13e7",
+        "size": 3714
+      },
+      "src/renderer/src/interactive/interactive-code-intelligence.ts": {
+        "hash": "8aa76a778770471dc3071b890ea71c77708e153303fec1eeab301c2120e51aae",
+        "size": 30022
+      },
+      "src/renderer/src/interactive/interactive-language-client.ts": {
+        "hash": "44fa0304c616cb093e07cb2a5c17dfbae3644706e42a8cbdca55f7050f067ebd",
+        "size": 7628
+      },
+      "src/renderer/src/interactive/interactive-language-worker-runtime.ts": {
+        "hash": "2c99d78da7749c45080d95173b54ecdab7e5943ca5ca748951914241149c0ba6",
+        "size": 7526
+      },
+      "src/renderer/src/interactive/interactive-language.worker.ts": {
+        "hash": "889b66d12ff0229b807f10218bb526dd871c967e990a4c213a6f05f8317ecd2c",
+        "size": 710
+      },
+      "src/renderer/src/interactive/interactive-problem-navigation.ts": {
+        "hash": "53a6c561dd9f14d0d6ec3f319310873ea88ee1c6e4624533f987971496459d59",
+        "size": 777
+      },
+      "src/renderer/src/interactive/interactive-type-libraries.worker.ts": {
+        "hash": "53df5602c66cf748dca60d3fd8cc32d010608c1432a8e511569bb55e15a8f849",
+        "size": 1522
+      },
+      "src/renderer/src/lib/editor-navigation.ts": {
+        "hash": "9ffd7f3466662e595c7eefe4b06a199c036f5b8d3ace6098f96a53f736c0c885",
+        "size": 423
+      },
+      "src/renderer/src/lib/file-encoding.ts": {
+        "hash": "d20df8b4ffdf7e6b9df3b3a161de170187012f4104b2edeba0396fefeb7670ef",
+        "size": 516
+      },
+      "src/renderer/src/lib/format-error.ts": {
+        "hash": "b4d14b2ef50c1289a20ab3bb8d67238b79270969960271c6b8b8601281b1b66d",
+        "size": 141
+      },
+      "src/renderer/src/lib/fuzzy-match.ts": {
+        "hash": "310b4a362638d537c1ea24c4013f337fbc3e4453082148e4d3cec6f78d12a32f",
+        "size": 3138
+      },
+      "src/renderer/src/lib/note-scaffolds.ts": {
+        "hash": "a8377ddeb980f048f1b3ff5025559baee7f2831a94b5f6ab0588ba561190df17",
+        "size": 1466
+      },
+      "src/renderer/src/lib/note-title.ts": {
+        "hash": "ca2e953cf5249aa9aedb8b31ffff5b1615c7deae58e9d0f305e6cbca99133ded",
+        "size": 1119
+      },
+      "src/renderer/src/lib/recent-notes.ts": {
+        "hash": "b43e80fe1de3e6ace95608389d77163d7067559d22a9602deb43d6d6e6ca6a9a",
+        "size": 900
+      },
+      "src/renderer/src/lib/utils.ts": {
+        "hash": "fbb81bc6c329349f06f975433215ef934111f77372e8902e2d1d347fc29cfde1",
+        "size": 174
+      },
+      "src/renderer/src/lib/word-count.ts": {
+        "hash": "83a3f1cb8e31743c9082a3493d03fd4f4db91ef92237e0427064a52135ef01a9",
+        "size": 1392
+      },
+      "src/renderer/src/main.tsx": {
+        "hash": "dfee208437c795d676be8188a19a27d83e5f8abb0c65ac9863205c4a224e4fc3",
+        "size": 1706
+      },
+      "src/renderer/src/panels/BacklinksPanel.tsx": {
+        "hash": "2323c83f1219c19faa9044a4193eea3edb4adba8ea809ac756354ec02754e98d",
+        "size": 6530
+      },
+      "src/renderer/src/panels/KnowledgePanels.tsx": {
+        "hash": "5333edbada47b357f85cb70736f43203cec7306218426ab4caa1b942fb7179df",
+        "size": 32643
+      },
+      "src/renderer/src/panels/OutlinePanel.tsx": {
+        "hash": "9745f33ed3046340e196ff0df2a6c54cfd72518f795ae39a49450bd97102903c",
+        "size": 8177
+      },
+      "src/renderer/src/panels/TagsPanel.tsx": {
+        "hash": "ab9d1777664a07ecea4326766a7f3311facb806353427ce893b4396168a0e0d5",
+        "size": 4384
+      },
+      "src/renderer/src/preview/Counter.tsx": {
+        "hash": "e02866cd1f3079e7d76022872ce8e8afb6a6c4c591b2c776dc9946bb27876ba2",
+        "size": 1356
+      },
+      "src/renderer/src/preview/MdxPreview.tsx": {
+        "hash": "561559cea06a3ddf253ef0e624a571d046bde0e2ba7db91bec70e7581a96f64f",
+        "size": 19496
+      },
+      "src/renderer/src/preview/MermaidAwarePre.tsx": {
+        "hash": "4ca0e3a591ecaa1eac2b4cb99c925c478a250523a9b0339634054dde7438c323",
+        "size": 1348
+      },
+      "src/renderer/src/preview/MermaidDiagram.tsx": {
+        "hash": "9fafc965765c6717b29d7c5a637580730f9bfd62c62d30a08b5c322482a082ac",
+        "size": 8295
+      },
+      "src/renderer/src/preview/PagePreviewSettingsProvider.tsx": {
+        "hash": "d9e3c3cde4c34944ec79d35b8689135063157a48786cb949b2f112fdd9663c14",
+        "size": 485
+      },
+      "src/renderer/src/preview/WikilinkPreview.tsx": {
+        "hash": "7f7c0bb7c7b9cb19742e014f4f8687ab72cc62d4b84ce78d975f975dd8327f06",
+        "size": 8657
+      },
+      "src/renderer/src/preview/hover-preview-document.tsx": {
+        "hash": "73c7e27c519458968136547c83bdd8c74ca00d27adcb0f1e2192455ea98d035c",
+        "size": 7965
+      },
+      "src/renderer/src/preview/interactive-note-theme.css": {
+        "hash": "a819329e9528756bd69e53912bbd451eef62f39727b093f52d785fc83489d76b",
+        "size": 35366
+      },
+      "src/renderer/src/preview/islands/AlgorithmVisualizer.tsx": {
+        "hash": "d3fa37c18b5e84ff3c37d1df15ec7d223a11d3e9abc945777f21d7a20156f0f8",
+        "size": 11431
+      },
+      "src/renderer/src/preview/islands/DataChart.tsx": {
+        "hash": "a1f82addc9130a09c8d1c54f735bbf2ca67cd47bd0030ce1dddfd461657f9e30",
+        "size": 9596
+      },
+      "src/renderer/src/preview/islands/EquationSlider.tsx": {
+        "hash": "97fd7759088a6f0c3dc65c22adff6b61e220ccb905b605014072f45acefd96ba",
+        "size": 10424
+      },
+      "src/renderer/src/preview/islands/QuizBlock.tsx": {
+        "hash": "3a9a807feb63349484aca39edbd4f66d0f2bf90a293a2eefd695fc43b4e5c40e",
+        "size": 4066
+      },
+      "src/renderer/src/preview/islands/chart-data.ts": {
+        "hash": "8a3810ab0676ff0bafe319e63f9602792b010a1906fce419badef87c75aaf68f",
+        "size": 3514
+      },
+      "src/renderer/src/preview/islands/interactive-note/CellGrid.tsx": {
+        "hash": "66de3fe9d7d20c6e5e18ed2d32233fad55d75e5de509ea2936fac99b1760070c",
+        "size": 2093
+      },
+      "src/renderer/src/preview/islands/interactive-note/ComparisonBars.tsx": {
+        "hash": "9330590456279910c3f56f7627290745193a952c66ec17bee264e7bdc1837da8",
+        "size": 1051
+      },
+      "src/renderer/src/preview/islands/interactive-note/EvidenceItem.tsx": {
+        "hash": "551553815e0755acf209eaa541c3c3a9746ff79e559630c74acb51de5427c661",
+        "size": 612
+      },
+      "src/renderer/src/preview/islands/interactive-note/EvidenceLog.tsx": {
+        "hash": "7e315016103b960f9bc28fce333c23f768b02d07106c67c7df2a0c4ad4ea274e",
+        "size": 299
+      },
+      "src/renderer/src/preview/islands/interactive-note/FlowSequence.tsx": {
+        "hash": "f7af361d144e5d3b96d6c6a4f873097daa55d8b88895837d6fdaaf1abcea4649",
+        "size": 1516
+      },
+      "src/renderer/src/preview/islands/interactive-note/FormulaLine.tsx": {
+        "hash": "f2a95b881c59a53478348166fc5c8e474274fa9d2eee8ac4d3cee82ff039c1fa",
+        "size": 243
+      },
+      "src/renderer/src/preview/islands/interactive-note/HighlightBox.tsx": {
+        "hash": "9bcf3fcdb12e66ecdea1206af0be11b9513973f6e34be2bca074d20811125140",
+        "size": 378
+      },
+      "src/renderer/src/preview/islands/interactive-note/MentalModel.tsx": {
+        "hash": "40e409d41cff73e11d7296622ac85a7f76695daf907ea015284c20c11cb475f3",
+        "size": 236
+      },
+      "src/renderer/src/preview/islands/interactive-note/MentalModelRow.tsx": {
+        "hash": "3fb1d39b3236bab834642a64204e6492c26b9d6f70c9fee3012a4a6a23ad6e7b",
+        "size": 432
+      },
+      "src/renderer/src/preview/islands/interactive-note/NotePrimer.tsx": {
+        "hash": "0304702ffcda7d00e8df0c61ddc11982fc77a8208f9b7c48f53e1ad75b957c80",
+        "size": 364
+      },
+      "src/renderer/src/preview/islands/interactive-note/PredictionGate.tsx": {
+        "hash": "470bc30b77db7af009335c3d3eade37988b9fde19496bb6e4b0d56dc5168f647",
+        "size": 2263
+      },
+      "src/renderer/src/preview/islands/interactive-note/PrimerTerm.tsx": {
+        "hash": "2dc8c601aaa20ceb3826d9ab40a1c3369c6eece41fb0dd93af3a367135723b13",
+        "size": 482
+      },
+      "src/renderer/src/preview/islands/interactive-note/Recap.tsx": {
+        "hash": "a3a7d6e65fc44032afd152023aa15be7e05af642599436fa87ec10fedf26bbb0",
+        "size": 378
+      },
+      "src/renderer/src/preview/islands/interactive-note/SelfTest.tsx": {
+        "hash": "7d027badb2f1010683da8d5f5beccd8b037ae228f21e3d56ada961ef4f9fcc2c",
+        "size": 284
+      },
+      "src/renderer/src/preview/islands/interactive-note/SelfTestItem.tsx": {
+        "hash": "3d44a7301389e445a047f1e3f3d98f5dcbcf09105d85106488c975d378806782",
+        "size": 1036
+      },
+      "src/renderer/src/preview/islands/interactive-note/TraceBlock.tsx": {
+        "hash": "a7a437d168dd0398c89dfcc654f8f2d44a37c0488fd226b16b8dbbca60bee1f0",
+        "size": 233
+      },
+      "src/renderer/src/preview/islands/interactive-note/WidgetFrame.tsx": {
+        "hash": "53fd862409d934db469d0f46873ffddb85b956c83a8df8eb1798fef8e6a54d1f",
+        "size": 1605
+      },
+      "src/renderer/src/preview/islands/interactive-note/cell-grid-groups.ts": {
+        "hash": "d73c3da9c1a5ffb01f3aa124c2b52fc5ef7695c51efe29198b6cf37a8a3a0ad7",
+        "size": 499
+      },
+      "src/renderer/src/preview/islands/interactive-note/prediction-state.ts": {
+        "hash": "ee614bc7c613a2aed5b2cde4f0760bc405fa946653d0a51b0f5c81cc7ae5dc2c",
+        "size": 118
+      },
+      "src/renderer/src/preview/islands/interactive-note/widget-frame-context.ts": {
+        "hash": "36a0983aa36f200a068d1b4c40dbb8660eba1de04214b038ed1b17b3b68ad414",
+        "size": 371
+      },
+      "src/renderer/src/preview/mdx-compile-cache.ts": {
+        "hash": "4228c7b9d52f87a3b83b4028690556cb714ff21b4bf660425e9e138a67531c89",
+        "size": 2096
+      },
+      "src/renderer/src/preview/mdx-compile-protocol.ts": {
+        "hash": "b4bed20afcf39b3d9ee516618f6881a33b915fb91db647c7322fefd39a42e1cc",
+        "size": 601
+      },
+      "src/renderer/src/preview/mdx-compile-worker-client.ts": {
+        "hash": "e8538acb6a19803466ff02e89b68ed78d4eb6926702acaa2efe8d98a3fd52997",
+        "size": 2879
+      },
+      "src/renderer/src/preview/mdx-compile-worker-runtime.ts": {
+        "hash": "e6cc14fac47fde571d63aa1d70968dbd6c94253d23b6917ad32347b1f1cb6b23",
+        "size": 2446
+      },
+      "src/renderer/src/preview/mdx-compile.worker.ts": {
+        "hash": "720f825fa26637feb7c645fb436bbbd4d68308692cd04018f0aff425361ba537",
+        "size": 867
+      },
+      "src/renderer/src/preview/mdx-components.tsx": {
+        "hash": "54b85e7d98a7706b098f5dc0ffdd630ca12189715ca6068dcf22c984afb7f174",
+        "size": 9908
+      },
+      "src/renderer/src/preview/mdx-preview-compiler.tsx": {
+        "hash": "50ecc7497a7def726e8b1aca7302e7e1e20ca75a0758d3623913c0f21198b3aa",
+        "size": 1598
+      },
+      "src/renderer/src/preview/page-preview-settings.ts": {
+        "hash": "b1359b5d3dd1ec9c926240944acc71fdc71915612cabe86d435c3cb7bf69b68c",
+        "size": 428
+      },
+      "src/renderer/src/preview/preview-highlight.ts": {
+        "hash": "ef0ba81d845f3b9ed98be24805d65e4f26dc20cb143ed9534293af2ee34e6201",
+        "size": 1383
+      },
+      "src/renderer/src/preview/preview-image.ts": {
+        "hash": "990b5fa038dabe8bd2fbebc199f930d0fce09c56402558798346e2bf2ae2084b",
+        "size": 7955
+      },
+      "src/renderer/src/preview/preview-metadata.ts": {
+        "hash": "809402b1b24f9d732f40b3313b6f3cae8059bd813070403b626890500fe87340",
+        "size": 1207
+      },
+      "src/renderer/src/preview/reading-zoom.ts": {
+        "hash": "72de2bfd20830d757970e98c2990bbd91b73996a9e6d061122890e5479a90e5c",
+        "size": 1812
+      },
+      "src/renderer/src/preview/registry/algorithm-visualizer.ts": {
+        "hash": "373e1854c551b98daebef1fe9a41f482b3d4d7585e59eb79db83adb9fd77139d",
+        "size": 1439
+      },
+      "src/renderer/src/preview/registry/counter.ts": {
+        "hash": "16665e11aaee555f9566a2807adcb4a4d73e9dfce7dbacc5de2933c40d21010e",
+        "size": 663
+      },
+      "src/renderer/src/preview/registry/data-chart.ts": {
+        "hash": "6d5029d47d71739d8c406f3b5d701590372c1e80f52eedd9e97236bf369389e5",
+        "size": 1635
+      },
+      "src/renderer/src/preview/registry/equation-slider.ts": {
+        "hash": "d402010b4329b29fb87712e0a0a7e220a2d1e9be1edbc1f10fa23e7b63475f20",
+        "size": 2338
+      },
+      "src/renderer/src/preview/registry/index.tsx": {
+        "hash": "b9bae92208ed809737b97f3805d9bbb68069dcde680bf147cfaca560635f813b",
+        "size": 4413
+      },
+      "src/renderer/src/preview/registry/interactive-note/cell-grid.ts": {
+        "hash": "33af96c0459955836027f627210727e02bf7f13db06aa252cc4b22d6735e4753",
+        "size": 1864
+      },
+      "src/renderer/src/preview/registry/interactive-note/comparison-bars.ts": {
+        "hash": "d8cb8a3ea5369349bfd67bc69644563be0ebc8f7171e6692d01f8da8e5280d20",
+        "size": 1309
+      },
+      "src/renderer/src/preview/registry/interactive-note/evidence-item.ts": {
+        "hash": "4f8fc6a5a83a857d20891cf486f23619b9f3caf3ce201d985afe12e08a0712aa",
+        "size": 997
+      },
+      "src/renderer/src/preview/registry/interactive-note/evidence-log.ts": {
+        "hash": "809c74d92006f2003b81cd967c466e2731620cf7829b8d83dec3b82a84c6fdb4",
+        "size": 954
+      },
+      "src/renderer/src/preview/registry/interactive-note/flow-sequence.ts": {
+        "hash": "1cbb97fc194d24d1a77fa9c6937154c493c95d0565af9517833abbda4a9bb346",
+        "size": 1729
+      },
+      "src/renderer/src/preview/registry/interactive-note/formula-line.ts": {
+        "hash": "ab4e5ad6dba76926e9c5818e124a6cce28dc9a2ee6aab5f01b92dcffd1669753",
+        "size": 901
+      },
+      "src/renderer/src/preview/registry/interactive-note/highlight-box.ts": {
+        "hash": "58ca726cb1c702081252f13457f1da17e0b5f976d9b09eb075fce54b8f6d9e74",
+        "size": 982
+      },
+      "src/renderer/src/preview/registry/interactive-note/mental-model-row.ts": {
+        "hash": "6f260fa8a558b6b722f7bfeca59ea58421929194dfc4808fbb40a60c0b0d2512",
+        "size": 1092
+      },
+      "src/renderer/src/preview/registry/interactive-note/mental-model.ts": {
+        "hash": "20e1634de6f62ffcfef6cb9a177e0611106a511341c8e3db595d38f7a1a5c586",
+        "size": 1235
+      },
+      "src/renderer/src/preview/registry/interactive-note/note-primer.ts": {
+        "hash": "660e9d0e78d4fe5cbc3e110aaa57ac7cb54c9f5f0689ec4335c5a9cbbf9f3e47",
+        "size": 979
+      },
+      "src/renderer/src/preview/registry/interactive-note/prediction-gate.ts": {
+        "hash": "cbfe457c65cbfeb867a6891b4a0b5f7bc902af3c80ed358ffeb26d06d1951d3f",
+        "size": 1443
+      },
+      "src/renderer/src/preview/registry/interactive-note/primer-term.ts": {
+        "hash": "45203c1b7226b62e4019cbabe928666eef26539420e8eb882ecb3f366f22c63d",
+        "size": 1289
+      },
+      "src/renderer/src/preview/registry/interactive-note/react-node-schema.ts": {
+        "hash": "19dee5c1fc8017c13d089f53f5d0081e91d0d292663e75b82131272ad5d4219f",
+        "size": 291
+      },
+      "src/renderer/src/preview/registry/interactive-note/recap.ts": {
+        "hash": "e395afdac05fc37c582604d9e83d3566ea9ddf1e4eb34afd16602bcd4d0b8c71",
+        "size": 847
+      },
+      "src/renderer/src/preview/registry/interactive-note/self-test-item.ts": {
+        "hash": "168b40b96b067405746144b5759b9103b0d187dbee4715cb0a01bb3bfedf8496",
+        "size": 1152
+      },
+      "src/renderer/src/preview/registry/interactive-note/self-test.ts": {
+        "hash": "a84a706fd0bc11f4207aeb79cf5cb497bac8c195752d5b3f09a1ecf2547cfe15",
+        "size": 994
+      },
+      "src/renderer/src/preview/registry/interactive-note/trace-block.ts": {
+        "hash": "4d0ba511d87fc2d6e065c216c0f75a91cda42907eb65af3f7694c08f69cff158",
+        "size": 949
+      },
+      "src/renderer/src/preview/registry/interactive-note/widget-frame.ts": {
+        "hash": "7d646ab601fef08930fb3ccfc7981b6077957863808ec7b1b3d8e9f98d73a434",
+        "size": 1312
+      },
+      "src/renderer/src/preview/registry/messages.tsx": {
+        "hash": "b31bcda6b05ba5fb731a790c99bc0bcb3739b57a0ed95d8f43c586fc69770ba5",
+        "size": 1781
+      },
+      "src/renderer/src/preview/registry/quiz-block.ts": {
+        "hash": "39b65ddd9c4b7f7fb1a7ba99aed62aaf440f652e72a5a5238f0ae9196d1499a3",
+        "size": 1629
+      },
+      "src/renderer/src/preview/registry/types.ts": {
+        "hash": "2fef69613e9a59fa9c93d4b576736a2b44cd526d9d33799aeb7a6c32fe504433",
+        "size": 1386
+      },
+      "src/renderer/src/preview/rehype-preview-source-map.ts": {
+        "hash": "b9e8e3abe5d6144e467967de15250038c4dd3c5747c415aae398dba9a52e58e3",
+        "size": 3286
+      },
+      "src/renderer/src/preview/runtime.ts": {
+        "hash": "1310be19a1a10ce1e8c27742ed3d710bf888f02a65b6a945ab268d0edc20ab93",
+        "size": 326
+      },
+      "src/renderer/src/preview/safe-html.ts": {
+        "hash": "98dedcdb7f89c4db6776e4b380448d67f7387f824330ba7ab2ec5adbe4185c1c",
+        "size": 7894
+      },
+      "src/renderer/src/preview/sandbox/Interactive.tsx": {
+        "hash": "e5d3d084fafa367c5da07da314ecadc4f807fec1536a784bdba1982106daa0da",
+        "size": 3422
+      },
+      "src/renderer/src/preview/sandbox/SandboxHost.tsx": {
+        "hash": "e9d086832d8d5464f4018b9589a188cc82665c10335f7d1cf58d99907a7fd7e0",
+        "size": 14045
+      },
+      "src/renderer/src/preview/sandbox/SandboxedHTML.tsx": {
+        "hash": "a66c6c6185c8449d70b396fb3c7dbceceee37a6d2d0f39cb38ff5c0a0f272eae",
+        "size": 914
+      },
+      "src/renderer/src/preview/useWikilinkPreview.ts": {
+        "hash": "dbfcbb7ce58470b4fba6dd8d5a4bff3595317007b0bd6bc462153b94e0f598b9",
+        "size": 5035
+      },
+      "src/renderer/src/preview/wikilink-preview-position.ts": {
+        "hash": "ac0d09fff61bf1e510fbef822dac0d05d475b5a607383fd8dae66ffc85dca8a8",
+        "size": 1201
+      },
+      "src/renderer/src/search/SearchPane.tsx": {
+        "hash": "1a26767d25de444f02867ef645acc4e0782ebb7b4a7f48b2a53d0c1cfa71cd85",
+        "size": 8530
+      },
+      "src/renderer/src/settings/KeymapSettings.tsx": {
+        "hash": "89bc19163bdf1111d835409036d3bcdaca7242b8dae5a458c0c9d3f638c52fcd",
+        "size": 16029
+      },
+      "src/renderer/src/settings/SettingsDialog.tsx": {
+        "hash": "40d0abd2671720ab2e7f7368ce1041e9cfb72374c5e38b6c7c85092d7b6ba9b9",
+        "size": 38785
+      },
+      "src/renderer/src/settings/SettingsLayout.tsx": {
+        "hash": "3f48e3fc46d3551bce7256554c55bb5cf8ace7f1f671cbe7684e351b3c6f7fa5",
+        "size": 1200
+      },
+      "src/renderer/src/settings/app-settings-reconciliation.ts": {
+        "hash": "c3f3e8fbf1e9552124dc6a517f670d5bd7d8aaf378cdc24cbc88ec4899a018be",
+        "size": 1378
+      },
+      "src/renderer/src/settings/key-recorder-state.ts": {
+        "hash": "5517a4c7030615ca0878d32defc5a715fd5e28d4524e73ee6c47cdfa13748ecc",
+        "size": 303
+      },
+      "src/renderer/src/settings/keymap-search.ts": {
+        "hash": "6fb4a46dd6339f279fbadacc9595fe13e5768ec1cb603bb4be242e3975f8ace4",
+        "size": 1297
+      },
+      "src/renderer/src/vault/file-kind.ts": {
+        "hash": "59043c5636db67329da6763fe1a391600da5bd96d15850e82a7810b8c21c6d2c",
+        "size": 721
+      },
+      "src/renderer/src/vault/goto-definition-path.ts": {
+        "hash": "54776b171790d2a89ab8c71e38b77a7a15742d0999405c28652d18cbfdda0894",
+        "size": 661
+      },
+      "src/renderer/src/vault/types.ts": {
+        "hash": "fe5cb8c5dc4062bd3cda851f8d46b6b73b355625f69825989fbee9c85090df7d",
+        "size": 1097
+      },
+      "src/renderer/src/workbench/controller-transaction.ts": {
+        "hash": "82acc7e47dc41249fd639e9b838e6c8c4c3e8a6274aef13be4df18982fae4b56",
+        "size": 2205
+      },
+      "src/renderer/src/workbench/dialog-focus.ts": {
+        "hash": "251c9e78c6d583b941de8df8840600cc893d442ec9c407ea9962910fd6f299b7",
+        "size": 1732
+      },
+      "src/renderer/src/workbench/document-focus.ts": {
+        "hash": "23b0bc8de48e1202b063de519041d81ead88d9624a4ea494130af706dcaf4a49",
+        "size": 1646
+      },
+      "src/renderer/src/workbench/editor-adapter.ts": {
+        "hash": "9558385981453aff4bfede84ab150b9500b6435d6e8117ca80415a397674facc",
+        "size": 5701
+      },
+      "src/renderer/src/workbench/file-finder.ts": {
+        "hash": "3baffe5ca98d5e6f61d629499116e3d8f95b10378d1778836a90f8aa0d5acee5",
+        "size": 11843
+      },
+      "src/renderer/src/workbench/note-action-lifecycle.ts": {
+        "hash": "aa2408becd599ffad8ad31995da29b30c9c805ffcf68207e2f297581099f1d69",
+        "size": 3118
+      },
+      "src/renderer/src/workbench/note-delete-lifecycle.ts": {
+        "hash": "eaa089c18fa9f9df2818292e5aef4a446b1618ddea765cdd193df0def22789ec",
+        "size": 715
+      },
+      "src/renderer/src/workbench/tab-context-actions.ts": {
+        "hash": "3235bd4b4560ad650ef5b5139b1272ee16b2a7a3dc77a16f2809bb4d90894513",
+        "size": 2271
+      },
+      "src/renderer/src/workbench/types.ts": {
+        "hash": "6c3f8d8cce659e0ff82fc6cedaf2396401d324ba5b1befb3fd415122010fa0ee",
+        "size": 2560
+      },
+      "src/renderer/src/workbench/vault-switch-lifecycle.ts": {
+        "hash": "5fd6987459960ea3831c0b98427d25bb4de47ce00fe79e8746cec563f8e51a68",
+        "size": 803
+      },
+      "src/renderer/src/workbench/workbench-item.ts": {
+        "hash": "0b07f68ddf04a341531d1abcb1c073ee36a7245311f0b6b7592e07a4af54db91",
+        "size": 1390
+      },
+      "src/renderer/src/workbench/workbench-state.ts": {
+        "hash": "0eb58157024b6188e6a2ab5e80e24d03cd5588584a8fe10f23d3ef635be180bb",
+        "size": 23267
+      },
+      "src/shared/ai.ts": {
+        "hash": "f05861ecb7e232e70bb1c191413621d08de4fcd2bcb1f49f3e61e47ea24267ed",
+        "size": 12557
+      },
+      "src/shared/app-settings.ts": {
+        "hash": "001909d85841e2d0df36770e0f5d7c9e3860e92100656ba791ed5fce5127cd48",
+        "size": 29530
+      },
+      "src/shared/bookmarks.ts": {
+        "hash": "7e144dcd27ddc33d0926b254dae2a7c378c9aa1736d5affeb14a7c31c19b9fc5",
+        "size": 8990
+      },
+      "src/shared/export.ts": {
+        "hash": "e28b05ffbb50dc463e56297bc6411a19814dd95fd3a705b59ba26f4cdd8d1f7c",
+        "size": 4465
+      },
+      "src/shared/graph-model.ts": {
+        "hash": "026a6622783a37118ec41121d1607373a9f59db058921fdeb20d394d41b54cfe",
+        "size": 14634
+      },
+      "src/shared/graph.ts": {
+        "hash": "39079667e42cfb7e9bbd989ec8276b0007d1fbef2a7bfdb56c664e94e2490d77",
+        "size": 7741
+      },
+      "src/shared/heading-identity.ts": {
+        "hash": "9414bf8463869c8893a2f319a6a3b0f771488694264db934d5fc0c25b7928714",
+        "size": 651
+      },
+      "src/shared/interactive-authoring.ts": {
+        "hash": "b651caaf8a70396d8daf63af50b9f8b887055d738b5e33cc4ee964d77f120add",
+        "size": 17036
+      },
+      "src/shared/interactive-language-protocol.ts": {
+        "hash": "385c08166cb53fcd21541037b29e5ea9213aabe65ea6043dd65332207fc25ccd",
+        "size": 3252
+      },
+      "src/shared/interactive-language.ts": {
+        "hash": "9c97a77479421a01e4e6d988d68049785cc82c3d169e07fec56335ab818e5dfd",
+        "size": 24442
+      },
+      "src/shared/interactive-proof.ts": {
+        "hash": "6d3f542ab3fe7b973820250c1f8b7615fc4b4fc6335de1090a4328448e8624cd",
+        "size": 5873
+      },
+      "src/shared/keybindings.ts": {
+        "hash": "c3b3e38778e53a90040b3b29a7520ee7fccaa9071fb308897d78ce482b21b6fb",
+        "size": 33146
+      },
+      "src/shared/knowledge-source.ts": {
+        "hash": "b649a5e87f3a88ddef58bcf0e096aadd36105ffd19eeb13add176153af508e70",
+        "size": 13666
+      },
+      "src/shared/knowledge.ts": {
+        "hash": "dd5abe8a52d5a6dd9b3a20b0afe5cf672fedceda3e135085adfab645c5083b93",
+        "size": 3923
+      },
+      "src/shared/markdown-source.ts": {
+        "hash": "e67d2addd0056f297f3856ee2da78c09966a7e2679c0144f01748b1b9f5bcae6",
+        "size": 5589
+      },
+      "src/shared/math-expression.ts": {
+        "hash": "db64dd253e3e0864cf120250afea05452e8c2d277b9a4564e1dc759cc3ae16ae",
+        "size": 9604
+      },
+      "src/shared/mermaid-config.ts": {
+        "hash": "53f4620e297f631b3f8e17997c4dd1234968c52362a7eb0f47ecc8687e8bb432",
+        "size": 692
+      },
+      "src/shared/remark-callouts.ts": {
+        "hash": "a53cb7433b21552094bd0025a4a0db97b9b86c07f0c755d64ec59e266aa72474",
+        "size": 3265
+      },
+      "src/shared/remark-mark.ts": {
+        "hash": "86d38d8951337b9ae1cc8a086289159c3a36d45c504b1a583a730ba6b268da66",
+        "size": 5149
+      },
+      "src/shared/remark-wikilink.ts": {
+        "hash": "fd5e3a76f592d8d1dfc398dd2bcbb97c850e2974b252eb9c9e46e8f20f47d6af",
+        "size": 2828
+      },
+      "src/shared/rename.ts": {
+        "hash": "537cef3bcfa2620fe7b936235ec07b2f78ed9bdf8b9e1ae260195684c0562ce6",
+        "size": 268
+      },
+      "src/shared/sandbox.ts": {
+        "hash": "00201e66494a3634a2eac5ecbbfa30a8bc3180f08a6007bf954ddd0a25ad8aab",
+        "size": 6631
+      },
+      "src/shared/vault-path-visibility.ts": {
+        "hash": "6456df9fb614103a2201633fc101372811e0dda8c34f98000e0212cabe1a6207",
+        "size": 184
+      },
+      "src/shared/wikilinks.ts": {
+        "hash": "af094ad712f6f893ffc80753267d03f7c8cc5a86632688afd7c3bec5fdea3138",
+        "size": 7497
+      },
+      "src/shared/workspace-actions.ts": {
+        "hash": "05a214ecc3cbbad5c0bd9aa872d1412c8c6e959a0a7343b188f0efca8ed7caee",
+        "size": 17955
+      },
+      "tests/action-registry.test.ts": {
+        "hash": "cc6a1ca6926bd44140f22f3faadc7368dec8ad6698319e2253ae161d7776ec21",
+        "size": 10134
+      },
+      "tests/app-menu-routing.test.tsx": {
+        "hash": "440c0a8669427bb12c19dfb9ba870029c051c6dc100577fe68024c5d32837d44",
+        "size": 5808
+      },
+      "tests/app-settings-catalog.test.ts": {
+        "hash": "f805b32ff1142e72039d44903352f9401a0febe412bed9855b4ee085fd395737",
+        "size": 4763
+      },
+      "tests/app-settings-ipc.test.ts": {
+        "hash": "eda4e6f622818c5bc734791035870d25e5c54107b1ea45115da52e8472ea9b86",
+        "size": 10166
+      },
+      "tests/app-settings-reconciliation.test.ts": {
+        "hash": "960d4265a2dafde381c868d011411859a9981a338e75173b752b11c660c5fa6c",
+        "size": 3071
+      },
+      "tests/app-topbar.test.tsx": {
+        "hash": "be77d2f44aa7b0a26b4a22776f7ac7b111ed8e1e1e3c1cf6be6dd2abb5f08191",
+        "size": 2701
+      },
+      "tests/bookmarks.test.ts": {
+        "hash": "4354d4b2513330406eadd3891ee7b28f7084f996ba4996cadbc9eaba9be96285",
+        "size": 3915
+      },
+      "tests/command-palette-persistence.test.tsx": {
+        "hash": "7e6fc99f66b9cdd1f34335d32931c051e6e2204270f0a4157d70a7f2cf4d6ebe",
+        "size": 3240
+      },
+      "tests/create-note-path.test.ts": {
+        "hash": "ee88e1cc4292578067264abe76c51d988248bccf69b215822956f0f11fe9cef6",
+        "size": 1232
+      },
+      "tests/editor-adapter.test.ts": {
+        "hash": "ad8fb8271f7661d0c39a43ca1c80fc225c920af2664351c76a77f141c318da5e",
+        "size": 8783
+      },
+      "tests/editor-analysis-client.test.ts": {
+        "hash": "7c34df3e0aad387bef34936f735df8c8e181b17cadfd11034b475f182de4f35e",
+        "size": 3846
+      },
+      "tests/editor-history.test.ts": {
+        "hash": "861d9605767495bbbc5f95653517cf403b1ba415cdf03fead7f4993628f03fb9",
+        "size": 1205
+      },
+      "tests/editor-selection.test.ts": {
+        "hash": "40f2d6acdb079e425f0af113e214c45f0c2f49a7f88bc65916bef15db6ca75b9",
+        "size": 748
+      },
+      "tests/editor-theme-typography.test.ts": {
+        "hash": "be48fc78367c416517f0925f9dff1facb91dc81069834e43b304d4f3c46831cb",
+        "size": 1470
+      },
+      "tests/editor-typing.test.ts": {
+        "hash": "7d39622d318f429e132528caf44b7913473550d9b2c154d5a07be3ceee214136",
+        "size": 3368
+      },
+      "tests/editor-view-state.test.ts": {
+        "hash": "76bcca24f8b75f63c91d342d2509838c0ec6b456c1d87c15371ec823ef5a7693",
+        "size": 4078
+      },
+      "tests/file-finder.test.ts": {
+        "hash": "cf2f8fdac81eef9e5fa49f0443ed1b859ea530968a69a27702aee28511af192b",
+        "size": 7028
+      },
+      "tests/file-kind.goal16.test.ts": {
+        "hash": "fd951dca8d1e391f62edefcd7c2b59f18b53641b74ea83004be62db9621c48d2",
+        "size": 1138
+      },
+      "tests/file-tree-activation.test.ts": {
+        "hash": "59f46b1fcf97cbc0d3a9a4b99b9a116a1710f0f8dde12c862303207b15350f45",
+        "size": 1313
+      },
+      "tests/goal04-interactive-islands.test.ts": {
+        "hash": "78b64e113f71d0d1f92498df89afb87054756c62dccd9ef3cda17f94b7354f2e",
+        "size": 3569
+      },
+      "tests/goal17-interactive-note.test.ts": {
+        "hash": "316e7d1e3484b6c213e36a8a2fdf17d212ee0ec04066209c03c7e9fb7ce60165",
+        "size": 6835
+      },
+      "tests/goal19-export-content.test.ts": {
+        "hash": "7ffc82872a9b77156c1ed073e776fbc386f080931fe5f18661aacf1e793dfe65",
+        "size": 6856
+      },
+      "tests/goal19-export-fidelity.test.ts": {
+        "hash": "01c7ef4dfba5d734550e1ab02b00488e4497dc8c4c4a3b9f645ed6846e8d32a9",
+        "size": 9579
+      },
+      "tests/goal19-export-hardening.test.ts": {
+        "hash": "f625e0ae815f54c7f1ae8d3704a060c2a51744b989f62989e51939ad2053203a",
+        "size": 7183
+      },
+      "tests/goal21-spatial-visuals.test.ts": {
+        "hash": "37dc2c27ca60de1e3a55dc8d2a9f30c78e8e233227caa2ed875da265cc17bae2",
+        "size": 3470
+      },
+      "tests/goto-definition.test.ts": {
+        "hash": "040495c72476691c63427d01ff91b0812edd43b83636a35785de7581f18bfcde",
+        "size": 5041
+      },
+      "tests/graph-actions.test.ts": {
+        "hash": "329334134c8dd4e1940bab7c2c37b17dc3f56b77d5dd8a1e369fa4b6c332a4e9",
+        "size": 1798
+      },
+      "tests/graph-config.test.ts": {
+        "hash": "92e6aef7333a721babe9d63c169efcc24f820945388f619b6d3c8ce6c6d625c3",
+        "size": 4282
+      },
+      "tests/graph-controller.test.ts": {
+        "hash": "f9563efe5e807bc74894b43b7cce3f8aa0e389f9abb08ecd9df23f1b3f84c055",
+        "size": 2806
+      },
+      "tests/graph-ipc.test.ts": {
+        "hash": "eb39a532050ba4c1f7598d1a806700ee9b125503366d9c5a57ed344fd8600934",
+        "size": 8379
+      },
+      "tests/graph-model.test.ts": {
+        "hash": "9e569c1a9dad3acf39e332268d2adc847374df77272dd6b22be82ed44495e774",
+        "size": 8613
+      },
+      "tests/graph-query.test.ts": {
+        "hash": "716a90d917ff7bbc789962ab6d5a5d551d043874f453a3e6d5a27d8b15e52674",
+        "size": 4135
+      },
+      "tests/graph-renderer-adapter.test.ts": {
+        "hash": "07900e825862a048d0c54f5ae543fb696a2348ccf1e558d2e3c91e7157bd7bea",
+        "size": 6746
+      },
+      "tests/graph-renderer-dependency.test.ts": {
+        "hash": "fa4fa7d588b3836b993b40fd08c4900f2cdba484e00c60e64f54cb8760649cee",
+        "size": 1512
+      },
+      "tests/graph-search.test.ts": {
+        "hash": "5b7b3d0685a6d59f065be47587581ce4726324cbf64e577f23b11cbdb094e769",
+        "size": 2661
+      },
+      "tests/graph-settings.test.tsx": {
+        "hash": "dda444ef196064e5468db3288b882b17c38c810d94d72fa0d2949c3c042054de",
+        "size": 2977
+      },
+      "tests/graph-surface.test.tsx": {
+        "hash": "15d53859153d20ff60e2703d286b866564ff0a1a3658965382c0b32088295386",
+        "size": 3862
+      },
+      "tests/hover-preview-document.test.tsx": {
+        "hash": "d99052639da67c1149a3957833064fda82ffd94f3ee1dc5fd687c2fce777fc17",
+        "size": 3443
+      },
+      "tests/i18n-foundation.test.ts": {
+        "hash": "71ac597ce596bd950139dc043e33820123a19092ac216a7b0fa0e48a6135fb34",
+        "size": 760
+      },
+      "tests/index-service-goal23.test.ts": {
+        "hash": "cd92dbfe6c523c7da4ee64c07caec209efae612b1b87a3e097f4b320e727e832",
+        "size": 982
+      },
+      "tests/interactive-ai-handoff.test.ts": {
+        "hash": "d0011d245f82a7a2e00d48d830da3822da3092d056c4c86cbc5efe0b0a913026",
+        "size": 4249
+      },
+      "tests/interactive-authoring-controller.test.ts": {
+        "hash": "ec8aadbcdd65965ec5ce23e91cc36bfb5c42f669171764c4bc19fdaa529a704e",
+        "size": 5422
+      },
+      "tests/interactive-authoring-ipc.test.ts": {
+        "hash": "4486743894e8c9c7c103eaa723e6a9581ef5d6ad25bfd1e38a2ee30fb437a8c6",
+        "size": 4914
+      },
+      "tests/interactive-authoring-proof-ipc.test.ts": {
+        "hash": "391ad9561faec5dd62584d6cc3f47af381c3797d711d5ff465dd2c541fc2d2d6",
+        "size": 3026
+      },
+      "tests/interactive-code-intelligence.test.ts": {
+        "hash": "5aa89f1bf70d0b6d37230847606cb18b8865b6700089f6bfa7a58f36f6375622",
+        "size": 2683
+      },
+      "tests/interactive-create-transaction.test.ts": {
+        "hash": "c093ef93ccd0a70cddc0163059f973bc9299c1608b2ba733c56f0c5a695ae4b3",
+        "size": 5484
+      },
+      "tests/interactive-diagnostics.test.ts": {
+        "hash": "a8055107d63f68cc5df411cc59f676b62a1e3d4476cea4a620b92991fcf8d844",
+        "size": 4588
+      },
+      "tests/interactive-language-service.test.ts": {
+        "hash": "5b8267b642f2802e9cc8e06b26604a74c3faa01092f2a3f2a87ae6550f517d16",
+        "size": 8734
+      },
+      "tests/interactive-language-worker.test.ts": {
+        "hash": "94f63067a4feb2c1bfec3f5dab78ed41c98520373c892f656a7e860e4cdc6475",
+        "size": 7915
+      },
+      "tests/interactive-project.test.ts": {
+        "hash": "092f48f76fe8f37756179d4350f78e2a8c11ae7d6f497d49203c6a8fd75c3613",
+        "size": 3545
+      },
+      "tests/interactive-proof-runtime.test.ts": {
+        "hash": "0faef3e04650bf134bba79b130b844df16624faca84f2f83b8483fc2eeb4084d",
+        "size": 3237
+      },
+      "tests/interactive-proof-security.test.ts": {
+        "hash": "7609e6a2806fb6bc4e5cdd2134f5572071fcffcd632406172badd0d9e9ba920b",
+        "size": 5359
+      },
+      "tests/interactive-proof-workbench.test.tsx": {
+        "hash": "86f7ce93c4770049231313a63474fd599adb9e0dc2016d4388fe04685be9785f",
+        "size": 2988
+      },
+      "tests/interactive-scaffold.test.ts": {
+        "hash": "e2b03613e4fecf7ff327fdb3ad0368f57c3d4f30f2ff487a40fc318d3e38dcd2",
+        "size": 3586
+      },
+      "tests/key-recorder-state.test.ts": {
+        "hash": "ee54bcca55c598a1b0e827beca3a703ab9f7f7facb6e60dccfcf0199027da310",
+        "size": 579
+      },
+      "tests/keybinding-resolver.test.ts": {
+        "hash": "856e19584dce29e4a2446fb6f88039f8bfa8cf6d3a59e28c4d8451c73d534c23",
+        "size": 22180
+      },
+      "tests/keyboard-context.test.ts": {
+        "hash": "1c954e255a76ee7e8efc2b2b4d2612a01cc303341ede3146e1a2dd500dd92fd2",
+        "size": 1914
+      },
+      "tests/knowledge-panel-selector.test.tsx": {
+        "hash": "d5a010155d7029751d4c15346118c709e93d736914faddf1aad6d6cfd65d10ec",
+        "size": 3196
+      },
+      "tests/knowledge-source-model.test.ts": {
+        "hash": "062ad195eaa4751d9be623b320b2fb02348cd16d233fa765a5cd2f116c4413c3",
+        "size": 8625
+      },
+      "tests/living-outline.test.ts": {
+        "hash": "7a67bc8c7ab83145bcb4807bf17740c01a1d145ef992e3c3a3193b990e7a2279",
+        "size": 3136
+      },
+      "tests/local-graph-controller.test.tsx": {
+        "hash": "9f3cd7cc3de95b20d8a968db2f43f4b2cf9f6b837a5e3bc35e2cf8407ea13d90",
+        "size": 2862
+      },
+      "tests/markdown-formatting.test.ts": {
+        "hash": "357bfc1d485368e926d23c30eec5c096b9ba840a4fe4e51dd42b018030772555",
+        "size": 1784
+      },
+      "tests/math-expression.test.ts": {
+        "hash": "f4811eeb3691c2557c73a1c4d4f7a0c4a3d65ce58c06cf51fdac9f5ef1bb34bc",
+        "size": 1142
+      },
+      "tests/mdx-language-intelligence.test.ts": {
+        "hash": "c1568ec2d81c69c0442bfbca44ed4ea4bb3d3c195fc09a5f4bd47b891c760005",
+        "size": 1107
+      },
+      "tests/mdx-preview-performance.test.ts": {
+        "hash": "e6488fc3227f1d351424da4e5f152704d2d9fb40a264389c9e3a7a0c18b75594",
+        "size": 5090
+      },
+      "tests/mdx-registry-intelligence.test.ts": {
+        "hash": "d0a177ba89410ce69c4ed9dcca50ae4f00b457121d6db74e7971bbc1c06fc783",
+        "size": 2373
+      },
+      "tests/mdx-structure.test.ts": {
+        "hash": "4e27409063d930f792fa6b2c179c3e9dba2155ba59626bf63c5e1e4aeb4420ca",
+        "size": 1952
+      },
+      "tests/note-action-lifecycle.test.ts": {
+        "hash": "7c3e8185190c4eab2a727c6edc85fb59f4395448d855b8efcdac054f8b8a1003",
+        "size": 4687
+      },
+      "tests/note-delete-lifecycle.test.ts": {
+        "hash": "56e7a8eba7c91ceb354062505f18783dbf6e5885cbfb9703f46e084cf873ddb7",
+        "size": 2856
+      },
+      "tests/note-editorial-theme.test.ts": {
+        "hash": "139b8d73ae6711ecf41a583640721ede722dbf4f397085bc3f573361ba71e4c5",
+        "size": 3650
+      },
+      "tests/page-preview-settings.test.ts": {
+        "hash": "1db8ff56250db21dee6a5fee868fd3dbe47115d415e817ffc63e1c678972fcae",
+        "size": 1004
+      },
+      "tests/physical-modifier.test.ts": {
+        "hash": "fec713b1918166c85935e737c6d261680795f8d77dde244fceb6f7a83ed020d1",
+        "size": 1549
+      },
+      "tests/preview-highlight.test.ts": {
+        "hash": "d1f7e4dfff1001583faa8e10ac1962572ac9b066d2f8cdd3dd05188eafb5a116",
+        "size": 2754
+      },
+      "tests/preview-images.test.ts": {
+        "hash": "e954a0250ff214f7ca4bae0e65a236364241535779ce9b0ae641f100811eaa4f",
+        "size": 4775
+      },
+      "tests/preview-wikilink-navigation.test.tsx": {
+        "hash": "8d159a7fb68e374e3ffb6f24e119aca3dedd76c7114ba56683ecca2ee2da41ab",
+        "size": 8172
+      },
+      "tests/property-service.test.ts": {
+        "hash": "0134ff7a8784f2ca9e4094bc659a001f4f35ed5269a4d515b1787e7d29359be5",
+        "size": 4390
+      },
+      "tests/reading-zoom.test.ts": {
+        "hash": "4043e0fae7bfb72fe48a56cade6fc7be873323481c73ef2618cccb25afd3322d",
+        "size": 2279
+      },
+      "tests/remark-wikilink.test.ts": {
+        "hash": "a897d83081fada11819a1f230c6f47c4538a33f4d00c88e5563cb4bbbda8933a",
+        "size": 1392
+      },
+      "tests/sandbox-messages.test.ts": {
+        "hash": "8e4ef99650dfedff1b29eed56926e1d83cc10686d2ce00518b0a00391c0389d3",
+        "size": 1485
+      },
+      "tests/section-search.test.ts": {
+        "hash": "fdfc9e487556d83e8b62b58b097b00dea8c83a3dd127c642bef130aa33a737f5",
+        "size": 2024
+      },
+      "tests/settings-keymap-search.test.ts": {
+        "hash": "9c30aa481f9ec7fb6261786bb01fc5d35adba0c3c6a64ad51c3fd634052a7b63",
+        "size": 1149
+      },
+      "tests/source-editor-preferences.test.ts": {
+        "hash": "7aeabf4fad95737e7407279d8112a0a63b2361f5d2904e8e4863d07c68f3960d",
+        "size": 2379
+      },
+      "tests/tab-context-actions.test.ts": {
+        "hash": "02e81f0f2ba6e5800a8b9686c9436754f37a4cac83a39bc802591c53cdd83101",
+        "size": 2652
+      },
+      "tests/test-user-data.test.ts": {
+        "hash": "abd82a5cc221a26fb78dfa4c6213a6c69e01b2593c81c74300af24d9a36b6047",
+        "size": 2277
+      },
+      "tests/text-file-editor.goal16.test.ts": {
+        "hash": "e11549b3211446f5904a5dfd0acb2befbe2de61c1fe36624cef37063fb9a6d8e",
+        "size": 533
+      },
+      "tests/vault-file-ipc.goal16.test.ts": {
+        "hash": "f1cfc5e1a066524fcb60e4634e58f675acc0fe9bb03be55c7c82dcf2d574fe72",
+        "size": 5172
+      },
+      "tests/vault-path-visibility.test.ts": {
+        "hash": "207d6b7e129a09ac922861704a3c1c9e86bcbe463330a13c14b043210cbc5d60",
+        "size": 776
+      },
+      "tests/vault-switch-lifecycle.test.ts": {
+        "hash": "83d6c08054df8bd09797588327a3f79236156cc01f58b300afe4165ce5c11dec",
+        "size": 2530
+      },
+      "tests/wikilink-preview-position.test.ts": {
+        "hash": "172941b42d7b804a873858b82749632f85dec07cf258dcb98930dd2490a1a251",
+        "size": 1672
+      },
+      "tests/wikilinks.test.ts": {
+        "hash": "ce93fc251d2c44e3cc6e610ea3cd6e9435ba9eb7cfd854e205dd7e093fd4f409",
+        "size": 2435
+      },
+      "tests/window-shortcut-policy.test.ts": {
+        "hash": "40d2addceb25adcf52b75da84ffddecde2fe0524fc81ed23d3fa921bfd2dce42",
+        "size": 5369
+      },
+      "tests/workbench-controller-transaction.test.ts": {
+        "hash": "2fddde2f2b5e5d666a23c9f5c4a040b7441550b98607212d10042fdb5e355473",
+        "size": 12618
+      },
+      "tests/workbench-graph-item.test.ts": {
+        "hash": "1c1bf936cb2cb73d7b9ffa10d31f6e82b0ab1fb1c2a67cd9a568f8f5b628ca13",
+        "size": 2887
+      },
+      "tests/workbench-item.test.ts": {
+        "hash": "c815b629b890afeed64c8f1e9f66b65e4cb46851c6da9c14270d20ec1962fc3c",
+        "size": 985
+      },
+      "tests/workbench-resource-transaction.test.ts": {
+        "hash": "301b0a24622fdb2d77ea6050c13387823797c81c74479febb7de6b9f0db3189c",
+        "size": 8204
+      },
+      "tests/workbench-state.test.ts": {
+        "hash": "a4b7d80c03435376f442470687e508dba629e22e2ac372747fafc99161fd871c",
+        "size": 19504
+      },
+      "tests/workspace-layout.test.ts": {
+        "hash": "e4092d7bd2ce706adc9a0c0b47550c289e0aaed993e2afdd05d0b2e1e11f7343",
+        "size": 2975
+      },
+      "scripts/__pycache__/verify-goal25-live.cpython-314.pyc": {
+        "hash": "2906ed441564234fa6071fd0de5bf377bf790957902451b1199ccaf6367fa1e8",
+        "size": 42064
+      },
+      "scripts/__pycache__/verify-source-editor-live.cpython-314.pyc": {
+        "hash": "99a1d8a03b79e7b1975faec7af457e89206aca7531554117eb53c8efa3123356",
+        "size": 17685
+      },
+      "scripts/generate-ui-map.ts": {
+        "hash": "c54d872611678a6d8391a4a28f849f74abf1ac260b2992ea114bf198330e782c",
+        "size": 3878
+      },
+      "scripts/goal19-live-fixture.ts": {
+        "hash": "1751211a896d0cd9b7c404a7ca0132f372b26642c8f0a49dfb1b77e0c840e7a0",
+        "size": 7516
+      },
+      "scripts/inspect-goal24-audit.py": {
+        "hash": "59239670ef07aeb78aeb84f2f535cd9a2b33739aca95c610e3a60d8b9ac4cbfd",
+        "size": 3096
+      },
+      "scripts/profile-editor-typing.py": {
+        "hash": "3ee33529f751ccc01e477898a1cdc30e20765a5b3b70efe55c8ac70da8e45be9",
+        "size": 1196
+      },
+      "scripts/verify-bun-runtime.ts": {
+        "hash": "0cbe5a32b373ff638f962893e393276e98609474f4f0415ca8db59bd96436990",
+        "size": 2033
+      },
+      "scripts/verify-editor-workers-production.py": {
+        "hash": "87138b02e1524a05d7154d29303c1ca95cb54e2361de60624f031f81dd5214ea",
+        "size": 3599
+      },
+      "scripts/verify-editorial-note-theme.py": {
+        "hash": "80ff6d893d5258e82fdb5340d2b9b5f0d3e3a97602927bdc03c41a7aac702014",
+        "size": 8770
+      },
+      "scripts/verify-export.ts": {
+        "hash": "bcc72d55cdfb38084b8959c5b5d85404d1b6f6627684e874686f9aa3bcfe2f55",
+        "size": 2996
+      },
+      "scripts/verify-goal19-export.py": {
+        "hash": "062f6ae2c1d40207a1cad286131bf1daf5f94eba5c8f774a3024f3fa3e6c9671",
+        "size": 8996
+      },
+      "scripts/verify-goal23-db.ts": {
+        "hash": "eb5f9132d47ca3cfd5b2e4f3f8eb610fd6677256c94a6dfc8142bb7cc551fb69",
+        "size": 3481
+      },
+      "scripts/verify-goal24-graph.ts": {
+        "hash": "98153ce6078327c5695c66dd7aa6f508e7614547bbde62fd88d74e37e5ed9b54",
+        "size": 5116
+      },
+      "scripts/verify-goal25-live.py": {
+        "hash": "90cdd244a308a8b935724955abc8635c8274bba1baa81b180483979750dee9c6",
+        "size": 33507
+      },
+      "scripts/verify-goal26-live.py": {
+        "hash": "3c7851af0d19e9d9840d5c5060fef24c774cc2150a322e0e74c38d59a9477894",
+        "size": 11528
+      },
+      "scripts/verify-goal27-live.py": {
+        "hash": "5f41ced1ef9491279a2715e3cb8bf8088fa2c34fe36b197cd088b0ed230935af",
+        "size": 13844
+      },
+      "scripts/verify-goal29-db.ts": {
+        "hash": "a69a5db2b2c9f058ddf46597b8ce528f33611822fdfa23f9df02ca02044a6025",
+        "size": 1942
+      },
+      "scripts/verify-goal29-live.py": {
+        "hash": "f07e965350bab71d1913b16ac5ef3d4ad0e76e99b21d343289d7caf1d9937982",
+        "size": 10899
+      },
+      "scripts/verify-goal30-live.py": {
+        "hash": "e3188c6b29f5d725d85a55ccd85d8a1bcd64c0a611800abb80b6bc5f3ca13505",
+        "size": 6101
+      },
+      "scripts/verify-phase2-ops.ts": {
+        "hash": "2fbfe5fcedb5476590ca6a86adc5e9e23c187ebde48ac80ff41c412165d08f97",
+        "size": 6049
+      },
+      "scripts/verify-phase3-asset.ts": {
+        "hash": "e991e8d7916341d1d7ca806f129772ee5d39984fbf890bb3e5cf239b1724fb94",
+        "size": 2673
+      },
+      "scripts/verify-source-editor-live.py": {
+        "hash": "d3d4e4716ee8ab02ec220786a31cc68aec33cc85916fbdbcedaf02d9a68361c2",
+        "size": 11641
+      },
+      "scripts/verify-typing-ux-live.py": {
+        "hash": "a2bd4c2302a4a6514b8e08d281376019a58f6cd44a5221e6416947e27f6f2c14",
+        "size": 13861
+      },
+      "goals/GOAL-01-app-shell-and-vault.md": {
+        "hash": "3e0f45576ceb5eb80f391d91aa89b74ec61d6c883497d6b0a17735b83e73a376",
+        "size": 8731
+      },
+      "goals/GOAL-02-indexing-and-search.md": {
+        "hash": "46fba8cbaa8a5c4e7ab9656a0c7d7277f76a67ffef14f57a676560ba6ef3da02",
+        "size": 7336
+      },
+      "goals/GOAL-03-registry-and-safe-html.md": {
+        "hash": "9338b2bd8f79c5cfa734c0f10b903fa1a0c3bde2e48de5524186292fcab6e1b4",
+        "size": 6278
+      },
+      "goals/GOAL-04-interactive-islands.md": {
+        "hash": "28cb6dedc0ed1c5cf0e87c4278826dcd5f6605d9072e9b7ae37d159e4ae498b9",
+        "size": 6804
+      },
+      "goals/GOAL-05-sandbox-and-permissions.md": {
+        "hash": "08b0fd1f2ead81d61051fcf6e68eaa0b9464b0a27746af52589474aee70cbe6d",
+        "size": 7511
+      },
+      "goals/GOAL-06-ai-assistant.md": {
+        "hash": "37f8311db70a3deaa6382c84f0cf37397bfcb09cca4c60836e19e0e36aa651b1",
+        "size": 8414
+      },
+      "goals/GOAL-07-export-and-share.md": {
+        "hash": "701dd7a8240e003015209e77501dd1bf3d125c6097138dd5791e6e8fc48116e8",
+        "size": 6776
+      },
+      "goals/GOAL-08-ux-productization.md": {
+        "hash": "762944bcce85ef222fe65d93c128797cd56b68a0fc2fb7acd40cae959314b74f",
+        "size": 22246
+      },
+      "goals/GOAL-09-polish-sprint.md": {
+        "hash": "55a9353860cb31bbfb7efab366ed0982198e4be7402a4008edb79e871a44ab3a",
+        "size": 31621
+      },
+      "goals/GOAL-10-feature-gap-research.md": {
+        "hash": "0ce38ff2fcc11f9f93541d8d5f1c0f46cc1ae64624cf3a31f77b653b3c5e437e",
+        "size": 12490
+      },
+      "goals/GOAL-11-editor-enrichment.md": {
+        "hash": "f2c06d0ee5a47e0eb03a116c849a61cee28689ee0d35038668c146c40107d45b",
+        "size": 14646
+      },
+      "goals/GOAL-12-organization-and-navigation.md": {
+        "hash": "64ecdba5efb46f5e1f50d5cdd326f522092c231f9121484548a694b30054bb11",
+        "size": 14925
+      },
+      "goals/GOAL-13-obsidian-parity-microfeatures.md": {
+        "hash": "17e16986a3468a011edc8168580cc1586a9a305e406777b5d18a5d4140ac9234",
+        "size": 15033
+      },
+      "goals/GOAL-14-interaction-behavior-research.md": {
+        "hash": "ed6fe6f5acbfbcd81f52134cca1eafdc7237e1c51f039d8d8460853dc062a2a1",
+        "size": 27607
+      },
+      "goals/GOAL-15-transactional-rename.md": {
+        "hash": "9db27c82154e1665c292c53ed563364c1993028e200a9c0f3a1cf387061e5502",
+        "size": 10990
+      },
+      "goals/GOAL-16-plain-text-and-image-preview.md": {
+        "hash": "4aa219a543f1981c502436e5d34b39d1b89562c1cd244e24e18df8b7f607c47e",
+        "size": 12562
+      },
+      "goals/GOAL-17-interactive-note-mdx-kit.md": {
+        "hash": "548d80b8c24117a2df58d4717cfcd2a17111cf0a8d7895e2dc39e70bf9b666c6",
+        "size": 16232
+      },
+      "goals/GOAL-18-editor-goto-definition.md": {
+        "hash": "fa94953dd9c30e6b02661dd8b638d131a17c0d0a51ea895b847278d9025749e4",
+        "size": 8143
+      },
+      "goals/GOAL-19-interactive-note-export-fidelity.md": {
+        "hash": "0b73ca81cf92eb31a8c079537becb979118255b4fac4b3f8a4c3b794c4e72898",
+        "size": 34023
+      },
+      "goals/GOAL-20-settings-dialog.md": {
+        "hash": "c4765d37458bf7b8ecdd3cfc15052268b8eef6d372528777010d3010bfcd48a4",
+        "size": 9268
+      },
+      "goals/GOAL-21-tier2-spatial-visuals.md": {
+        "hash": "e53c12764e7b4ff05e64a9bd7abf7801e39a0a9903df3bea395d67e611d0b8c5",
+        "size": 4062
+      },
+      "goals/GOAL-22-zed-like-workbench-ux.md": {
+        "hash": "6e1d8e09f9d71f8689fdba2cdfb01c4231cccdd22e3cc977ccf0f3eef1463be2",
+        "size": 51626
+      },
+      "goals/GOAL-23-obsidian-knowledge-utilities.md": {
+        "hash": "7049db3e57abf966a221c46d69e073328c84ed6bd79b85f2742371e2b158a1ac",
+        "size": 36694
+      },
+      "goals/GOAL-24-graph-view.md": {
+        "hash": "fe6d7104fd29fe22f62a6e3547eb9dd681f023d861e30bfa255465d75649cf14",
+        "size": 43137
+      },
+      "goals/GOAL-25-interactive-authoring-workbench.md": {
+        "hash": "095aa32ec507e7ba79680212d60715eb43aaf24ee841a9ea7fe03e1105ac4d48",
+        "size": 47068
+      },
+      "goals/GOAL-26-knowledge-instrument-foundation.md": {
+        "hash": "9f9283490ab7d857598dba0def774d09b92a3bbdb4398bf23af78ca7b2dd8ad7",
+        "size": 4852
+      },
+      "goals/GOAL-27-single-pane-ide-intelligence.md": {
+        "hash": "056bb807bd7aa68af9b4926010c7eb20a9e1b37d0b79ad65792ebb3aa0288808",
+        "size": 11951
+      },
+      "goals/GOAL-28-editorial-note-design-system.md": {
+        "hash": "efadd178adb3fc4249a1159e40bb01aebc84e79a4fafef1d87d773e1b636fd8a",
+        "size": 2945
+      },
+      "goals/GOAL-29-living-outline-section-intelligence.md": {
+        "hash": "d08c49e6d78ebfc24c1e6b76f958857b3b798e9f5869700afbe459f1e3178773",
+        "size": 4455
+      },
+      "goals/GOAL-30-compact-zed-titlebar-menu.md": {
+        "hash": "5acaed05516ee6241cacf1427273786a82a2c62b39a619637a1a906dcee54152",
+        "size": 2645
+      },
+      "goals/GOAL-31-reactive-vault.md": {
+        "hash": "f46b1bcf98a0f6139505533cf3d187180c44c6df6626b295756d8cab69046e1f",
+        "size": 38590
+      },
+      "goals/README.md": {
+        "hash": "1a88884f91cb804c2cef9af54917350ab74295d814d5f6a937764acba43f777b",
+        "size": 5077
+      },
+      "docs/research/editor-readability-and-typing-2026-09.md": {
+        "hash": "de1f3dafcf71162cd299037584cd3882e00c16bd383b04e98315d4f06c051dab",
+        "size": 10527
+      },
+      "docs/research/evidence/obsidian-interactions-2026-07/mdx-vault-file-context-menu.png": {
+        "hash": "36c7d885cfb6799e7e50c4767f05e22a42a25b055deef553dad72fe503a82178",
+        "size": 31540
+      },
+      "docs/research/evidence/obsidian-interactions-2026-07/obsidian-editor-context-menu.png": {
+        "hash": "ff8ff02b81f6c7e64b108a42f2ccfb0e9096fa69a2fbfc5cfcd7c2347ae0c5dc",
+        "size": 35734
+      },
+      "docs/research/evidence/obsidian-interactions-2026-07/obsidian-file-context-menu.png": {
+        "hash": "afb355a5591ec26ed548418b17ef5c117a2985b597bd09241129052d5ea8f682",
+        "size": 94397
+      },
+      "docs/research/evidence/obsidian-interactions-2026-07/obsidian-folder-context-menu.png": {
+        "hash": "df671f3fbfe433500e62baa94e80eb82924884a6dae7042440d8e1b9e5ef8682",
+        "size": 76586
+      },
+      "docs/research/feature-gap-2026-07.md": {
+        "hash": "11fa97ecba8b3b3a105770c8bb0326ec865eced87ff70ac00565566dcc9f5676",
+        "size": 29529
+      },
+      "docs/research/fumadocs-adaptation-2026-08.md": {
+        "hash": "228cdd1ff7dfe4baf34b2eeb75e7cb994862c54d611fe4fddcccc5b04465d26a",
+        "size": 2461
+      },
+      "docs/research/interactive-note-skill/SKILL.md": {
+        "hash": "822cfc88752d3dbb0a0a315929003335a4a5b1c27149c76a6aa8545b2b5ce93f",
+        "size": 6392
+      },
+      "docs/research/interactive-note-skill/audits.md": {
+        "hash": "b8f055d10b44ca3d3fcf35d2f9c25c821d9bbf65b887b7596a68b14b9f12f26f",
+        "size": 3571
+      },
+      "docs/research/interactive-note-skill/design-system.md": {
+        "hash": "fdbcaa51cd636ecc8fd297d38b1c75cab859ccfe324260b56e5d920182a1445a",
+        "size": 14417
+      },
+      "docs/research/interactive-note-skill/js-patterns.md": {
+        "hash": "9399d9b99b273de5fe52138733ee04fc81146a2105c01b8b59b0d79537b9f005",
+        "size": 3804
+      },
+      "docs/research/interactive-note-skill/note-cache-hierarchy-locality.html": {
+        "hash": "0f87507c45df6eae6b539fd86c3a55c67b7c95af657af0c3ce9c09e59c5ed690",
+        "size": 45599
+      },
+      "docs/research/interactive-note-skill/note-structure.md": {
+        "hash": "2b0ea5e8a7148944c9817a23fbc894d1ebfe13db9ff3fa876ea079d3b4feebc9",
+        "size": 4456
+      },
+      "docs/research/interactive-note-skill/note-template.html": {
+        "hash": "c6e74bed6ae01fe170c7490fb93f4cf876574f9a3072b71bf9f9dfe4045a9b35",
+        "size": 6280
+      },
+      "docs/research/obsidian-core-plugins-parity-2026-07.md": {
+        "hash": "8a0de68d016d6e44feec55eaa6bc376f28c83eba770f9cd62482486aa5be54f8",
+        "size": 16387
+      },
+      "docs/research/obsidian-interaction-behaviors-2026-07.md": {
+        "hash": "c49304a3f37d0338b90a6abceb88e11f3095ff8ec1a0ee37fd8976fc5353466c",
+        "size": 76095
+      },
+      "docs/verification/assets/editor-typing-ux/after-appearance.png": {
+        "hash": "339ef4f05f9827cc272bdbdffb245d9febca2f8ea94141b3ce2ab0a8c3f05d26",
+        "size": 79852
+      },
+      "docs/verification/assets/editor-typing-ux/after-completion.png": {
+        "hash": "e8d547596418f47a21c78ada763b82f9132dbdd0ca13b6b2ccf0af5abd2d8ec7",
+        "size": 41051
+      },
+      "docs/verification/assets/editor-typing-ux/after-dark.png": {
+        "hash": "9fa208a9affab0644b6baeea908da8a49591aac43e00b9bd1452694998c60516",
+        "size": 59018
+      },
+      "docs/verification/assets/editor-typing-ux/after-interactions.json": {
+        "hash": "495c0f43af2840289552024e44cc52c543cecbed330172497488b6b3656479a1",
+        "size": 1611
+      },
+      "docs/verification/assets/editor-typing-ux/after-live.png": {
+        "hash": "b246825799ec1feae8c706deb187b0c182223a84b370401d603660ce21d977d7",
+        "size": 60379
+      },
+      "docs/verification/assets/editor-typing-ux/after-narrow.png": {
+        "hash": "5b57e942735fc0bad305ffdf2c9f55ea4333b5256044fea7b7a78968f42642ff",
+        "size": 60025
+      },
+      "docs/verification/assets/editor-typing-ux/after-results.json": {
+        "hash": "dbf5686febb227c3608eac2136daf882e0564b37cb2e6152de107d353ecf387f",
+        "size": 1780
+      },
+      "docs/verification/assets/editor-typing-ux/after-source.png": {
+        "hash": "60c34fb74a014ca75ce26531118fae02e3f6cdde088b1f353d2a091422daf61e",
+        "size": 58911
+      },
+      "docs/verification/assets/editor-typing-ux/after-vietnamese.png": {
+        "hash": "98c2fdca9b539f5f29f9b3773e67903008db1902700bb0fbb2b5230223675c54",
+        "size": 44231
+      },
+      "docs/verification/assets/editor-typing-ux/before-completion.png": {
+        "hash": "586f0a403ef08dbe95922d5c79fd8a6fbfd6d9213486a36084bc1a94f598d730",
+        "size": 39488
+      },
+      "docs/verification/assets/editor-typing-ux/before-results.json": {
+        "hash": "e3c881e3c04d627ab3cf80264502214724fb0594c2624245e72594f8f281ac48",
+        "size": 1959
+      },
+      "docs/verification/assets/editor-typing-ux/before-source.png": {
+        "hash": "ff73d7466e4f423730e68325f732b60a485addd82443f44e32b427377e2ae646",
+        "size": 64922
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-appearance.png": {
+        "hash": "d6c2d299fc16c1f33de40e6b2e1ef9335fb3b62bdde5ac76da39a2dbd0ce230a",
+        "size": 79708
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-completion.png": {
+        "hash": "9b7e1fccff6e139dad2fe150e937eda7e6d4d7ccb3139f75e87ac8ceb0fedf12",
+        "size": 40914
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-dark.png": {
+        "hash": "7fadf834eb4c7dc7a5b75024150cd0459f706a8366372ed11912f3761def9caa",
+        "size": 58877
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-interactions.json": {
+        "hash": "64fbefaa2b8c659696766c80b7c3285e76bf21511fb95cfcf9c9f84ed0450050",
+        "size": 1611
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-live.png": {
+        "hash": "a5d9d0faecb4d18c652ae84e540ebecdaae4f4b4063923e3ce16dfd830d8f22e",
+        "size": 60243
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-narrow.png": {
+        "hash": "33a7830d739855cc8714be573e0433b8cb2fe390d6f714c0c81cac658a13cd72",
+        "size": 59898
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-source.png": {
+        "hash": "5f47ed40f4939561e30fb9686e92293592885594baa22c3149147ffe61359f24",
+        "size": 58756
+      },
+      "docs/verification/assets/editor-typing-ux/production/after-vietnamese.png": {
+        "hash": "43269e4651bf067cc3e0475641db5d6237639b58ea665dbc12826127b53d89b5",
+        "size": 44111
+      },
+      "docs/verification/assets/editor-typing-ux/production-workers.json": {
+        "hash": "92ada3c9b8540364645038cb06a00020ca8ebd23567c74eb7fd069c1f3968728",
+        "size": 1517
+      },
+      "docs/verification/assets/goal-25-dev-full/goal-25-existing-not-run.png": {
+        "hash": "a0a102751bff495bdd6af31afe87dd56305ba1537f429490a634a3ee733c14d7",
+        "size": 178533
+      },
+      "docs/verification/assets/goal-25-dev-full/goal-25-live-results.json": {
+        "hash": "792701c3c645f3c63676bc106b1edf2e788c409e8f6d37c39efd3ddca824471d",
+        "size": 1813
+      },
+      "docs/verification/assets/goal-25-dev-full/goal-25-narrow-problems.png": {
+        "hash": "807dcdc77074734f36515080046124d6b4d2f734b3c8df40b1e422e093943252",
+        "size": 106448
+      },
+      "docs/verification/assets/goal-25-dev-full/goal-25-wide-compile-issue.png": {
+        "hash": "619c1524c3a8497ee6e5b8c70930dfdc45a2f2dc4197a8cc87567f7235585bd4",
+        "size": 156671
+      },
+      "docs/verification/assets/goal-25-dev-full/goal-25-wide-ready.png": {
+        "hash": "46ed24a95c4044ab0f4d784d5bfd3e4aac5233624673d365f6a3970ba4dc9caf",
+        "size": 172374
+      },
+      "docs/verification/assets/goal-25-disabled-debug.png": {
+        "hash": "19663eeb53b23b6b710931a466b300d3d6e70b60f09ac51d4c2752eacefb9f23",
+        "size": 234436
+      },
+      "docs/verification/assets/goal-25-existing-not-run.png": {
+        "hash": "b086e5ebf90a29b9276bcc82abcfdacee4a7b71c644feb46923149e9a34e7f35",
+        "size": 178542
+      },
+      "docs/verification/assets/goal-25-hash-debug.png": {
+        "hash": "458e95cebbbbf87580e07d4319aab29849c8caf8ba32de15dfb4b74f336ab593",
+        "size": 159414
+      },
+      "docs/verification/assets/goal-25-live-results.json": {
+        "hash": "2960b0109be5b4a957899a01df49c7cf9aa16df603a7273985468c5dac28ba67",
+        "size": 1299
+      },
+      "docs/verification/assets/goal-25-narrow-problems.png": {
+        "hash": "51c3313f404931cae036683b93a05f78d5b72b66f0781947c4b4de53aca04810",
+        "size": 106536
+      },
+      "docs/verification/assets/goal-25-normal-auto-debug.png": {
+        "hash": "7652582d636d7f84bdfb52c4493d57e867170ab00d04e26410943521ae15462b",
+        "size": 239564
+      },
+      "docs/verification/assets/goal-25-packaged-full/goal-25-existing-not-run.png": {
+        "hash": "a0a102751bff495bdd6af31afe87dd56305ba1537f429490a634a3ee733c14d7",
+        "size": 178533
+      },
+      "docs/verification/assets/goal-25-packaged-full/goal-25-live-results.json": {
+        "hash": "e35146489e15cdfa802bb009e7ebc80584b706a6ea9ffd3094be09e5443c62a2",
+        "size": 1812
+      },
+      "docs/verification/assets/goal-25-packaged-full/goal-25-narrow-problems.png": {
+        "hash": "2ea1864165620d99cab3732c81bb043ac08e6ce1e89415773c191a4f7fce2daf",
+        "size": 106507
+      },
+      "docs/verification/assets/goal-25-packaged-full/goal-25-wide-compile-issue.png": {
+        "hash": "7c53b73e45ef66758434da59ef53160376fb7aa16a484a77ee6dd34a90defcbb",
+        "size": 156759
+      },
+      "docs/verification/assets/goal-25-packaged-full/goal-25-wide-ready.png": {
+        "hash": "46ed24a95c4044ab0f4d784d5bfd3e4aac5233624673d365f6a3970ba4dc9caf",
+        "size": 172374
+      },
+      "docs/verification/assets/goal-25-proof-run-debug.png": {
+        "hash": "1e2d5e1befce5ca5cf2fe311b2b028a40071c4b692624b28f5875c9834bf8d7c",
+        "size": 234105
+      },
+      "docs/verification/assets/goal-25-recon.png": {
+        "hash": "4b117a6a75c67543777af51c3969cf5df36ba63e71ea75f039d65b5c432eb7f7",
+        "size": 180073
+      },
+      "docs/verification/assets/goal-25-starter-debug.png": {
+        "hash": "4b2a1aada4e39969edf52c20e3e2253a6dd39effc3543facb2c4e2687ffa2b48",
+        "size": 226952
+      },
+      "docs/verification/assets/goal-25-wide-compile-issue.png": {
+        "hash": "60b3158475eb1a0b78dc64607c2f8bd4c2a27597b052c7a087f9358e470c96ed",
+        "size": 156762
+      },
+      "docs/verification/assets/goal-25-wide-ready.png": {
+        "hash": "46ed24a95c4044ab0f4d784d5bfd3e4aac5233624673d365f6a3970ba4dc9caf",
+        "size": 172374
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-compact-light-initial.png": {
+        "hash": "1e0b3bf55cdbf4c1183d0438203c3b073013fb75e7d9cc1bae0c696d85bf1745",
+        "size": 163410
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-compact-light.png": {
+        "hash": "efc3d04420b25fe58fdfafc99dc6923b72b7ff67dd87d5b32104f6f2aa8d50a7",
+        "size": 109132
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-live-results.json": {
+        "hash": "da94afbe0aea6f1fbf777c71840504ae14e68d1c7ee7124bd615412b12cf0431",
+        "size": 2536
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-overlay-dark-vi.png": {
+        "hash": "2ad3e077a956108d9eda75bb6d858adf737c17093c607aee0f012aaf299b752b",
+        "size": 96589
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-settings.png": {
+        "hash": "fb9c01b94511f7623636e4830dee7947a9d87fe4a1f10a8a63845c24d08c25cb",
+        "size": 158234
+      },
+      "docs/verification/assets/goal-26-dev/goal-26-wide-light.png": {
+        "hash": "a2d3fe5b0ac0961b07ea28d37c17e018413e6b95b32b8733dda19ecf32dfd2ce",
+        "size": 218006
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-code-action-light.png": {
+        "hash": "3bcf7c0b6f73b935c0eb5f31d9f83058aff7652613790c3c2185338e1bc4a6de",
+        "size": 187979
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-live-results.json": {
+        "hash": "f938ee4fa33c011bb84d01dc7df7e2a2fb40fbc2008d25c3a35ada5df1c329d2",
+        "size": 2294
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-mdx-completion-light.png": {
+        "hash": "8f8b4556b2cfb6e547d0da441f5d50be600989f4b27dcc41661a8b7d0288ee62",
+        "size": 126354
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-minimap-dark.png": {
+        "hash": "47b8bb7ac77046f8f1abe974bfb1c70fd61ed7fe0c00943c893831e0ee795869",
+        "size": 203662
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-narrow-dark.png": {
+        "hash": "687b8a6ed8cd3beca282623296a6ed21357074d0d5b64e24bac64544f870041f",
+        "size": 108169
+      },
+      "docs/verification/assets/goal-27-dev/goal-27-references-light.png": {
+        "hash": "890855b06514278c3eae8389e084b20dd68ba5174a204f9ccff666849aa89264",
+        "size": 213776
+      },
+      "docs/verification/assets/goal-29-dev/goal-29-compact-outline.png": {
+        "hash": "32a8ba0103bff88450ed8c27a11947faf75227c73795984dc739e406ddb36248",
+        "size": 150257
+      },
+      "docs/verification/assets/goal-29-dev/goal-29-live-results.json": {
+        "hash": "99608ed2b2bafde695937bc0a16e24eeaf688899f63addaf0bf5062f4323786f",
+        "size": 1620
+      },
+      "docs/verification/assets/goal-29-dev/goal-29-reading-scrollspy.png": {
+        "hash": "0dde2a21458d816f37d9af9ea6ef29f4e3061e8cee3d34314883306074b394bc",
+        "size": 180798
+      },
+      "docs/verification/assets/goal-29-dev/goal-29-source-live-outline.png": {
+        "hash": "c8e3268af81230c177f9f44d0a355928ca3eb9628bb8c6eb35e19c06fe05700e",
+        "size": 228828
+      },
+      "docs/verification/assets/goal-30-dev/goal-30-compact-menu.png": {
+        "hash": "ccc7bbc54ffd44c9ec416bc804d4ee3ca6151cba1ac3b6b66b2486928e93cb19",
+        "size": 96530
+      },
+      "docs/verification/assets/goal-30-dev/goal-30-file-submenu.png": {
+        "hash": "f6da061baa000d76279b010c5fba815f3f05a0281394cd6e532a215f7e46b260",
+        "size": 117359
+      },
+      "docs/verification/assets/goal-30-dev/goal-30-live-results.json": {
+        "hash": "8ba47e533e75ffd5b23cf41389c22cdaec4c41db608bc33f12cf483a8bc5aea9",
+        "size": 471
+      },
+      "docs/verification/assets/goal-30-dev/goal-30-narrow-titlebar.png": {
+        "hash": "b700a64669d05136cac6c44379fe1ef88d710ca08d22163f07b6ea78cf414faa",
+        "size": 81523
+      },
+      "docs/verification/editor-readability-and-typing-2026-09.md": {
+        "hash": "6b145fd75d9d637999dfe33711c75c72910cbb78dfb25e1a9a3366f7c95d41b7",
+        "size": 5612
+      },
+      "docs/verification/goal-22-windows-live-pass.md": {
+        "hash": "fd61ae86c11b1001cfadcb3ce3ffd3ea9b84ffe92a40e38303f6cd9bb39c2699",
+        "size": 8693
+      },
+      "docs/verification/goal-25-interactive-authoring-workbench.md": {
+        "hash": "6511cd341f7202b0289dbf4eaea1f3479de16bb544dbd133857ec34502c9456b",
+        "size": 15409
+      },
+      "docs/verification/goal-26-knowledge-instrument-foundation.md": {
+        "hash": "a2a1dd5ed0d1cd39c058da91d8661e69a617a23c21bef694101a9e65083fcdfd",
+        "size": 7704
+      },
+      "docs/verification/goal-27-single-pane-ide-intelligence.md": {
+        "hash": "df1eaecd92bbf63daba3cdc552174c6b28a056ed03fb37ae0f2684041dd5f241",
+        "size": 5508
+      },
+      "docs/verification/goal-28-editorial-note-design-system.md": {
+        "hash": "5a1fe72bbc8c68d9f50718f168f9f06319328d2123fea562fd0eac568488b9f0",
+        "size": 2262
+      },
+      "docs/verification/goal-29-living-outline-section-intelligence.md": {
+        "hash": "b1b80f0b92414880921871526a2f216b5e8ef1e69a424c11f6aa6bd94f1715a7",
+        "size": 4169
+      },
+      "docs/verification/goal-30-compact-zed-titlebar-menu.md": {
+        "hash": "7adad232d36026107473685fc639e76f07c2c4f0cf792bb183a389a12efc0186",
+        "size": 2440
+      },
+      "docs/security.md": {
+        "hash": "19b0abcd5aabef9b6536ef4a2ae5c2fbcdcb7ec5170e38078ad150db07022ca9",
+        "size": 8551
+      },
+      "docs/architecture.md": {
+        "hash": "1d6aead8b443d6c6184c452a0137168e77580605c36b7b9565a93448835dd8d9",
+        "size": 22346
+      },
+      "package.json": {
+        "hash": "c51cafbca0fea08c7efb9990d0f76c9effcb4797587eeca2f58a47d901396d7e",
+        "size": 3923
+      },
+      "bun.lock": {
+        "hash": "c70e30ebba745b67b83a077836e452eaf247a9fbcef6ffa08f7eb1c051853c3a",
+        "size": 256102
+      },
+      "biome.json": {
+        "hash": "6c3e527cf899fbcd651f90b1df49dfba17fe8e7008266814e36b5132aab299ac",
+        "size": 2277
+      },
+      "electron.vite.config.ts": {
+        "hash": "c8cd4da1a0c7c5baf92017b86160ad5c1b48a59b8e317e22a1356bdfa544af04",
+        "size": 1952
+      }
+    },
+    "notes": [],
+    "complete": true,
+    "at": 1789235483108,
+    "fingerprint": "cd9aa3c41486323703a41fac77da77e783e99148f1c3e6f051a2b715ad3c4d30"
+  }
+}

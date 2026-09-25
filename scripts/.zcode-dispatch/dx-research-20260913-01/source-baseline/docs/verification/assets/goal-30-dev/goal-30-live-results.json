@@ -1,0 +1,18 @@
+{
+  "evidence": {
+    "restingHeaderText": ["example-vault"],
+    "vaultSelectorWidth": 98.2249984741211,
+    "menuCategories": ["File", "Edit", "View", "Go", "Window"],
+    "fileMenuOpen": true,
+    "keyboardSubmenu": true,
+    "narrowVaultSelectorWidth": 98.2249984741211
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [],
+  "screenshots": [
+    "goal-30-compact-menu.png",
+    "goal-30-file-submenu.png",
+    "goal-30-narrow-titlebar.png"
+  ]
+}

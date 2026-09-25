@@ -1,0 +1,311 @@
+---
+title: "Hash Table — Collision & Load Factor"
+aliases:
+  - "Bảng băm — Va chạm và hệ số tải"
+  - "Hash Table Collision"
+tags: [data-structures, algorithms, hash-table, interactive-note]
+created: 2026-07-15
+theme: interactive-note
+prerequisites:
+  - "[[Array]]"
+  - "[[Big O Notation]]"
+id: hash-table-collision-load-factor
+type: concept
+layer: general
+priority: P1
+maturity_target: L3
+current_maturity: L1
+review_interval_days: 14
+---
+
+# Hash Table — Collision & Load Factor
+
+_Ghi chú khái niệm · tham chiếu có thể khám phá · Format B_
+
+<NotePrimer>
+  <PrimerTerm term="Hash table">Bảng băm: cấu trúc lưu cặp key–value (khóa–giá trị) trong các bucket, tức các ngăn lưu trữ logic của một mảng.</PrimerTerm>
+  <PrimerTerm term="Hash function">Hàm băm: phép biến một key thành hash code (mã băm) ổn định để chọn bucket.</PrimerTerm>
+  <PrimerTerm term="Collision">Va chạm băm: hai key khác nhau được ánh xạ đến cùng một bucket hoặc vị trí.</PrimerTerm>
+  <PrimerTerm term="Load factor">Hệ số tải: tỷ lệ giữa số mục dữ liệu (entry) đang lưu và số bucket hoặc slot (ô mảng) của bảng.</PrimerTerm>
+  <PrimerTerm term="Probe sequence">Chuỗi thăm dò: thứ tự các ô được kiểm tra, bắt đầu ở home slot — ô ban đầu do hash code ánh xạ đến.</PrimerTerm>
+  <PrimerTerm term="Kiến thức giả định">[[Array|Mảng]] và [[Big O Notation|Ký hiệu Big O]].</PrimerTerm>
+</NotePrimer>
+
+<h2 id="one-liner">Ý chính trong một câu</h2>
+
+Hash table nhanh không phải vì collision biến mất, mà vì nó quản lý collision trong khi giữ load factor ở vùng phù hợp. Lời hứa “O(1)” vì thế cần đọc là **expected** (kỳ vọng), và với thao tác chèn (**insert**) còn thường là **amortized** (khấu hao), chứ không phải bảo đảm worst-case (trường hợp xấu nhất).
+
+<h2 id="core-model">1. Mô hình cốt lõi</h2>
+
+Một **hash table** (bảng băm) lưu cặp **key–value** (khóa–giá trị) trong một mảng các **bucket** (ngăn lưu trữ logic). **Hash function** (hàm băm) biến key thành **hash code** (mã băm), rồi một phép ánh xạ đưa mã đó vào phạm vi bucket hiện có.
+
+Một hash function hữu ích phải trả cùng hash code cho cùng một key và phân bố key đủ đều trong tải công việc dự kiến. Nó không cần — và thường không thể — tạo giá trị duy nhất cho mọi key.
+
+Khi đọc một thao tác hash table, hãy tách ba bước:
+
+1. Băm key thành hash code.
+2. Ánh xạ hash code vào phạm vi bucket hoặc slot.
+3. Giải quyết collision nếu vị trí cần dùng đã liên quan đến key khác.
+
+<FlowSequence
+  nodes={[
+    { label: "Key", sublabel: "khóa đầu vào" },
+    { label: "Hash code", sublabel: "mã băm" },
+    { label: "Bucket / slot", sublabel: "vị trí trong mảng" },
+    { label: "Collision", sublabel: "nếu vị trí đã liên quan key khác", accent: true }
+  ]}
+  edgeLabels={["Hash function", "Ánh xạ", "Kiểm tra vị trí"]}
+  caption="Ba bước của một thao tác hash table: tạo mã băm, ánh xạ vào mảng, rồi mới xử lý collision nếu vị trí không dùng được ngay."
+/>
+
+<h2 id="collision">2. Collision là bình thường</h2>
+
+**Collision** (va chạm băm) xảy ra khi hai key khác nhau được ánh xạ đến cùng bucket hoặc vị trí ban đầu. Miền key thường lớn hơn rất nhiều so với số bucket hữu hạn, nên theo nguyên lý chuồng bồ câu, collision không thể bị loại bỏ hoàn toàn. Mục tiêu thiết kế là làm chúng hiếm hoặc rẻ để xử lý, không phải giả vờ rằng chúng không tồn tại.
+
+Collision cũng không đồng nghĩa hai key bằng nhau. Sau khi tìm được entry ứng viên qua hash, phần hiện thực vẫn phải kiểm tra phép bằng nhau của key để phân biệt “đúng key” với “chỉ cùng vị trí băm”.
+
+<h2 id="strategies">3. Hai họ chiến lược xử lý collision</h2>
+
+### Nối chuỗi riêng (separate chaining)
+
+**Separate chaining** (nối chuỗi riêng) cho mỗi bucket chứa một tập các entry. Khi nhiều key đến cùng bucket, chúng cùng sống trong tập đó; thao tác tra cứu (**lookup**) tìm đúng bucket trước rồi so khớp key bên trong. Bảng có thể chứa nhiều entry hơn số bucket, nên load factor của chaining có thể lớn hơn `1`.
+
+### Địa chỉ mở (open addressing)
+
+**Open addressing** (địa chỉ mở) giữ mọi entry ngay trong mảng. Nếu vị trí ban đầu đã bị chiếm, thuật toán đi theo một **probe sequence** (chuỗi thăm dò) để tìm key hoặc ô trống. **Linear probing** (thăm dò tuyến tính) là biến thể kiểm tra lần lượt các ô kế tiếp, quay về đầu mảng khi đi qua cuối mảng.
+
+Gọi home slot là `h(key)`, lần thăm dò thứ `i` của linear probing tiến thêm đúng `i` ô rồi lấy phần dư theo kích thước bảng `m`. Phép lấy phần dư là lý do chuỗi đi từ ô cuối về ô `0`, thay vì dừng ở biên mảng.
+
+<FormulaLine>pᵢ = (h(key) + i) mod m · i = 0, 1, 2, …, m−1</FormulaLine>
+
+Vì mọi entry phải nằm trong mảng, open addressing không thể chứa nhiều entry sống hơn số slot. Khi ô trống trở nên hiếm, một thao tác có thể phải thăm nhiều vị trí. Linear probing còn dễ tạo **clustering** (hiện tượng các cụm slot liên tiếp bị chiếm), khiến collision mới kéo dài cụm cũ.
+
+Xóa trong open addressing thường cần một **tombstone** (dấu mộ): slot không còn entry nhưng vẫn báo cho lookup rằng chuỗi thăm dò có thể tiếp tục phía sau. Nếu biến slot thành “chưa từng dùng” ngay, lookup có thể dừng sớm và kết luận sai rằng một key ở phần sau không tồn tại.
+
+<TraceBlock>{`Ví dụ tra cứu key "Bình" bằng linear probing trong mảng 8 ô
+  hash("Bình") lấy phần dư cho 8 = 2  → bắt đầu ở ô 2
+  ô 2: key "An"                     → collision, key chưa khớp
+  ô 3: key "Bình"                   → key khớp, trả về value
+
+Điểm dừng hợp lệ
+  key khớp              → tìm thấy
+  ô chưa từng dùng      → không tồn tại
+  tombstone             → chưa được dừng; phải thăm dò tiếp`}</TraceBlock>
+
+<WidgetFrame
+  title="Tương tác 01 · Cùng collision, khác nơi lưu"
+  misconception="Khi nhiều key có cùng home slot, chaining và linear probing đều rải chúng qua các bucket kế tiếp."
+>
+  <PredictionGate
+    question="Chèn lần lượt A, B, C, D vào bảng 8 ô; cả bốn key đều có home slot 2. Bố trí cuối của separate chaining và linear probing khác nhau thế nào?"
+    options={[
+      "Chaining: bucket 2 giữ A→B→C→D; linear probing: slot 2–5 giữ A→D",
+      "Cả hai đều dùng các slot 2–5",
+      "Chaining dùng bucket 2–5; linear probing giữ cả bốn ở slot 2"
+    ]}
+    answer="Chaining: bucket 2 giữ A→B→C→D; linear probing: slot 2–5 giữ A→D"
+    explain="Chaining đặt cả nhóm collision trong tập của đúng bucket home. Linear probing giữ entry trực tiếp trong mảng, nên mỗi collision phải đi tiếp đến slot trống kế tiếp."
+  />
+  <SandboxedHTML src="../interactives/hash-strategy-comparison/index.html" />
+</WidgetFrame>
+
+<Recap>
+  | Chiến lược | Nơi bốn entry sống | Đường lookup key D |
+  | --- | --- | --- |
+  | Separate chaining | Một chain `A → B → C → D` trong bucket 2 | Chọn bucket 2, rồi so khớp trong chain |
+  | Linear probing | Bốn slot liên tiếp `2, 3, 4, 5` | Probe `2 → 3 → 4 → 5` |
+
+  Collision đầu vào giống nhau không buộc bố trí giống nhau: separate chaining gom entry trong bucket home, còn open addressing phân tán entry dọc probe sequence của mảng.
+</Recap>
+
+<h2 id="load-factor">4. Load factor: đồng hồ áp lực</h2>
+
+**Load factor** (hệ số tải), ký hiệu `α`, là tỷ lệ giữa số entry đang sống `n` và số bucket hoặc slot `m`.
+
+<FormulaLine>α = n / m · n = số mục dữ liệu đang sống · m = số bucket hoặc ô</FormulaLine>
+
+Load factor không trực tiếp đếm số collision. Nó là một tín hiệu áp lực: khi `α` tăng, chuỗi trung bình trong bucket có xu hướng dài hơn với separate chaining, còn probe sequence có xu hướng dài hơn với open addressing.
+
+Cùng một `α` không bảo đảm cùng hiệu năng. Chất lượng hash function, chiến lược thăm dò, clustering, phân bố tải công việc và chính sách tombstone đều có thể làm hai bảng cùng hệ số tải hành xử rất khác nhau. Vì vậy ngưỡng thay đổi sức chứa (**resize**) là lựa chọn của phần hiện thực, không phải hằng số phổ quát cho mọi hash table.
+
+Muốn lượng hóa số probe, trước hết phải nói rõ loại thao tác. **Successful search** (tra cứu thành công) dừng khi gặp đúng key. **Unsuccessful search** (tra cứu không thành công) chỉ dừng ở ô chưa từng dùng; insert một key mới đi cùng đường này trước khi ghi vào ô trống. Vì phải chứng minh cả một đoạn không chứa key, unsuccessful search và insert nhạy với clustering hơn successful search.
+
+Phân tích cổ điển dùng **mô hình Bernoulli**: mô hình xác suất xem các địa chỉ băm là đồng khả năng, với `n = mα` và `α` cố định cách xa `1`. Khi đó có thể ước lượng expected probes theo công thức tiệm cận. Ký hiệu `C(α)` là expected probes của successful search; `U(α)` là expected probes của unsuccessful search hoặc insert. Đây là **model value** (giá trị từ mô hình lý thuyết), không phải phép đo hiệu năng (**benchmark**), không phải bảo đảm cho một bảng 8 ô cụ thể, và không bao gồm ảnh hưởng tombstone hay phần cứng. Nguồn công thức: [Average-Case Analysis of Algorithms and Data Structures · §5.2, Theorem 12](https://www.ittc.ku.edu/~jsv/Papers/ViF90.AAA.pdf).
+
+<HighlightBox title="Ranh giới của mô hình">
+  Các thanh bên dưới là expected probes do công thức sinh ra. Chúng dùng để thấy độ cong khi `α` tiến gần `1`; không phải timing, không phải kết quả chạy simulator, và không được chuyển vào Evidence Log như dữ liệu đã đo.
+</HighlightBox>
+
+<FormulaLine>C(α) ≈ ½(1 + 1/(1−α)) · U(α) ≈ ½(1 + 1/(1−α)²)</FormulaLine>
+
+<ComparisonBars
+  items={[
+    { label: "Successful · α=0.5", value: 1.5, display: "1.5 probe" },
+    { label: "Successful · α=0.9", value: 5.5, display: "5.5 probe", bad: true }
+  ]}
+  caption="Expected theo Bernoulli model · C(α) · giá trị từ công thức, không phải benchmark"
+/>
+
+<ComparisonBars
+  items={[
+    { label: "Unsuccessful / insert · α=0.5", value: 2.5, display: "2.5 probe" },
+    { label: "Unsuccessful / insert · α=0.9", value: 50.5, display: "50.5 probe", bad: true }
+  ]}
+  caption="Expected theo Bernoulli model · U(α) · clustering làm tra cứu không thành công/insert nhạy hơn; không phải benchmark"
+/>
+
+<CellGrid
+  columns={8}
+  cells={[
+    { label: "0 · bận" },
+    { label: "1 · bận" },
+    { label: "2 · trống", state: "dim" },
+    { label: "3 · bận" },
+    { label: "4 · bận" },
+    { label: "5 · trống", state: "dim" },
+    { label: "6 · home", state: "current" },
+    { label: "7 · bận" }
+  ]}
+  groupSize={8}
+  groupLabels={["Bảng m=8"]}
+  caption="Bố cục ban đầu của kịch bản linear probing: ô 6 là home slot; dùng công thức pᵢ phía trên để tự suy ra đường đi. Visual chưa hiển thị chuỗi probe hoặc kết quả."
+/>
+
+<WidgetFrame
+  title="Tương tác 02 · Theo hết chuỗi thăm dò"
+  misconception="Hash trùng vị trí thì key mới ghi đè mục dữ liệu cũ, hoặc chỉ cần dịch sang đúng một ô."
+>
+  <PredictionGate
+    question="Một bảng open addressing có 8 ô, dùng linear probing. Các ô 0, 1, 3, 4, 6, 7 đã bị chiếm; ô 2 và 5 còn trống. Key mới có hash code ánh xạ ban đầu đến ô 6. Key sẽ được đặt ở đâu?"
+    options={["Ô 7", "Ô 0", "Ô 2 — ô trống đầu tiên sau chuỗi quay vòng"]}
+    answer="Ô 2 — ô trống đầu tiên sau chuỗi quay vòng"
+    explain="Linear probing phải đi qua chuỗi 6 → 7 → 0 → 1; ô 2 là điểm dừng trống đầu tiên. Ô 5 cũng trống nhưng không nằm trước ô 2 trong chuỗi thăm dò quay vòng từ vị trí ban đầu."
+  />
+  <SandboxedHTML src="../interactives/hash-linear-probing/index.html" />
+</WidgetFrame>
+
+<Recap>
+  Key mới nằm ở ô 2 sau khi thăm dò `6 → 7 → 0 → 1 → 2`. Collision không ghi đè key khác; linear probing chọn ô trống đầu tiên trên chuỗi, không chọn ô trống có chỉ số gần nhất.
+
+  <ComparisonBars
+    items={[
+      { label: "Home slot trống", value: 1, display: "1 probe" },
+      { label: "Kịch bản Gate", value: 5, display: "5 probe", bad: true }
+    ]}
+    caption="Đếm chính xác từ hai trạng thái xác định · không phải giá trị kỳ vọng hay benchmark"
+  />
+</Recap>
+
+<h2 id="rehash">5. Băm lại (rehash): trả một khoản lớn để lấy lại khoảng trống</h2>
+
+**Rehash** (băm lại) cấp phát một bảng lớn hơn, tính lại vị trí cho từng entry đang sống và chèn chúng vào bảng mới. Không thể chỉ sao chép entry theo chỉ số cũ: phép ánh xạ từ hash code sang bucket phụ thuộc vào kích thước bảng, nên thay `m` có thể thay vị trí của hầu hết key.
+
+Một lần rehash có chi phí tuyến tính `O(n)`. Chính sách resize khi load factor vượt ngưỡng làm lần đắt này xảy ra thưa: nếu sức chứa tăng theo cấp số nhân, tổng số entry phải di chuyển qua một chuỗi dài các lần insert vẫn tỷ lệ với tổng số insert.
+
+<FormulaLine>1 + 2 + 4 + … + 2ᵏ = 2ᵏ⁺¹ − 1 &lt; 2 · 2ᵏ · tổng di chuyển &lt; 2n</FormulaLine>
+
+Rehash xử lý áp lực sức chứa và có thể xóa sạch tombstone, nhưng không sửa được hash function phân bố tệ. Nếu mọi key vẫn tạo cùng hash code, bảng mới lớn hơn vẫn phải giải quyết cùng một nhóm collision.
+
+<WidgetFrame
+  title="Tương tác 03 · Di chuyển khi resize 8 → 16"
+  misconception="Resize chỉ cấp phát mảng lớn hơn rồi giữ mỗi entry ở nguyên chỉ số cũ."
+>
+  <PredictionGate
+    question="Key B có hash code 13. Trong bảng cũ m=8, B có home slot 5 và đang ở ô 5. Khi rehash sang m=16, new home của B là ô nào?"
+    options={[
+      "Ô 5 vì giữ chỉ số cũ",
+      "Ô 10 vì kích thước gấp đôi",
+      "Ô 13 vì 13 mod 16 = 13"
+    ]}
+    answer="Ô 13 vì 13 mod 16 = 13"
+    explain="Rehash dùng lại hash code nhưng tính phép ánh xạ với m mới. Vì 13 mod 16 = 13, B rời chỉ số cũ 5 và được chèn lại từ home slot 13."
+  />
+  <SandboxedHTML src="../interactives/hash-rehash-migration/index.html" />
+</WidgetFrame>
+
+<Recap>
+  <TraceBlock>{`Di chuyển theo thứ tự slot cũ · mỗi entry được chèn lại vào m=16
+  A · hash 1  · old 1 → new home 1  → đặt ở 1
+  B · hash 13 · old 5 → new home 13 → đặt ở 13
+  C · hash 5  · old 6 → new home 5  → đặt ở 5
+  D · hash 21 · old 7 → new home 5  → ô 5 bận → đặt ở 6`}</TraceBlock>
+
+  Resize thay đổi miền của phép modulo, vì vậy vị trí phải được tính lại từ hash code. Entry có thể giữ nguyên, chuyển xa, hoặc gặp một collision mới trong bảng đích.
+</Recap>
+
+<h2 id="complexity">6. “O(1)” thực sự có nghĩa gì?</h2>
+
+**Expected complexity** (độ phức tạp kỳ vọng) lấy kỳ vọng trên yếu tố ngẫu nhiên của hash hoặc phân bố key. Với hash phân bố hợp lý và load factor được kiểm soát, tra cứu (lookup), chèn (insert) và xóa (**delete**) thường chỉ xem một số nhỏ bucket hoặc slot, nên có expected `O(1)`.
+
+**Amortized complexity** (độ phức tạp khấu hao) phân bổ tổng chi phí của cả chuỗi thao tác. Một insert riêng lẻ kích hoạt rehash có thể tốn `O(n)`, nhưng nếu bảng tăng theo cấp số nhân, insert có amortized `O(1)` trên chuỗi thao tác.
+
+Expected không đồng nghĩa **average-case complexity** (độ phức tạp trung bình theo phân bố đầu vào), và amortized cũng không đồng nghĩa expected. Expected dựa vào một mô hình xác suất; amortized đặt giới hạn lên tổng chi phí của chuỗi thao tác, kể cả khi không dùng yếu tố ngẫu nhiên. Một insert có thể đồng thời được mô tả là expected `O(1)` cho xử lý collision và amortized `O(1)` cho resize.
+
+**Worst-case complexity** (độ phức tạp trường hợp xấu nhất) của thiết kế hash table thông thường vẫn là `O(n)`: mọi key có thể dồn vào một chain, hoặc một probe sequence có thể đi gần hết bảng. Adversarial input (đầu vào đối kháng) hay hash function tệ có thể tạo ra tình huống đó.
+
+Do đó, phát biểu chính xác là: thao tác hash table thường có expected `O(1)` khi hash đủ tốt và tải được kiểm soát; insert có amortized `O(1)` qua chuỗi resize; không có bảo đảm worst-case `O(1)` cho thiết kế thông thường.
+
+<MentalModel>
+  <MentalModelRow label="Mở rộng">Mở rộng [[Big O Notation|ký hiệu Big O]] bằng cách ghi rõ giả định: expected cho collision, amortized cho resize.</MentalModelRow>
+  <MentalModelRow label="Mâu thuẫn" conflict>“O(1)” không có nghĩa mọi thao tác, trên mọi đầu vào, đều chạy trong thời gian hằng số.</MentalModelRow>
+  <MentalModelRow label="Đòi hỏi">Hash phân bố hợp lý, phép so sánh key đúng và load factor được kiểm soát.</MentalModelRow>
+  <MentalModelRow label="Dùng sai">Không dùng expected hoặc amortized O(1) để tuyên bố worst-case O(1), hay để hứa một ngưỡng độ trễ cụ thể chưa đo.</MentalModelRow>
+</MentalModel>
+
+<h2 id="tradeoffs">7. Đánh đổi (trade-off) thực dụng</h2>
+
+| Quyết định | Lợi ích | Chi phí |
+| --- | --- | --- |
+| Separate chaining | Xóa đơn giản; chịu được `α > 1`; ít nhạy với việc hết slot | Chi phí phụ cho tập chứa hoặc nút; **memory locality** (tính cục bộ bộ nhớ) thường kém hơn |
+| Open addressing | Dữ liệu gọn trong mảng; tính cục bộ bộ nhớ tốt; ít cấp phát phụ | Nhạy với load factor cao, clustering và tombstone |
+| Resize sớm | Giữ chain/probe ngắn hơn | Tốn thêm bộ nhớ và rehash sớm hơn |
+| Resize muộn | Dùng sức chứa chặt hơn | Tăng chi phí collision và **tail latency** (độ trễ đuôi) của thao tác |
+
+<h2 id="failure-modes">Các dạng hỏng cần nhận ra</h2>
+
+| Dạng hỏng | Cơ chế | Triệu chứng |
+| --- | --- | --- |
+| Phân bố mã băm tệ | Nhiều key tụ về ít bucket | Chuỗi hoặc lượt thăm dò dài dù bảng còn chỗ |
+| Load factor quá cao | Quá ít bucket/slot so với entry | Tra cứu và chèn chậm dần; resize xuất hiện ở đường nóng |
+| Xóa sai trong open addressing | Slot bị đặt thành chưa từng dùng thay vì tombstone | Tra cứu bỏ sót key vẫn còn sau điểm xóa |
+| Quá nhiều tombstone | Chuỗi thăm dò đi qua nhiều slot đã xóa | Bảng có vẻ chưa đầy nhưng thao tác vẫn dài |
+| Tin rằng O(1) là worst-case | Bỏ qua đầu vào đối kháng và resize | Độ trễ đuôi hoặc CPU tăng đột biến |
+
+<h2 id="evidence">Nhật ký bằng chứng</h2>
+
+<HighlightBox title="Ranh giới bằng chứng">
+  Hai lệnh dưới đây là phép đo có thể tái lập trên một môi trường Python cụ thể, không phải bằng chứng phổ quát cho mọi hash table. Chúng chưa được chạy trong vault này, nên không có kết quả được ghi lại.
+</HighlightBox>
+
+<EvidenceLog>
+  <EvidenceItem cmd="python -m timeit -s 'd = {i: i for i in range(10000)}' 'd.get(9999)'" />
+  <EvidenceItem cmd="python -m timeit -s 'class K: __hash__ = lambda self: 0; __eq__ = lambda self, other: self is other' -s 'keys = [K() for _ in range(10000)]; d = {k: i for i, k in enumerate(keys)}' 'd.get(keys[-1])'" />
+</EvidenceLog>
+
+<h2 id="self-test">Tự kiểm tra (self-test)</h2>
+
+Hãy trả lời từ trí nhớ trước khi mở đáp án.
+
+<SelfTest>
+  <SelfTestItem level={3} question="Trong linear probing, key A có vị trí ban đầu 4 và nằm ở ô 4; key B cũng có vị trí ban đầu 4 nhưng nằm ở ô 5. Điều gì sai nếu xóa A bằng cách đánh dấu ô 4 là chưa từng dùng?">
+    Lookup B bắt đầu ở ô 4, thấy trạng thái chưa từng dùng rồi dừng, nên kết luận sai rằng B không tồn tại. Ô 4 phải trở thành tombstone để chuỗi thăm dò được tiếp tục đến ô 5. Xem lại mục <a href="#strategies">Hai họ chiến lược</a>.
+  </SelfTestItem>
+  <SelfTestItem level={4} question="Theo Bernoulli model, tại sao khi α=0.9 thì successful search là 5.5 expected probe nhưng unsuccessful search/insert là 50.5 — và vì sao hai số này chưa phải evidence đo được?">
+    `C(0.9) ≈ ½(1 + 1/0.1) = 5.5`; còn `U(0.9) ≈ ½(1 + 1/0.1²) = 50.5`. Successful search dừng ở key đã được đặt trong cluster; unsuccessful search/insert phải đi đến tận ô trống, nên hạng bình phương làm chi phí tăng nhanh hơn. Đây là output của model với giả định địa chỉ băm đồng khả năng, không phải timing trên implementation hay phần cứng cụ thể; muốn biến claim hiệu năng thành evidence vẫn phải chạy lệnh trong Evidence Log. Xem <a href="#load-factor">Load factor: đồng hồ áp lực</a>.
+  </SelfTestItem>
+  <SelfTestItem level={5} question="Một hệ thống có insert thỉnh thoảng tốn O(n) khi resize, còn một nhóm key đối kháng làm mọi lookup đi qua gần n entry. Hãy phân loại các tuyên bố expected, amortized và worst-case O(1)/O(n).">
+    Resize riêng lẻ là `O(n)`, nhưng chuỗi insert vẫn có thể amortized `O(1)` nếu sức chứa tăng theo cấp số nhân. Lookup chỉ có expected `O(1)` dưới mô hình hash phân bố hợp lý; nhóm key đối kháng bác bỏ giả định đó và biểu lộ worst-case `O(n)`. Để chẩn đoán, đo phân bố hash, độ dài chuỗi thăm dò hoặc chuỗi bucket, rồi tách đột biến do resize khỏi chi phí collision. Xem <a href="#complexity">“O(1)” thực sự có nghĩa gì?</a>.
+  </SelfTestItem>
+</SelfTest>
+
+<h2 id="links">Liên kết</h2>
+
+- Kiến thức giả định: [[Array|Mảng]]
+- Kiến thức giả định: [[Big O Notation|Ký hiệu Big O]]
+- Liên quan: [[Hash Function|Hàm băm]]
+- Liên quan: [[Amortized Analysis|Phân tích khấu hao]]
+- Nguồn công thức: [Average-Case Analysis of Algorithms and Data Structures · §5.2, Theorem 12](https://www.ittc.ku.edu/~jsv/Papers/ViF90.AAA.pdf)
+
+---
+
+_Format B · văn bản / trực quan tĩnh / tương tác · dùng 3/3 ngân sách tương tác · đã khai báo kiến thức giả định_

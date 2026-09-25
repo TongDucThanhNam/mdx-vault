@@ -1,0 +1,87 @@
+{
+  "events": [
+    "raw MDX Source exposed a high-DPI minimap and pointer navigation",
+    "MDX registry completion offered QuizBlock and applied a snippet",
+    "Live mode removed the code minimap and retained the prose contract",
+    "Shift+F12 opened a keyboard references menu without a split editor",
+    "F2 renamed every same-buffer symbol occurrence in one undoable edit",
+    "Ctrl+. applied a dependency-safe TypeScript import as one transaction",
+    "dark and narrow layouts retained the adaptive minimap"
+  ],
+  "sourceMinimap": {
+    "preference": "on",
+    "count": 1,
+    "ariaHidden": "true",
+    "width": 72,
+    "height": 760,
+    "canvasWidth": 71,
+    "canvasHeight": 760,
+    "viewportHeight": 379.7375183105469,
+    "scrollTop": 0,
+    "scrollHeight": 1501,
+    "clientHeight": 750
+  },
+  "navigatedMinimap": {
+    "preference": "on",
+    "count": 1,
+    "ariaHidden": "true",
+    "width": 72,
+    "height": 760,
+    "canvasWidth": 71,
+    "canvasHeight": 760,
+    "viewportHeight": 379.7374572753906,
+    "scrollTop": 692,
+    "scrollHeight": 1501,
+    "clientHeight": 750
+  },
+  "liveMinimap": {
+    "preference": "off",
+    "count": 0,
+    "ariaHidden": null,
+    "width": 0,
+    "height": 0,
+    "canvasWidth": 0,
+    "canvasHeight": 0,
+    "viewportHeight": 0,
+    "scrollTop": 692,
+    "scrollHeight": 1562,
+    "clientHeight": 750
+  },
+  "codeMinimap": {
+    "preference": "on",
+    "count": 1,
+    "ariaHidden": "true",
+    "width": 72,
+    "height": 652.9000244140625,
+    "canvasWidth": 71,
+    "canvasHeight": 653,
+    "viewportHeight": 266.4125061035156,
+    "scrollTop": 414.3999938964844,
+    "scrollHeight": 1576,
+    "clientHeight": 643
+  },
+  "narrowMinimap": {
+    "preference": "on",
+    "count": 1,
+    "ariaHidden": "true",
+    "width": 52,
+    "height": 620.1000366210938,
+    "canvasWidth": 51,
+    "canvasHeight": 620,
+    "viewportHeight": 241.8125,
+    "scrollTop": 0,
+    "scrollHeight": 1564,
+    "clientHeight": 610
+  },
+  "codeActions": ["Update import from \"react\""],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [],
+  "screenshots": [
+    "goal-27-code-action-light.png",
+    "goal-27-mdx-completion-light.png",
+    "goal-27-minimap-dark.png",
+    "goal-27-narrow-dark.png",
+    "goal-27-references-light.png"
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "round": 1,
+  "at": 1789242078537,
+  "attempts": 1,
+  "reviewModel": "gpt-6-astra",
+  "reviewEffort": "xhigh",
+  "packetPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\attempt-1-packet.md",
+  "eventsPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\attempt-1-events.jsonl",
+  "verdictPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\verdict.json",
+  "exitCode": 0,
+  "timedOut": false,
+  "usage": {
+    "requests": null,
+    "completedTurns": 1,
+    "inputTokens": 1031974,
+    "cachedInputTokens": 911872,
+    "outputTokens": 10024,
+    "reasoningTokens": 3532,
+    "totalTokens": 1041998,
+    "scope": "all attempts in this review round"
+  },
+  "usageReason": null,
+  "fingerprintBefore": "2ac32895af2a51f5cefac9ac2d3f416868a8e47a69a0d8c95614a31ca334db74",
+  "fingerprintAfter": "2ac32895af2a51f5cefac9ac2d3f416868a8e47a69a0d8c95614a31ca334db74",
+  "drift": false,
+  "error": null,
+  "verdict": {
+    "verdict": "changes_required",
+    "summary": "Baseline files and independent static checks pass, but incorrect findings, unsupported workflow claims, incomplete React verification, and unsafe profile attachment remain.",
+    "findings": [
+      {
+        "severity": "high",
+        "path": "scripts/verify-dev-dx-audit.py",
+        "issue": "Profile identity is still checked after mutation. An empty declared directory does not identify the connected CDP process; updateSettings and openVaultPath run before the marker check. The documented launcher also force-kills every electron.exe process.",
+        "expected": "Verify ownership of the connected process and its isolated profile before any mutation. Manage only processes launched for this probe, and refuse unrelated occupied endpoints without terminating them.",
+        "evidence": "scripts/verify-dev-dx-audit.py:177–214; docs/verification/developer-dx-audit-2026-09-13.md:29–38 and :77. The ledger records an actual wrong-instance attachment."
+      },
+      {
+        "severity": "high",
+        "path": "scripts/verify-dev-dx-audit.py",
+        "issue": "G-07 is a false diagnostic finding caused by incorrect selectors. The saved screenshot visibly shows a red gutter marker and error underline on line 18. The helper searches for .cm-lintMarker, while the installed package renders .cm-lint-marker and .cm-lintRange.",
+        "expected": "Correct the diagnostic observation, regenerate evidence, and remove the unsupported missing-marker defect and its implementation gate from both reports.",
+        "evidence": "scripts/verify-dev-dx-audit.py:704–718; node_modules/@codemirror/lint/dist/index.js:88 and :767; docs/research/evidence/developer-dx-audit-2026-09-13/interactive-diagnostics.png; research report:243–250, :460–468 and :552–554."
+      },
+      {
+        "severity": "medium",
+        "path": "docs/research/developer-dx-audit-2026-09-13.md",
+        "issue": "Navigation evidence still overstates verification. The report claims stillDirty: true after switching, but the JSON records false. Ctrl+S is then tested on an already-clean buffer. Settings/Reading focus coverage is deferred without a concrete tooling limitation, and explorer Escape restoration is claimed without recording restored focus.",
+        "expected": "Distinguish preserved text from preserved unsaved state, account for autosave, verify explicit save from a dirty buffer, and record missing focus outcomes or concrete tooling limitations.",
+        "evidence": "Research report:198–207 and :497–501; verification report:120–121; dx-audit-results.json:30; scripts/verify-dev-dx-audit.py:329–340 and :477–514; src/renderer/src/hooks/useNoteEditor.ts:164–166."
+      },
+      {
+        "severity": "medium",
+        "path": "docs/research/developer-dx-audit-2026-09-13.md",
+        "issue": "The remaining React-authoring audit is incomplete. Imports, signature help, and definition navigation are listed as registered capabilities but have no current workflow probes or concrete limitations. JSX/bracket and multi-cursor authoring behavior also lacks the requested findings. Outcome 4 reduces the language-tooling gates to completion ordering and the false diagnostic defect.",
+        "expected": "Complete the requested authoring capability matrix with current outcomes or specific verification limitations, and retain observable gates for the relevant authoring subflows.",
+        "evidence": "Research report:118–125, :227–257 and :548–555; scripts/verify-dev-dx-audit.py:577–798. Independent adapter tests cover edit planning, not these UI workflows."
+      },
+      {
+        "severity": "medium",
+        "path": "docs/research/developer-dx-audit-2026-09-13.md",
+        "issue": "The completion-ranking conclusion exceeds its evidence. The report says the recorded top options started with Number, but JSON starts with CounterProbe. The helper captures options before typing the final 'ber', then accepts a later list without recording it. Accepting Number does not establish that number was offered and ranked below it; the VS Code comparison is also unsupported.",
+        "expected": "Capture the settled list and selected item immediately before acceptance. Establish whether the primitive is absent or misranked, and support or qualify the VS Code comparison before prescribing a ranking fix.",
+        "evidence": "scripts/verify-dev-dx-audit.py:669–693; dx-audit-results.json:81–87; research report:237–242, :453–458 and :552."
+      },
+      {
+        "severity": "medium",
+        "path": "docs/research/developer-dx-audit-2026-09-13.md",
+        "issue": "The upstream motion comparison contradicts itself: it says Zed has no buffer-scroll smoothing, then concludes both reference editors ship smooth scrolling as opt-in. The newly cited Zed implementations provide filenames and abbreviated revisions but omit the required exact supporting URLs.",
+        "expected": "Separate caret and scrolling capabilities/defaults for each editor, reconcile the contradictory conclusion, and add exact revision permalinks for the inspected implementations.",
+        "evidence": "Research report:319–351 versus :368–374. [VS Code editor options](https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/editor/common/config/editorOptions.ts) supports its own default-off settings, not the Zed conclusion."
+      },
+      {
+        "severity": "medium",
+        "path": "docs/research/developer-dx-audit-2026-09-13.md",
+        "issue": "Latency interpretation still contains unsupported claims. The document-level bubbling listener starts after CodeMirror's key handlers, so it does not bound total input handling as stated. The table labels the worst large-note long task approximately 106 ms, while JSON records 223 ms. Section 5 again calls median latency frame-competitive without a comparative measurement.",
+        "expected": "Precisely describe the measurement start and excluded work, distinguish rAF-delay maxima from long-task maxima, and remove unsupported competitiveness claims. Preserve the existing presentation/native-IME caveats.",
+        "evidence": "scripts/verify-dev-dx-audit.py:66–79; node_modules/@codemirror/view/dist/index.js:4531–4564; research report:261–273 and :512–514; dx-audit-results.json:270."
+      }
+    ],
+    "checks": [
+      {
+        "name": "Baseline and product-file preservation",
+        "result": "pass",
+        "evidence": "Independent byte comparison of all 580 source-baseline files found zero changes or missing files. review/round-1/changed-paths.json records only authorized additions."
+      },
+      {
+        "name": "Typecheck, lint, and relevant existing tests",
+        "result": "pass",
+        "evidence": "review/round-1/verification.json and check logs: typecheck exit 0; Biome checked 458 files without fixes; 51 focused DX tests passed, 0 failed."
+      },
+      {
+        "name": "Research accuracy and official-source support",
+        "result": "fail",
+        "evidence": "Both reports exist and official Microsoft guidance was independently checked, but diagnostic, completion, motion-comparison, and timing claims require correction."
+      },
+      {
+        "name": "Relevant Zed settings redaction",
+        "result": "pass",
+        "evidence": "Read-only allowlisted extraction confirmed buffer_font_size=15 and ui_font_size=16. Reports disclose no provider credentials or configuration."
+      },
+      {
+        "name": "Shortcut matrix and whole-vault search coverage",
+        "result": "fail",
+        "evidence": "The 17 matrix rows and TSX search miss are recorded; vault-index-runtime.ts:113 confirms Markdown-only indexing. Dirty-state and remaining focus verification are incomplete or overstated."
+      },
+      {
+        "name": "React-authoring evidence and acceptance gates",
+        "result": "fail",
+        "evidence": "Current creation, completion acceptance, undo, and sandbox-frame evidence exists. Missing subflow verification and incorrect G-06/G-07 conclusions invalidate the proposed tooling gates."
+      },
+      {
+        "name": "Caret architecture and native-IME distinction",
+        "result": "pass",
+        "evidence": "source-editor-setup.ts:35 and motion_facts confirm drawSelection. Both reports distinguish gliding from blinking and explicitly state CDP composition is not native IME proof."
+      },
+      {
+        "name": "Current typing measurements and interpretation",
+        "result": "fail",
+        "evidence": "JSON contains separate current note, plain TSX, and workbench TSX samples; remaining measurement-description and numeric contradictions are detailed above."
+      },
+      {
+        "name": "Task context and GOAL-27 decisions",
+        "result": "pass",
+        "evidence": "Research section 6 retains all five outcomes, caret gliding, smooth scrolling, and future production/native-IME verification. Formatter, multi-file writes, and alternative-editor constraints are explicitly flagged."
+      },
+      {
+        "name": "Diagnostic helper isolation",
+        "result": "fail",
+        "evidence": "The final receipt confirms where that run persisted settings, but scripts/verify-dev-dx-audit.py:191–214 verifies identity only after mutation; the documented process cleanup is unscoped."
+      }
+    ]
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "path": "scripts/verify-dev-dx-audit.py",
+      "issue": "Profile identity is still checked after mutation. An empty declared directory does not identify the connected CDP process; updateSettings and openVaultPath run before the marker check. The documented launcher also force-kills every electron.exe process.",
+      "expected": "Verify ownership of the connected process and its isolated profile before any mutation. Manage only processes launched for this probe, and refuse unrelated occupied endpoints without terminating them.",
+      "evidence": "scripts/verify-dev-dx-audit.py:177–214; docs/verification/developer-dx-audit-2026-09-13.md:29–38 and :77. The ledger records an actual wrong-instance attachment."
+    },
+    {
+      "severity": "high",
+      "path": "scripts/verify-dev-dx-audit.py",
+      "issue": "G-07 is a false diagnostic finding caused by incorrect selectors. The saved screenshot visibly shows a red gutter marker and error underline on line 18. The helper searches for .cm-lintMarker, while the installed package renders .cm-lint-marker and .cm-lintRange.",
+      "expected": "Correct the diagnostic observation, regenerate evidence, and remove the unsupported missing-marker defect and its implementation gate from both reports.",
+      "evidence": "scripts/verify-dev-dx-audit.py:704–718; node_modules/@codemirror/lint/dist/index.js:88 and :767; docs/research/evidence/developer-dx-audit-2026-09-13/interactive-diagnostics.png; research report:243–250, :460–468 and :552–554."
+    },
+    {
+      "severity": "medium",
+      "path": "docs/research/developer-dx-audit-2026-09-13.md",
+      "issue": "Navigation evidence still overstates verification. The report claims stillDirty: true after switching, but the JSON records false. Ctrl+S is then tested on an already-clean buffer. Settings/Reading focus coverage is deferred without a concrete tooling limitation, and explorer Escape restoration is claimed without recording restored focus.",
+      "expected": "Distinguish preserved text from preserved unsaved state, account for autosave, verify explicit save from a dirty buffer, and record missing focus outcomes or concrete tooling limitations.",
+      "evidence": "Research report:198–207 and :497–501; verification report:120–121; dx-audit-results.json:30; scripts/verify-dev-dx-audit.py:329–340 and :477–514; src/renderer/src/hooks/useNoteEditor.ts:164–166."
+    },
+    {
+      "severity": "medium",
+      "path": "docs/research/developer-dx-audit-2026-09-13.md",
+      "issue": "The remaining React-authoring audit is incomplete. Imports, signature help, and definition navigation are listed as registered capabilities but have no current workflow probes or concrete limitations. JSX/bracket and multi-cursor authoring behavior also lacks the requested findings. Outcome 4 reduces the language-tooling gates to completion ordering and the false diagnostic defect.",
+      "expected": "Complete the requested authoring capability matrix with current outcomes or specific verification limitations, and retain observable gates for the relevant authoring subflows.",
+      "evidence": "Research report:118–125, :227–257 and :548–555; scripts/verify-dev-dx-audit.py:577–798. Independent adapter tests cover edit planning, not these UI workflows."
+    },
+    {
+      "severity": "medium",
+      "path": "docs/research/developer-dx-audit-2026-09-13.md",
+      "issue": "The completion-ranking conclusion exceeds its evidence. The report says the recorded top options started with Number, but JSON starts with CounterProbe. The helper captures options before typing the final 'ber', then accepts a later list without recording it. Accepting Number does not establish that number was offered and ranked below it; the VS Code comparison is also unsupported.",
+      "expected": "Capture the settled list and selected item immediately before acceptance. Establish whether the primitive is absent or misranked, and support or qualify the VS Code comparison before prescribing a ranking fix.",
+      "evidence": "scripts/verify-dev-dx-audit.py:669–693; dx-audit-results.json:81–87; research report:237–242, :453–458 and :552."
+    },
+    {
+      "severity": "medium",
+      "path": "docs/research/developer-dx-audit-2026-09-13.md",
+      "issue": "The upstream motion comparison contradicts itself: it says Zed has no buffer-scroll smoothing, then concludes both reference editors ship smooth scrolling as opt-in. The newly cited Zed implementations provide filenames and abbreviated revisions but omit the required exact supporting URLs.",
+      "expected": "Separate caret and scrolling capabilities/defaults for each editor, reconcile the contradictory conclusion, and add exact revision permalinks for the inspected implementations.",
+      "evidence": "Research report:319–351 versus :368–374. [VS Code editor options](https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/editor/common/config/editorOptions.ts) supports its own default-off settings, not the Zed conclusion."
+    },
+    {
+      "severity": "medium",
+      "path": "docs/research/developer-dx-audit-2026-09-13.md",
+      "issue": "Latency interpretation still contains unsupported claims. The document-level bubbling listener starts after CodeMirror's key handlers, so it does not bound total input handling as stated. The table labels the worst large-note long task approximately 106 ms, while JSON records 223 ms. Section 5 again calls median latency frame-competitive without a comparative measurement.",
+      "expected": "Precisely describe the measurement start and excluded work, distinguish rAF-delay maxima from long-task maxima, and remove unsupported competitiveness claims. Preserve the existing presentation/native-IME caveats.",
+      "evidence": "scripts/verify-dev-dx-audit.py:66–79; node_modules/@codemirror/view/dist/index.js:4531–4564; research report:261–273 and :512–514; dx-audit-results.json:270."
+    }
+  ],
+  "attemptRecords": [
+    {
+      "attempt": 1,
+      "eventsPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\attempt-1-events.jsonl",
+      "stderrPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\attempt-1-stderr.log",
+      "exitCode": 0,
+      "timedOut": false,
+      "error": null,
+      "usage": {
+        "available": true,
+        "reason": null,
+        "requests": null,
+        "completedTurns": 1,
+        "threadId": "01a09723-7631-73e0-98f4-8915cf21e251",
+        "scope": "completed turns",
+        "inputTokens": 1031974,
+        "cachedInputTokens": 911872,
+        "outputTokens": 10024,
+        "reasoningTokens": 3532,
+        "totalTokens": 1041998
+      }
+    }
+  ]
+}

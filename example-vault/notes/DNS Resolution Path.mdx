@@ -1,0 +1,480 @@
+---
+title: DNS Resolution Path
+tags: [interactive-note, swe, network, dns, latency, caching]
+aliases: [DNS resolution path, DNS delegated resolution, DNS cache freshness and failures, Đường phân giải DNS, Phân giải DNS theo ủy quyền, Độ tươi cache và lỗi DNS]
+created: 2026-07-15
+theme: interactive-note
+prerequisites: []
+id: concept-dns-resolution-path
+type: concept
+layer: network
+priority: P0
+maturity_target: L3
+current_maturity: L2
+review_interval_days: 14
+next_review: 2026-07-29
+---
+
+# DNS Resolution Path
+
+_Concept note · từ tên ổn định đến answer có hạn dùng, trước khi TCP bắt đầu · Format B_
+
+<NotePrimer>
+  <PrimerTerm term="DNS" href="#one-liner">Domain Name System — hệ thống phân giải tên miền thành record mà máy khách (client) có thể dùng.</PrimerTerm>
+  <PrimerTerm term="DNS answer / RRset" href="#mechanism">Câu trả lời DNS / tập resource record cùng tên-loại-lớp — dữ liệu, chỉ dẫn hoặc kết luận resolver nhận cho một query.</PrimerTerm>
+  <PrimerTerm term="DNS query / QNAME / QTYPE" href="#mechanism">Truy vấn / tên được hỏi / loại record được hỏi — ba phần xác định resolver đang tìm dữ liệu nào.</PrimerTerm>
+  <PrimerTerm term="Namespace / DNS zone" href="#mental-model">Không gian tên / vùng DNS — cây tên phân cấp và phần cây do một đơn vị có thẩm quyền quản lý.</PrimerTerm>
+  <PrimerTerm term="Stub resolver" href="#mechanism">Bộ phân giải tối giản phía client, chuyển yêu cầu DNS đến recursive resolver.</PrimerTerm>
+  <PrimerTerm term="Recursive resolver" href="#mechanism">Bộ phân giải đệ quy tìm answer thay client, xử lý referral và có thể cache kết quả.</PrimerTerm>
+  <PrimerTerm term="Cold cache / cache hit" href="#mechanism">Cache lạnh / lần trúng cache — chưa có answer dùng được, hoặc tìm thấy cached answer còn hiệu lực.</PrimerTerm>
+  <PrimerTerm term="Browser / OS / recursive cache layers" href="#ttl-freshness">Các tầng cache ở browser, DNS client của hệ điều hành và recursive resolver; cache miss là khi tầng đang xét không có answer dùng được. Sự hiện diện và hành vi của tầng browser/OS phụ thuộc implementation.</PrimerTerm>
+  <PrimerTerm term="Root / TLD / authoritative server" href="#mechanism">Ba vai trò từ gốc, miền cấp cao đến máy chủ có thẩm quyền công bố record của zone.</PrimerTerm>
+  <PrimerTerm term="Delegation / referral / glue" href="#mechanism">Ủy quyền / chỉ dẫn / record địa chỉ kèm theo — cơ chế đưa resolver đến name server của zone con.</PrimerTerm>
+  <PrimerTerm term="TTL / cache expiry / TTL cap" href="#ttl-freshness">Time To Live / hết hạn / trần cục bộ — thời gian tối đa answer được phép giữ và giới hạn resolver có thể áp thêm.</PrimerTerm>
+  <PrimerTerm term="Authoritative record / cached answer" href="#ttl-freshness">Record nguồn chuẩn và bản answer được resolver giữ — hai trạng thái dữ liệu (state) ở hai nơi, có thể khác nhau tạm thời.</PrimerTerm>
+  <PrimerTerm term="Negative answer / NXDOMAIN / NODATA" href="#negative-cache">Answer âm / tên không tồn tại / tên tồn tại nhưng thiếu loại record hỏi — kết luận hữu ích có thể được cache.</PrimerTerm>
+  <PrimerTerm term="CNAME chain" href="#negative-cache">Chuỗi alias (bí danh) mà resolver lần theo để đến canonical name — tên chuẩn.</PrimerTerm>
+  <PrimerTerm term="Split-horizon / wildcard" href="#failure-modes">Nhiều DNS view theo mạng / record khớp tên chưa khai báo cụ thể — hai nguồn dễ gây chẩn đoán sai.</PrimerTerm>
+  <PrimerTerm term="CDN / geolocation / migration" href="#tradeoffs">Chọn answer theo mạng-vùng / chuyển dịch vụ — tăng locality (độ gần điểm phục vụ) hoặc đổi hạ tầng nhưng làm độ tươi và debug khó hơn.</PrimerTerm>
+  <PrimerTerm term="Resolver behavior" href="#production-diagnosis">Cách một resolver chọn server, cache, retry và trả answer; hành vi có thể khác theo client hoặc vùng.</PrimerTerm>
+  <PrimerTerm term="UDP / TCP DNS" href="#failure-modes">Hai transport ở cổng 53; kích thước response và retry có thể đổi đường xử lý.</PrimerTerm>
+  <PrimerTerm term="SOA / RCODE / TC bit" href="#negative-cache">Record đầu zone / mã kết quả / cờ truncated — metadata cho negative TTL, loại response và việc cần retry response lớn.</PrimerTerm>
+  <PrimerTerm term="Kiến thức nền" href="#links">Không giả định prerequisite; TCP, TLS và ứng dụng là các tầng downstream, xem [[TCP mechanics]].</PrimerTerm>
+</NotePrimer>
+
+<h2 id="one-liner">One-liner — ý chính trong một câu</h2>
+
+**DNS ánh xạ tên thành record qua một namespace phân tán, phân cấp bằng delegation và dựa dày đặc vào cache; answer chỉ mở đường cho kết nối, chưa phải bản thân kết nối.**
+
+<h2 id="mental-model">Mental Model — mô hình tư duy · vì sao DNS tồn tại?</h2>
+
+Con người và hệ thống cần tên ổn định, trong khi hạ tầng đổi địa chỉ. DNS thêm một lớp indirection — lớp gián tiếp — để tên có thể sống qua chuyển server, cân bằng tải và định tuyến theo vùng.
+
+Hãy hình dung một danh bạ điện thoại được chia thành nhiều quầy. Không quầy nào cần biết mọi số; mỗi tầng chỉ cần quản lý phạm vi của mình hoặc biết nơi hỏi gần nguồn authoritative hơn. Nhận định sai (misconception) đối nghịch là “một DNS trung tâm biết và trả thẳng mọi record”.
+
+Model này yêu cầu tách tên ổn định khỏi record hạ tầng có thể đổi. Nó bị dùng sai khi mọi báo cáo “service down” bị gộp thành lỗi ứng dụng, dù resolution có thể thất bại trước khi client có địa chỉ để kết nối.
+
+<MentalModel>
+  <MentalModelRow label="Extends">Danh bạ điện thoại phân tầng: tên ổn định, nhưng mỗi quầy chỉ giữ phạm vi của mình hoặc biết nơi hỏi tiếp.</MentalModelRow>
+  <MentalModelRow label="Conflicts" conflict>Root server là danh bạ trung tâm chứa record địa chỉ cuối của mọi tên miền.</MentalModelRow>
+  <MentalModelRow label="Requires">Phân biệt namespace, zone, authoritative source và bản answer nằm trong resolver cache.</MentalModelRow>
+  <MentalModelRow label="Misapplication">Gọi mọi triệu chứng “network error” mà chưa xác định failure nằm ở DNS, TCP, TLS hay ứng dụng.</MentalModelRow>
+</MentalModel>
+
+<h2 id="mechanism">Mechanism — cơ chế · từ stub đến authoritative answer</h2>
+
+Đường phân giải có hai nhánh phải giữ trong cùng một model. Delegation trả lời “nên hỏi ai tiếp theo”; cache freshness trả lời “answer nào còn được phép tái sử dụng”. Client gọi stub resolver; stub giao query cho recursive resolver. Recursive resolver kiểm tra local information trước, rồi mới cần đi vào namespace nếu chưa có answer dùng được.
+
+[RFC-1034/1035] Một DNS response có thể trả dữ liệu được hỏi, referral đến name server khác hoặc error. Root, TLD và authoritative server giữ phạm vi khác nhau; hãy dùng phạm vi zone để suy ra loại response ở mỗi hop thay vì coi chúng là ba bản sao của cùng một danh bạ.
+
+Chuỗi cold-cache cần giải thích được từ trí nhớ là `stub resolver → recursive resolver → root → TLD → authoritative server → cached answer`. Tên ổn định nằm ở đầu; answer địa chỉ nằm trước ranh giới TCP; TLS và request/response ứng dụng chỉ xảy ra sau đó.
+
+<TraceBlock>{`Tên service
+  → Stub resolver: tạo DNS query
+  → Recursive resolver: cache hit hoặc tìm answer
+  → DNS answer: record địa chỉ phù hợp
+  → TCP: mở kết nối đến địa chỉ
+  → TLS: thiết lập kênh bảo mật
+  → Ứng dụng: trao đổi request / response`}</TraceBlock>
+
+[General model] Cache hit bỏ qua các upstream hop mà resolver không cần hỏi lại; iterative path — đường resolver tự hỏi từng hop — phải cộng thời gian từng query/referral/answer thực sự xảy ra. Đây là decomposition — phép phân rã latency — chứ không gán một con số mạng cố định.
+
+Trong hai công thức, `T_cache-lookup` là thời gian tra cache; `T_processing` là xử lý local; `T_query-hop` và `T_response-hop` là latency gửi/nhận ở một upstream hop.
+
+<FormulaLine>[General model] T_cache-hit ≈ T_stub↔recursive + T_cache-lookup + T_processing</FormulaLine>
+
+<FormulaLine>[General model] T_iterative ≈ T_stub↔recursive + Σ(T_query-hop + T_response-hop) + T_processing</FormulaLine>
+
+<FlowSequence
+  nodes={[
+    { label: "Client", sublabel: "tên service" },
+    { label: "Stub resolver", sublabel: "T_processing · xử lý local" },
+    { label: "Recursive resolver", sublabel: "cold cache" },
+    { label: "Root", sublabel: "phạm vi gốc" },
+    { label: "TLD", sublabel: "miền cấp cao" },
+    { label: "Authoritative server", sublabel: "RRset + TTL" }
+  ]}
+  edgeLabels={[
+    "T_processing",
+    "T_stub↔recursive",
+    "T_query-hop + T_response-hop",
+    "T_query-hop + T_response-hop",
+    "T_query-hop + T_response-hop"
+  ]}
+  caption="[General model] Cold-cache resolution path. Nhãn cạnh là các hạng latency trong phép phân rã phía trên; cache hit bỏ qua những upstream hop không cần hỏi lại."
+/>
+
+<WidgetFrame
+  title="Tương tác 01 · Theo dấu delegation"
+  misconception="Root server trả thẳng record địa chỉ cuối cùng cho mọi tên miền."
+>
+  <PredictionGate
+    question="Recursive resolver có cold cache. Khi hỏi root về www.example.com, nó nhận gì?"
+    options={["Record địa chỉ cuối của www.example.com", "Referral đến .com TLD server", "Kết nối TCP đến authoritative server"]}
+    answer="Referral đến .com TLD server"
+    explain="Root quản lý điểm vào của namespace ủy quyền: nó chỉ recursive resolver đến tầng .com thay vì giữ record cuối của zone example.com."
+  />
+  <Interactive src="../interactives/dns-delegation-trace" />
+</WidgetFrame>
+
+<Recap>Với cold cache, root và TLD đưa recursive resolver đi tiếp bằng referral; authoritative server của zone mới trả RRset phù hợp. Recursive resolver đưa answer về stub và có thể cache answer cùng delegation data.</Recap>
+
+Sau dự đoán, cơ chế đầy đủ là: recursive resolver đi theo referral từ root đến TLD, rồi từ TLD đến authoritative server của zone để nhận record phù hợp. [RFC-1034/1035] Delegation NS và glue record ở parent giúp làm đường ủy quyền khả dụng. Answer quay về stub resolver và recursive resolver có thể cache nó.
+
+<TraceBlock>{`Cold cache · www.example.com A
+  1. Stub → Recursive: giao query
+  2. Recursive → Root: hỏi full QNAME
+     Root → Recursive: referral đến .com TLD server (NS + có thể có glue)
+  3. Recursive → .com TLD: hỏi full QNAME
+     TLD → Recursive: referral đến authoritative của example.com
+  4. Recursive → Authoritative: hỏi www.example.com A
+     Authoritative → Recursive: A RRset + TTL
+  5. Recursive: cache answer → trả Stub`}</TraceBlock>
+
+Ủy quyền cho phép chủ từng zone thay đổi record mà không cần một danh bạ toàn cầu chỉnh tay. Đổi lại, cấu hình authoritative hoặc delegation sai có thể trả record sai, vòng lặp hoặc không có answer dùng được dù service phía sau vẫn khỏe.
+
+<h2 id="ttl-freshness">TTL và cache freshness — độ tươi cache · hai bản state độc lập</h2>
+
+TTL là freshness budget — ngân sách độ tươi. Authoritative server trả answer kèm TTL; recursive resolver có thể giữ answer đó. Query lặp lại trở thành cache hit khi answer còn hiệu lực. Authoritative record và cached answer là hai bản ở hai nơi, nên có thể đổi ở thời điểm khác nhau.
+
+“DNS propagation” trong model này không phải thao tác push đồng loạt. Đó là khoảng thời gian quan sát được khi nhiều resolver giữ answer được tạo ở những thời điểm khác nhau rồi lần lượt expiry, áp TTL cap riêng hoặc hỏi lại.
+
+[RFC-1034/1035] TTL dùng đơn vị giây. TTL bằng 0 chỉ cho phép dùng RR trong transaction — lượt query/response đang diễn ra — và cấm cache nó. [RFC-2181] Miền giá trị protocol là `0..2^31−1`, tức `0..2.147.483.647` giây; resolver được phép đặt upper bound — trần cục bộ — thấp hơn, vì TTL là thời gian tối đa chứ không bắt buộc phải giữ đủ lâu.
+
+Vòng đời cần theo dõi:
+
+1. Resolver nhận record và TTL rồi lưu answer.
+2. Query lặp lại dùng cache khi answer còn hiệu lực.
+3. Authoritative record có thể đổi trong lúc cache vẫn giữ answer cũ.
+4. Cache expiry đổi điều resolver được phép làm ở query kế tiếp; expiry không tự push record mới đến client.
+
+<TraceBlock>{`t0 · Authoritative record = A
+     Recursive cache = A + TTL còn hiệu lực
+t1 · Authoritative record đổi A → B
+     Recursive cache vẫn giữ state riêng: A + TTL còn lại
+t2 · Client query kế tiếp → nguồn answer nào?
+t3 · Cache expiry → query sau đó mới phải lấy answer dùng được`}</TraceBlock>
+
+[General model] Nếu bỏ qua serve-stale — phục vụ dữ liệu quá hạn — prefetch và các cap đặc thù implementation, cửa sổ stale còn lại tại lúc source đổi không vượt TTL còn lại của bản cache đó.
+
+<FormulaLine>[General model] 0 ≤ stale_window_after_change ≤ cached_TTL_remaining</FormulaLine>
+
+<FlowSequence
+  nodes={[
+    { label: "Browser cache", sublabel: "[Version-dep] ứng dụng" },
+    { label: "OS DNS client cache", sublabel: "[Version-dep] client" },
+    { label: "Recursive resolver cache", sublabel: "cached answer" },
+    { label: "Authoritative server", sublabel: "authoritative record" }
+  ]}
+  edgeLabels={["cache miss", "cache miss", "cache expiry / miss"]}
+  caption="[General model] Trình tự tầng kiểm tra: query chỉ đi tiếp khi tầng gần hơn không có answer dùng được; browser/OS cache là hành vi phụ thuộc implementation."
+/>
+
+<WidgetFrame
+  title="Tương tác 02 · TTL freshness timeline"
+  misconception="Đổi authoritative record làm mọi client thấy địa chỉ mới ngay lập tức."
+>
+  <PredictionGate
+    question="Resolver đang cache địa chỉ A với TTL còn hiệu lực; authoritative record vừa đổi sang B. Query kế tiếp nhận gì?"
+    options={["Địa chỉ A từ recursive cache", "Địa chỉ B từ authoritative server", "Không có answer cho đến khi mọi cache đồng bộ"]}
+    answer="Địa chỉ A từ recursive cache"
+    explain="TTL còn hiệu lực cho phép resolver tái sử dụng cached answer A; thay đổi ở authoritative source không chủ động xóa bản cache đó."
+  />
+  <Interactive src="../interactives/dns-ttl-freshness" />
+</WidgetFrame>
+
+<Recap>Authoritative source và recursive cache là hai bản state độc lập. Record có thể đã là B ở source trong khi resolver vẫn hợp lệ khi trả A; sau expiry, query mới khiến resolver lấy answer dùng được mới.</Recap>
+
+Source of truth và recursive cache là hai state độc lập. Record có thể đã đổi sang B ở source trong khi resolver vẫn hợp lệ khi trả A. Sau cache expiry, một query mới khiến resolver lấy và cache answer dùng được mới.
+
+<h2 id="negative-cache">Negative answers, CNAME và trạng thái “không có”</h2>
+
+Câu trả lời âm cũng có thể được cache. NXDOMAIN không đồng nghĩa “không có gì để lưu”: đó là kết luận tên không tồn tại. [RFC-2308] NODATA khác NXDOMAIN: tên tồn tại nhưng không có RRset thuộc type được hỏi. Cả hai khác resolution failure như SERVFAIL hoặc timeout.
+
+[RFC-2308] Authoritative NXDOMAIN/NODATA mang SOA record trong authority section để cung cấp negative TTL. TTL này giảm dần như positive cache; khi về 0, negative answer không được dùng lại. Dùng quy tắc này để suy ra query kế tiếp khi source vừa tạo record nhưng negative TTL chưa về 0.
+
+<FormulaLine>[RFC-2308] negative_TTL = min(SOA.MINIMUM, SOA_RR_TTL); TTL → 0 ⇒ không được tái sử dụng</FormulaLine>
+
+<WidgetFrame
+  title="Tương tác 03 · Negative cache"
+  misconception="Tạo record mới làm lỗi NXDOMAIN biến mất ngay với mọi resolver."
+>
+  <PredictionGate
+    question="Resolver đang giữ negative answer còn hiệu lực. Authoritative server vừa có record mới. Query kế tiếp có chắc thấy record mới không?"
+    options={["Không; resolver có thể vẫn dùng negative cache", "Có; record mới xóa mọi negative cache", "Có; client bỏ qua resolver và hỏi root"]}
+    answer="Không; resolver có thể vẫn dùng negative cache"
+    explain="Negative answer cũng là cached state có TTL. Resolver có thể tái sử dụng nó đến khi không còn hiệu lực rồi mới hỏi lại."
+  />
+</WidgetFrame>
+
+<Recap>NXDOMAIN/NODATA có thể được negative-cache. Việc tạo record mới ở authoritative source không tự xóa state đó ở mọi resolver, nên một số client vẫn có thể thấy answer âm cho đến khi resolver hỏi lại.</Recap>
+
+[RFC-1034] CNAME chain là một đường state khác: resolver cache CNAME rồi tiếp tục lookup ở canonical name. Bad chain hoặc loop có thể che tình trạng thật của service. Wildcard record lại có thể tạo một answer cho tên chưa cấu hình cụ thể, khiến “phân giải được” bị nhầm thành “trỏ đúng service”.
+
+<FlowSequence
+  nodes={[
+    { label: "QNAME", sublabel: "tên được hỏi" },
+    { label: "CNAME", sublabel: "answer alias" },
+    { label: "Canonical name", sublabel: "tên chuẩn" },
+    { label: "RRset", sublabel: "answer dữ liệu", accent: true }
+  ]}
+  edgeLabels={["nhận CNAME", "hỏi tiếp", "nhận RRset"]}
+  caption="[General model] CNAME chain đổi tên đang được hỏi trước khi resolver đến RRset dữ liệu; chain gãy hoặc loop làm path không hoàn tất."
+/>
+
+[RFC-9520] NXDOMAIN/NODATA là negative answer hữu ích, không phải failure vì resolver đã nhận kết luận có nghĩa. SERVFAIL, REFUSED, timeout hoặc toàn bộ server không reachable mới thuộc nhóm resolution failure; resolver có thể thử server hoặc transport khác trước khi kết luận.
+
+<h2 id="tradeoffs">Tradeoffs — đánh đổi định lượng · latency, load và freshness</h2>
+
+TTL dài giảm lookup latency nhờ cache hit và giảm tải authoritative, nhưng làm thay đổi record được quan sát chậm hơn. TTL ngắn giúp migration vì resolver phải hỏi lại sớm hơn, đổi lại traffic và độ phụ thuộc vào lookup mới tăng. CDN/geolocation record có thể cải thiện locality bằng cách chọn answer theo mạng hoặc vùng, nhưng client khác nhau có thể nhận answer khác nhau nên debugging khó hơn.
+
+[General model] Bốn TTL `60 s`, `300 s`, `3.600 s` và `86.400 s` bên dưới chỉ là scenario scale — thang kịch bản để suy luận — không phải default bắt buộc hay tuyên bố tần suất sử dụng. Cùng một thay đổi ngay sau lúc cache fill có thể mang stale-window model lần lượt gần `1 phút`, `5 phút`, `1 giờ` hoặc `1 ngày` nếu không có cơ chế implementation khác.
+
+<ComparisonBars
+  items={[
+    { label: "TTL scenario · 60 giây", value: 60, display: "60 s · 1 phút" },
+    { label: "TTL scenario · 300 giây", value: 300, display: "300 s · 5 phút" },
+    { label: "TTL scenario · 3.600 giây", value: 3600, display: "3.600 s · 1 giờ" },
+    { label: "TTL scenario · 86.400 giây", value: 86400, display: "86.400 s · 1 ngày", bad: true }
+  ]}
+  caption="[General model] Thang scenario để nhìn bậc độ lớn của stale-window tối đa; đây không phải DNS default hay benchmark."
+/>
+
+[General model] Với một shared cache — cache dùng chung — luôn có demand cho cùng query tuple `(name, type, class)` và không prefetch, refresh upstream lý tưởng xảy ra xấp xỉ không quá một lần mỗi TTL. Đây là model tải, không phải benchmark resolver thật.
+
+<FormulaLine>[General model · continuous demand] upstream_refresh_rate ≲ 1 / TTL cho mỗi shared cache × query tuple</FormulaLine>
+
+[RFC-2308] Với negative cache, RFC ghi nhận `1–3 giờ` là khoảng default hợp lý và giá trị vượt `1 ngày` từng gây vấn đề. Đó là hướng dẫn cho negative caching, không phải default chung cho mọi positive record.
+
+<ComparisonBars
+  items={[
+    { label: "Negative TTL · đầu khoảng RFC", value: 3600, display: "3.600 s · 1 giờ" },
+    { label: "Negative TTL · cuối khoảng RFC", value: 10800, display: "10.800 s · 3 giờ" },
+    { label: "Mốc một ngày", value: 86400, display: "86.400 s · 1 ngày", bad: true }
+  ]}
+  caption="[RFC-2308] 1–3 giờ là khoảng default hợp lý; giá trị vượt một ngày đã được ghi nhận là problematic. Thanh một ngày là mốc biên, không phải default."
+/>
+
+| Quyết định | Được gì | Trả giá gì | Khi kiểm chứng |
+| --- | --- | --- | --- |
+| TTL dài | Nhiều cache hit hơn; ít lookup mới và authoritative load thấp hơn. | Answer cũ có thể được quan sát lâu hơn sau migration. | So TTL còn lại và answer qua nhiều resolver/view. |
+| TTL ngắn | Resolver hỏi lại sớm hơn; migration có cửa sổ stale ngắn hơn. | Resolver traffic và phụ thuộc vào lookup mới tăng. | Đo query rate, latency và failure rate thật. |
+| CDN / geolocation | Chọn điểm phục vụ gần mạng/vùng hơn, cải thiện locality. | Answer khác theo client làm debugging khó hơn. | Ghi resolver, source network và region cùng output. |
+| [RFC-1034] Delegation theo zone | Mỗi tổ chức tự quản record mà không sửa danh bạ toàn cầu. | Parent/child NS hoặc glue lệch nhau có thể cắt đường resolution. | Query trực tiếp parent, TLD và authoritative. |
+
+<h2 id="failure-modes">Failure Modes — dạng lỗi · state sai nằm ở đâu?</h2>
+
+Stale record sau migration xuất hiện khi resolver tiếp tục dùng cached answer cũ còn hiệu lực; deploy có thể hoạt động với một số client nhưng client khác vẫn đi đến IP cũ. Authoritative configuration hoặc delegation sai làm source of truth công bố record sai, thiếu record hoặc chỉ sai đường đến zone.
+
+NXDOMAIN hoặc CNAME chain sai có thể khiến client không đến được service dù application health vẫn tốt. Split-horizon DNS khiến internal và external view trả answer khác nhau, nên một mạng hoặc vùng lỗi trong khi nơi khác bình thường. Wildcard có thể che record cụ thể bị thiếu bằng một answer trông hợp lệ nhưng sai đích.
+
+[RFC-1035/6891] DNS UDP truyền thống giới hạn message ở `512 byte`; EDNS(0) — cơ chế mở rộng DNS — cho phép quảng bá khả năng nhận payload lớn hơn để giảm truncation. [RFC-2181] Khi response vẫn đặt TC bit, client nên retry bằng cơ chế chứa response lớn hơn, chẳng hạn TCP. Vì vậy firewall chặn TCP/53 hoặc path làm rơi UDP fragment có thể biến “record tồn tại” thành timeout phụ thuộc kích thước response.
+
+[RFC-9520] Resolution failure còn có thể đến từ SERVFAIL, REFUSED, unreachable server, delegation loop hoặc alias loop. Một resolver có nhiều server/transport để thử; một failure ở một server chưa tự động chứng minh cả name không resolve được.
+
+| Failure | State / cơ chế | Tín hiệu production | First check |
+| --- | --- | --- | --- |
+| Stale record sau migration | Resolver cache giữ answer cũ còn TTL. | Một số client vẫn đi IP cũ. | Answer + TTL + resolver của client lỗi. |
+| Authoritative config sai | Zone công bố record sai hoặc thiếu RRset. | Service khỏe nhưng tên không có đích đúng. | Query trực tiếp authoritative server. |
+| [RFC-1034] Delegation / glue sai | Parent chỉ đến sai name server hoặc thiếu đường địa chỉ cần thiết. | Trace dừng ở parent/TLD. | So NS ở parent và child; kiểm glue. |
+| NXDOMAIN / NODATA cache | Negative state còn hiệu lực sau khi record được tạo/sửa. | Client tiếp tục thấy “không tồn tại/không có type”. | SOA negative TTL và query tuple. |
+| Bad CNAME chain / alias loop | Resolver phải theo alias sai, gãy hoặc quay vòng. | Tên alias lỗi dù canonical service có thể khỏe. | Trace từng CNAME đến canonical name. |
+| Split-horizon confusion | Internal và external view trả state khác nhau. | Chỉ một mạng/vùng lỗi. | Query cùng tuple qua từng resolver/view. |
+| Wildcard che record thiếu | Tên chưa cấu hình vẫn nhận answer chung. | Resolve được nhưng đi sai service. | Query record cụ thể và kiểm wildcard zone. |
+| [RFC-1035/6891] Truncation / TCP path | UDP response vượt giới hạn/path; retry lớn hơn bị chặn. | Query nhỏ thành công, response lớn timeout. | TC bit; thử TCP/53 và kích thước response. |
+| [RFC-9520] SERVFAIL / timeout / loop | Không server/transport nào cung cấp response hữu ích. | Resolution chậm hoặc thất bại toàn bộ. | RCODE, retry, reachable NS, delegation graph. |
+
+Hai island trong note chỉ làm chậm mechanism để quan sát thứ tự. Chúng không tạo benchmark latency, resolver traffic hay propagation time; các giá trị đó phải đến từ command thật trong Evidence Log.
+
+<h2 id="production-diagnosis">Production diagnosis — chẩn đoán vận hành · tách DNS khỏi TCP/TLS/app</h2>
+
+Nhiều báo cáo “service down” thực chất là resolution failure, stale DNS hoặc resolver behavior đặc thù theo vùng. Tín hiệu điển hình: người dùng một vùng không phân giải được service; deploy chỉ hoạt động cho một số client; IP cũ vẫn xuất hiện sau migration.
+
+Chẩn đoán theo thứ tự `DNS → TCP → TLS → ứng dụng`. Xác nhận tên có answer phù hợp trước khi kiểm tra TCP; chỉ khi có địa chỉ đích mới chuyển sang bắt tay TLS và request/response ứng dụng. Việc một resolver trả record không chứng minh mọi resolver hoặc DNS view khác đang thấy cùng record.
+
+Checkpoint cũ “client đã kết nối chưa?” vẫn phải giữ: nếu authoritative server không trả được record cần thiết, ba lựa chọn là (a) lỗi vẫn ở DNS và client chưa nhất thiết bắt đầu TCP, (b) TCP luôn chạy song song với DNS, hoặc (c) authoritative server mở TCP thay client. Kết luận đúng là (a): chưa có record địa chỉ phù hợp thì client chưa có đích để bắt đầu kết nối đến service.
+
+Khi chỉ một vùng lỗi, so sánh query name/type, resolver được dùng, answer, TTL còn lại, CNAME chain và split-horizon view. Khi cùng resolver đã trả record mới phù hợp ổn định, giả thuyết stale cache yếu đi; chuyển sang TCP, TLS và application health.
+
+<TraceBlock>{`1. DNS  · Query có response hữu ích? answer/type/TTL/view đúng?
+   ├─ Không → trace delegation, authoritative, negative cache, CNAME, transport
+   └─ Có
+      2. TCP  · Có mở được connection đến địa chỉ trả về?
+         ├─ Không → route/firewall/listener
+         └─ Có
+            3. TLS  · Handshake/certificate/SNI đúng?
+               ├─ Không → TLS boundary
+               └─ Có → 4. Application request / response`}</TraceBlock>
+
+<h2 id="evidence">Evidence Log — nhật ký bằng chứng · máy thật</h2>
+
+[Measured 2026-07-15 · TERASUMI] Windows `10.0.26200.0`, PowerShell `7.6.3`, múi giờ `+07:00`. Các output dưới đây được chạy trong vòng tạo note này. `dig` không có trên máy nên giữ item trống để app hiện `[CHƯA CÓ]`.
+
+<HighlightBox title="Giới hạn phép đo cache">
+  `Clear-DnsClientCache` chỉ làm lạnh Windows DNS client cache. `DnsOnly` — buộc dùng DNS — kế tiếp có thể được trả từ upstream recursive cache; phép đo không chứng minh toàn đường phân giải Internet là cold. `CacheOnly` — chỉ đọc local cache — ở lần repeat mới là cache hit được xác nhận tại ranh giới local.
+</HighlightBox>
+
+<ComparisonBars
+  items={[
+    { label: "DnsOnly sau khi clear client cache", value: 42.91, display: "42,91 ms", bad: true },
+    { label: "CacheOnly repeat", value: 0.93, display: "0,93 ms" }
+  ]}
+  caption="[Measured 2026-07-15 · TERASUMI] Cùng example.com A và TTL 121 ở populate/repeat. Đây là local client-cache miss boundary vs confirmed CacheOnly hit; upstream warmth không được kiểm soát."
+/>
+
+<EvidenceLog>
+  <EvidenceItem cmd="dig +trace example.com" />
+
+  <EvidenceItem cmd="nslookup -type=A example.com">
+
+```text
+Server:  one.one.one.one
+Address:  2606:4700:4700::1001
+
+Name:    example.com
+Addresses:  104.20.23.154
+            172.66.147.243
+
+Non-authoritative answer:
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="Resolve-DnsName example.com -Type A -DnsOnly | Select Name,Type,TTL,IPAddress">
+
+```text
+Name        Type TTL IPAddress
+----        ---- --- ---------
+example.com    A 247 104.20.23.154
+example.com    A 247 172.66.147.243
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="Clear-DnsClientCache; $before='HIT'; $t0=Measure-Command { try { Resolve-DnsName example.com -Type A -CacheOnly -ErrorAction Stop | Out-Null } catch { $before='MISS' } }; $t1=Measure-Command { $network=Resolve-DnsName example.com -Type A -DnsOnly }; $t2=Measure-Command { $cached=Resolve-DnsName example.com -Type A -CacheOnly }">
+
+```text
+Phase            Result   ElapsedMs TTL
+-----            ------   --------- ---
+before           MISS         32.04 -
+DnsOnly populate A answer     42.91 121.00
+CacheOnly repeat A answer      0.93 121.00
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="nslookup -debug -type=A example.com 198.41.0.4">
+
+Trích đúng các dòng liên quan từ output thật; response còn liệt kê đủ 13 NS và 26 additional record:
+
+```text
+HEADER:
+  opcode = QUERY, id = 2, rcode = NOERROR
+  header flags: response, want recursion
+  questions = 1, answers = 0, authority records = 13, additional = 26
+QUESTIONS:
+  example.com, type = A, class = IN
+AUTHORITY RECORDS:
+  ->  com
+      nameserver = l.gtld-servers.net
+      ttl = 172800 (2 days)
+DNS request timed out. timeout was 2 seconds.
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="nslookup -debug -type=A example.com 192.5.6.30">
+
+Trích đúng response cho query `example.com A`; output thật còn liệt kê 12 A/AAAA additional record:
+
+```text
+HEADER:
+  opcode = QUERY, id = 2, rcode = NOERROR
+  header flags: response, want recursion
+  questions = 1, answers = 0, authority records = 2, additional = 12
+QUESTIONS:
+  example.com, type = A, class = IN
+AUTHORITY RECORDS:
+  ->  example.com
+      nameserver = hera.ns.cloudflare.com
+      ttl = 172800 (2 days)
+  ->  example.com
+      nameserver = elliott.ns.cloudflare.com
+      ttl = 172800 (2 days)
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="nslookup -debug -type=A example.com 108.162.192.162">
+
+```text
+HEADER:
+  opcode = QUERY, id = 2, rcode = NOERROR
+  header flags: response, auth. answer, want recursion
+  questions = 1, answers = 2, authority records = 0, additional = 0
+QUESTIONS:
+  example.com, type = A, class = IN
+ANSWERS:
+  ->  example.com
+      internet address = 172.66.147.243
+      ttl = 300 (5 mins)
+  ->  example.com
+      internet address = 104.20.23.154
+      ttl = 300 (5 mins)
+```
+
+  </EvidenceItem>
+
+  <EvidenceItem cmd="nslookup -debug -type=A no-such-dns-evidence-20260715.example.com 108.162.192.162">
+
+```text
+HEADER:
+  opcode = QUERY, id = 2, rcode = NXDOMAIN
+  header flags: response, auth. answer, want recursion
+  questions = 1, answers = 0, authority records = 1, additional = 0
+QUESTIONS:
+  no-such-dns-evidence-20260715.example.com, type = A, class = IN
+AUTHORITY RECORDS:
+  ->  example.com
+      ttl = 1800 (30 mins)
+      primary name server = elliott.ns.cloudflare.com
+      responsible mail addr = dns.cloudflare.com
+      serial  = 2407636105
+      default TTL = 1800 (30 mins)
+```
+
+  </EvidenceItem>
+</EvidenceLog>
+
+<h2 id="self-test">Self-test — tự kiểm tra</h2>
+
+Trả lời từ trí nhớ trước khi reveal; sai ở nhánh nào thì quay lại đúng anchor đó.
+
+<SelfTest>
+  <SelfTestItem level={3} question="Giải thích từng hop của cold-cache resolution và chỉ ra thời điểm sớm nhất client có thể bắt đầu TCP.">
+    Stub giao query cho recursive resolver; recursive hỏi root, theo referral đến TLD rồi authoritative, nhận RRset + TTL, cache và trả answer. Client chỉ có địa chỉ đích để bắt đầu TCP sau answer phù hợp. Xem [Mechanism](#mechanism).
+  </SelfTestItem>
+  <SelfTestItem level={4} question="Trong migration, TTL dài/TTL ngắn và negative cache đổi latency, load và freshness như thế nào?">
+    TTL dài tăng cache reuse và giảm lookup/load nhưng kéo dài stale window; TTL ngắn làm resolver hỏi lại sớm hơn nhưng tăng traffic và fragility. Negative answer cũng có TTL riêng, nên tạo record mới chưa chắc được thấy ngay. Xem [Tradeoffs](#tradeoffs) và [Negative answers](#negative-cache).
+  </SelfTestItem>
+  <SelfTestItem level={5} question="Deploy chỉ lỗi ở một vùng và client vẫn thấy IP cũ: bạn kiểm tra gì, và evidence nào làm giả thuyết stale DNS yếu đi?">
+    So sánh query tuple, resolver/view, delegation, authoritative answer, CNAME, answer và TTL của client lỗi. Nếu cùng resolver đã hết cache và luôn trả record mới đúng, chuyển sang split-horizon/transport rồi TCP, TLS, app. Xem [Production diagnosis](#production-diagnosis) và [Evidence Log](#evidence).
+  </SelfTestItem>
+</SelfTest>
+
+<h2 id="links">Links</h2>
+
+- Downstream: [[TCP mechanics]]
+- Bridge: [[DNS TCP TLS and latency budgets|DNS/TCP/TLS and latency budgets]]
+- Lab: [[lab-dig-trace-dns]]
+- Primary source: `DNS resolution path.md` trong Software Engineering Mental Models
+- Standard: [RFC 1034 — Domain Names: Concepts and Facilities](https://www.rfc-editor.org/rfc/rfc1034.html)
+- Standard: [RFC 1035 — Domain Names: Implementation and Specification](https://www.rfc-editor.org/rfc/rfc1035.html)
+- Standard clarification: [RFC 2181 — Clarifications to the DNS Specification](https://www.rfc-editor.org/rfc/rfc2181.html)
+- Negative caching: [RFC 2308 — Negative Caching of DNS Queries](https://www.rfc-editor.org/rfc/rfc2308.html)
+- Resolution failures: [RFC 9520 — Negative Caching of DNS Resolution Failures](https://www.rfc-editor.org/rfc/rfc9520.html)
+- Extended DNS messages: [RFC 6891 — Extension Mechanisms for DNS (EDNS(0))](https://www.rfc-editor.org/rfc/rfc6891.html)
+
+---
+
+_Format B · 7 section nội dung + one-liner · 14 Tier-2 component · 3/3 prediction gate · 2 island · 7 evidence item có output thật + 1 `[CHƯA CÓ]` · hoàn tất 2026-07-15_

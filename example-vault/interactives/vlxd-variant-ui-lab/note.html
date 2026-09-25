@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VLXD UI Lab — Interactive Note Format A</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<script crossorigin src="https://unpkg.com/react@19/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@19/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+  --ui-paper:#ffffff; --ui-line:#e5e5e0; --ui-hover:#f5f5f0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Lora",serif;
+  overflow:hidden; /* Format A lab: dual-panel, body fixed */
+  height:100vh;
+}
+
+.masthead{
+  position:sticky; top:0; z-index:50; height:40px;
+  padding:0 1.5rem; background:var(--ink);
+  border-bottom:2px solid var(--ink);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+
+.layout{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  height:calc(100vh - 40px);
+}
+
+/* PROSE PANEL (left) */
+.prose{
+  background:var(--paper);
+  border-right:2px solid var(--ink);
+  overflow-y:auto;
+  padding:1.8rem 1.5rem 4rem;
+}
+.prose h1{font-family:"Playfair Display",serif;font-size:1.8rem;font-weight:900;line-height:1.15;margin-bottom:.3rem}
+.prose .subtitle{font-family:"Courier Prime",monospace;font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:1.2rem}
+.prose h2{font-family:"Playfair Display",serif;font-size:1.25rem;font-weight:700;margin:1.6rem 0 .7rem;padding-top:.8rem;border-top:2px solid var(--ink);scroll-margin-top:20px}
+.prose h2 .tag{font-family:"Courier Prime",monospace;font-size:.6rem;font-weight:700;vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.5rem;background:var(--ink);color:var(--paper);text-transform:uppercase}
+.prose h2 .tag.w{background:var(--accent)}
+.prose h2 .tag.e{background:var(--result)}
+.prose p{font-size:.88rem;line-height:1.7;margin-bottom:.7rem;color:#222}
+.prose strong{color:var(--ink)}
+.prose code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:1px 6px;font-size:.78rem}
+.prose .highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.6rem .85rem;margin:.7rem 0;font-size:.85rem;line-height:1.55}
+.prose .highlight-box strong{color:var(--accent)}
+.prose .primer{border:2px dashed var(--ink);padding:.6rem .85rem;margin:0 0 1.4rem;background:var(--paper)}
+.prose .primer-head{font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.4rem}
+.prose .primer-row{font-size:.82rem;line-height:1.55;margin:.25rem 0}
+.prose .primer-row b{font-family:"Courier Prime",monospace;font-size:.72rem;background:var(--paper-dark);padding:1px 5px;border:1px solid var(--ink)}
+.prose .primer-row a{color:var(--result);font-weight:700;text-decoration:none;font-family:"Courier Prime",monospace;font-size:.68rem;white-space:nowrap}
+.prose .primer-closure{font-size:.72rem;opacity:.7;font-family:"Courier Prime",monospace;margin-top:.4rem}
+.prose ul{margin:.4rem 0 .8rem 1.3rem;line-height:1.65;font-size:.85rem}
+.prose ul li{margin:.25rem 0}
+.prose .q-item{border:2px solid var(--ink);margin:.8rem 0;background:var(--paper)}
+.prose .q-head{padding:.6rem .8rem;font-size:.85rem;line-height:1.5;display:flex;gap:.6rem;align-items:baseline}
+.prose .q-level{font-family:"Courier Prime",monospace;font-size:.62rem;font-weight:700;background:var(--ink);color:var(--paper);padding:.15rem .5rem;white-space:nowrap;text-transform:uppercase;letter-spacing:1px}
+.prose .q-actions{padding:0 .8rem .6rem}
+.prose .q-answer{display:none;border-top:2px dashed var(--line);padding:.6rem .8rem;font-size:.82rem;line-height:1.55;background:var(--paper-dark)}
+.prose .q-answer.show{display:block}
+.prose .q-answer a{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+.prose .links-list{list-style:none}
+.prose .links-list li{font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.8}
+.prose .links-list a,.prose .wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+.prose .note-meta{font-family:"Courier Prime",monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:2rem;padding-top:.8rem;border-top:2px solid var(--ink)}
+.prose .frontmatter{font-family:"Courier Prime",monospace;font-size:.7rem;line-height:1.55;background:var(--paper-dark);border:2px solid var(--ink);padding:.7rem .85rem;margin-bottom:1.4rem;white-space:pre;overflow-x:auto}
+.prose .frontmatter .k{color:var(--accent);font-weight:700}
+.prose .frontmatter .v{color:var(--result)}
+.prose .lab-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;padding:.4rem .85rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px}
+.prose .lab-btn:hover{background:var(--ink);color:var(--paper)}
+
+/* UI CANVAS (right) */
+.canvas{
+  background:var(--paper-dark);
+  overflow-y:auto;
+  padding:1.5rem 1.8rem 4rem;
+}
+.canvas-tabs{
+  display:flex;gap:0;margin-bottom:1.4rem;border:2px solid var(--ink);
+}
+.canvas-tab{
+  flex:1;padding:.6rem 1rem;
+  font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;
+  text-transform:uppercase;letter-spacing:1px;
+  background:var(--paper-dark);color:var(--ink);cursor:pointer;
+  border-right:2px solid var(--ink);
+  transition:background .1s, color .1s;
+}
+.canvas-tab:last-child{border-right:none}
+.canvas-tab:hover:not(.active){background:var(--paper)}
+.canvas-tab.active{background:var(--ink);color:var(--paper)}
+.canvas-tab .step-num{opacity:.55;margin-right:.4rem}
+
+.canvas-frame{
+  border:2px solid var(--ink);background:var(--ui-paper);
+  box-shadow:var(--shadow);
+  padding:1.2rem;
+  min-height:calc(100vh - 200px);
+}
+
+/* Inside UI canvas — product UI styles (small) */
+.ui-pane-title{
+  font-family:"Courier Prime",monospace;font-size:.72rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;color:var(--ink);
+  border-bottom:2px solid var(--ink);padding-bottom:.4rem;margin-bottom:.85rem;
+}
+.role-toggle{display:inline-flex;border:2px solid var(--ink);margin-bottom:1rem}
+.role-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.72rem;padding:.4rem .9rem;background:var(--ui-paper);cursor:pointer;border-right:2px solid var(--ink);text-transform:uppercase;letter-spacing:.5px}
+.role-btn:last-child{border-right:none}
+.role-btn.active{background:var(--ink);color:var(--ui-paper)}
+
+.variant-card{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);margin-bottom:1rem}
+.variant-attrs{padding:.85rem;border-right:2px solid var(--ink)}
+.variant-stock{padding:.85rem;background:var(--ui-paper)}
+.variant-col-title{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.attr-row{display:flex;justify-content:space-between;font-family:"Courier Prime",monospace;font-size:.78rem;padding:.2rem 0;border-bottom:1px solid var(--ui-line)}
+.attr-row:last-child{border-bottom:none}
+.attr-key{opacity:.6}
+.attr-val{font-weight:700}
+.stock-row{display:flex;justify-content:space-between;font-family:"Courier Prime",monospace;font-size:.82rem;padding:.25rem 0}
+.stock-row.manager-only{background:#fff8e1;margin:0 -.85rem;padding:.25rem .85rem}
+.stock-row .label{opacity:.65;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+.stock-row .val{font-weight:700}
+.stock-row .val.accent{color:var(--accent)}
+.stock-row .val.result{color:var(--result)}
+.lot-history{margin-top:1rem}
+.lot-row{display:grid;grid-template-columns:90px 1fr 80px;gap:.4rem;font-family:"Courier Prime",monospace;font-size:.74rem;padding:.35rem .5rem;border-bottom:1px solid var(--ui-line);align-items:center}
+.lot-row.header{font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--ui-hover);font-size:.65rem}
+
+.pos-search{display:flex;gap:.5rem;margin-bottom:1rem}
+.pos-search input{flex:1;padding:.55rem .8rem;border:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.82rem;background:var(--ui-paper)}
+.pos-search input:focus{outline:none;box-shadow:3px 3px 0 var(--ink)}
+.search-results{max-height:280px;overflow-y:auto;border:2px solid var(--ink);background:var(--ui-paper)}
+.search-result-row{display:grid;grid-template-columns:1fr 90px;gap:.4rem;padding:.6rem .8rem;border-bottom:1px solid var(--ui-line);cursor:pointer;align-items:center;font-family:"Courier Prime",monospace;font-size:.78rem}
+.search-result-row:hover{background:var(--ui-hover)}
+.search-result-row:last-child{border-bottom:none}
+.search-result-row .sku{font-size:.68rem;opacity:.6}
+.search-result-row .price{text-align:right;font-weight:700;color:var(--accent)}
+
+.cart{margin-top:1.2rem;border:2px solid var(--ink);background:var(--ui-paper)}
+.cart-head{padding:.55rem .8rem;background:var(--ui-hover);border-bottom:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.cart-row{display:grid;grid-template-columns:1fr 80px 110px;gap:.4rem;padding:.55rem .8rem;border-bottom:1px solid var(--ui-line);align-items:center;font-family:"Courier Prime",monospace;font-size:.78rem}
+.cart-row:last-child{border-bottom:none}
+.cart-row .qty-ctrl{display:flex;align-items:center;gap:.3rem;justify-content:center}
+.cart-row .qty-ctrl button{width:22px;height:22px;border:2px solid var(--ink);background:var(--ui-paper);cursor:pointer;font-weight:700}
+.cart-row .qty-ctrl button:hover{background:var(--ink);color:var(--ui-paper)}
+.cart-row .qty-ctrl span{min-width:24px;text-align:center;font-weight:700}
+.cart-row .price{text-align:right;font-weight:700}
+.cart-total{padding:.7rem .8rem;background:var(--paper-dark);font-family:"Courier Prime",monospace;font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;border-top:2px solid var(--ink)}
+.cart-total .val{color:var(--accent)}
+.cart-actions{padding:.7rem .8rem;display:flex;gap:.5rem;border-top:1px solid var(--ui-line)}
+.cart-actions button{flex:1;padding:.5rem;border:2px solid var(--ink);background:var(--ui-paper);font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
+.cart-actions button.primary{background:var(--ink);color:var(--ui-paper)}
+.cart-actions button:hover{transform:translate(1px,1px)}
+.snapshot-banner{padding:.55rem .8rem;background:#fff8e1;border:2px solid #ff9800;font-family:"Courier Prime",monospace;font-size:.7rem;margin-top:.5rem;letter-spacing:.3px}
+
+.cascade{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.cascade-col{display:flex;flex-direction:column}
+.cascade-label{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem}
+.cascade-label .badge{background:var(--accent);color:#fff;padding:1px 5px;margin-left:.3rem;font-size:.6rem}
+.cascade-select{padding:.55rem .6rem;border:2px solid var(--ink);background:var(--ui-paper);font-family:"Courier Prime",monospace;font-size:.78rem;cursor:pointer}
+.cascade-select:focus{outline:none;box-shadow:2px 2px 0 var(--ink)}
+.cascade-select:disabled{opacity:.4;cursor:not-allowed}
+.cascade-result{margin-top:1rem}
+.cascade-result .count{font-family:"Courier Prime",monospace;font-size:.78rem;color:var(--accent);font-weight:700;margin-bottom:.5rem}
+.cascade-list{border:2px solid var(--ink);background:var(--ui-paper)}
+.cascade-list-row{padding:.6rem .8rem;border-bottom:1px solid var(--ui-line);font-family:"Courier Prime",monospace;font-size:.78rem;display:grid;grid-template-columns:1fr 100px;gap:.5rem}
+.cascade-list-row:last-child{border-bottom:none}
+.cascade-list-row.empty{padding:1rem;text-align:center;color:var(--accent);font-weight:700;grid-template-columns:1fr}
+.cascade-list-row .meta{font-size:.7rem;opacity:.7;margin-top:.2rem}
+
+.trace-callout{
+  position:fixed;bottom:8px;right:8px;background:var(--ink);color:var(--paper);
+  padding:.4rem .7rem;font-family:"Courier Prime",monospace;font-size:.68rem;
+  text-transform:uppercase;letter-spacing:1px;z-index:100;
+  border:2px solid var(--ink);box-shadow:2px 2px 0 var(--accent);
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">VLXD · business-analyst · domain · UI Lab</span>
+  <span class="brand-sub">Interactive Note · Format A · Lab</span>
+</header>
+
+<div class="layout">
+  <!-- ============ PROSE PANEL ============ -->
+  <aside class="prose">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">vlxd-variant-ui-lab</span>
+<span class="k">type:</span> <span class="v">lab</span>   <span class="k">layer:</span> <span class="v">domain/inventory</span>   <span class="k">priority:</span> <span class="v">P1</span>
+<span class="k">maturity_target:</span> <span class="v">L2</span>   <span class="k">current_maturity:</span> <span class="v">L1</span>
+<span class="k">prereq:</span> <span class="v">[[vlxd-product-variant-model]]</span>
+<span class="k">review_interval_days:</span> <span class="v">30</span>   <span class="k">next_review:</span> <span class="v">2026-08-12</span></div>
+
+<h1>VLXD UI Lab — Vai trò &amp; Workflow</h1>
+<div class="subtitle">Format A · Dual-panel · 3 Step · Live React render</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa</div>
+  <div class="primer-row"><b>Role</b> — quyền UI: Staff bán hàng vs Manager quản lý. <a href="#step-1">↓ Step 1</a></div>
+  <div class="primer-row"><b>Cart</b> — danh sách variant + qty chờ thanh toán. <a href="#step-2">↓ Step 2</a></div>
+  <div class="primer-row"><b>Cascade filter</b> — filter n-tier: chọn tầng trên thu hẹp option tầng dưới. <a href="#step-3">↓ Step 3</a></div>
+  <div class="primer-row"><b>Variant</b> — <a href="../vlxd-variant-model/note.html#variant-la-gi" class="wikilink">↑ prereq Format B §1</a></div>
+  <div class="primer-closure">Assume sẵn: cách đọc JSX/React cơ bản, khái niệm <code>state</code> &amp; <code>props</code>.</div>
+</div>
+
+<p><strong>Job:</strong> Note Format A dựng mental model lần đầu — bạn tương tác với UI render thật bên phải, prose bên trái dẫn dắt. Đọc 1 lần, tuyến tính theo 3 step.</p>
+
+<h2 id="step-1">Step 1 — Role gating: Staff vs Manager <span class="tag w">[LAB]</span></h2>
+<p>Cùng một variant card, bấm <code>[Staff]</code> / <code>[Manager]</code> để xem UI phản hồi. Lưu ý: <strong>WAC</strong> và <strong>Biên LN</strong> chỉ hiện với Manager.</p>
+<ul>
+  <li>Staff chỉ cần <em>giá bán</em> + <em>tồn kho</em> để chốt đơn — show WAC gây nhiễu.</li>
+  <li>Manager cần WAC để tính lợi nhuận + cảnh báo biên LN sắp âm.</li>
+</ul>
+<div class="highlight-box"><strong>Insight:</strong> Cùng một data source (<code>variant.wac</code>), nhưng UI <em>policy</em> khác nhau theo role. Đây không phải feature toggle — đây là <em>authorization ở presentation layer</em>.</div>
+
+<h2 id="step-2">Step 2 — POS Workflow <span class="tag w">[LAB]</span></h2>
+<p>Gõ tên variant vào ô search → chọn từ kết quả → thêm vào cart. Tăng/giảm qty bằng nút <code>+</code> / <code>−</code>. Bấm <code>[Thanh toán]</code> để xem:</p>
+<ul>
+  <li>Tổng tiền khách phải trả (sum <code>selling_price × qty</code>).</li>
+  <li><strong>Snapshot banner vàng</strong> hiện lên ghi nhận <code>unit_cost</code> từ WAC tại thời điểm bấm — đây chính là "snapshot pattern" từ Format B §3.2.</li>
+</ul>
+<div class="highlight-box"><strong>Insight:</strong> Nếu sau khi thanh toán, WAC variant thay đổi (nhập lô mới), cart này vẫn ghi nhớ COGS cũ. Refresh trang = mất snapshot (đúng tinh thần single-session).</div>
+
+<h2 id="step-3">Step 3 — Search Cascade <span class="tag w">[LAB]</span></h2>
+<p>3 dropdown: <strong>Khổ</strong> → <strong>Độ dày</strong> → <strong>NSX</strong>. Chọn Khổ trước, các option Độ dày sẽ tự thu hẹp theo variants match. Chọn tiếp Độ dày, NSX tiếp tục thu hẹp.</p>
+<ul>
+  <li>Chọn ngược lại (đổi Khổ sau khi đã chọn Độ dày) → reset các tầng dưới.</li>
+  <li>Cuối cùng hiện danh sách variant match — highlight variant đang chọn xem.</li>
+</ul>
+<div class="highlight-box"><strong>Insight:</strong> Cascade không phải free-text search. Nó là <em>attribute filter</em> — chỉ những variant có thật mới xuất hiện. Nếu NSX "Thái Lan" không có variant 12mm 1m×2m, dropdown Độ dày sẽ không show "12mm" sau khi bạn chọn NSX = Thái Lan + Khổ = 1m×2m.</div>
+
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Đã tương tác xong cả 3 step? Trả lời trước khi reveal.</p>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>Staff nhìn thấy những field nào trên variant card?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Attrs (Khổ, Dày, NSX, Barcode) + Tồn hiện tại + Giá bán + Lịch sử lô. <strong>KHÔNG</strong> thấy WAC, Biên LN. (→ <a href="#step-1">Step 1</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 4</span><span>Tại sao cart hiển thị "snapshot banner" sau khi thanh toán?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Vì <code>unit_cost</code> = <code>variant.wac</code> tại thời điểm bấm thanh toán được lưu vào OrderItem. Sau này nhập lô mới làm WAC đổi, lịch sử lợi nhuận đơn này vẫn đúng. (→ <a href="#step-2">Step 2</a> + Format B <a href="../vlxd-variant-model/note.html#snapshot-warning" class="wikilink">§3.2</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 5</span><span>Bạn chọn Khổ = 1m×2m, Độ dày = 9mm, NSX = Thái Lan. Kết quả có bao nhiêu variant?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><strong>0 variant</strong>. Trong data fixture, NSX Thái Lan chỉ có variant 6mm và 12mm — không có 9mm ở khổ 1m×2m. Cascade filter expose được gap data ngay tại UI, không cần query. (→ <a href="#step-3">Step 3</a>)</div>
+</div>
+
+<h2 id="links">Links</h2>
+<ul class="links-list">
+  <li>Prereq: <a href="../vlxd-variant-model/note.html" class="wikilink">[[vlxd-product-variant-model]]</a></li>
+  <li>Concept: <span class="wikilink">[[vlxd-inventory-batch]]</span></li>
+  <li>Bridge: <span class="wikilink">[[vlxd-pos-flow]]</span></li>
+  <li>Source: Phân tích VLXD Manager Product-Variant Model (internal)</li>
+</ul>
+
+<div class="note-meta">Format A · Lab · dual-panel · 3 step · role gating + cart + cascade · live React render<br/><br/>
+<strong>Audit note:</strong> <code>audit.py</code> được thiết kế cho Format B (reference note). Các FAIL/WARN sau là intentional khác biệt Format A:<br/>
+&middot; <code>overflow:hidden</code> body — CẦN cho dual-panel<br/>
+&middot; 0 widget — interaction nằm ở UI panel bên phải (full step-through)<br/>
+&middot; External <code>&lt;script src=&gt;</code> — React + Babel CDN cần cho live render<br/>
+&middot; No Evidence section — đây là lab interactive, không phải concept note cần benchmark
+</div>
+
+  </aside>
+
+  <!-- ============ UI CANVAS ============ -->
+  <main class="canvas">
+    <div class="canvas-tabs" id="canvas-tabs">
+      <button class="canvas-tab active" data-step="1"><span class="step-num">01</span>Variant Mgmt</button>
+      <button class="canvas-tab" data-step="2"><span class="step-num">02</span>POS Workflow</button>
+      <button class="canvas-tab" data-step="3"><span class="step-num">03</span>Search Cascade</button>
+    </div>
+    <div class="canvas-frame" id="canvas-frame">
+      <!-- React mounts here -->
+    </div>
+  </main>
+</div>
+
+<div class="trace-callout">📟 live react render · click tabs để chuyển step</div>
+
+<script type="text/babel" data-presets="react">
+/* PHASE 2: React code mount vào #canvas-frame
+   - Step 1: <VariantMgmt role={role}/>
+   - Step 2: <POSFlow />
+   - Step 3: <SearchCascade />
+*/
+const { useState, useMemo } = React;
+
+/* ===== Data fixture ===== */
+const PRODUCTS = [{
+  id: 'p-van-ep', name: 'Ván ép',
+  variants: [
+    { id: 'v1', sku: 'VE-NH-1x2-6',     attrs: {kho:'1m×2m',   day:'6mm',  nsx:'Nam Hưng'}, sellingPrice: 145000, currentStock: 130, wac: 112308 },
+    { id: 'v2', sku: 'VE-NH-1x2-9',     attrs: {kho:'1m×2m',   day:'9mm',  nsx:'Nam Hưng'}, sellingPrice: 185000, currentStock: 60,  wac: 158000 },
+    { id: 'v3', sku: 'VE-NH-1.2x2.4-9', attrs: {kho:'1.2m×2.4m', day:'9mm', nsx:'Nam Hưng'}, sellingPrice: 240000, currentStock: 40,  wac: 210000 },
+    { id: 'v4', sku: 'VE-TL-1x2-6',     attrs: {kho:'1m×2m',   day:'6mm',  nsx:'Thái Lan'}, sellingPrice: 165000, currentStock: 80,  wac: 142000 },
+    { id: 'v5', sku: 'VE-TL-1x2-12',    attrs: {kho:'1m×2m',   day:'12mm', nsx:'Thái Lan'}, sellingPrice: 245000, currentStock: 25,  wac: 220000 },
+  ],
+  batches: [
+    { id: 'b1', variantId: 'v1', date: '2026-05-15', qtyReceived: 200, qtyRemaining: 50, unitCost: 100000 },
+    { id: 'b2', variantId: 'v1', date: '2026-05-20', qtyReceived: 80,  qtyRemaining: 80, unitCost: 120000 },
+    { id: 'b3', variantId: 'v2', date: '2026-05-15', qtyReceived: 60,  qtyRemaining: 60, unitCost: 158000 },
+    { id: 'b4', variantId: 'v4', date: '2026-05-10', qtyReceived: 80,  qtyRemaining: 80, unitCost: 142000 },
+  ],
+}];
+
+const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+const pct = n => Math.round(n * 100) + '%';
+
+/* ===== Step 1: VariantMgmt ===== */
+function VariantMgmt() {
+  const [role, setRole] = useState('staff');
+  const v = PRODUCTS[0].variants[0]; // v1 — flagship example
+  const batches = PRODUCTS[0].batches.filter(b => b.variantId === v.id);
+  const margin = (v.sellingPrice - v.wac) / v.sellingPrice;
+  const isManager = role === 'manager';
+
+  return (
+    <>
+      <div className="ui-pane-title">Ván ép › Ván ép Nam Hưng 1m×2m 6mm · SKU {v.sku}</div>
+
+      <div className="role-toggle">
+        <button className={'role-btn ' + (role === 'staff' ? 'active' : '')} onClick={() => setRole('staff')}>Staff</button>
+        <button className={'role-btn ' + (role === 'manager' ? 'active' : '')} onClick={() => setRole('manager')}>Manager</button>
+      </div>
+
+      <div className="variant-card">
+        <div className="variant-attrs">
+          <div className="variant-col-title">Thuộc tính</div>
+          <div className="attr-row"><span className="attr-key">Khổ</span><span className="attr-val">{v.attrs.kho}</span></div>
+          <div className="attr-row"><span className="attr-key">Độ dày</span><span className="attr-val">{v.attrs.day}</span></div>
+          <div className="attr-row"><span className="attr-key">NSX</span><span className="attr-val">{v.attrs.nsx}</span></div>
+          <div className="attr-row"><span className="attr-key">Barcode</span><span className="attr-val">8934{v.id}0001</span></div>
+        </div>
+        <div className="variant-stock">
+          <div className="variant-col-title">Tồn kho &amp; Giá</div>
+          <div className="stock-row"><span className="label">Tồn hiện tại</span><span className="val">{v.currentStock} tấm</span></div>
+          <div className="stock-row"><span className="label">Giá bán</span><span className="val accent">{fmt(v.sellingPrice)}</span></div>
+          {isManager && <>
+            <div className="stock-row manager-only"><span className="label">★ WAC</span><span className="val result">{fmt(v.wac)}</span></div>
+            <div className="stock-row manager-only"><span className="label">★ Biên LN</span><span className="val result">{pct(margin)}</span></div>
+          </>}
+          {!isManager && <div className="stock-row" style={{opacity:.5,fontStyle:'italic',fontSize:'.7rem'}}>
+            <span>(WAC &amp; biên LN ẩn với Staff)</span><span></span>
+          </div>}
+        </div>
+      </div>
+
+      <div className="lot-history">
+        <div className="variant-col-title">Lịch sử lô nhập</div>
+        <div className="lot-row header"><span>Ngày</span><span>Lô</span><span>Còn lại</span></div>
+        {batches.map(b => (
+          <div className="lot-row" key={b.id}>
+            <span>{b.date.slice(5)}</span>
+            <span>#{b.id.toUpperCase()} · {b.qtyReceived} @ {fmt(b.unitCost)}</span>
+            <span style={{textAlign:'right',fontWeight:700}}>{b.qtyRemaining} tấm</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ===== Step 2: POSFlow ===== */
+function POSFlow() {
+  const [query, setQuery] = useState('');
+  const [cart, setCart] = useState([]);
+  const [snapshot, setSnapshot] = useState(null);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return PRODUCTS[0].variants.filter(v =>
+      v.sku.toLowerCase().includes(q) ||
+      v.attrs.nsx.toLowerCase().includes(q) ||
+      PRODUCTS[0].name.toLowerCase().includes(q)
+    );
+  }, [query]);
+
+  function addToCart(v) {
+    const existing = cart.find(c => c.variantId === v.id);
+    if (existing) {
+      setCart(cart.map(c => c.variantId === v.id ? {...c, qty: c.qty + 1} : c));
+    } else {
+      setCart([...cart, {variantId: v.id, sku: v.sku, name: `${PRODUCTS[0].name} ${v.attrs.kho} ${v.attrs.day} ${v.attrs.nsx}`, qty: 1, sellingPrice: v.sellingPrice, wac: v.wac}]);
+    }
+  }
+  function changeQty(variantId, delta) {
+    setCart(cart.flatMap(c => {
+      if (c.variantId !== variantId) return [c];
+      const newQty = c.qty + delta;
+      if (newQty <= 0) return [];
+      return [{...c, qty: newQty}];
+    }));
+  }
+  function checkout() {
+    if (cart.length === 0) return;
+    const total = cart.reduce((s, c) => s + c.qty * c.sellingPrice, 0);
+    const totalCogs = cart.reduce((s, c) => s + c.qty * c.wac, 0);
+    setSnapshot({ at: new Date().toLocaleTimeString('vi-VN'), total, totalCogs, profit: total - totalCogs, items: [...cart] });
+  }
+  function reset() {
+    setCart([]); setSnapshot(null); setQuery('');
+  }
+
+  return (
+    <>
+      <div className="ui-pane-title">POS — Tìm &amp; bán hàng</div>
+
+      <div className="pos-search">
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Gõ: 'ván ép', 'NH', 'TL', hoặc SKU..."
+        />
+      </div>
+
+      <div className="search-results">
+        {results.length === 0 && query && <div style={{padding:'1rem',textAlign:'center',opacity:.6,fontFamily:'Courier Prime',fontSize:'.78rem'}}>Không có variant match "{query}"</div>}
+        {results.length === 0 && !query && <div style={{padding:'1rem',textAlign:'center',opacity:.5,fontFamily:'Courier Prime',fontSize:'.78rem'}}>Gõ tên/sku để tìm</div>}
+        {results.map(v => (
+          <div className="search-result-row" key={v.id} onClick={() => addToCart(v)}>
+            <div>
+              <div style={{fontWeight:700}}>{PRODUCTS[0].name} {v.attrs.kho} {v.attrs.day} {v.attrs.nsx}</div>
+              <div className="sku">{v.sku} · tồn {v.currentStock} tấm</div>
+            </div>
+            <div className="price">{fmt(v.sellingPrice)}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="cart">
+        <div className="cart-head">
+          <span>Cart ({cart.reduce((s,c)=>s+c.qty,0)} sp)</span>
+          <span>{cart.length === 0 ? 'trống' : `${cart.length} dòng`}</span>
+        </div>
+        {cart.length === 0 && <div style={{padding:'1rem',textAlign:'center',opacity:.5,fontFamily:'Courier Prime',fontSize:'.78rem'}}>Click kết quả search để thêm vào cart</div>}
+        {cart.map(c => (
+          <div className="cart-row" key={c.variantId}>
+            <div>
+              <div style={{fontWeight:700,fontSize:'.74rem'}}>{c.name}</div>
+              <div style={{fontSize:'.65rem',opacity:.55}}>{c.sku}</div>
+            </div>
+            <div className="qty-ctrl">
+              <button onClick={() => changeQty(c.variantId, -1)}>−</button>
+              <span>{c.qty}</span>
+              <button onClick={() => changeQty(c.variantId, +1)}>+</button>
+            </div>
+            <div className="price">{fmt(c.qty * c.sellingPrice)}</div>
+          </div>
+        ))}
+        {cart.length > 0 && (
+          <>
+            <div className="cart-total">
+              <span>Tổng khách trả</span>
+              <span className="val">{fmt(cart.reduce((s,c)=>s+c.qty*c.sellingPrice,0))}</span>
+            </div>
+            <div className="cart-actions">
+              <button onClick={reset}>Reset</button>
+              <button className="primary" onClick={checkout}>Thanh toán → snapshot</button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {snapshot && (
+        <>
+          <div className="snapshot-banner">
+            ⏱ Snapshot lúc <strong>{snapshot.at}</strong> · Tổng KH trả = <strong>{fmt(snapshot.total)}</strong> · COGS (WAC snapshot) = <strong>{fmt(snapshot.totalCogs)}</strong> · LN gộp = <strong style={{color:'var(--accent)'}}>{fmt(snapshot.profit)}</strong>
+          </div>
+          <div style={{marginTop:'.7rem',padding:'.6rem .8rem',background:'var(--paper-dark)',border:'2px solid var(--ink)',fontFamily:'Courier Prime',fontSize:'.72rem',lineHeight:1.6}}>
+            <strong>Các dòng đã snapshot vào OrderItem (refresh = mất):</strong>
+            {snapshot.items.map((c,i) => (
+              <div key={i} style={{marginTop:'.3rem'}}>
+                · {c.sku}: qty={c.qty}, unit_cost=<span style={{color:'var(--result)',fontWeight:700}}>{fmt(c.wac)}</span> (WAC tại {snapshot.at})
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ===== Step 3: SearchCascade ===== */
+function SearchCascade() {
+  const [kho, setKho] = useState('');
+  const [day, setDay] = useState('');
+  const [nsx, setNsx] = useState('');
+  const [highlight, setHighlight] = useState(null);
+
+  const allVariants = PRODUCTS[0].variants;
+
+  // After kho changes, reset lower tiers
+  function onKho(v) { setKho(v); setDay(''); setNsx(''); setHighlight(null); }
+  function onDay(v) { setDay(v); setNsx(''); setHighlight(null); }
+  function onNsx(v) { setNsx(v); setHighlight(null); }
+
+  const khoOptions = [...new Set(allVariants.map(v => v.attrs.kho))];
+  const dayOptions = kho ? [...new Set(allVariants.filter(v => v.attrs.kho === kho).map(v => v.attrs.day))] : [];
+  const nsxOptions = (kho && day) ? [...new Set(allVariants.filter(v => v.attrs.kho === kho && v.attrs.day === day).map(v => v.attrs.nsx))] : [];
+
+  const matched = (kho && day && nsx) ? allVariants.filter(v => v.attrs.kho === kho && v.attrs.day === day && v.attrs.nsx === nsx) : [];
+
+  return (
+    <>
+      <div className="ui-pane-title">Tìm variant bằng cascade filter</div>
+
+      <div className="cascade">
+        <div className="cascade-col">
+          <div className="cascade-label">1 · Khổ</div>
+          <select className="cascade-select" value={kho} onChange={e => onKho(e.target.value)}>
+            <option value="">— chọn —</option>
+            {khoOptions.map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+        <div className="cascade-col">
+          <div className="cascade-label">2 · Độ dày {dayOptions.length < khoOptions.length && kho && <span className="badge">thu hẹp</span>}</div>
+          <select className="cascade-select" value={day} onChange={e => onDay(e.target.value)} disabled={!kho}>
+            <option value="">{kho ? '— chọn —' : 'chọn Khổ trước'}</option>
+            {dayOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div className="cascade-col">
+          <div className="cascade-label">3 · NSX {nsxOptions.length < dayOptions.length && day && <span className="badge">thu hẹp</span>}</div>
+          <select className="cascade-select" value={nsx} onChange={e => onNsx(e.target.value)} disabled={!day}>
+            <option value="">{day ? '— chọn —' : 'chọn Độ dày trước'}</option>
+            {nsxOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="cascade-result">
+        {!kho && <div style={{fontFamily:'Courier Prime',fontSize:'.78rem',opacity:.6}}>↓ Chọn Khổ để bắt đầu cascade</div>}
+        {kho && !day && <div className="count">{dayOptions.length} độ dày khả dĩ cho khổ {kho}</div>}
+        {kho && day && !nsx && <div className="count">{nsxOptions.length} NSX khả dĩ cho {kho} · {day}</div>}
+        {kho && day && nsx && (
+          <>
+            <div className="count">{matched.length} variant match: {kho} · {day} · {nsx}</div>
+            <div className="cascade-list">
+              {matched.length === 0 && <div className="cascade-list-row empty">⚠ Không có variant — gap data tại đây!</div>}
+              {matched.map(v => (
+                <div key={v.id} className="cascade-list-row" onClick={() => setHighlight(v.id)} style={{cursor:'pointer', background: highlight === v.id ? '#fff8e1' : 'transparent'}}>
+                  <div>
+                    <div style={{fontWeight:700}}>{v.sku}</div>
+                    <div className="meta">tồn {v.currentStock} tấm · bán {fmt(v.sellingPrice)}</div>
+                  </div>
+                  <div style={{textAlign:'right',fontSize:'.72rem',opacity:.6}}>{highlight === v.id ? '◀ đang xem' : 'click'}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ===== App root ===== */
+function App() {
+  const [step, setStep] = useState(1);
+  const Step = step === 1 ? <VariantMgmt/> : step === 2 ? <POSFlow/> : <SearchCascade/>;
+
+  // Sync tab clicks
+  React.useEffect(() => {
+    const tabs = document.querySelectorAll('.canvas-tab');
+    function handler() {
+      const s = parseInt(this.dataset.step, 10);
+      setStep(s);
+      tabs.forEach(t => t.classList.toggle('active', t === this));
+    }
+    tabs.forEach(t => t.addEventListener('click', handler));
+    return () => tabs.forEach(t => t.removeEventListener('click', handler));
+  }, []);
+
+  return Step;
+}
+
+ReactDOM.createRoot(document.getElementById('canvas-frame')).render(<App/>);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "workerKind": "zcode",
+  "project": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault",
+  "runId": "dx-research-20260913-01",
+  "runDir": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01",
+  "promptFile": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\assignment.md",
+  "threadId": "01a067c1-aba2-7b73-baa3-03786dfe6695",
+  "notify": true,
+  "callbackModel": "gpt-6-astra",
+  "reviewMode": "script-astra",
+  "reviewModel": "gpt-6-astra",
+  "reviewEffort": "xhigh",
+  "reviewMcpServers": [],
+  "verificationCommands": [
+    {
+      "name": "typecheck",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "cwd": ".",
+      "timeoutMs": 180000
+    },
+    {
+      "name": "lint",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "cwd": ".",
+      "timeoutMs": 120000
+    },
+    {
+      "name": "existing DX regression tests",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "test",
+        "tests/keybinding-resolver.test.ts",
+        "tests/editor-typing.test.ts",
+        "tests/interactive-code-intelligence.test.ts",
+        "tests/file-finder.test.ts"
+      ],
+      "cwd": ".",
+      "timeoutMs": 120000
+    }
+  ],
+  "reviewTimeoutMs": 1800000,
+  "maxAutoCorrections": 2,
+  "objective": "Research and reproduce developer-facing navigation/search, React-authoring and typing/motion gaps against Zed and VS Code without changing product behavior.",
+  "stageAcceptance": [
+    "Two research/verification reports distinguish measured current behavior, source-backed facts, inference and proposals, cite official Zed repository/docs and VS Code/Microsoft sources, and use only redacted relevant Zed settings.",
+    "Evidence matrix covers Ctrl+P, Ctrl+F, Ctrl+Shift+F across relevant files/focus states and traces whole-vault search coverage including React/TSX files; actual probes or concrete stated tooling limitations are supplied.",
+    "React-authoring loop and typing responsiveness have concrete findings and prioritized acceptance gates; caret/scroll motion is distinct from latency, native IME is not claimed from committed-text injection, and historic benchmarks are not reused as current proof.",
+    "Ranked implementation stages retain all user requirements and identify GOAL-27 constraint decisions. No existing product/config/test/goal files, actual user vaults, editor settings, dependency sets or security boundaries were changed.",
+    "New diagnostic helpers are scoped to isolated profiles/fixtures; evidence records commands and actual outcomes. Typecheck, lint and relevant tests pass, or a independently verified pre-existing baseline failure is clearly distinguished from this docs-only stage."
+  ],
+  "preservedContracts": "Preserve all pre-existing tracked/untracked edits; local-first file truth, dirty buffers, undo/IME integrity, explicit execution consent, sandbox/IPC/path validation, GOAL-27 constraints, and English responses. Authorized writes are new audit reports, a scoped verification helper/evidence, and dispatch artifacts only.",
+  "remainingScope": "After independent research review, main must synthesize developer-DX recommendations and decide the next implementation boundary with any required user scope choice. Navigation/search, input/motion and React-authoring upgrades plus integrated acceptance remain unfinished; this research stage is not full product completion.",
+  "reviewPaths": [
+    "AGENTS.md",
+    "DESIGN.md",
+    "src",
+    "tests",
+    "scripts",
+    "goals",
+    "docs/research",
+    "docs/verification",
+    "docs/security.md",
+    "docs/architecture.md",
+    "package.json",
+    "bun.lock",
+    "biome.json",
+    "electron.vite.config.ts"
+  ],
+  "testEvidence": [
+    "docs/verification/developer-dx-audit-2026-09-13.md"
+  ],
+  "expectedModel": "GLM-5.3-Flash",
+  "expectedProvider": "builtin:zai-coding-plan",
+  "zcodeEffort": "high",
+  "adapter": "C:\\Users\\terasumi\\AppData\\Local\\Programs\\ZCodeCLI\\zc.mjs",
+  "codexExe": "C:\\Users\\terasumi\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe",
+  "cliConfig": "C:\\Users\\terasumi\\.zcode\\cli\\config.json",
+  "dbPath": "C:\\Users\\terasumi\\.zcode\\cli\\db\\db.sqlite",
+  "resumeSessionId": null,
+  "mode": "yolo",
+  "pollMs": 5000,
+  "quietMs": 180000,
+  "stallMs": 600000,
+  "maxRetries": 3,
+  "keepOpenMs": 1800000,
+  "demo": false
+}

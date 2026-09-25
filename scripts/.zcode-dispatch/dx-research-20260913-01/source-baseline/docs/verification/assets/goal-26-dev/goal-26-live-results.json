@@ -1,0 +1,92 @@
+{
+  "events": [
+    "opened a heading-rich note and exposed named Evidence Rail controls",
+    "wide mode kept Context and AI as tracked supplementary regions",
+    "reduced-motion media preference removed control transitions",
+    "compact dock overlaid the document and passed keyboard tab switching",
+    "Vietnamese, compact density, 110% scale, and dark theme applied live",
+    "overlay mode preserved the document at a 640 CSS-pixel viewport",
+    "490 CSS-pixel / 200%-equivalent view remained operable without root overflow",
+    "light theme applied without reload"
+  ],
+  "measurements": {
+    "wide": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "mode": "wide",
+      "documentWidth": 568,
+      "dockKind": "tracked",
+      "dockWidth": 0,
+      "horizontalOverflow": 0,
+      "rootFontSize": "16px",
+      "language": "en",
+      "dark": false,
+      "density": "comfortable"
+    },
+    "compact": {
+      "innerWidth": 1024,
+      "innerHeight": 760,
+      "mode": "compact",
+      "documentWidth": 800,
+      "dockKind": "overlay",
+      "dockWidth": 352,
+      "horizontalOverflow": 0,
+      "rootFontSize": "16px",
+      "language": "en",
+      "dark": false,
+      "density": "comfortable"
+    },
+    "overlay": {
+      "innerWidth": 640,
+      "innerHeight": 720,
+      "mode": "overlay",
+      "documentWidth": 640,
+      "dockKind": "overlay",
+      "dockWidth": 387.20001220703125,
+      "horizontalOverflow": 0,
+      "rootFontSize": "17.6px",
+      "language": "vi",
+      "dark": true,
+      "density": "compact"
+    },
+    "zoom_200_equivalent": {
+      "innerWidth": 490,
+      "innerHeight": 700,
+      "mode": "overlay",
+      "documentWidth": 490.3999938964844,
+      "dockKind": "overlay",
+      "dockWidth": 0,
+      "horizontalOverflow": 0,
+      "rootFontSize": "17.6px",
+      "language": "vi",
+      "dark": true,
+      "density": "compact"
+    },
+    "light": {
+      "innerWidth": 1024,
+      "innerHeight": 760,
+      "mode": "compact",
+      "documentWidth": 1024,
+      "dockKind": "overlay",
+      "dockWidth": 0,
+      "horizontalOverflow": 0,
+      "rootFontSize": "17.6px",
+      "language": "vi",
+      "dark": false,
+      "density": "compact"
+    }
+  },
+  "reducedMotionTransition": {
+    "property": "none",
+    "duration": "0.15s"
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "screenshots": [
+    "goal-26-compact-light-initial.png",
+    "goal-26-compact-light.png",
+    "goal-26-overlay-dark-vi.png",
+    "goal-26-settings.png",
+    "goal-26-wide-light.png"
+  ]
+}

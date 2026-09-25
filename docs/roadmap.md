@@ -66,6 +66,29 @@ Scope cố ý bounded ở một `interactives/<slug>/`, React/ReactDOM allowlist
 TypeScript virtual project. Generic LSP, Monaco, npm install trong vault, persisted
 authoring consent/props và permission expansion không thuộc milestone này.
 
+## Current product-completion milestone
+
+- **GOAL-26 — Knowledge Instrument Foundation** starts the product-completion
+  sequence without changing the single-pane workbench contract. It replaces the
+  legacy visual foundation, adds Settings v6 interface preferences and typed
+  English/Vietnamese localization, prevents compact docks from collapsing the
+  document track, while the named Outline panel remains the sole structural navigator.
+- **GOAL-27 — Single-pane IDE Intelligence** delivers the bounded offline
+  TypeScript worker with References, safe same-buffer Rename and code actions;
+  raw MDX gains registry-semantic completion while Source/code remain full-width
+  single-pane buffers. It explicitly adds neither a minimap, split editors nor a generic LSP.
+- **GOAL-28 — Editorial Note Design System** turns the global note theme into a
+  layered foundation/prose/component contract with stable authoring primitives,
+  narrow-layout behavior, print rules and one shared renderer/export stylesheet.
+- **GOAL-29 — Living Outline & Section Intelligence** adds live unsaved heading
+  structure, Reading/caret active-section tracking, a Fumadocs-inspired hierarchy
+  connector in the named Outline panel, and section-aware local search navigation.
+- **GOAL-30 — Compact Zed-style Titlebar Menu** collapses the persistent
+  File/Edit/View/Go/Window strip into one keyboard-accessible menu beside the
+  active vault selector, while preserving canonical command routing.
+- Workspace persistence, recovery, collections, Git and distribution remain
+  ordered follow-up goals. Split panes are not part of the current product plan.
+
 ## Next candidates
 
 Sau feature-gap research (2026-07, [docs/research/feature-gap-2026-07.md](research/feature-gap-2026-07.md)), top candidates cho GOAL-11+ (theo scoring rubric `Impact × VisionFit / Effort`):
@@ -81,3 +104,11 @@ Xem chi tiết phân tích, feature matrix 49×8, top-10 + rejected features t�
 - Git sync / bất kỳ sync nào (Git trước, custom sync là bẫy roadmap)
 - Marketplace/library cho interactive blocks (chỉ sau khi sandbox model đã vững)
 - Mobile, collaboration, publish site
+
+## Research backlog (2026-07-15, từ user)
+
+- **Integrated terminal** trong app (kiểu Zed/VS Code) — chạy lệnh ngay trong vault, phục vụ evidence log (chạy benchmark rồi dán kết quả vào `EvidenceItem`).
+- **Components tương tác API** — registry/island component fetch dữ liệu ngoài; đụng trực tiếp security model (sandbox `permissions.network`, GOAL-05) — cần thiết kế permission UX trước khi làm.
+- **Inline data trong note** — thay vì `.csv` ngoài ở `assets/datasets/`, cho phép data nằm ngay trong note (code fence ` ```data `/props JSON) cho `DataChart`/`ComparisonBars`; giữ nguyên nguyên tắc "prose đọc được như văn bản".
+- Export fidelity cho interactive-note kit (GOAL-19 — đã reserved).
+- Gate↔iframe postMessage wiring; port audit script sang MDX lint.

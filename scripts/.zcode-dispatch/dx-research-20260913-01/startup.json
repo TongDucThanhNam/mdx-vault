@@ -1,0 +1,9 @@
+{
+  "url": "http://127.0.0.1:51059/d4b4f310a84f1e0e73d832717c4f97c7845bd5e1619cb97d/",
+  "runDir": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01",
+  "runnerPid": 8232,
+  "workerPid": 25296,
+  "workerKind": "zcode",
+  "reviewMode": "script-astra",
+  "modelVerification": "explicit per-process selection; runtime verification pending"
+}

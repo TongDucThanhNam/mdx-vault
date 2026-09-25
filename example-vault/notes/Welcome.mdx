@@ -3,25 +3,32 @@ title: Welcome to mdx-vault
 tags: [intro]
 ---
 
-# Welcome
+
+Welcome
+
 
 This vault demonstrates the export pipeline.
 
-## Prose
 
-A paragraph with **bold**, _italic_, and `inline code`.
+Prose
 
-- Bullet 1
-- Bullet 2
+A paragraph with bold, italic, and inline code.
+• Bullet 1
+• Bullet 2
+
 
 1. Numbered
 2. List
 
-> A blockquote referencing [[Bayes Theorem]].
 
-## Trusted islands
+> A blockquote referencing Bayes Theorem.
+
+
+Trusted islands
+
 
 A multiple-choice question that the renderer hydrates in interactive mode:
+
 
 <QuizBlock
   question="Which invariant makes binary search valid?"
@@ -29,19 +36,3 @@ A multiple-choice question that the renderer hydrates in interactive mode:
   answerIndex={0}
   explanation="Binary search can discard half of the search space only when ordering is known."
 />
-
-A small slider:
-
-<EquationSlider
-  formula="y = m * x + b"
-  compute="m * x + b"
-  variables={{
-    x: { min: -10, max: 10, default: 2, step: 0.5 },
-    m: { min: -5, max: 5, default: 1.5, step: 0.1 },
-    b: { min: -10, max: 10, default: 1, step: 0.5 }
-  }}
-/>
-
-## Inline image
-
-![Sample](../assets/sample.png)

@@ -1,0 +1,23 @@
+{
+  "evidence": {
+    "sourceCaret": "Heading level 3: Later section",
+    "unsavedHeadingCount": 37,
+    "longOutlineScrollTop": 96.80000305175781,
+    "readingTop": "Heading level 1: Preview target",
+    "readingBottom": "Heading level 2: Runtime Section 30",
+    "connectorPath": "M 6 16 L 6 34 L 16 34 L 16 52 L 16 70 L 26 70 L 26 88 L 26 106 L 16 106 L 16 124 L 16 142 L 26 142 L 26 160 L 26 178 L 16 178 L 16 196 L 16 214 L 26 214 L 26 232 L 26 250 L 16 250 L 16 268 L 16 286 L 16 286 L 16 304 L 16 322 L 16 322 L 16 340 L 16 358 L 16 358 L 16 376 L 16 394 L 16 394 L 16 412 L 16 430 L 16 430 L 16 448 L 16 466 L 16 466 L 16 484 L 16 502 L 16 502 L 16 520 L 16 538 L 16 538 L 16 556 L 16 574 L 16 574 L 16 592 L 16 610 L 16 610 L 16 628 L 16 646 L 16 646 L 16 664 L 16 682 L 16 682 L 16 700 L 16 718 L 16 718 L 16 736 L 16 754 L 16 754 L 16 772 L 16 790 L 16 790 L 16 808 L 16 826 L 16 826 L 16 844 L 16 862 L 16 862 L 16 880 L 16 898 L 16 898 L 16 916 L 16 934 L 16 934 L 16 952 L 16 970 L 16 970 L 16 988 L 16 1006 L 16 1006 L 16 1024 L 16 1042 L 16 1042 L 16 1060 L 16 1078 L 16 1078 L 16 1096 L 16 1114 L 16 1114 L 16 1132 L 16 1150 L 16 1150 L 16 1168 L 16 1186 L 16 1186 L 16 1204 L 16 1222 L 16 1222 L 16 1240 L 16 1258 L 16 1258 L 16 1276 L 16 1294 L 16 1294 L 16 1312",
+    "sectionSearchReveal": {
+      "scrollTop": 1030.4000244140625,
+      "offset": -0.375
+    },
+    "compactDockWidth": 352
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [],
+  "screenshots": [
+    "goal-29-compact-outline.png",
+    "goal-29-reading-scrollspy.png",
+    "goal-29-source-live-outline.png"
+  ]
+}

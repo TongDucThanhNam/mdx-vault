@@ -1,0 +1,56 @@
+{
+  "round": 1,
+  "sourceFingerprint": "2ac32895af2a51f5cefac9ac2d3f416868a8e47a69a0d8c95614a31ca334db74",
+  "sourceUnchanged": true,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "passed": true,
+      "timedOut": false,
+      "error": null,
+      "stdoutPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-1-stdout.log",
+      "stderrPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-1-stderr.log"
+    },
+    {
+      "name": "lint",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "passed": true,
+      "timedOut": false,
+      "error": null,
+      "stdoutPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-2-stdout.log",
+      "stderrPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-2-stderr.log"
+    },
+    {
+      "name": "existing DX regression tests",
+      "command": "C:/Users/terasumi/.bun/bin/bun.exe",
+      "args": [
+        "test",
+        "tests/keybinding-resolver.test.ts",
+        "tests/editor-typing.test.ts",
+        "tests/interactive-code-intelligence.test.ts",
+        "tests/file-finder.test.ts"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "passed": true,
+      "timedOut": false,
+      "error": null,
+      "stdoutPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-3-stdout.log",
+      "stderrPath": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\check-3-stderr.log"
+    }
+  ],
+  "path": "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-1\\verification.json"
+}

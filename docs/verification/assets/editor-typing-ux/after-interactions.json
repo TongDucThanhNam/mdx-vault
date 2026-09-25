@@ -1,0 +1,68 @@
+{
+  "phase": "after",
+  "vault": "C:\\Users\\terasumi\\AppData\\Local\\Temp\\mdx-vault-typing-fixture-9coohxe3",
+  "checks": {
+    "tabAtCaret": {
+      "text": "alpha    beta",
+      "ranges": [
+        {
+          "anchor": 8,
+          "head": 8
+        }
+      ],
+      "scrollTop": 0
+    },
+    "enterIndent": {
+      "text": "function greet() {\r\n    \r\n}",
+      "ranges": [
+        {
+          "anchor": 23,
+          "head": 23
+        }
+      ],
+      "scrollTop": 0
+    },
+    "tabCompletion": {
+      "text": "<QuizBlock />",
+      "ranges": [
+        {
+          "anchor": 11,
+          "head": 11
+        }
+      ],
+      "scrollTop": 0
+    },
+    "vietnameseSave": {
+      "text": "Ti\u1ebfng Vi\u1ec7t: g\u00f5 ch\u1eef c\u00f3 d\u1ea5u, gi\u1eef \u0111\u00fang v\u1ecb tr\u00ed.\n\u00dd t\u01b0\u1edfng r\u00f5 r\u00e0ng \u2014 ki\u1ec3m th\u1eed th\u00e0nh c\u00f4ng.",
+      "ranges": [
+        {
+          "anchor": 82,
+          "head": 82
+        }
+      ],
+      "scrollTop": 0
+    },
+    "tabSwitchCaret": [
+      {
+        "anchor": 45,
+        "head": 45
+      }
+    ],
+    "blockHighlightMappingAndDelimiterEdit": true
+  },
+  "geometry": {
+    "font": "\"JetBrains Mono\", \"IBM Plex Mono\", \"Cascadia Mono\", ui-monospace, monospace",
+    "size": "15px",
+    "lineHeight": "24px",
+    "horizontalOverflow": 0,
+    "gutterSize": "15px",
+    "linePadding": "12px"
+  },
+  "liveGeometry": {
+    "font": "\"JetBrains Mono\", \"IBM Plex Mono\", \"Cascadia Mono\", ui-monospace, monospace",
+    "size": "15px",
+    "lineHeight": "24px",
+    "horizontalOverflow": 0
+  },
+  "errors": []
+}

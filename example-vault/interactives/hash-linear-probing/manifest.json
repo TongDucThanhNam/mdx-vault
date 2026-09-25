@@ -1,0 +1,12 @@
+{
+  "name": "Hash Linear Probing Explorer",
+  "version": "1.0.0",
+  "runtime": "html",
+  "permissions": {
+    "network": false,
+    "filesystem": false,
+    "dataPaths": []
+  },
+  "propsSchema": {},
+  "dependencies": {}
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{{TITLE}} — Interactive Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+/* PHASE 1: dán NGUYÊN KHỐI CSS từ references/design-system.md vào đây */
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">{{VAULT_PATH — ví dụ: SWE Expert · 20_Mental_Model_Groups}}</span>
+  <span class="brand-sub">Interactive Note · Format B</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">{{concept-id}}</span>
+<span class="k">type:</span> <span class="v">concept</span>   <span class="k">layer:</span> <span class="v">{{layer}}</span>   <span class="k">priority:</span> <span class="v">{{P0|P1|P2}}</span>
+<span class="k">maturity_target:</span> <span class="v">{{L3}}</span>   <span class="k">current_maturity:</span> <span class="v">{{L1}}</span>
+<span class="k">labs:</span> <span class="v">{{[[lab-...]] hoặc —}}</span>
+<span class="k">review_interval_days:</span> <span class="v">14</span>   <span class="k">next_review:</span> <span class="v">{{YYYY-MM-DD}}</span></div>
+
+<h1>{{TITLE}}</h1>
+<div class="subtitle">{{Day N · Layer · Concept Note}}</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa — lần đầu: đọc 30 giây · đọc lại: bỏ qua</div>
+  <!-- PHASE 1: mỗi thuật ngữ Loại 1 đúng MỘT dòng + anchor ↓ tới định nghĩa đầy đủ -->
+  <div class="primer-row"><b>{{term}}</b> — {{định nghĩa 1 dòng}}. <a href="#{{anchor}}">↓ {{Section}}</a></div>
+  <!-- Dòng đáy closure — BẮT BUỘC: -->
+  <div class="primer-row" style="font-size:.78rem;opacity:.7;font-family:'Courier Prime',monospace">Kiến thức nền assume sẵn (không giải thích lại): {{X, Y, Z}} → prerequisites trong frontmatter</div>
+</div>
+
+<h2 id="one-liner">One-liner <span class="tag">[T]</span></h2>
+<p><strong>{{1–2 câu. KHÔNG visual.}}</strong></p>
+
+<h2 id="mental-model">Mental Model <span class="tag">[T]</span></h2>
+<div class="mm-grid">
+  <div class="mm-key">Extends</div><div>{{mở rộng mental model nào}}</div>
+  <div class="mm-key conflict">Conflicts</div>
+  <div>{{invalidate mental model nào}}
+    <!-- TIER2 (tùy chọn): visual chỉ vẽ NỬA MISCONCEPTION — cấm lộ correction (spoiler rule) -->
+  </div>
+  <div class="mm-key">Requires</div><div>{{cần hiểu gì trước}}</div>
+  <div class="mm-key">Misapplication</div><div>{{hay dùng sai ở đâu, fail thế nào}}</div>
+</div>
+
+<h2 id="mechanism">Mechanism <span class="tag">[T]</span></h2>
+<div class="trace">{{Input/Trigger
+  → Step 1 (component)      [lý do step tồn tại]
+  → Step 2
+  → Output — dùng <span class="hit">HIT</span>/<span class="miss">MISS</span> khi phù hợp}}</div>
+<!-- TIER2: visual độ lớn (lat-ladder) nếu mechanism có chênh lệch định lượng -->
+
+<!-- PHASE 1: nếu widget dùng khái niệm riêng của note → section định nghĩa TẠI ĐÂY,
+     đi từ gốc, có static diagram (mem-grid/mem-strip), prefix [Version-dep] khi cần -->
+
+<!-- WIDGET-1: PHASE 3 — frame đầy đủ theo references/note-structure.md:
+     widget-head + widget-misconception + gate + viz + controls(disabled) + verdict
+     SAU widget gated: recap tĩnh .cmp-block "Recap tĩnh — cho lần đọc thứ N" -->
+
+<h2 id="tradeoffs">Tradeoffs <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Quyết định</th><th>Được gì</th><th>Trả giá gì</th></tr>
+  <tr><td>{{...}}</td><td>{{...}}</td><td>{{...}}</td></tr>
+</table>
+<!-- TIER2: visual nếu tradeoff có bố cục không gian (kiểu AoS vs SoA) -->
+
+<h2 id="failure-modes">Failure Modes <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Failure</th><th>Cơ chế</th><th>Symptom production</th></tr>
+  <tr><td>{{...}}</td><td>{{...}}</td><td>{{...}}</td></tr>
+</table>
+<!-- TIER2: visual cho failure có bố cục không gian -->
+<div class="highlight-box"><strong>Chú ý:</strong> {{failure nào KHÔNG có widget và VÌ SAO — thường: cần benchmark thật, xem Evidence Log; hoặc thiếu prerequisite}}</div>
+
+<h2 id="evidence">Evidence Log — máy của tôi <span class="tag e">[E]</span></h2>
+<p>Con số thật là thứ neo trí nhớ. <strong>Note chưa đạt L3 khi bảng này còn trống.</strong></p>
+<table>
+  <tr><th>Benchmark</th><th>Lệnh</th><th>Kết quả (điền sau khi chạy)</th></tr>
+  <tr><td>{{tên}}</td><td><span class="cmd">{{lệnh chạy được, cụ thể}}</span></td><td class="evidence-empty">[ CHƯA CÓ ]</td></tr>
+</table>
+
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Trả lời từ trí nhớ <em>trước</em> khi bấm reveal. Sai → quay lại đúng section được link.</p>
+<!-- PHASE 4: ĐÚNG 3 câu — mức 3 (mechanism) / 4 (tradeoff) / 5 (production case).
+     Đáp án link ngược về section/widget. KHÔNG visual. -->
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>{{câu hỏi mechanism}}</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">{{đáp án}} (→ <a href="#{{anchor}}" class="wikilink">{{section}}</a>)</div>
+</div>
+
+<h2 id="links">Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>Prereq: <span class="wikilink">[[{{...}}]]</span></li>
+  <li>Downstream: <span class="wikilink">[[{{...}}]]</span></li>
+  <li>Bridge: <span class="wikilink">[[{{...}}]]</span></li>
+  <li>Lab: <span class="wikilink">[[{{...}}]]</span></li>
+  <li>Source: {{primary source}}</li>
+</ul>
+
+<div class="note-meta">Format B · 3 tầng medium: text / static visual / widget · {{n}}/3 widget budget · prerequisite closure · spoiler ordering · body scrolls</div>
+
+</main>
+<script>
+/* PHASE 3: JS theo references/js-patterns.md — mỗi widget một chu kỳ edit riêng */
+</script>
+</body>
+</html>

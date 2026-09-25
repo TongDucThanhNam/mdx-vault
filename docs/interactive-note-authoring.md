@@ -2,7 +2,8 @@
 
 Interactive Note Format B is an explorable reference note: prose remains the backbone, every section stays visible in a freely scrolling document, and at most three interactions challenge a specific misconception. In mdx-vault, the note is ordinary MDX plus trusted registry components. Authors no longer copy a page-sized CSS block, write gate/reveal JavaScript, or assemble an HTML shell for every note.
 
-Start from `example-vault/templates/interactive-note.mdx`. The required opt-in is:
+Start from `example-vault/templates/interactive-note.mdx`. Its recommended
+metadata remains:
 
 ```yaml
 ---
@@ -13,13 +14,24 @@ prerequisites: []
 ---
 ```
 
-`theme: interactive-note` applies the Format B prose typography and paper palette. Without that exact value, the existing preview theme is unchanged. Kit components keep their component styling in an otherwise ordinary note.
+Every note now uses the Editorial / Print paper palette and Playfair Display,
+Lora, and Courier Prime roles in Reading, Live prose, hover preview and export.
+`theme: interactive-note` remains valid legacy metadata for Format B templates;
+it is no longer required to activate the visual theme. Source mode and app
+chrome deliberately retain their IDE/workbench typography.
+
+The visual contract is documented in `docs/note-design-system.md`. Use native
+Markdown first, the public `note-*` primitives for editorial structure, and the
+trusted component kit only when a block carries behavior or a specialized
+knowledge model.
 
 ## What the kit owns
 
 The app provides:
 
 - the source editorial palette and Playfair Display, Lora, and Courier Prime typography;
+- a stable foundation of color, type, spacing, rules, shadows, focus, responsive, and print tokens;
+- public kicker, deck, label, panel, result, explanation, step, and folio primitives;
 - sharp borders, hard shadows, primer, trace, formula, comparison, recap, question, and evidence styling;
 - commit-once prediction state and immediate verdicts;
 - local reveal state for self-test answers;
@@ -129,7 +141,14 @@ Audit no more than three correction rounds:
 
 Export preserves authored props when they use the safe literal subset: strings, booleans, finite numbers, `null`, arrays, and plain objects composed from those values. Keep executable JavaScript out of component props. Identifiers, calls, member access, computed keys, spreads, functions, imports/exports, and prototype-polluting keys are rejected with a source-located diagnostic instead of being evaluated or replaced with sample defaults.
 
-Both modes preserve Markdown, safe HTML, nested trusted-component structure, source order, local images, math, code, and the `interactive-note` editorial theme in one self-contained HTML file. Interactive export hydrates each composed trusted subtree as one React root and runs only already-approved vault islands inside `sandbox="allow-scripts"`; approved datasets are embedded and capability-scoped to their owning island. It does not grant network access or broader permissions.
+Both modes preserve Markdown, safe HTML, nested trusted-component structure,
+source order, local images, math, code, and the global Editorial note theme in
+one self-contained HTML file. Playfair Display, Lora and Courier Prime are
+embedded as local font data, so export does not depend on a font CDN.
+Interactive export hydrates each composed trusted subtree as one React root and
+runs only already-approved vault islands inside `sandbox="allow-scripts"`;
+approved datasets are embedded and capability-scoped to their owning island. It
+does not grant network access or broader permissions.
 
 Static export deliberately replaces stateful behavior with honest no-JavaScript representations. Prediction and self-test content use semantic disclosures, and a sandbox island uses its manifest fallback resolved from the island directory. When a valid fallback is unavailable, the artifact contains a named unavailable card and the Export dialog reports the limitation. Blocking expressions, remote runtime dependencies, denied or invalid sandboxes, and the 25 MiB final-file limit prevent export; non-blocking fallbacks and the 5 MiB warning remain visible before and after writing.
 
@@ -151,7 +170,24 @@ Static export deliberately replaces stateful behavior with honest no-JavaScript 
 | `.q-item` plus reveal JavaScript | `SelfTest` and `SelfTestItem` |
 | Evidence table and `.cmd` | `EvidenceLog` and `EvidenceItem` |
 | custom iframe HTML | `Interactive` with a vault-relative `src` |
-| copied page CSS and font link | `theme: interactive-note` |
+| copied page CSS and font link | built-in global note theme |
 | copied HTML skeleton | `templates/interactive-note.mdx` |
+
+## Editorial primitives
+
+The template demonstrates the two document-header primitives:
+
+```mdx
+<p className="note-kicker">Concept note · explorable reference</p>
+# Cache locality
+<p className="note-deck">Memory is flat; traversal order creates the performance shape.</p>
+```
+
+Use `note-label`, `note-label-accent`, or `note-label-result` for short
+classification labels; `note-panel`, `note-panel-accent`, `note-explanation`,
+and `note-result` for bounded surfaces; `note-step` for a temporary/current
+position; and `note-folio` for document-closing metadata. These classes are a
+stable authoring API. Internal `in-*` classes belong to trusted components and
+must not be authored directly.
 
 All kit components are trusted Level 2 registry components. Their props are validated before rendering; invalid props show `ComponentValidationWarning` instead of crashing the preview. User or AI-authored executable code still belongs under `interactives/` and remains subject to the manifest and sandbox rules.

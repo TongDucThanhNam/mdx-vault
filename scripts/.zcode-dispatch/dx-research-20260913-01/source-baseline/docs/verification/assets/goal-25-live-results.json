@@ -1,0 +1,33 @@
+{
+  "offline": false,
+  "events": [
+    "disposable vault reopened through the normal startup path",
+    "existing denied component opened as Not run",
+    "authoring Run stayed memory-only and did not alter the denied decision",
+    "header action created and auto-ran an app-owned zero-capability starter",
+    "warm project-aware completion opened without a network lookup",
+    "unsaved diagnostics appeared and saved compile failure retained last good proof",
+    "narrow Problems tab and exact-range navigation worked from the keyboard",
+    "TypeScript and props errors both recovered to Ready",
+    "normal Reading preview required and stored explicit Allow",
+    "exact normally allowed hash auto-consented and refreshed after valid session props",
+    "changed source hash returned normal note preview to Review",
+    "renderer restart cleared authoring consent"
+  ],
+  "measurements": {
+    "create_to_surface_ms": 995.54,
+    "create_to_ready_ms": 1194.37,
+    "cold_ready_ms": 858.1,
+    "first_diagnostics_ms": 87.9,
+    "warm_completion_ms": 30.9
+  },
+  "externalRequests": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "screenshots": [
+    "goal-25-existing-not-run.png",
+    "goal-25-wide-ready.png",
+    "goal-25-wide-compile-issue.png",
+    "goal-25-narrow-problems.png"
+  ]
+}

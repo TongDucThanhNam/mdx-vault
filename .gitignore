@@ -10,3 +10,7 @@ example-vault/.app/
 # Codex session data
 .codex/
 mcps.json
+
+# Generated local verification artifacts
+videos/
+scripts/__pycache__/

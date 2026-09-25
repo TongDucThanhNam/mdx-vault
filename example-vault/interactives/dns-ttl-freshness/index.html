@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DNS TTL — Dòng thời gian độ tươi</title>
+<style>
+:root {
+  --paper: #f9f9f7;
+  --ink: #111111;
+  --accent: #d32f2f;
+  --accent-tint: #f3d7d7;
+  --result: #2b5797;
+  --rule: #c8c8c2;
+  --muted: #666660;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 1rem;
+}
+
+button, select { font: inherit; }
+
+.eyebrow {
+  color: var(--accent);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .55rem 0 1rem;
+  max-width: 68ch;
+}
+
+.control-grid {
+  border-bottom: 2px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: .75rem 0;
+}
+
+.field {
+  display: grid;
+  gap: .3rem;
+}
+
+.field-label {
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+select {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  min-height: 2.35rem;
+  padding: .35rem .45rem;
+  width: 100%;
+}
+
+select:disabled {
+  color: var(--muted);
+  opacity: .55;
+}
+
+button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .72rem;
+  font-weight: 700;
+  gap: .35rem 1rem;
+  letter-spacing: .05em;
+  padding: .75rem 0 .55rem;
+  text-transform: uppercase;
+}
+
+.cell-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+}
+
+.cell {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: .32rem;
+  position: relative;
+}
+
+.cell-index {
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cell-value {
+  align-self: center;
+  font-size: clamp(.7rem, 2.6vw, 1rem);
+  font-weight: 700;
+  justify-self: center;
+}
+
+.cell-state {
+  align-self: end;
+  font-size: .5rem;
+  letter-spacing: .06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cell.visited {
+  background: var(--accent-tint);
+}
+
+.cell.current {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.cell.result {
+  background: var(--result);
+  color: #ffffff;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .68rem;
+  gap: .45rem 1rem;
+  margin: .6rem 0 .9rem;
+}
+
+.legend-item {
+  align-items: center;
+  display: inline-flex;
+  gap: .35rem;
+}
+
+.swatch {
+  border: 1px solid var(--ink);
+  display: inline-block;
+  height: .75rem;
+  width: .75rem;
+}
+
+.swatch-current { background: var(--accent); }
+.swatch-visited { background: var(--accent-tint); }
+.swatch-result { background: var(--result); }
+
+.action-row {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .8rem;
+}
+
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  min-height: 2.4rem;
+  padding: .42rem .75rem;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.probe-count {
+  border-left: 2px solid var(--ink);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin-left: auto;
+  padding: .45rem 0 .45rem .75rem;
+  text-transform: uppercase;
+}
+
+.probe-count output {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.ledger {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: clamp(1rem, 4vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: .9rem 3px .75rem 0;
+  min-height: 3.35rem;
+  overflow-wrap: anywhere;
+  padding: .65rem .75rem;
+}
+
+.status {
+  color: var(--result);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 .55rem;
+  min-height: 2.35rem;
+}
+
+.model-note {
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: .65rem;
+}
+
+@media (max-width: 620px) {
+  .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cell { padding: .22rem; }
+  .probe-count { margin-left: 0; }
+}
+
+@media (max-width: 390px) {
+  body { padding: .75rem; }
+  .control-grid { grid-template-columns: 1fr; }
+  .cell-state { display: none; }
+}
+
+.state-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.state-card {
+  border: 2px solid var(--ink);
+  display: grid;
+  gap: .55rem;
+  min-height: 8rem;
+  padding: .75rem;
+}
+
+.state-card.current { background: var(--accent); color: #ffffff; }
+.state-card.visited { background: var(--accent-tint); }
+.state-card.result { background: var(--result); color: #ffffff; }
+
+.state-label {
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.state-value {
+  align-self: center;
+  font-family: Georgia, serif;
+  font-size: clamp(1rem, 3vw, 1.35rem);
+}
+
+.state-detail {
+  align-self: end;
+  font-size: .66rem;
+  line-height: 1.4;
+}
+
+.event-list {
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+  margin: .75rem 0;
+  padding: .6rem 0 .6rem 1.5rem;
+}
+
+.event-list li.current-event { color: var(--ink); font-weight: 700; }
+
+@media (max-width: 620px) {
+  .state-grid { grid-template-columns: 1fr; }
+  .state-card { min-height: 5.5rem; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">DNS TTL · dòng thời gian logic</p>
+  <h1>Record đổi, cache thấy khi nào?</h1>
+  <p class="lede">Kịch bản của PredictionGate: resolver đã cache địa chỉ A với TTL còn hiệu lực; authoritative record sau đó đổi sang B. Tự dự đoán nguồn answer của query kế tiếp, rồi đi từng sự kiện.</p>
+
+  <div class="meta" id="meta" data-testid="meta" aria-label="Trạng thái timeline"></div>
+
+  <div class="state-grid" aria-label="Authoritative source và resolver cache">
+    <section class="state-card" id="authoritativeCard" data-testid="authoritative-card">
+      <span class="state-label">Authoritative source</span>
+      <strong class="state-value" id="authoritativeValue">Địa chỉ A</strong>
+      <span class="state-detail" id="authoritativeDetail">Record ban đầu</span>
+    </section>
+    <section class="state-card" id="cacheCard" data-testid="cache-card">
+      <span class="state-label">Recursive cache</span>
+      <strong class="state-value" id="cacheValue">Trống</strong>
+      <span class="state-detail" id="cacheDetail">Chưa có cached answer</span>
+    </section>
+    <section class="state-card" id="clientCard" data-testid="client-card">
+      <span class="state-label">Client query</span>
+      <strong class="state-value" id="clientValue">Chưa hỏi</strong>
+      <span class="state-detail" id="clientDetail">Nguồn answer chưa xác định</span>
+    </section>
+  </div>
+
+  <div class="legend" aria-label="Chú giải màu">
+    <span class="legend-item"><span class="swatch swatch-current"></span>State vừa đổi</span>
+    <span class="legend-item"><span class="swatch swatch-visited"></span>State còn được giữ</span>
+    <span class="legend-item"><span class="swatch swatch-result"></span>Answer cho client</span>
+  </div>
+
+  <div class="action-row">
+    <button type="button" id="step" data-testid="step">STEP · 1 sự kiện</button>
+    <button type="button" id="play" data-testid="play" aria-pressed="false">PLAY</button>
+    <button type="button" id="reset" data-testid="reset">RESET</button>
+    <span class="probe-count">Sự kiện <output id="stepCount" data-testid="step-count">0</output></span>
+  </div>
+
+  <div class="ledger" id="ledger" aria-label="Sự kiện TTL hiện tại" data-testid="ledger">—</div>
+  <p class="status" id="status" role="status" aria-live="polite" data-testid="status">Tự dự đoán nguồn answer tiếp theo, rồi bấm STEP.</p>
+  <ol class="event-list" id="eventList" aria-label="Các sự kiện đã quan sát" data-testid="event-list"></ol>
+  <p class="model-note">Mỗi STEP là một sự kiện logic, không phải một giây hay số đo production. Timeline minh họa quyền tái sử dụng answer theo TTL.</p>
+</main>
+<script>
+const elements = {
+  meta: document.getElementById('meta'),
+  authoritativeCard: document.getElementById('authoritativeCard'),
+  authoritativeValue: document.getElementById('authoritativeValue'),
+  authoritativeDetail: document.getElementById('authoritativeDetail'),
+  cacheCard: document.getElementById('cacheCard'),
+  cacheValue: document.getElementById('cacheValue'),
+  cacheDetail: document.getElementById('cacheDetail'),
+  clientCard: document.getElementById('clientCard'),
+  clientValue: document.getElementById('clientValue'),
+  clientDetail: document.getElementById('clientDetail'),
+  step: document.getElementById('step'),
+  play: document.getElementById('play'),
+  reset: document.getElementById('reset'),
+  stepCount: document.getElementById('stepCount'),
+  ledger: document.getElementById('ledger'),
+  status: document.getElementById('status'),
+  eventList: document.getElementById('eventList')
+};
+
+const initialState = {
+  authoritative: 'Địa chỉ A',
+  authoritativeDetail: 'Record ban đầu',
+  cache: 'Trống',
+  cacheDetail: 'Chưa có cached answer',
+  client: 'Chưa hỏi',
+  clientDetail: 'Nguồn answer chưa xác định',
+  changed: null,
+  clientResult: false
+};
+
+const events = [
+  {
+    ledger: 'Query 1 · fetch A và cache với TTL',
+    status: 'Cache đang trống nên resolver hỏi authoritative source; answer A được lưu với TTL còn hiệu lực.',
+    authoritative: 'Địa chỉ A',
+    authoritativeDetail: 'Record đang được công bố',
+    cache: 'Địa chỉ A',
+    cacheDetail: 'TTL còn hiệu lực',
+    client: 'Địa chỉ A',
+    clientDetail: 'Nguồn: lần hỏi authoritative',
+    changed: 'cache',
+    clientResult: true
+  },
+  {
+    ledger: 'Query 2 · cache hit A',
+    status: 'Query lặp lại dùng cached answer A vì TTL vẫn còn hiệu lực.',
+    authoritative: 'Địa chỉ A',
+    authoritativeDetail: 'Không cần được hỏi ở sự kiện này',
+    cache: 'Địa chỉ A',
+    cacheDetail: 'TTL còn hiệu lực · cache hit',
+    client: 'Địa chỉ A',
+    clientDetail: 'Nguồn: recursive cache',
+    changed: 'cache',
+    clientResult: true
+  },
+  {
+    ledger: 'Đổi record · authoritative chuyển A → B',
+    status: 'Nguồn chuẩn đã là B; cached answer A vẫn là một bản riêng với TTL còn hiệu lực.',
+    authoritative: 'Địa chỉ B',
+    authoritativeDetail: 'Record vừa thay đổi',
+    cache: 'Địa chỉ A',
+    cacheDetail: 'TTL vẫn còn hiệu lực',
+    client: 'Chưa query lại',
+    clientDetail: 'Hãy dự đoán bước tiếp theo',
+    changed: 'authoritative',
+    clientResult: false
+  },
+  {
+    ledger: 'Query 3 · cache hit A sau migration',
+    status: 'Resolver được phép dùng cached answer A; query này chưa hỏi authoritative record B.',
+    authoritative: 'Địa chỉ B',
+    authoritativeDetail: 'Record mới ở source of truth',
+    cache: 'Địa chỉ A',
+    cacheDetail: 'TTL còn hiệu lực · cache hit',
+    client: 'Địa chỉ A',
+    clientDetail: 'Nguồn: recursive cache',
+    changed: 'cache',
+    clientResult: true
+  },
+  {
+    ledger: 'Cache expiry · A hết hiệu lực',
+    status: 'Cached answer A không còn được phép tái sử dụng cho query tiếp theo.',
+    authoritative: 'Địa chỉ B',
+    authoritativeDetail: 'Record mới ở source of truth',
+    cache: 'A đã expiry',
+    cacheDetail: 'Phải lấy answer dùng được mới',
+    client: 'Chưa query lại',
+    clientDetail: 'Expiry không tự push B đến client',
+    changed: 'cache',
+    clientResult: false
+  },
+  {
+    ledger: 'Query 4 · hỏi lại, nhận B và cache',
+    status: 'Sau expiry, resolver hỏi lại, nhận B, cập nhật cache và trả B cho client.',
+    authoritative: 'Địa chỉ B',
+    authoritativeDetail: 'Record đang được công bố',
+    cache: 'Địa chỉ B',
+    cacheDetail: 'TTL mới còn hiệu lực',
+    client: 'Địa chỉ B',
+    clientDetail: 'Nguồn: lần hỏi lại authoritative',
+    changed: 'cache',
+    clientResult: true
+  }
+];
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let position = 0;
+let timer = null;
+
+function stopPlay() {
+  if (timer !== null) window.clearInterval(timer);
+  timer = null;
+  elements.play.textContent = 'PLAY';
+  elements.play.setAttribute('aria-pressed', 'false');
+}
+
+function currentState() {
+  return position === 0 ? initialState : events[position - 1];
+}
+
+function setCardState(card, kind, state) {
+  card.className = 'state-card';
+  if (kind === 'client' && state.clientResult) {
+    card.classList.add('result');
+    return;
+  }
+  if (state.changed === kind) {
+    card.classList.add('current');
+    return;
+  }
+  if (position > 0 && kind !== 'client') card.classList.add('visited');
+}
+
+function renderEvents() {
+  elements.eventList.innerHTML = '';
+  events.slice(0, position).forEach((event, index) => {
+    const item = document.createElement('li');
+    item.textContent = event.ledger;
+    if (index === position - 1) item.className = 'current-event';
+    elements.eventList.appendChild(item);
+  });
+}
+
+function render() {
+  const state = currentState();
+  const done = position >= events.length;
+
+  elements.meta.textContent = `Timeline logic · không gắn thời gian thực · ${position}/${events.length} sự kiện`;
+  elements.authoritativeValue.textContent = state.authoritative;
+  elements.authoritativeDetail.textContent = state.authoritativeDetail;
+  elements.cacheValue.textContent = state.cache;
+  elements.cacheDetail.textContent = state.cacheDetail;
+  elements.clientValue.textContent = state.client;
+  elements.clientDetail.textContent = state.clientDetail;
+  elements.stepCount.textContent = String(position);
+  elements.ledger.textContent = position ? events[position - 1].ledger : '—';
+  elements.status.textContent = position
+    ? events[position - 1].status
+    : 'Tự dự đoán nguồn answer tiếp theo, rồi bấm STEP.';
+  elements.step.disabled = done;
+  elements.play.disabled = done;
+
+  setCardState(elements.authoritativeCard, 'authoritative', state);
+  setCardState(elements.cacheCard, 'cache', state);
+  setCardState(elements.clientCard, 'client', state);
+  renderEvents();
+}
+
+function stepOnce() {
+  if (position >= events.length) return;
+  position += 1;
+  if (position >= events.length) stopPlay();
+  render();
+}
+
+function playAll() {
+  if (position >= events.length) return;
+  if (timer !== null) {
+    stopPlay();
+    return;
+  }
+  if (reducedMotion.matches) {
+    while (position < events.length) stepOnce();
+    return;
+  }
+  elements.play.textContent = 'PAUSE';
+  elements.play.setAttribute('aria-pressed', 'true');
+  stepOnce();
+  if (position < events.length) timer = window.setInterval(stepOnce, 700);
+}
+
+function resetTimeline() {
+  stopPlay();
+  position = 0;
+  render();
+}
+
+elements.step.addEventListener('click', stepOnce);
+elements.play.addEventListener('click', playAll);
+elements.reset.addEventListener('click', resetTimeline);
+
+render();
+</script>
+</body>
+</html>

@@ -13,11 +13,15 @@ islands make notes interactive. AI helps only when invoked.
 ## Bắt đầu
 
 ```bash
+bun --version # 1.4.0 or newer
 bun install
 bun run dev
 ```
 
-Package manager: **bun** (không dùng npm/pnpm/yarn).
+Package manager and project tooling: **Bun 1.4** (không dùng npm/pnpm/yarn).
+`bun run check` runs the Bun runtime gate, lint, Bun-tool/app TypeScript projects,
+and the test suite. The packaged desktop app still runs in Electron; see
+[Bun 1.4 runtime boundary](docs/bun-1.4-runtime.md).
 
 ## Cho AI agents (Codex, Claude Code)
 

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DNS Delegation — Step Trace</title>
+<style>
+:root {
+  --paper: #f9f9f7;
+  --ink: #111111;
+  --accent: #d32f2f;
+  --accent-tint: #f3d7d7;
+  --result: #2b5797;
+  --rule: #c8c8c2;
+  --muted: #666660;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 1rem;
+}
+
+button, select { font: inherit; }
+
+.eyebrow {
+  color: var(--accent);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .55rem 0 1rem;
+  max-width: 68ch;
+}
+
+.control-grid {
+  border-bottom: 2px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: .75rem 0;
+}
+
+.field {
+  display: grid;
+  gap: .3rem;
+}
+
+.field-label {
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+select {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  min-height: 2.35rem;
+  padding: .35rem .45rem;
+  width: 100%;
+}
+
+select:disabled {
+  color: var(--muted);
+  opacity: .55;
+}
+
+button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .72rem;
+  font-weight: 700;
+  gap: .35rem 1rem;
+  letter-spacing: .05em;
+  padding: .75rem 0 .55rem;
+  text-transform: uppercase;
+}
+
+.cell-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+}
+
+.cell {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: .32rem;
+  position: relative;
+}
+
+.cell-index {
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cell-value {
+  align-self: center;
+  font-size: clamp(.7rem, 2.6vw, 1rem);
+  font-weight: 700;
+  justify-self: center;
+}
+
+.cell-state {
+  align-self: end;
+  font-size: .5rem;
+  letter-spacing: .06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cell.visited {
+  background: var(--accent-tint);
+}
+
+.cell.current {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.cell.result {
+  background: var(--result);
+  color: #ffffff;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .68rem;
+  gap: .45rem 1rem;
+  margin: .6rem 0 .9rem;
+}
+
+.legend-item {
+  align-items: center;
+  display: inline-flex;
+  gap: .35rem;
+}
+
+.swatch {
+  border: 1px solid var(--ink);
+  display: inline-block;
+  height: .75rem;
+  width: .75rem;
+}
+
+.swatch-current { background: var(--accent); }
+.swatch-visited { background: var(--accent-tint); }
+.swatch-result { background: var(--result); }
+
+.action-row {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .8rem;
+}
+
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  min-height: 2.4rem;
+  padding: .42rem .75rem;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.probe-count {
+  border-left: 2px solid var(--ink);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin-left: auto;
+  padding: .45rem 0 .45rem .75rem;
+  text-transform: uppercase;
+}
+
+.probe-count output {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.ledger {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: clamp(1rem, 4vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: .9rem 3px .75rem 0;
+  min-height: 3.35rem;
+  overflow-wrap: anywhere;
+  padding: .65rem .75rem;
+}
+
+.status {
+  color: var(--result);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 .55rem;
+  min-height: 2.35rem;
+}
+
+.model-note {
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: .65rem;
+}
+
+@media (max-width: 620px) {
+  .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cell { padding: .22rem; }
+  .probe-count { margin-left: 0; }
+}
+
+@media (max-width: 390px) {
+  body { padding: .75rem; }
+  .control-grid { grid-template-columns: 1fr; }
+  .cell-state { display: none; }
+}
+
+.route-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.route-node {
+  border: 2px solid var(--ink);
+  display: grid;
+  gap: .35rem;
+  min-height: 6.5rem;
+  padding: .65rem;
+}
+
+.route-node.visited { background: var(--accent-tint); }
+.route-node.current { background: var(--accent); color: #ffffff; }
+.route-node.result { background: var(--result); color: #ffffff; }
+
+.node-order {
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.node-name { font-family: Georgia, serif; font-size: 1rem; font-weight: 700; }
+.node-knowledge { align-self: end; font-size: .64rem; line-height: 1.35; }
+
+.event-list {
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+  margin: .75rem 0;
+  padding: .6rem 0 .6rem 1.5rem;
+}
+
+.event-list li.current-event { color: var(--ink); font-weight: 700; }
+
+code { color: var(--ink); font: inherit; font-weight: 700; }
+
+@media (max-width: 620px) {
+  .route-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 390px) {
+  .route-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">DNS delegation · theo dấu từng bước</p>
+  <h1>Mỗi tầng biết điều gì?</h1>
+  <p class="lede">Kịch bản của PredictionGate: recursive resolver chưa có cache cho <code>www.example.com</code>. Tự dự đoán root trả record địa chỉ hay referral, rồi đi từng bước.</p>
+
+  <div class="meta" id="meta" data-testid="meta" aria-label="Trạng thái trace"></div>
+
+  <div class="route-grid" id="route" role="list" aria-label="Các vai trò trong đường phân giải DNS" data-testid="route"></div>
+
+  <div class="legend" aria-label="Chú giải màu">
+    <span class="legend-item"><span class="swatch swatch-current"></span>Đang xử lý</span>
+    <span class="legend-item"><span class="swatch swatch-visited"></span>Đã đi qua</span>
+    <span class="legend-item"><span class="swatch swatch-result"></span>Answer cuối</span>
+  </div>
+
+  <div class="action-row">
+    <button type="button" id="step" data-testid="step">STEP · 1 bước</button>
+    <button type="button" id="play" data-testid="play" aria-pressed="false">PLAY</button>
+    <button type="button" id="reset" data-testid="reset">RESET</button>
+    <span class="probe-count">Bước <output id="stepCount" data-testid="step-count">0</output></span>
+  </div>
+
+  <div class="ledger" id="ledger" aria-label="Sự kiện DNS hiện tại" data-testid="ledger">—</div>
+  <p class="status" id="status" role="status" aria-live="polite" data-testid="status">Tự dự đoán answer của root, rồi bấm STEP.</p>
+  <ol class="event-list" id="eventList" aria-label="Các sự kiện đã quan sát" data-testid="event-list"></ol>
+  <p class="model-note">Đây là chuỗi sự kiện cơ chế xác định, không phải bản bắt gói hay phép đo độ trễ. Root và TLD được biểu diễn như vai trò logic.</p>
+</main>
+<script>
+const elements = {
+  meta: document.getElementById('meta'),
+  route: document.getElementById('route'),
+  step: document.getElementById('step'),
+  play: document.getElementById('play'),
+  reset: document.getElementById('reset'),
+  stepCount: document.getElementById('stepCount'),
+  ledger: document.getElementById('ledger'),
+  status: document.getElementById('status'),
+  eventList: document.getElementById('eventList')
+};
+
+const nodes = [
+  { name: 'Stub resolver', knowledge: 'Gửi tên cần tìm' },
+  { name: 'Recursive resolver', knowledge: 'Tìm answer thay client' },
+  { name: 'Root server', knowledge: 'Biết nơi hỏi cho TLD' },
+  { name: '.com TLD', knowledge: 'Biết authoritative server của zone' },
+  { name: 'Authoritative', knowledge: 'Công bố record của zone' },
+  { name: 'Cache + client', knowledge: 'Giữ và nhận answer cuối' }
+];
+
+const events = [
+  {
+    node: 1,
+    ledger: 'Stub → Recursive: www.example.com?',
+    status: 'Stub resolver giao recursive resolver nhiệm vụ tìm answer.'
+  },
+  {
+    node: 2,
+    ledger: 'Recursive → Root: hỏi www.example.com A',
+    status: 'Cold cache: recursive resolver gửi full QNAME và QTYPE đến root.'
+  },
+  {
+    node: 2,
+    ledger: 'Root → Recursive: referral đến .com TLD',
+    status: 'Root trả referral đến tầng .com; chưa trả record địa chỉ cuối.'
+  },
+  {
+    node: 3,
+    ledger: 'Recursive → .com TLD: hỏi example.com',
+    status: 'Recursive resolver đi theo referral và hỏi TLD server.'
+  },
+  {
+    node: 3,
+    ledger: '.com TLD → Recursive: referral đến authoritative',
+    status: 'TLD trả referral đến authoritative server của zone.'
+  },
+  {
+    node: 4,
+    ledger: 'Recursive → Authoritative: hỏi www.example.com',
+    status: 'Recursive resolver hỏi source có thẩm quyền cho record.'
+  },
+  {
+    node: 4,
+    ledger: 'Authoritative → Recursive: record địa chỉ',
+    status: 'Authoritative server trả record do zone công bố.'
+  },
+  {
+    node: 5,
+    ledger: 'Recursive → Cache + Stub: lưu và trả answer',
+    status: 'Answer quay về stub resolver và có thể được cache để tái sử dụng.'
+  }
+];
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let position = 0;
+let timer = null;
+let statusMessage = 'Tự dự đoán answer của root, rồi bấm STEP.';
+
+function stopPlay() {
+  if (timer !== null) window.clearInterval(timer);
+  timer = null;
+  elements.play.textContent = 'PLAY';
+  elements.play.setAttribute('aria-pressed', 'false');
+}
+
+function nodeState(index) {
+  const currentEvent = position > 0 ? events[position - 1] : null;
+  if (position === events.length && index === 5) return 'result';
+  if (currentEvent && currentEvent.node === index) return 'current';
+  const visited = events.slice(0, Math.max(0, position - 1)).some((event) => event.node === index);
+  return visited ? 'visited' : 'idle';
+}
+
+function renderRoute() {
+  elements.route.innerHTML = '';
+  nodes.forEach((node, index) => {
+    const state = nodeState(index);
+    const card = document.createElement('div');
+    const order = document.createElement('span');
+    const name = document.createElement('span');
+    const knowledge = document.createElement('span');
+
+    card.className = `route-node ${state}`;
+    card.setAttribute('role', 'listitem');
+    card.setAttribute('aria-label', `${node.name}: ${node.knowledge}; trạng thái ${state}`);
+    card.dataset.state = state;
+    card.dataset.node = String(index);
+
+    order.className = 'node-order';
+    order.textContent = `Vai trò ${index + 1}`;
+    name.className = 'node-name';
+    name.textContent = node.name;
+    knowledge.className = 'node-knowledge';
+    knowledge.textContent = node.knowledge;
+
+    card.append(order, name, knowledge);
+    elements.route.appendChild(card);
+  });
+}
+
+function renderEvents() {
+  elements.eventList.innerHTML = '';
+  events.slice(0, position).forEach((event, index) => {
+    const item = document.createElement('li');
+    item.textContent = event.ledger;
+    if (index === position - 1) item.className = 'current-event';
+    elements.eventList.appendChild(item);
+  });
+}
+
+function render() {
+  const done = position >= events.length;
+  elements.meta.textContent = `Cold cache · www.example.com · ${position}/${events.length} sự kiện`;
+  elements.stepCount.textContent = String(position);
+  elements.ledger.textContent = position ? events[position - 1].ledger : '—';
+  elements.status.textContent = statusMessage;
+  elements.step.disabled = done;
+  elements.play.disabled = done;
+  renderRoute();
+  renderEvents();
+}
+
+function stepOnce() {
+  if (position >= events.length) return;
+  const event = events[position];
+  position += 1;
+  statusMessage = event.status;
+  if (position >= events.length) stopPlay();
+  render();
+}
+
+function playAll() {
+  if (position >= events.length) return;
+  if (timer !== null) {
+    stopPlay();
+    return;
+  }
+  if (reducedMotion.matches) {
+    while (position < events.length) stepOnce();
+    return;
+  }
+  elements.play.textContent = 'PAUSE';
+  elements.play.setAttribute('aria-pressed', 'true');
+  stepOnce();
+  if (position < events.length) timer = window.setInterval(stepOnce, 650);
+}
+
+function resetTrace() {
+  stopPlay();
+  position = 0;
+  statusMessage = 'Tự dự đoán answer của root, rồi bấm STEP.';
+  render();
+}
+
+elements.step.addEventListener('click', stepOnce);
+elements.play.addEventListener('click', playAll);
+elements.reset.addEventListener('click', resetTrace);
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Linear Probing — Live Trace</title>
+<style>
+:root {
+  --paper: #f9f9f7;
+  --ink: #111111;
+  --accent: #d32f2f;
+  --accent-tint: #f3d7d7;
+  --result: #2b5797;
+  --rule: #c8c8c2;
+  --muted: #666660;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 1rem;
+}
+
+button, select { font: inherit; }
+
+.eyebrow {
+  color: var(--accent);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .55rem 0 1rem;
+  max-width: 68ch;
+}
+
+.control-grid {
+  border-bottom: 2px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: .75rem 0;
+}
+
+.field {
+  display: grid;
+  gap: .3rem;
+}
+
+.field-label {
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+select {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  min-height: 2.35rem;
+  padding: .35rem .45rem;
+  width: 100%;
+}
+
+select:disabled {
+  color: var(--muted);
+  opacity: .55;
+}
+
+button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .72rem;
+  font-weight: 700;
+  gap: .35rem 1rem;
+  letter-spacing: .05em;
+  padding: .75rem 0 .55rem;
+  text-transform: uppercase;
+}
+
+.cell-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+}
+
+.cell {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: .32rem;
+  position: relative;
+}
+
+.cell-index {
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cell-value {
+  align-self: center;
+  font-size: clamp(.7rem, 2.6vw, 1rem);
+  font-weight: 700;
+  justify-self: center;
+}
+
+.cell-state {
+  align-self: end;
+  font-size: .5rem;
+  letter-spacing: .06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cell.visited {
+  background: var(--accent-tint);
+}
+
+.cell.current {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.cell.result {
+  background: var(--result);
+  color: #ffffff;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .68rem;
+  gap: .45rem 1rem;
+  margin: .6rem 0 .9rem;
+}
+
+.legend-item {
+  align-items: center;
+  display: inline-flex;
+  gap: .35rem;
+}
+
+.swatch {
+  border: 1px solid var(--ink);
+  display: inline-block;
+  height: .75rem;
+  width: .75rem;
+}
+
+.swatch-current { background: var(--accent); }
+.swatch-visited { background: var(--accent-tint); }
+.swatch-result { background: var(--result); }
+
+.action-row {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .8rem;
+}
+
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  min-height: 2.4rem;
+  padding: .42rem .75rem;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.probe-count {
+  border-left: 2px solid var(--ink);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin-left: auto;
+  padding: .45rem 0 .45rem .75rem;
+  text-transform: uppercase;
+}
+
+.probe-count output {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.ledger {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: clamp(1rem, 4vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: .9rem 3px .75rem 0;
+  min-height: 3.35rem;
+  overflow-wrap: anywhere;
+  padding: .65rem .75rem;
+}
+
+.status {
+  color: var(--result);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 .55rem;
+  min-height: 2.35rem;
+}
+
+.model-note {
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: .65rem;
+}
+
+@media (max-width: 620px) {
+  .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cell { padding: .22rem; }
+  .probe-count { margin-left: 0; }
+}
+
+@media (max-width: 390px) {
+  body { padding: .75rem; }
+  .control-grid { grid-template-columns: 1fr; }
+  .cell-state { display: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Linear probing · live trace</p>
+  <h1>Một collision dài bao nhiêu?</h1>
+  <p class="lede">Chọn trạng thái và key đến, tự dự đoán ô đích, rồi dùng STEP hoặc PLAY. Ô đỏ là probe hiện tại; vệt hồng là các ô đã đi qua; ô xanh là nơi chèn.</p>
+
+  <div class="control-grid" aria-label="Điều khiển mô phỏng">
+    <label class="field">
+      <span class="field-label">Chế độ</span>
+      <select id="mode" data-testid="mode">
+        <option value="gate">Gate · quay vòng</option>
+        <option value="load">Load factor · cụm</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Số ô</span>
+      <select id="size" data-testid="size">
+        <option value="8">8 ô</option>
+        <option value="12">12 ô</option>
+        <option value="16">16 ô</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Mức tải</span>
+      <select id="load" data-testid="load">
+        <option value="0.25">α mục tiêu 0.25</option>
+        <option value="0.50">α mục tiêu 0.50</option>
+        <option value="0.75">α mục tiêu 0.75</option>
+        <option value="0.875">α mục tiêu 0.875</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Key đến · home</span>
+      <select id="key" data-testid="key">
+        <option value="6">K₆ · home 6</option>
+        <option value="0">K₀ · home 0</option>
+        <option value="3">K₃ · home 3</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="meta" id="meta" data-testid="meta"></div>
+  <div class="cell-grid" id="grid" role="list" aria-label="Mảng hash table" data-testid="grid"></div>
+
+  <div class="legend" aria-label="Chú giải màu">
+    <span class="legend-item"><span class="swatch swatch-current"></span>Probe hiện tại</span>
+    <span class="legend-item"><span class="swatch swatch-visited"></span>Đã probe</span>
+    <span class="legend-item"><span class="swatch swatch-result"></span>Ô kết quả</span>
+  </div>
+
+  <div class="action-row">
+    <button type="button" id="step" data-testid="step">STEP · 1 bước</button>
+    <button type="button" id="play" data-testid="play" aria-pressed="false">PLAY</button>
+    <button type="button" id="reset" data-testid="reset">RESET</button>
+    <span class="probe-count">Số probe <output id="probeCount" data-testid="probe-count">0</output></span>
+  </div>
+
+  <div class="ledger" id="ledger" aria-label="Chuỗi probe đã đi" data-testid="ledger">—</div>
+  <p class="status" id="status" role="status" aria-live="polite" data-testid="status">Tự dự đoán ô đích, rồi bấm STEP.</p>
+  <p class="model-note" id="modelNote" data-testid="model-note"></p>
+</main>
+
+<script>
+const elements = {
+  mode: document.getElementById('mode'),
+  size: document.getElementById('size'),
+  load: document.getElementById('load'),
+  key: document.getElementById('key'),
+  meta: document.getElementById('meta'),
+  grid: document.getElementById('grid'),
+  step: document.getElementById('step'),
+  play: document.getElementById('play'),
+  reset: document.getElementById('reset'),
+  probeCount: document.getElementById('probeCount'),
+  ledger: document.getElementById('ledger'),
+  status: document.getElementById('status'),
+  modelNote: document.getElementById('modelNote')
+};
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+let scenario;
+let probed = [];
+let done = false;
+let timer = null;
+
+function makeOccupiedMap(indices) {
+  const map = new Map();
+  indices.forEach((index, order) => map.set(index, `E${order + 1}`));
+  return map;
+}
+
+function computeSequence(size, occupied, home) {
+  const sequence = [];
+  for (let offset = 0; offset < size; offset += 1) {
+    const index = (home + offset) % size;
+    sequence.push(index);
+    if (!occupied.has(index)) return sequence;
+  }
+  return sequence;
+}
+
+function buildScenario() {
+  const gateMode = elements.mode.value === 'gate';
+  if (gateMode) elements.size.value = '8';
+
+  elements.size.disabled = gateMode;
+  elements.load.disabled = gateMode;
+
+  const size = gateMode ? 8 : Number(elements.size.value);
+  const home = Number(elements.key.value) % size;
+  let occupiedIndices;
+  let note;
+
+  if (gateMode) {
+    occupiedIndices = [0, 1, 3, 4, 6, 7];
+    note = home === 6
+      ? 'Trạng thái chính xác của PredictionGate: key K₆ tái hiện 6 → 7 → 0 → 1 → 2.'
+      : 'Cùng trạng thái Gate, nhưng đổi home slot để khám phá một probe sequence khác.';
+  } else {
+    const requestedLoad = Number(elements.load.value);
+    const occupiedCount = Math.min(size - 1, Math.floor(size * requestedLoad));
+    occupiedIndices = Array.from({ length: occupiedCount }, (_, offset) => (home + offset) % size);
+    note = 'Chế độ Load dựng một cụm liên tiếp có chủ đích từ home slot. Đây là trạng thái minh họa xác định, không phải mẫu ngẫu nhiên, giá trị kỳ vọng hay benchmark.';
+  }
+
+  const occupied = makeOccupiedMap(occupiedIndices);
+  const sequence = computeSequence(size, occupied, home);
+
+  return { size, home, occupied, sequence, note };
+}
+
+function stopPlay() {
+  if (timer !== null) window.clearInterval(timer);
+  timer = null;
+  elements.play.textContent = 'PLAY';
+  elements.play.setAttribute('aria-pressed', 'false');
+}
+
+function resetScenario(message = 'Tự dự đoán ô đích, rồi bấm STEP.') {
+  stopPlay();
+  scenario = buildScenario();
+  probed = [];
+  done = false;
+  elements.status.textContent = message;
+  render();
+}
+
+function describeCell(index) {
+  const occupied = scenario.occupied.has(index);
+  const isCurrent = probed.length > 0 && probed[probed.length - 1] === index;
+  const isVisited = probed.slice(0, -1).includes(index);
+  const isResult = done && isCurrent && !occupied;
+
+  if (isResult) return 'result';
+  if (isCurrent) return 'current';
+  if (isVisited) return 'visited';
+  return occupied ? 'occupied' : 'empty';
+}
+
+function renderGrid() {
+  elements.grid.innerHTML = '';
+  elements.grid.style.setProperty('--columns', String(Math.min(scenario.size, 8)));
+
+  for (let index = 0; index < scenario.size; index += 1) {
+    const state = describeCell(index);
+    const cell = document.createElement('div');
+    const occupiedLabel = scenario.occupied.get(index);
+    const incomingLabel = `K${scenario.home}`;
+    const visibleValue = state === 'result' ? incomingLabel : (occupiedLabel || '∅');
+    const stateLabel = state === 'result'
+      ? 'CHÈN'
+      : state === 'current'
+        ? 'PROBE'
+        : state === 'visited'
+          ? 'ĐÃ QUA'
+          : occupiedLabel
+            ? 'ĐÃ DÙNG'
+            : 'TRỐNG';
+
+    cell.className = `cell ${state}`;
+    cell.dataset.state = state;
+    cell.dataset.index = String(index);
+    cell.id = `cell-${index}`;
+    cell.setAttribute('role', 'listitem');
+    cell.setAttribute('aria-label', `Ô ${index}: ${stateLabel}`);
+    cell.innerHTML = `<span class="cell-index">${String(index).padStart(2, '0')}</span><span class="cell-value">${visibleValue}</span><span class="cell-state">${stateLabel}</span>`;
+    elements.grid.appendChild(cell);
+  }
+}
+
+function render() {
+  const alpha = scenario.occupied.size / scenario.size;
+  elements.meta.innerHTML = `<span>Số ô ${scenario.size}</span><span>Đã dùng ${scenario.occupied.size}</span><span>α thực ${alpha.toFixed(3)}</span><span>Home ${scenario.home}</span>`;
+  elements.probeCount.textContent = String(probed.length);
+  elements.ledger.textContent = probed.length ? probed.join(' → ') : '—';
+  elements.modelNote.textContent = scenario.note;
+  elements.step.disabled = done;
+  elements.play.disabled = done;
+  renderGrid();
+}
+
+function stepOnce() {
+  if (done) return;
+
+  const nextIndex = scenario.sequence[probed.length];
+  if (nextIndex === undefined) {
+    done = true;
+    elements.status.textContent = 'Bảng không còn ô trống trong probe sequence.';
+    stopPlay();
+    render();
+    return;
+  }
+
+  probed.push(nextIndex);
+  const occupied = scenario.occupied.has(nextIndex);
+
+  if (occupied) {
+    elements.status.textContent = `Probe ${probed.length}: ô ${nextIndex} đã có ${scenario.occupied.get(nextIndex)} → collision, tiếp tục.`;
+  } else {
+    done = true;
+    elements.status.textContent = `Probe ${probed.length}: ô ${nextIndex} trống → chèn K${scenario.home}.`;
+    stopPlay();
+  }
+
+  render();
+}
+
+function playAll() {
+  if (done) return;
+
+  if (timer !== null) {
+    stopPlay();
+    return;
+  }
+
+  if (reducedMotion.matches) {
+    while (!done) stepOnce();
+    return;
+  }
+
+  elements.play.textContent = 'PAUSE';
+  elements.play.setAttribute('aria-pressed', 'true');
+  stepOnce();
+  if (!done) timer = window.setInterval(stepOnce, 560);
+}
+
+elements.step.addEventListener('click', stepOnce);
+elements.play.addEventListener('click', playAll);
+elements.reset.addEventListener('click', () => resetScenario());
+
+elements.mode.addEventListener('change', () => {
+  if (elements.mode.value === 'gate') {
+    elements.key.value = '6';
+  } else {
+    elements.load.value = '0.25';
+  }
+  resetScenario('State đã đổi. Tự dự đoán lại, rồi bấm STEP.');
+});
+
+elements.size.addEventListener('change', () => resetScenario('Kích thước đã đổi. Tự dự đoán lại, rồi bấm STEP.'));
+elements.load.addEventListener('change', () => resetScenario('Load factor đã đổi. Chuỗi cluster được dựng lại từ home slot.'));
+elements.key.addEventListener('change', () => resetScenario('Key đến đã đổi. Probe sequence bắt đầu từ home slot mới.'));
+
+resetScenario();
+</script>
+</body>
+</html>

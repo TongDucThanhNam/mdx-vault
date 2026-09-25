@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cache Hierarchy &amp; Locality — Interactive Note</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Lora:ital,wght@0,400;1,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#f9f9f7; --paper-dark:#efefea; --ink:#111111;
+  --accent:#d32f2f; --line:#cccccc; --shadow:4px 4px 0 var(--ink); --result:#2b5797;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+
+/* ============================================================
+   FORMAT B — INTERACTIVE NOTE
+   Khác Lab một cách CÓ CHỦ ĐÍCH:
+   - body SCROLL tự do  → random access, Ctrl+F, skim được
+   - KHÔNG dual-panel   → text là xương sống, widget inline
+   - KHÔNG ẩn content   → mọi section visible, link vào giữa note được
+   ============================================================ */
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Lora",serif;
+  /* overflow: auto — ĐÂY là điểm khác biệt cốt lõi với Lab */
+}
+
+/* Slim top bar — sticky để luôn biết đang ở note nào */
+.masthead{
+  position:sticky; top:0; z-index:50; height:40px;
+  padding:0 1.5rem; background:var(--ink);
+  border-bottom:2px solid var(--ink);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand{font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--paper)}
+.brand-sub{font-family:"Courier Prime",monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+
+.page{max-width:820px;margin:0 auto;padding:2.5rem 2rem 6rem}
+
+/* Frontmatter — queryable metadata, hiển thị như trong Obsidian */
+.frontmatter{
+  font-family:"Courier Prime",monospace;font-size:.78rem;line-height:1.7;
+  background:var(--paper-dark);border:2px solid var(--ink);
+  padding:1rem 1.2rem;margin-bottom:2.5rem;white-space:pre;overflow-x:auto;
+}
+.frontmatter .k{color:var(--accent);font-weight:700}
+.frontmatter .v{color:var(--result)}
+
+h1{font-family:"Playfair Display",serif;font-size:2.5rem;font-weight:900;line-height:1.15;margin-bottom:.4rem}
+.subtitle{font-family:"Courier Prime",monospace;font-size:.8rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:2rem}
+
+h2{font-family:"Playfair Display",serif;font-size:1.7rem;font-weight:700;margin:3rem 0 1rem;padding-top:1rem;border-top:2px solid var(--ink);scroll-margin-top:56px}
+h2 .tag{
+  font-family:"Courier Prime",monospace;font-size:.65rem;font-weight:700;
+  vertical-align:middle;letter-spacing:1px;padding:.15rem .5rem;margin-left:.6rem;
+  background:var(--ink);color:var(--paper);text-transform:uppercase;
+}
+h2 .tag.w{background:var(--accent)}
+h2 .tag.e{background:var(--result)}
+
+p{font-size:1rem;line-height:1.85;margin-bottom:.9rem;color:#222}
+strong{color:var(--ink)}
+code{font-family:"Courier Prime",monospace;background:var(--ink);color:var(--paper);padding:2px 7px;font-size:.85rem}
+.formula-line{font-family:"Courier Prime",monospace;font-size:1.05rem;background:var(--paper);border:2px solid var(--ink);padding:.7rem 1rem;margin:.8rem 0;display:block;box-shadow:3px 3px 0 var(--ink)}
+.highlight-box{background:var(--paper);border:2px solid var(--accent);border-left:5px solid var(--accent);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem;line-height:1.65}
+.highlight-box strong{color:var(--accent)}
+
+/* Bảng editorial */
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{font-family:"Courier Prime",monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;text-align:left;background:var(--ink);color:var(--paper);padding:.5rem .7rem}
+td{border:1px solid var(--ink);padding:.55rem .7rem;line-height:1.55;vertical-align:top}
+tr:nth-child(even) td{background:var(--paper-dark)}
+
+/* Mental model 4 chiều */
+.mm-grid{display:grid;grid-template-columns:130px 1fr;border:2px solid var(--ink);margin:1rem 0}
+.mm-grid>div{padding:.6rem .9rem;font-size:.9rem;line-height:1.6;border-bottom:1px solid var(--line)}
+.mm-grid>div:nth-last-child(-n+2){border-bottom:none}
+.mm-key{font-family:"Courier Prime",monospace;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;background:var(--paper-dark);border-right:2px solid var(--ink);display:flex;align-items:center}
+.mm-key.conflict{color:var(--accent)}
+
+/* Mechanism trace */
+.trace{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.9;background:var(--paper-dark);border:2px solid var(--ink);padding:1rem 1.3rem;margin:1rem 0;white-space:pre;overflow-x:auto}
+.trace .hit{color:var(--result);font-weight:700}
+.trace .miss{color:var(--accent);font-weight:700}
+
+/* ===== WIDGET FRAME — điểm neo tương tác inline ===== */
+.widget{border:2px solid var(--ink);box-shadow:var(--shadow);margin:1.4rem 0 2rem;background:var(--paper)}
+.widget-head{display:flex;justify-content:space-between;align-items:center;padding:.55rem 1rem;background:var(--paper-dark);border-bottom:2px solid var(--ink);font-family:"Courier Prime",monospace;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.widget-status{background:var(--ink);color:var(--paper);padding:.15rem .6rem;font-size:.7rem}
+.widget-body{padding:1.3rem}
+.widget-misconception{font-family:"Courier Prime",monospace;font-size:.75rem;padding:.45rem 1rem;border-bottom:2px dashed var(--line);background:var(--paper)}
+.widget-misconception b{color:var(--accent)}
+
+/* Prediction gate */
+.gate{border:2px dashed var(--accent);padding:1rem 1.2rem;margin-bottom:1.2rem;background:var(--paper)}
+.gate-q{font-family:"Lora",serif;font-size:.95rem;margin-bottom:.8rem;line-height:1.6}
+.gate-q b{color:var(--accent)}
+.gate-opts{display:flex;gap:.6rem;flex-wrap:wrap}
+.gate-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.8rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.gate-btn:hover{background:var(--ink);color:var(--paper)}
+.gate-btn.chosen{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:none;transform:translate(2px,2px)}
+.gate-verdict{margin-top:.9rem;font-family:"Courier Prime",monospace;font-size:.85rem;line-height:1.7;display:none;padding:.7rem 1rem;border:2px solid var(--ink);background:var(--paper-dark)}
+.gate-verdict.show{display:block}
+.gate-verdict .right{color:var(--result);font-weight:700}
+.gate-verdict .wrong{color:var(--accent);font-weight:700}
+
+/* Lab buttons + slider (kế thừa từ Lab) */
+.lab-btn{font-family:"Courier Prime",monospace;font-weight:700;font-size:.82rem;padding:.5rem 1rem;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-transform:uppercase;letter-spacing:.5px;transition:background .1s,color .1s}
+.lab-btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.lab-btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.lab-btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lab-btn.accent:hover:not(:disabled){background:#b71c1c}
+.lab-btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.lab-slider{-webkit-appearance:none;width:150px;height:4px;background:var(--ink);outline:none;cursor:pointer}
+.lab-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);border:2px solid var(--ink);cursor:pointer}
+.slider-label{font-family:"Courier Prime",monospace;font-size:.82rem;text-transform:uppercase;letter-spacing:1px}
+.controls-row{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:1rem;padding-top:1rem;border-top:2px solid var(--ink)}
+
+/* Grid cache viz */
+.viz-flex{display:flex;gap:2.5rem;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.viz-col{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.viz-label{font-family:"Courier Prime",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.cell-grid{display:grid;grid-template-columns:repeat(4,38px);gap:5px}
+.cell{width:38px;height:38px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.8rem;font-weight:700;background:var(--paper);transition:background .15s,color .15s}
+.cell.current{background:var(--accent);color:#fff}
+.cell.visited-hit{background:#dce6f5}
+.cell.visited-miss{background:#f5d5d5}
+.cell.inline-cache{outline:3px solid var(--result);outline-offset:2px}
+.counter-box{font-family:"Courier Prime",monospace;font-size:1rem;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:.8rem 1.4rem;margin-top:1.2rem;text-align:center;line-height:1.8}
+.counter-box .m{color:var(--accent);font-weight:700}
+.counter-box .h{color:var(--result);font-weight:700}
+
+/* Stride dots */
+.stride-row{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;margin:.6rem 0}
+.sdot{aspect-ratio:1;border:2px solid var(--ink);background:var(--paper);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.6rem}
+.sdot.hit{background:var(--result);color:#fff}
+.sdot.miss{background:var(--accent);color:#fff}
+.sdot.skip{opacity:.25}
+.line-brackets{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:2px}
+.line-brackets div{font-family:"Courier Prime",monospace;font-size:.62rem;text-align:center;border-top:2px solid var(--ink);border-left:2px solid var(--ink);border-right:2px solid var(--ink);padding:1px 0;letter-spacing:1px}
+
+/* Evidence log */
+.evidence-empty{font-family:"Courier Prime",monospace;font-size:.82rem;color:var(--accent);font-weight:700}
+.cmd{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--ink);color:var(--paper);padding:.6rem .9rem;display:block;margin:.4rem 0;white-space:pre;overflow-x:auto}
+
+/* Self-test */
+.q-item{border:2px solid var(--ink);margin:1rem 0;background:var(--paper)}
+.q-head{padding:.8rem 1rem;font-size:.95rem;line-height:1.6;display:flex;gap:.8rem;align-items:baseline}
+.q-level{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;background:var(--ink);color:var(--paper);padding:.15rem .5rem;white-space:nowrap;text-transform:uppercase;letter-spacing:1px}
+.q-actions{padding:0 1rem .8rem}
+.q-answer{display:none;border-top:2px dashed var(--line);padding:.8rem 1rem;font-size:.9rem;line-height:1.7;background:var(--paper-dark)}
+.q-answer.show{display:block}
+
+/* Links */
+.links-list{list-style:none}
+.links-list li{font-family:"Courier Prime",monospace;font-size:.85rem;line-height:2}
+.links-list a,.wikilink{color:var(--result);font-weight:700;text-decoration:none;border-bottom:2px solid var(--result)}
+
+.note-meta{font-family:"Courier Prime",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;opacity:.6;margin-top:4rem;padding-top:1rem;border-top:2px solid var(--ink)}
+
+/* ===== TIER 2 — STATIC VISUALS (không tính vào widget budget) ===== */
+.lat-ladder{border:2px solid var(--ink);padding:1rem 1.2rem;margin:1rem 0;background:var(--paper-dark)}
+.lat-row{display:grid;grid-template-columns:130px 1fr 70px;gap:.6rem;align-items:center;margin:.35rem 0;font-family:"Courier Prime",monospace;font-size:.78rem}
+.lat-bar{height:13px;background:var(--ink)}
+.lat-bar.ram{background:var(--accent)}
+.lat-cap{font-family:"Courier Prime",monospace;font-size:.68rem;opacity:.65;margin-top:.6rem;text-transform:uppercase;letter-spacing:1px}
+.mem-flex{display:flex;gap:1.4rem;flex-wrap:wrap;align-items:center;justify-content:center;margin:1.2rem 0 .6rem}
+.mem-grid{display:grid;grid-template-columns:repeat(4,52px);gap:4px}
+.mem-cell{height:32px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:"Courier Prime",monospace;font-size:.6rem}
+.mem-arrow{font-family:"Courier Prime",monospace;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:1px}
+.mem-strip{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;margin:.5rem 0 .3rem}
+.mem-strip .mem-cell{height:28px;font-size:.58rem}
+.row0{background:var(--paper)}
+.row1{background:var(--paper-dark)}
+.row2{background:#dce6f5}
+.row3{background:#f5d5d5}
+.mem-caption{font-family:"Courier Prime",monospace;font-size:.7rem;text-align:center;letter-spacing:.5px;text-transform:uppercase}
+.cmp-block{border:2px solid var(--ink);padding:.8rem 1rem;margin:.7rem 0 0;background:var(--paper)}
+.cmp-row{display:grid;grid-template-columns:150px 1fr 45px;gap:.5rem;align-items:center;font-family:"Courier Prime",monospace;font-size:.72rem;margin:.28rem 0}
+.cmp-bar{height:11px;background:var(--ink)}
+.cmp-bar.bad{background:var(--accent)}
+.cmp-divider{border-top:2px dashed var(--line);margin:.45rem 0;font-family:"Courier Prime",monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;padding-top:.35rem;opacity:.7}
+.mem-strip.w12{grid-template-columns:repeat(12,1fr)}
+.mem-strip.w8{grid-template-columns:repeat(8,1fr)}
+.mem-cell.dim{opacity:.18}
+.primer{border:2px dashed var(--ink);padding:.8rem 1.1rem;margin:0 0 2.2rem;background:var(--paper)}
+.primer-head{font-family:"Courier Prime",monospace;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:.5rem}
+.primer-row{font-size:.88rem;line-height:1.7;margin:.3rem 0}
+.primer-row b{font-family:"Courier Prime",monospace;font-size:.78rem;background:var(--paper-dark);padding:1px 6px;border:1px solid var(--ink)}
+.primer-row a{color:var(--result);font-weight:700;text-decoration:none;font-family:"Courier Prime",monospace;font-size:.72rem;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="brand">SWE Expert · 20_Mental_Model_Groups</span>
+  <span class="brand-sub">Interactive Note · Format B</span>
+</header>
+
+<main class="page">
+
+<div class="frontmatter"><span class="k">id:</span> <span class="v">concept-cpu-cache-hierarchy</span>
+<span class="k">type:</span> <span class="v">concept</span>   <span class="k">layer:</span> <span class="v">hardware</span>   <span class="k">priority:</span> <span class="v">P0</span>
+<span class="k">maturity_target:</span> <span class="v">L3</span>   <span class="k">current_maturity:</span> <span class="v">L2 (spatial) / L1 (coherence)</span>
+<span class="k">labs:</span> <span class="v">[[lab-cache-locality-row-vs-col]]</span>
+<span class="k">review_interval_days:</span> <span class="v">14</span>   <span class="k">next_review:</span> <span class="v">2026-07-18</span></div>
+
+<h1>Cache Hierarchy &amp; Locality</h1>
+<div class="subtitle">Day 2 · Hardware Layer · Concept Note</div>
+
+<div class="primer">
+  <div class="primer-head">Thuật ngữ note này tự định nghĩa — lần đầu: đọc 30 giây · đọc lại: bỏ qua</div>
+  <div class="primer-row"><b>cache line</b> — đơn vị nhỏ nhất CPU nạp từ RAM: một khối 64B địa chỉ liền kề. Không tồn tại chuyện "nạp 1 byte". <a href="#mechanism">↓ Mechanism</a></div>
+  <div class="primer-row"><b>line fill</b> — sự kiện nạp một line mới vào cache = 1 miss = ~100ns đứng chờ. Đây là đơn vị hardware dùng để "tính tiền", không phải phép toán. <a href="#mechanism">↓ Mechanism</a></div>
+  <div class="primer-row"><b>row-major / col-major</b> — hai thứ tự duyệt mảng 2D; khác số phận vì RAM thật ra là 1 chiều. <a href="#row-major">↓ Định nghĩa đầy đủ</a></div>
+  <div class="primer-row" style="font-size:.78rem;opacity:.7;font-family:'Courier Prime',monospace">Kiến thức nền assume sẵn (không giải thích lại): CPU, RAM, Big-O → prerequisites trong frontmatter</div>
+</div>
+
+<!-- ================= [T] ONE-LINER ================= -->
+<h2 id="one-liner">One-liner <span class="tag">[T]</span></h2>
+<p><strong>Cache mua latency bằng cách đánh cược vào locality</strong> — CPU không nạp từng byte, nó nạp cả <em>cache line</em> (thường 64B) và cược rằng bạn sẽ dùng phần còn lại của line đó. Code thắng cược thì nhanh, thua cược thì chờ RAM.</p>
+
+<!-- ================= [T] MENTAL MODEL ================= -->
+<h2 id="mental-model">Mental Model <span class="tag">[T]</span></h2>
+<div class="mm-grid">
+  <div class="mm-key">Extends</div>
+  <div>"Memory là mảng phẳng, truy cập đều nhau" — cache <em>phá</em> giả định đều nhau: L1 ~1ns, RAM ~100ns. Chi phí truy cập phụ thuộc <strong>vị trí dữ liệu</strong>, không phụ thuộc phép toán.</div>
+  <div class="mm-key conflict">Conflicts</div>
+  <div>Big-O model: "cùng số phép toán = cùng chi phí". <strong>Sai ở tầng memory hierarchy</strong> — hai vòng lặp cùng O(N²) có thể chênh nhau nhiều lần chỉ vì thứ tự truy cập. Đây là misconception mà Widget 1 bên dưới nhắm vào.
+    <div class="cmp-block">
+      <div class="cmp-divider">Cái Big-O nhìn thấy — bằng nhau</div>
+      <div class="cmp-row"><span>Phép cộng · duyệt hàng</span><div class="cmp-bar" style="width:100%"></div><span>16</span></div>
+      <div class="cmp-row"><span>Phép cộng · duyệt cột</span><div class="cmp-bar" style="width:100%"></div><span>16</span></div>
+      <div class="cmp-divider">Cái hardware nhìn thấy — lệch bao nhiêu? <a href="#widget-row-col" style="color:var(--result);text-decoration:none">Widget 01 bắt bạn dự đoán trước khi cho xem ↓</a></div>
+      <div style="font-family:'Courier Prime',monospace;font-size:.68rem;margin-top:.5rem;opacity:.75">duyệt hàng/cột = row/col-major — <a href="#row-major" style="color:var(--result);font-weight:700;text-decoration:none">định nghĩa đầy đủ ↓</a></div>
+    </div>
+  </div>
+  <div class="mm-key">Requires</div>
+  <div>Cache line là <strong>đơn vị transfer</strong> (không phải byte, không phải variable). Hiểu điều này trước, mọi thứ khác suy ra được.</div>
+  <div class="mm-key">Misapplication</div>
+  <div>Đơn luồng: line = unit of <em>transfer</em> → tận dụng. Đa luồng: line = unit of <em>ownership</em> (MESI) → chia sẻ line giữa 2 core ghi là thảm họa (false sharing). <strong>Cùng mechanism, dấu ngược nhau tùy context</strong> → <span class="wikilink">[[bridge-cache-line-transfer-vs-ownership]]</span></div>
+</div>
+
+<!-- ================= [T] MECHANISM ================= -->
+<h2 id="mechanism">Mechanism <span class="tag">[T]</span></h2>
+<div class="trace">Load địa chỉ X
+  → L1 lookup (~1ns)         [<span class="hit">HIT</span>? trả về ngay — 90%+ trường hợp tốt]
+  → L2 lookup (~4ns)         [miss L1 thì xuống đây]
+  → L3 lookup (~40ns)        [shared giữa các core]
+  → RAM fetch (~100ns)       [<span class="miss">MISS</span> toàn bộ — nạp NGUYÊN LINE 64B, không chỉ X]
+  → Line fill vào L1/L2      [byte lân cận X giờ "miễn phí"]
+  → Eviction                 [line cũ bị đẩy ra nhường chỗ]</div>
+
+<div class="lat-ladder">
+  <div class="lat-row"><span>L1 (~32KB)</span><div class="lat-bar" style="width:2%"></div><span>~1 ns</span></div>
+  <div class="lat-row"><span>L2 (~512KB)</span><div class="lat-bar" style="width:5%"></div><span>~4 ns</span></div>
+  <div class="lat-row"><span>L3 (~16MB)</span><div class="lat-bar" style="width:38%"></div><span>~40 ns</span></div>
+  <div class="lat-row"><span>RAM (GBs)</span><div class="lat-bar ram" style="width:100%"></div><span>~100 ns</span></div>
+  <div class="lat-cap">Càng to càng xa · mỗi tầng miss là một bậc nhảy, không phải tăng tuyến tính (độ dài thanh minh họa)</div>
+</div>
+
+<p>Hệ quả then chốt: truy cập <code>a[i]</code> lần đầu trả 100ns, nhưng <code>a[i+1..i+7]</code> (double 8B, line 64B) gần như miễn phí — <strong>nếu bạn dùng chúng trước khi line bị evict</strong>. Toàn bộ trò chơi locality nằm trong chữ "nếu" đó.</p>
+
+<!-- ================= [T] MEMORY LAYOUT — prerequisite closure cho Widget 01 ================= -->
+<h2 id="row-major">Row-major là gì — RAM không có 2 chiều <span class="tag">[T]</span></h2>
+<p><strong>"Mảng 2 chiều" là ảo giác của ngôn ngữ lập trình — RAM là một dãy địa chỉ 1 chiều.</strong> Khi bạn khai báo <code>a[4][4]</code>, compiler phải chọn một quy ước để ép phẳng nó xuống 1 chiều. Quy ước của C/C++/Rust/NumPy: <strong>row-major</strong> — xếp trọn hàng 0, rồi trọn hàng 1, cứ thế nối đuôi. Địa chỉ của <code>a[r][c]</code> = <code>base + (r*4 + c) × sizeof(elem)</code>.</p>
+
+<div class="mem-flex">
+  <div>
+    <div class="mem-caption" style="margin-bottom:.4rem">Code nhìn thấy: 2D</div>
+    <div class="mem-grid">
+      <div class="mem-cell row0">a[0][0]</div><div class="mem-cell row0">a[0][1]</div><div class="mem-cell row0">a[0][2]</div><div class="mem-cell row0">a[0][3]</div>
+      <div class="mem-cell row1">a[1][0]</div><div class="mem-cell row1">a[1][1]</div><div class="mem-cell row1">a[1][2]</div><div class="mem-cell row1">a[1][3]</div>
+      <div class="mem-cell row2">a[2][0]</div><div class="mem-cell row2">a[2][1]</div><div class="mem-cell row2">a[2][2]</div><div class="mem-cell row2">a[2][3]</div>
+      <div class="mem-cell row3">a[3][0]</div><div class="mem-cell row3">a[3][1]</div><div class="mem-cell row3">a[3][2]</div><div class="mem-cell row3">a[3][3]</div>
+    </div>
+  </div>
+  <div class="mem-arrow">→ ép phẳng →</div>
+</div>
+<div class="mem-caption">RAM thật sự: 1D — hàng nọ nối đuôi hàng kia (màu = hàng gốc)</div>
+<div class="mem-strip">
+  <div class="mem-cell row0">0</div><div class="mem-cell row0">1</div><div class="mem-cell row0">2</div><div class="mem-cell row0">3</div>
+  <div class="mem-cell row1">4</div><div class="mem-cell row1">5</div><div class="mem-cell row1">6</div><div class="mem-cell row1">7</div>
+  <div class="mem-cell row2">8</div><div class="mem-cell row2">9</div><div class="mem-cell row2">10</div><div class="mem-cell row2">11</div>
+  <div class="mem-cell row3">12</div><div class="mem-cell row3">13</div><div class="mem-cell row3">14</div><div class="mem-cell row3">15</div>
+</div>
+
+<p><strong>Row-major traversal</strong> (<code>for r → for c</code>): đi đúng thứ tự RAM, mỗi bước +1 ô — phần tử kế tiếp gần như luôn nằm sẵn trong cache line vừa nạp. <strong>Col-major traversal</strong> (<code>for c → for r</code>): mỗi bước nhảy +4 ô trong RAM. Hai vòng lặp chỉ đảo thứ tự hai chữ <code>for</code>, nhưng về vật lý: một cái đi bộ dọc dãy nhà, cái kia nhảy cóc qua 4 nhà mỗi bước.</p>
+
+<div class="highlight-box"><strong>[Version-dep]</strong> Row-major là quy ước của C/C++/Rust/NumPy (mặc định). Fortran, MATLAB, R dùng <strong>column-major</strong> — cùng một code duyệt, số phận cache ngược hẳn nhau. Vậy mệnh đề đúng không phải "duyệt theo hàng thì nhanh" mà là: <strong>duyệt theo đúng thứ tự bộ nhớ vật lý thì nhanh</strong>.</div>
+
+<!-- ================= [W] WIDGET 1 ================= -->
+<h2 id="widget-row-col">Row vs Col — cùng O(N²), khác số phận <span class="tag w">[W]</span></h2>
+
+<div class="widget">
+  <div class="widget-head">
+    <span>🎛 Widget 01 · Prediction-gated</span>
+    <span class="widget-status" id="w1-status">LOCKED</span>
+  </div>
+  <div class="widget-misconception">Misconception nhắm tới: <b>"Cùng số phép toán → cùng tốc độ"</b></div>
+  <div class="widget-body">
+
+    <!-- PREDICTION GATE -->
+    <div class="gate" id="w1-gate">
+      <div class="gate-q">Mảng 4×4, cache giữ đúng <b>1 line = 4 phần tử liên tiếp</b>. Duyệt <b>row-major</b> cho hit ratio <b>75%</b> (4 miss / 12 hit). Chuyển sang <b>col-major</b> — bạn dự đoán hit ratio sẽ là?</div>
+      <div class="gate-opts">
+        <button class="gate-btn" data-pred="75">Vẫn ~75%</button>
+        <button class="gate-btn" data-pred="50">Giảm còn ~50%</button>
+        <button class="gate-btn" data-pred="0">Sụp về 0%</button>
+      </div>
+      <div class="gate-verdict" id="w1-verdict"></div>
+    </div>
+
+    <div class="viz-flex">
+      <div class="viz-col">
+        <span class="viz-label">Code view — thứ tự duyệt</span>
+        <div class="cell-grid" id="w1-grid"></div>
+      </div>
+      <div class="viz-col">
+        <span class="viz-label">Cache (1 line = 4 ô, viền xanh)</span>
+        <div class="cell-grid" id="w1-ram"></div>
+        <div class="counter-box" id="w1-counter">Misses: <span class="m">0</span> · Hits: <span class="h">0</span><br/>Hit Ratio: <strong>—</strong></div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <button class="lab-btn" id="w1-mode">Chế độ: ROW-MAJOR</button>
+      <button class="lab-btn accent" id="w1-play" disabled>▶ Play</button>
+      <button class="lab-btn" id="w1-step" disabled>Step →</button>
+      <button class="lab-btn" id="w1-reset" disabled>Reset</button>
+    </div>
+  </div>
+</div>
+
+<p>Kết quả không nằm ở con số — nằm ở <strong>khoảng cách giữa dự đoán của bạn và thực tế</strong>. Row-major dùng cả 4 phần tử của line trước khi bỏ nó. Col-major nhảy stride 4 → mỗi truy cập rơi vào line khác → line vừa nạp bị vứt khi mới dùng 1/4. Big-O đếm phép cộng; hardware đếm line fill.</p>
+
+<div class="cmp-block">
+  <div class="cmp-divider">Recap tĩnh — cho lần đọc thứ N, sau khi đã qua gate</div>
+  <div class="cmp-row"><span>Phép cộng · duyệt hàng</span><div class="cmp-bar" style="width:100%"></div><span>16</span></div>
+  <div class="cmp-row"><span>Phép cộng · duyệt cột</span><div class="cmp-bar" style="width:100%"></div><span>16</span></div>
+  <div class="cmp-row"><span>Line fill · duyệt hàng</span><div class="cmp-bar" style="width:25%"></div><span>4</span></div>
+  <div class="cmp-row"><span>Line fill · duyệt cột</span><div class="cmp-bar bad" style="width:100%"></div><span>16</span></div>
+</div>
+
+<!-- ================= [T] TRADEOFFS ================= -->
+<h2 id="tradeoffs">Tradeoffs <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Quyết định</th><th>Được gì</th><th>Trả giá gì</th></tr>
+  <tr><td>Line lớn (64B thay vì 8B)</td><td>Spatial locality rẻ — 1 miss nạp 8 double</td><td>Truy cập rải rác lãng phí bandwidth; false sharing dễ xảy ra hơn</td></tr>
+  <tr><td>Cache nhỏ &amp; gần (L1)</td><td>Latency ~1ns</td><td>Working set vượt 32–48KB → thrash xuống L2/L3</td></tr>
+  <tr><td>Array-of-Structs</td><td>Code tự nhiên, 1 object liền khối</td><td>Duyệt 1 field của N object → nạp cả struct, dùng 1/8 line → SoA thắng cho analytics</td></tr>
+</table>
+
+<div class="mem-caption" style="margin-top:1rem">Array-of-Structs — tính tổng field <span style="background:#dce6f5;padding:0 4px">x</span>: mỗi line nạp lên chỉ dùng được 1/3</div>
+<div class="mem-strip w12">
+  <div class="mem-cell row2">x₀</div><div class="mem-cell row1">y₀</div><div class="mem-cell row3">z₀</div>
+  <div class="mem-cell row2">x₁</div><div class="mem-cell row1">y₁</div><div class="mem-cell row3">z₁</div>
+  <div class="mem-cell row2">x₂</div><div class="mem-cell row1">y₂</div><div class="mem-cell row3">z₂</div>
+  <div class="mem-cell row2">x₃</div><div class="mem-cell row1">y₃</div><div class="mem-cell row3">z₃</div>
+</div>
+<div class="mem-caption" style="margin-top:.9rem">Struct-of-Arrays — cùng phép tính: mỗi line nạp lên là 100% dữ liệu cần</div>
+<div class="mem-strip w12">
+  <div class="mem-cell row2">x₀</div><div class="mem-cell row2">x₁</div><div class="mem-cell row2">x₂</div><div class="mem-cell row2">x₃</div>
+  <div class="mem-cell row2">x₄</div><div class="mem-cell row2">x₅</div><div class="mem-cell row2">x₆</div><div class="mem-cell row2">x₇</div>
+  <div class="mem-cell row2">x₈</div><div class="mem-cell row2">x₉</div><div class="mem-cell row2">x₁₀</div><div class="mem-cell row2">x₁₁</div>
+</div>
+<p style="font-size:.92rem;margin-top:.6rem">Cùng một logic với row vs col: <strong>không phải cấu trúc dữ liệu nào "nhanh hơn" — mà là bố cục nào khớp với access pattern</strong>. Duyệt cả struct → AoS thắng; duyệt một field xuyên N object (analytics, SIMD) → SoA thắng. Đây là lý do các columnar format (Parquet, DuckDB) tồn tại — cùng nguyên lý, scale lên disk page.</p>
+
+<!-- ================= [W] WIDGET 2 ================= -->
+<h2 id="widget-stride">Stride Explorer — locality chết ở stride nào? <span class="tag w">[W]</span></h2>
+
+<div class="widget">
+  <div class="widget-head">
+    <span>🎛 Widget 02 · Parameter explorer</span>
+    <span class="widget-status">LIVE</span>
+  </div>
+  <div class="widget-misconception">Misconception nhắm tới: <b>"Truy cập có quy luật thì cache vẫn giúp được"</b> — sai: cache không hiểu "quy luật", nó chỉ hiểu line</div>
+  <div class="widget-body">
+    <p style="font-size:.92rem">Mảng 16 phần tử, line = 4. Kéo stride và <strong>tự dự đoán hit ratio trước khi nhìn số</strong>: tại stride nào locality biến mất hoàn toàn?</p>
+    <div class="line-brackets"><div>LINE 0</div><div>LINE 1</div><div>LINE 2</div><div>LINE 3</div></div>
+    <div class="stride-row" id="w2-dots"></div>
+    <div class="formula-line" id="w2-formula">stride=1 → 16 truy cập · 4 miss · Hit Ratio = 75%</div>
+    <div class="controls-row">
+      <span class="slider-label">Stride</span>
+      <input type="range" class="lab-slider" id="w2-slider" min="0" max="3" value="0" step="1"/>
+      <span id="w2-disp" style="font-family:'Courier Prime',monospace;font-weight:700;min-width:20px">1</span>
+    </div>
+  </div>
+</div>
+
+<p>Quy luật rút ra được: hit ratio = <code>1 − stride/line_size</code> (khi stride ≤ line size). Stride = line size → <strong>mỗi truy cập một line mới, hit ratio = 0</strong>, dù bạn chỉ đọc 4 phần tử. Đây chính là câu self-test số 2 bên dưới, ở scale thật 64B.</p>
+
+<!-- ================= [T] FAILURE MODES ================= -->
+<h2 id="failure-modes">Failure Modes <span class="tag">[T]</span></h2>
+<table>
+  <tr><th>Failure</th><th>Cơ chế</th><th>Symptom production</th></tr>
+  <tr><td>Cache thrash</td><td>Working set &gt; cache capacity → eviction liên tục</td><td>Throughput sụp khi data size vượt ngưỡng L2/L3 — đồ thị có "bậc thang"</td></tr>
+  <tr><td>Pointer chasing</td><td>Linked list/tree: node kế tiếp ở line ngẫu nhiên → không prefetch được</td><td>Array traversal nhanh hơn linked list 5–10× cùng N</td></tr>
+  <tr><td>False sharing</td><td>2 core ghi 2 biến <em>khác nhau</em> nhưng cùng line → MESI invalidate qua lại</td><td>Thêm thread mà throughput không scale, thậm chí giảm, dù zero lock</td></tr>
+</table>
+
+<div class="mem-caption" style="margin-top:1rem">Array — 8 phần tử liền kề = 2 line fill · địa chỉ kế tiếp đoán được trước → prefetcher nạp sẵn</div>
+<div class="mem-strip w8">
+  <div class="mem-cell row1">0</div><div class="mem-cell row1">1</div><div class="mem-cell row1">2</div><div class="mem-cell row1">3</div>
+  <div class="mem-cell row2">4</div><div class="mem-cell row2">5</div><div class="mem-cell row2">6</div><div class="mem-cell row2">7</div>
+</div>
+<div class="mem-caption" style="margin-top:1rem">Linked list — cùng 8 node (n0→n7 theo thứ tự duyệt) rải khắp RAM = 8 line fill · địa chỉ node kế chỉ biết <strong>sau khi</strong> đọc node hiện tại → prefetcher mù</div>
+<div class="line-brackets"><div>LINE 0</div><div>LINE 1</div><div>LINE 2</div><div>LINE 3</div></div>
+<div class="mem-strip">
+  <div class="mem-cell dim"></div><div class="mem-cell row0">n0</div><div class="mem-cell dim"></div><div class="mem-cell row0">n4</div>
+  <div class="mem-cell dim"></div><div class="mem-cell row1">n2</div><div class="mem-cell row1">n6</div><div class="mem-cell dim"></div>
+  <div class="mem-cell dim"></div><div class="mem-cell row2">n5</div><div class="mem-cell row2">n3</div><div class="mem-cell dim"></div>
+  <div class="mem-cell dim"></div><div class="mem-cell row3">n1</div><div class="mem-cell row3">n7</div><div class="mem-cell dim"></div>
+</div>
+<p style="font-size:.92rem;margin-top:.6rem">Đọc thứ tự duyệt n0→n1→n2...: mỗi bước nhảy sang line khác line hiện tại → miss liên tục. Tệ hơn col-major một bậc: col-major nhảy <em>đều đặn</em> nên hardware prefetcher còn học được stride; pointer chasing là <strong>dependent load</strong> — không đọc xong node này thì không biết địa chỉ node sau, prefetch bất khả về nguyên tắc. Đây là lý do array thắng linked list 5–10× dù cùng Big-O.</p>
+<div class="highlight-box"><strong>Chú ý:</strong> False sharing <em>không có widget</em> — có chủ đích. Simulation tự code sẽ output con số mình lập trình sẵn = zero evidence value. Mechanism này cần <strong>benchmark thật + perf stat</strong> → xem Evidence Log. Prerequisite còn thiếu: MESI coherence (chưa học, maturity L1).</div>
+
+<!-- ================= [E] EVIDENCE LOG ================= -->
+<h2 id="evidence">Evidence Log — máy của tôi <span class="tag e">[E]</span></h2>
+<p>Con số thật là thứ neo trí nhớ. Simulation ở trên dựng model; bảng này chứng minh model đúng trên phần cứng thật. <strong>Note chưa đạt L3 khi bảng này còn trống.</strong></p>
+<table>
+  <tr><th>Benchmark</th><th>Lệnh</th><th>Kết quả (điền sau khi chạy)</th></tr>
+  <tr>
+    <td>Row vs col-major, N=4096</td>
+    <td><span class="cmd">perf stat -e cache-misses,cache-references ./traverse row
+perf stat -e cache-misses,cache-references ./traverse col</span></td>
+    <td class="evidence-empty">[ CHƯA CÓ — chạy Day 2 ]</td>
+  </tr>
+  <tr>
+    <td>False sharing: padded vs unpadded, 2 thread</td>
+    <td><span class="cmd">perf stat -e cache-misses ./fs_bench unpadded
+perf stat -e cache-misses ./fs_bench padded</span></td>
+    <td class="evidence-empty">[ CHƯA CÓ — cần MESI trước ]</td>
+  </tr>
+  <tr>
+    <td>Pointer chasing: array vs linked list</td>
+    <td><span class="cmd">./chase array 10000000
+./chase list  10000000</span></td>
+    <td class="evidence-empty">[ CHƯA CÓ ]</td>
+  </tr>
+</table>
+
+<!-- ================= [Q] SELF-TEST ================= -->
+<h2 id="self-test">Self-test <span class="tag">[Q]</span></h2>
+<p>Trả lời từ trí nhớ <em>trước</em> khi bấm reveal. Sai → quay lại đúng section được link, không đọc lại cả note.</p>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 3</span><span>Mảng 4×4, line = 4 phần tử: vì sao col-major miss <strong>cả 16 lần</strong> trong khi mỗi line chứa sẵn 4 phần tử liên tiếp?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Col-major truy cập theo stride 4 = đúng bằng line size → phần tử kế tiếp <em>luôn</em> nằm ở line khác. Cache 1-line phải evict line vừa nạp khi mới dùng 1/4 nó. Đến khi vòng lặp quay lại cột sau, line cũ đã bị đẩy ra từ lâu → mọi truy cập đều là cold miss. (→ <a href="#widget-row-col" class="wikilink">Widget 01</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 4</span><span>Line 64B, mảng <code>double</code> 8B. Stride bao nhiêu <strong>phần tử</strong> thì spatial locality biến mất hoàn toàn — và hit ratio thay đổi thế nào ở stride 2, 4, 8?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer">Line chứa 64/8 = <strong>8 double</strong>. Stride 2 → dùng 4/8 line → hit 50%. Stride 4 → 25%. <strong>Stride 8 → mỗi truy cập một line mới → hit 0%</strong>, locality chết hẳn dù pattern hoàn toàn "có quy luật". Công thức: hit = 1 − stride/8 (stride ≤ 8). (→ <a href="#widget-stride" class="wikilink">Widget 02</a>)</div>
+</div>
+
+<div class="q-item">
+  <div class="q-head"><span class="q-level">Mức 5</span><span>Trong PostgreSQL, hiện tượng nào ở tầng buffer pool đóng vai trò tương đương "duyệt col-major"?</span></div>
+  <div class="q-actions"><button class="lab-btn" onclick="this.closest('.q-item').querySelector('.q-answer').classList.toggle('show')">Reveal</button></div>
+  <div class="q-answer"><span style="font-family:'Courier Prime',monospace;font-size:.75rem;background:var(--ink);color:var(--paper);padding:1px 6px">[PG-specific]</span> Index scan trên cột có <strong>correlation thấp</strong> với thứ tự vật lý của heap: mỗi TID trỏ tới một heap page khác nhau → mỗi row fetch là một page read riêng, giống mỗi phần tử một cache line. Cùng số row, index scan correlation thấp có thể thua seq scan — lý do planner đôi khi "từ chối" dùng index. Cache line ↔ heap page, L1 ↔ shared_buffers, RAM fetch ↔ disk I/O. (→ <span class="wikilink">[[bridge-locality-cpu-cache-to-buffer-pool]]</span>, học kỹ Day 10–11)</div>
+</div>
+
+<!-- ================= [T] LINKS ================= -->
+<h2 id="links">Links <span class="tag">[T]</span></h2>
+<ul class="links-list">
+  <li>Prereq: <span class="wikilink">[[concept-cpu-execution-pipeline]]</span></li>
+  <li>Downstream: <span class="wikilink">[[concept-disk-pages-buffer-pool]]</span> (Day 10)</li>
+  <li>Bridge: <span class="wikilink">[[bridge-locality-cpu-cache-to-buffer-pool]]</span> · <span class="wikilink">[[bridge-cache-line-transfer-vs-ownership]]</span> (stub — chờ MESI)</li>
+  <li>Lab (dựng model lần đầu, dùng 1 lần): <span class="wikilink">[[lab-cache-locality-row-vs-col]]</span></li>
+  <li>Source: Intel Optimization Reference Manual · ch. Memory Subsystem</li>
+</ul>
+
+<div class="note-meta">Format B · 3 tầng medium: text / static visual / widget · 2/3 widget budget (budget chỉ áp tier 3) · prerequisite closure cho mọi widget · body scrolls</div>
+
+</main>
+
+<script>
+/* ============================================================
+   WIDGET 01 — Row vs Col với PREDICTION GATE
+   Cache model: 1 line duy nhất, line = 4 phần tử liên tiếp
+   ============================================================ */
+const W1 = {
+  mode: 'row',            // 'row' | 'col'
+  prediction: null,       // '75' | '50' | '0'
+  order: [],              // thứ tự truy cập index 0..15
+  pos: 0,                 // đã xử lý bao nhiêu truy cập
+  cachedLine: -1,         // line hiện trong cache (-1 = rỗng)
+  hits: 0, misses: 0,
+  timer: null, playing: false,
+  history: []             // {idx, hit}
+};
+
+const w1Grid = document.getElementById('w1-grid');
+const w1Ram  = document.getElementById('w1-ram');
+const w1Counter = document.getElementById('w1-counter');
+const w1Status  = document.getElementById('w1-status');
+const btnMode = document.getElementById('w1-mode');
+const btnPlay = document.getElementById('w1-play');
+const btnStep = document.getElementById('w1-step');
+const btnReset = document.getElementById('w1-reset');
+
+function buildW1Cells(){
+  for (const host of [w1Grid, w1Ram]) {
+    host.innerHTML = '';
+    for (let i = 0; i < 16; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell'; d.textContent = i;
+      host.appendChild(d);
+    }
+  }
+}
+
+function computeOrder(){
+  W1.order = [];
+  if (W1.mode === 'row') { for (let i = 0; i < 16; i++) W1.order.push(i); }
+  else { for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) W1.order.push(r*4 + c); }
+}
+
+function lineOf(idx){ return Math.floor(idx / 4); } // RAM layout row-major: line = hàng
+
+function resetW1(keepGate){
+  clearInterval(W1.timer); W1.playing = false;
+  W1.pos = 0; W1.cachedLine = -1; W1.hits = 0; W1.misses = 0; W1.history = [];
+  computeOrder(); renderW1();
+  if (W1.prediction !== null) w1Status.textContent = 'READY';
+  if (!keepGate) { /* gate giữ nguyên — dự đoán chỉ chọn 1 lần */ }
+}
+
+function stepW1(){
+  if (W1.pos >= 16) return;
+  const idx = W1.order[W1.pos];
+  const ln = lineOf(idx);
+  const hit = (ln === W1.cachedLine);
+  if (hit) W1.hits++; else { W1.misses++; W1.cachedLine = ln; }
+  W1.history.push({idx, hit});
+  W1.pos++;
+  renderW1();
+  if (W1.pos >= 16) finishW1();
+}
+
+function finishW1(){
+  clearInterval(W1.timer); W1.playing = false;
+  w1Status.textContent = 'DONE';
+  // Reveal so với prediction — chỉ ở lượt col-major (nơi có gate)
+  if (W1.mode === 'col' && W1.prediction !== null) {
+    const actual = Math.round(100 * W1.hits / 16); // = 0
+    const v = document.getElementById('w1-verdict');
+    const correct = (W1.prediction === '0');
+    v.innerHTML = correct
+      ? `Bạn đoán <span class="right">sụp về 0%</span> — thực tế: <span class="right">${actual}%</span>. Model của bạn đã đúng ở tầng line-granularity.`
+      : `Bạn đoán <span class="wrong">${W1.prediction}%</span> — thực tế: <span class="right">${actual}%</span>. Khoảng lệch này chính là chỗ mental model cũ (đếm phép toán) khác hardware (đếm line fill). Ghi con số này vào note.`;
+    v.classList.add('show');
+  }
+}
+
+function playW1(){
+  if (W1.playing || W1.pos >= 16) return;
+  W1.playing = true; w1Status.textContent = 'RUNNING';
+  W1.timer = setInterval(() => { stepW1(); }, 380);
+}
+
+function renderW1(){
+  const gridCells = w1Grid.children, ramCells = w1Ram.children;
+  for (let i = 0; i < 16; i++) {
+    gridCells[i].className = 'cell'; ramCells[i].className = 'cell';
+  }
+  W1.history.forEach((h, k) => {
+    const cls = h.hit ? 'visited-hit' : 'visited-miss';
+    gridCells[h.idx].classList.add(k === W1.history.length-1 ? 'current' : cls);
+    ramCells[h.idx].classList.add(k === W1.history.length-1 ? 'current' : cls);
+  });
+  if (W1.cachedLine >= 0) {
+    for (let i = W1.cachedLine*4; i < W1.cachedLine*4+4; i++) ramCells[i].classList.add('inline-cache');
+  }
+  const ratio = (W1.hits + W1.misses) ? Math.round(100*W1.hits/(W1.hits+W1.misses)) + '%' : '—';
+  w1Counter.innerHTML = `Misses: <span class="m">${W1.misses}</span> · Hits: <span class="h">${W1.hits}</span><br/>Hit Ratio: <strong>${ratio}</strong>`;
+}
+
+/* Gate: chọn dự đoán → unlock controls */
+document.querySelectorAll('#w1-gate .gate-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    if (W1.prediction !== null) return; // commit 1 lần — không cho đổi sau khi thấy gợi ý
+    W1.prediction = b.dataset.pred;
+    b.classList.add('chosen');
+    [btnPlay, btnStep, btnReset].forEach(x => x.disabled = false);
+    w1Status.textContent = 'READY';
+  });
+});
+
+btnMode.addEventListener('click', () => {
+  W1.mode = W1.mode === 'row' ? 'col' : 'row';
+  btnMode.textContent = 'Chế độ: ' + (W1.mode === 'row' ? 'ROW-MAJOR' : 'COL-MAJOR');
+  resetW1(true);
+});
+btnPlay.addEventListener('click', playW1);
+btnStep.addEventListener('click', () => { if (!W1.playing) stepW1(); });
+btnReset.addEventListener('click', () => resetW1(true));
+
+buildW1Cells(); computeOrder(); renderW1();
+
+/* ============================================================
+   WIDGET 02 — Stride Explorer
+   16 phần tử, line = 4, cache 1 line. Stride ∈ {1,2,4,8}
+   ============================================================ */
+const STRIDES = [1, 2, 4, 8];
+const w2Dots = document.getElementById('w2-dots');
+const w2Formula = document.getElementById('w2-formula');
+const w2Slider = document.getElementById('w2-slider');
+const w2Disp = document.getElementById('w2-disp');
+
+function renderW2(){
+  const stride = STRIDES[+w2Slider.value];
+  w2Disp.textContent = stride;
+  w2Dots.innerHTML = '';
+  let cached = -1, hits = 0, misses = 0;
+  const touched = {};
+  for (let i = 0; i < 16; i += stride) {
+    const ln = Math.floor(i / 4);
+    const hit = ln === cached;
+    if (hit) hits++; else { misses++; cached = ln; }
+    touched[i] = hit;
+  }
+  for (let i = 0; i < 16; i++) {
+    const d = document.createElement('div');
+    d.className = 'sdot'; d.textContent = i;
+    if (i in touched) d.classList.add(touched[i] ? 'hit' : 'miss');
+    else d.classList.add('skip');
+    w2Dots.appendChild(d);
+  }
+  const total = hits + misses;
+  const ratio = Math.round(100 * hits / total);
+  w2Formula.innerHTML = `stride=${stride} → ${total} truy cập · <span style="color:var(--accent);font-weight:700">${misses} miss</span> · Hit Ratio = <span style="color:var(--result);font-weight:700">${ratio}%</span>${ratio === 0 ? ' — locality chết: stride = line size' : ''}`;
+}
+w2Slider.addEventListener('input', renderW2);
+renderW2();
+</script>
+</body>
+</html>

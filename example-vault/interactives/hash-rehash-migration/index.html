@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rehash Migration — 8 sang 16 ô</title>
+<style>
+:root {
+  --paper: #f9f9f7;
+  --ink: #111111;
+  --accent: #d32f2f;
+  --accent-tint: #f5d5d5;
+  --result: #2b5797;
+  --result-tint: #dce6f5;
+  --rule: #c8c8c2;
+  --muted: #666660;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  margin: 0 auto;
+  max-width: 920px;
+  padding: 1rem;
+}
+
+button { font: inherit; }
+
+.eyebrow,
+.panel-kicker {
+  color: var(--accent);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.45rem, 5vw, 2.45rem);
+  letter-spacing: -.045em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.12rem;
+  margin: 0 0 .65rem;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .6rem 0 1rem;
+  max-width: 78ch;
+}
+
+.formula {
+  border-bottom: 2px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .7rem;
+  font-weight: 700;
+  gap: .45rem 1.8rem;
+  letter-spacing: .04em;
+  padding: .7rem 0;
+}
+
+.migration-layout {
+  align-items: center;
+  display: grid;
+  gap: .85rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.65fr);
+  padding: 1rem 0 .75rem;
+}
+
+.table-panel { min-width: 0; }
+
+.arrow {
+  color: var(--accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+}
+
+.old-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.new-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+
+.cell {
+  aspect-ratio: 1;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: .28rem;
+}
+
+.cell-index,
+.cell-state {
+  font-size: .55rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.cell-value {
+  align-self: center;
+  font-size: clamp(.75rem, 2.6vw, 1rem);
+  font-weight: 700;
+  justify-self: center;
+}
+
+.cell-state {
+  align-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell.current {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.cell.moved,
+.cell.visited {
+  background: var(--accent-tint);
+}
+
+.cell.result {
+  background: var(--result);
+  color: #ffffff;
+}
+
+.queue {
+  border-bottom: 1px solid var(--rule);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .65rem 0;
+}
+
+.queue-item {
+  border: 1px solid var(--ink);
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .3rem .45rem;
+}
+
+.queue-item.done {
+  background: var(--result-tint);
+  color: var(--result);
+  text-decoration: line-through;
+}
+
+.queue-item.next {
+  border-color: var(--accent);
+  border-width: 2px;
+  color: var(--accent);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .66rem;
+  gap: .45rem 1rem;
+  margin: .65rem 0 .8rem;
+}
+
+.legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: .35rem;
+}
+
+.swatch {
+  border: 1px solid var(--ink);
+  display: inline-block;
+  height: .75rem;
+  width: .75rem;
+}
+
+.swatch.current { background: var(--accent); }
+.swatch.moved { background: var(--accent-tint); }
+.swatch.result { background: var(--result); }
+
+.actions {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .8rem;
+}
+
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  min-height: 2.4rem;
+  padding: .42rem .72rem;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.counter {
+  border-left: 2px solid var(--ink);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  margin-left: auto;
+  padding: .45rem 0 .45rem .7rem;
+  text-transform: uppercase;
+}
+
+.counter output {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.ledger {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: clamp(.82rem, 3vw, 1.05rem);
+  font-weight: 700;
+  line-height: 1.45;
+  margin: .85rem 3px .7rem 0;
+  min-height: 3rem;
+  overflow-wrap: anywhere;
+  padding: .6rem .7rem;
+}
+
+.status {
+  color: var(--result);
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 .55rem;
+  min-height: 2.25rem;
+}
+
+.model-note {
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: .65rem;
+}
+
+@media (max-width: 720px) {
+  .migration-layout {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+  .arrow {
+    line-height: .8;
+    transform: rotate(90deg);
+    width: min-content;
+  }
+  .counter { margin-left: 0; }
+}
+
+@media (max-width: 430px) {
+  body { padding: .75rem; }
+  .new-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cell-state { display: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Rehash · di chuyển từng bước</p>
+  <h1>Resize không phải kéo giãn mảng cũ</h1>
+  <p class="lede">Mỗi STEP lấy một entry theo thứ tự slot cũ, tính lại <strong>hash mod 16</strong>, rồi linear-probe trong bảng mới. B có hash 13 là đúng kịch bản của gate.</p>
+
+  <div class="formula" aria-label="Phép ánh xạ vị trí">
+    <span>chỉ số cũ = hash mod 8</span>
+    <span>home slot mới = hash mod 16</span>
+  </div>
+
+  <div class="migration-layout">
+    <section class="table-panel" aria-labelledby="old-title">
+      <p class="panel-kicker">Nguồn · m = 8</p>
+      <h2 id="old-title">Bảng cũ</h2>
+      <div id="oldGrid" class="grid old-grid" role="list" aria-label="Bảng cũ 8 ô"></div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">→</div>
+
+    <section class="table-panel" aria-labelledby="new-title">
+      <p class="panel-kicker">Đích · m = 16</p>
+      <h2 id="new-title">Bảng mới</h2>
+      <div id="newGrid" class="grid new-grid" role="list" aria-label="Bảng mới 16 ô"></div>
+    </section>
+  </div>
+
+  <div class="queue" id="queue" aria-label="Thứ tự entry cần chuyển"></div>
+
+  <div class="legend" aria-label="Chú giải màu">
+    <span><i class="swatch current"></i>Entry đang chuyển</span>
+    <span><i class="swatch moved"></i>Đã chuyển</span>
+    <span><i class="swatch result"></i>Ô mới vừa đặt</span>
+  </div>
+
+  <div class="actions">
+    <button type="button" id="step">STEP · chuyển 1 entry</button>
+    <button type="button" id="play" aria-pressed="false">PLAY</button>
+    <button type="button" id="reset">RESET</button>
+    <span class="counter">Đã chuyển <output id="count">0</output>/4</span>
+  </div>
+
+  <div class="ledger" id="ledger" aria-label="Trace của bước hiện tại">—</div>
+  <p class="status" id="status" role="status" aria-live="polite">Tự dự đoán vị trí mới của B, rồi bấm STEP.</p>
+  <p class="model-note">Các vị trí là kết quả xác định của phép modulo và linear probing; đây không phải benchmark.</p>
+</main>
+
+<script>
+const OLD_SIZE = 8;
+const NEW_SIZE = 16;
+const ENTRIES = [
+  { key: 'A', hash: 1, oldSlot: 1 },
+  { key: 'B', hash: 13, oldSlot: 5 },
+  { key: 'C', hash: 5, oldSlot: 6 },
+  { key: 'D', hash: 21, oldSlot: 7 }
+];
+
+const elements = {
+  oldGrid: document.getElementById('oldGrid'),
+  newGrid: document.getElementById('newGrid'),
+  queue: document.getElementById('queue'),
+  step: document.getElementById('step'),
+  play: document.getElementById('play'),
+  reset: document.getElementById('reset'),
+  count: document.getElementById('count'),
+  ledger: document.getElementById('ledger'),
+  status: document.getElementById('status')
+};
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const S = {
+  pos: 0,
+  newSlots: Array(NEW_SIZE).fill(null),
+  trace: [],
+  latest: null,
+  latestTarget: null,
+  timer: null,
+  playing: false
+};
+
+function entryAtOldSlot(index) {
+  return ENTRIES.find((entry) => entry.oldSlot === index) || null;
+}
+
+function probeNewTable(hash) {
+  const home = hash % NEW_SIZE;
+  const trace = [];
+  for (let offset = 0; offset < NEW_SIZE; offset += 1) {
+    const index = (home + offset) % NEW_SIZE;
+    trace.push(index);
+    if (S.newSlots[index] === null) return { home, trace, target: index };
+  }
+  return { home, trace, target: null };
+}
+
+function makeCell(index, value, state, stateLabel) {
+  const cell = document.createElement('div');
+  cell.className = `cell ${state}`.trim();
+  cell.setAttribute('role', 'listitem');
+  cell.setAttribute('aria-label', `Ô ${index}: ${value || 'trống'}${stateLabel ? `, ${stateLabel}` : ''}`);
+  cell.innerHTML = `<span class="cell-index">${index}</span><span class="cell-value">${value || '∅'}</span><span class="cell-state">${stateLabel || (value ? 'ENTRY' : 'TRỐNG')}</span>`;
+  return cell;
+}
+
+function renderOldGrid() {
+  elements.oldGrid.innerHTML = '';
+  for (let index = 0; index < OLD_SIZE; index += 1) {
+    const entry = entryAtOldSlot(index);
+    const entryOrder = entry ? ENTRIES.indexOf(entry) : -1;
+    const isLatest = entry && S.latest && entry.key === S.latest.key;
+    const isMoved = entryOrder >= 0 && entryOrder < S.pos;
+    const state = isLatest ? 'current' : isMoved ? 'moved' : '';
+    const label = isLatest ? 'ĐANG CHUYỂN' : isMoved ? 'ĐÃ CHUYỂN' : entry ? `HASH ${entry.hash}` : 'TRỐNG';
+    elements.oldGrid.appendChild(makeCell(index, entry ? entry.key : null, state, label));
+  }
+}
+
+function renderNewGrid() {
+  elements.newGrid.innerHTML = '';
+  for (let index = 0; index < NEW_SIZE; index += 1) {
+    const value = S.newSlots[index];
+    const isResult = S.latestTarget === index;
+    const isVisited = S.trace.slice(0, -1).includes(index);
+    const state = isResult ? 'result' : isVisited ? 'visited' : '';
+    const label = isResult ? 'VỪA ĐẶT' : isVisited ? 'ĐÃ PROBE' : value ? 'ENTRY' : 'TRỐNG';
+    elements.newGrid.appendChild(makeCell(index, value, state, label));
+  }
+}
+
+function renderQueue() {
+  elements.queue.innerHTML = '';
+  ENTRIES.forEach((entry, index) => {
+    const item = document.createElement('span');
+    item.className = `queue-item${index < S.pos ? ' done' : index === S.pos ? ' next' : ''}`;
+    item.textContent = `${entry.key} · hash ${entry.hash} · cũ ${entry.oldSlot}`;
+    elements.queue.appendChild(item);
+  });
+}
+
+function render() {
+  renderOldGrid();
+  renderNewGrid();
+  renderQueue();
+  elements.count.textContent = String(S.pos);
+  elements.step.disabled = S.pos >= ENTRIES.length;
+  elements.play.disabled = S.pos >= ENTRIES.length;
+  elements.ledger.textContent = S.latest
+    ? `${S.latest.key} · hash ${S.latest.hash} mod 16 = ${S.latest.hash % NEW_SIZE} · probe ${S.trace.join(' → ')} · đặt ở ${S.latestTarget}`
+    : '—';
+}
+
+function stopPlay() {
+  if (S.timer !== null) window.clearInterval(S.timer);
+  S.timer = null;
+  S.playing = false;
+  elements.play.textContent = 'PLAY';
+  elements.play.setAttribute('aria-pressed', 'false');
+}
+
+function finish() {
+  stopPlay();
+  elements.status.textContent = 'Hoàn tất: A → 1, B → 13, C → 5, D → 6. Chỉ số cũ không được sao chép; mỗi entry được ánh xạ và chèn lại.';
+}
+
+function step() {
+  if (S.pos >= ENTRIES.length) return;
+  const entry = ENTRIES[S.pos];
+  const { home, trace, target } = probeNewTable(entry.hash);
+  if (target === null) return;
+
+  S.newSlots[target] = entry.key;
+  S.trace = trace;
+  S.latest = entry;
+  S.latestTarget = target;
+  S.pos += 1;
+
+  elements.status.textContent = trace.length === 1
+    ? `${entry.key}: new home = ${entry.hash} mod 16 = ${home}; ô ${target} trống nên đặt ngay.`
+    : `${entry.key}: new home = ${home}, nhưng đã bị chiếm; probe ${trace.join(' → ')} rồi đặt ở ${target}.`;
+  render();
+  if (S.pos >= ENTRIES.length) finish();
+}
+
+function play() {
+  if (S.pos >= ENTRIES.length) return;
+  if (S.playing) {
+    stopPlay();
+    return;
+  }
+  if (reducedMotion.matches) {
+    while (S.pos < ENTRIES.length) step();
+    return;
+  }
+
+  S.playing = true;
+  elements.play.textContent = 'PAUSE';
+  elements.play.setAttribute('aria-pressed', 'true');
+  step();
+  if (S.pos < ENTRIES.length) S.timer = window.setInterval(step, 720);
+}
+
+function resetSim() {
+  stopPlay();
+  S.pos = 0;
+  S.newSlots = Array(NEW_SIZE).fill(null);
+  S.trace = [];
+  S.latest = null;
+  S.latestTarget = null;
+  elements.status.textContent = 'Tự dự đoán vị trí mới của B, rồi bấm STEP.';
+  render();
+}
+
+elements.step.addEventListener('click', step);
+elements.play.addEventListener('click', play);
+elements.reset.addEventListener('click', resetSim);
+
+resetSim();
+</script>
+</body>
+</html>

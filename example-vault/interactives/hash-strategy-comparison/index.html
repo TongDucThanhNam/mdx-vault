@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chaining và Linear Probing — Cùng collision, khác layout</title>
+<style>
+:root {
+  --paper: #f9f9f7;
+  --ink: #111111;
+  --accent: #d32f2f;
+  --accent-tint: #f5d5d5;
+  --result: #2b5797;
+  --result-tint: #dce6f5;
+  --rule: #c8c8c2;
+  --muted: #666660;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Courier Prime", ui-monospace, monospace;
+  margin: 0 auto;
+  max-width: 880px;
+  padding: 1rem;
+}
+
+button { font: inherit; }
+
+.eyebrow,
+.panel-kicker {
+  color: var(--accent);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.45rem, 5vw, 2.45rem);
+  letter-spacing: -.045em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  margin: 0 0 .65rem;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin: .6rem 0 1rem;
+  max-width: 74ch;
+}
+
+.scenario {
+  border-bottom: 2px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .7rem;
+  font-weight: 700;
+  gap: .45rem 1.4rem;
+  letter-spacing: .05em;
+  padding: .7rem 0;
+  text-transform: uppercase;
+}
+
+.panels {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 1rem 0 .65rem;
+}
+
+.panel {
+  min-width: 0;
+}
+
+.panel + .panel {
+  border-left: 1px solid var(--rule);
+  padding-left: 1.25rem;
+}
+
+.bucket-list {
+  display: grid;
+  gap: 3px;
+}
+
+.bucket {
+  align-items: stretch;
+  border: 1px solid var(--ink);
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  min-height: 2.25rem;
+}
+
+.bucket-index {
+  align-items: center;
+  border-right: 1px solid var(--ink);
+  display: flex;
+  font-size: .66rem;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.chain {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  min-width: 0;
+  padding: .28rem .4rem;
+}
+
+.chain-empty {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.token {
+  border: 1px solid var(--ink);
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .18rem .35rem;
+}
+
+.token::after {
+  content: " →";
+  color: var(--muted);
+  margin-left: .25rem;
+}
+
+.token:last-child::after { content: ""; }
+
+.bucket.current {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+.token.latest {
+  background: var(--result);
+  border-color: var(--result);
+  color: #ffffff;
+}
+
+.slot-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.slot {
+  aspect-ratio: 1;
+  border: 2px solid var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: .3rem;
+}
+
+.slot-index,
+.slot-state {
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.slot-value {
+  align-self: center;
+  font-size: 1rem;
+  font-weight: 700;
+  justify-self: center;
+}
+
+.slot-state {
+  align-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot.visited { background: var(--accent-tint); }
+.slot.result { background: var(--result); color: #ffffff; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .66rem;
+  gap: .45rem 1rem;
+  margin: .25rem 0 .8rem;
+}
+
+.legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: .35rem;
+}
+
+.swatch {
+  border: 1px solid var(--ink);
+  display: inline-block;
+  height: .75rem;
+  width: .75rem;
+}
+
+.swatch.active { background: var(--accent); }
+.swatch.visited { background: var(--accent-tint); }
+.swatch.result { background: var(--result); }
+
+.actions {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-top: .8rem;
+}
+
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  min-height: 2.4rem;
+  padding: .42rem .72rem;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.counter {
+  border-left: 2px solid var(--ink);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  margin-left: auto;
+  padding: .45rem 0 .45rem .7rem;
+  text-transform: uppercase;
+}
+
+.counter output {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.ledger {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: clamp(.82rem, 3vw, 1.05rem);
+  font-weight: 700;
+  line-height: 1.45;
+  margin: .85rem 3px .7rem 0;
+  min-height: 3rem;
+  overflow-wrap: anywhere;
+  padding: .6rem .7rem;
+}
+
+.status {
+  color: var(--result);
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 .55rem;
+  min-height: 2.25rem;
+}
+
+.model-note {
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: .65rem;
+}
+
+@media (max-width: 680px) {
+  .panels { grid-template-columns: 1fr; }
+  .panel + .panel {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+  .counter { margin-left: 0; }
+}
+
+@media (max-width: 390px) {
+  body { padding: .75rem; }
+  .slot-state { display: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Collision strategy · step-through</p>
+  <h1>Cùng home slot 2, entry sống ở đâu?</h1>
+  <p class="lede">A, B, C, D đều có home slot 2 trong bảng 8 ô. Mỗi STEP chèn cùng một key vào hai chiến lược để lộ khác biệt về cách bố trí.</p>
+
+  <div class="scenario" aria-label="Kịch bản xác định">
+    <span>m = 8</span>
+    <span>keys = A · B · C · D</span>
+    <span>home(A…D) = 2</span>
+  </div>
+
+  <div class="panels">
+    <section class="panel" aria-labelledby="chaining-title">
+      <p class="panel-kicker">Bucket chứa tập entry</p>
+      <h2 id="chaining-title">Separate chaining</h2>
+      <div id="chainBuckets" class="bucket-list" role="list" aria-label="Các bucket của chaining"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="probing-title">
+      <p class="panel-kicker">Entry nằm trực tiếp trong mảng</p>
+      <h2 id="probing-title">Linear probing</h2>
+      <div id="slotGrid" class="slot-grid" role="list" aria-label="Các slot của open addressing"></div>
+    </section>
+  </div>
+
+  <div class="legend" aria-label="Chú giải màu">
+    <span><i class="swatch active"></i>Đang xử lý</span>
+    <span><i class="swatch visited"></i>Đã probe</span>
+    <span><i class="swatch result"></i>Vị trí vừa chèn</span>
+  </div>
+
+  <div class="actions">
+    <button type="button" id="step">STEP · chèn 1 key</button>
+    <button type="button" id="play" aria-pressed="false">PLAY</button>
+    <button type="button" id="reset">RESET</button>
+    <span class="counter">Đã chèn <output id="count">0</output>/4</span>
+  </div>
+
+  <div class="ledger" id="ledger" aria-label="Trace của bước hiện tại">—</div>
+  <p class="status" id="status" role="status" aria-live="polite">Tự dự đoán hai cách bố trí, rồi bấm STEP.</p>
+  <p class="model-note">Trace này là trạng thái xác định từ hai cơ chế lưu trữ; không phải benchmark hay mẫu ngẫu nhiên.</p>
+</main>
+
+<script>
+const KEYS = ['A', 'B', 'C', 'D'];
+const SIZE = 8;
+const HOME = 2;
+
+const elements = {
+  chainBuckets: document.getElementById('chainBuckets'),
+  slotGrid: document.getElementById('slotGrid'),
+  step: document.getElementById('step'),
+  play: document.getElementById('play'),
+  reset: document.getElementById('reset'),
+  count: document.getElementById('count'),
+  ledger: document.getElementById('ledger'),
+  status: document.getElementById('status')
+};
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const S = {
+  pos: 0,
+  chain: [],
+  slots: Array(SIZE).fill(null),
+  trace: [],
+  latestKey: null,
+  latestTarget: null,
+  timer: null,
+  playing: false
+};
+
+function probeForEmptySlot(slots) {
+  const trace = [];
+  for (let offset = 0; offset < SIZE; offset += 1) {
+    const index = (HOME + offset) % SIZE;
+    trace.push(index);
+    if (slots[index] === null) return { trace, target: index };
+  }
+  return { trace, target: null };
+}
+
+function renderBuckets() {
+  elements.chainBuckets.innerHTML = '';
+  for (let index = 0; index < SIZE; index += 1) {
+    const bucket = document.createElement('div');
+    const isHome = index === HOME && S.pos > 0;
+    bucket.className = `bucket${isHome ? ' current' : ''}`;
+    bucket.setAttribute('role', 'listitem');
+    bucket.setAttribute('aria-label', `Bucket ${index}${index === HOME ? `: ${S.chain.join(', ') || 'trống'}` : ': trống'}`);
+
+    const indexLabel = document.createElement('span');
+    indexLabel.className = 'bucket-index';
+    indexLabel.textContent = String(index);
+
+    const chain = document.createElement('div');
+    chain.className = 'chain';
+    if (index !== HOME || S.chain.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'chain-empty';
+      empty.textContent = '∅';
+      chain.appendChild(empty);
+    } else {
+      S.chain.forEach((key, keyIndex) => {
+        const token = document.createElement('span');
+        token.className = `token${keyIndex === S.chain.length - 1 ? ' latest' : ''}`;
+        token.textContent = key;
+        chain.appendChild(token);
+      });
+    }
+
+    bucket.append(indexLabel, chain);
+    elements.chainBuckets.appendChild(bucket);
+  }
+}
+
+function renderSlots() {
+  elements.slotGrid.innerHTML = '';
+  for (let index = 0; index < SIZE; index += 1) {
+    const isResult = S.latestTarget === index;
+    const isVisited = S.trace.slice(0, -1).includes(index);
+    const state = isResult ? 'result' : isVisited ? 'visited' : '';
+    const value = S.slots[index];
+
+    const cell = document.createElement('div');
+    cell.className = `slot ${state}`.trim();
+    cell.setAttribute('role', 'listitem');
+    cell.setAttribute('aria-label', `Slot ${index}: ${value || 'trống'}${isResult ? ', vị trí vừa chèn' : isVisited ? ', đã probe' : ''}`);
+    cell.innerHTML = `<span class="slot-index">${index}</span><span class="slot-value">${value || '∅'}</span><span class="slot-state">${isResult ? 'CHÈN' : isVisited ? 'ĐÃ PROBE' : value ? 'ĐÃ DÙNG' : 'TRỐNG'}</span>`;
+    elements.slotGrid.appendChild(cell);
+  }
+}
+
+function render() {
+  renderBuckets();
+  renderSlots();
+  elements.count.textContent = String(S.pos);
+  elements.step.disabled = S.pos >= KEYS.length;
+  elements.play.disabled = S.pos >= KEYS.length;
+  elements.ledger.textContent = S.latestKey
+    ? `${S.latestKey} · chaining: bucket ${HOME} · linear probing: ${S.trace.join(' → ')}`
+    : '—';
+}
+
+function stopPlay() {
+  if (S.timer !== null) window.clearInterval(S.timer);
+  S.timer = null;
+  S.playing = false;
+  elements.play.textContent = 'PLAY';
+  elements.play.setAttribute('aria-pressed', 'false');
+}
+
+function finish() {
+  stopPlay();
+  elements.status.textContent = 'Hoàn tất: chaining giữ A → B → C → D tại bucket 2; linear probing trải chúng qua slot 2 → 3 → 4 → 5.';
+}
+
+function step() {
+  if (S.pos >= KEYS.length) return;
+  const key = KEYS[S.pos];
+  const { trace, target } = probeForEmptySlot(S.slots);
+  if (target === null) return;
+
+  S.chain.push(key);
+  S.slots[target] = key;
+  S.trace = trace;
+  S.latestKey = key;
+  S.latestTarget = target;
+  S.pos += 1;
+
+  elements.status.textContent = trace.length === 1
+    ? `${key}: chaining nối vào bucket 2; linear probing thấy slot 2 trống và đặt ngay.`
+    : `${key}: chaining vẫn nối vào bucket 2; linear probing đi ${trace.join(' → ')} rồi đặt ở slot ${target}.`;
+  render();
+  if (S.pos >= KEYS.length) finish();
+}
+
+function play() {
+  if (S.pos >= KEYS.length) return;
+  if (S.playing) {
+    stopPlay();
+    return;
+  }
+  if (reducedMotion.matches) {
+    while (S.pos < KEYS.length) step();
+    return;
+  }
+
+  S.playing = true;
+  elements.play.textContent = 'PAUSE';
+  elements.play.setAttribute('aria-pressed', 'true');
+  step();
+  if (S.pos < KEYS.length) S.timer = window.setInterval(step, 650);
+}
+
+function resetSim() {
+  stopPlay();
+  S.pos = 0;
+  S.chain = [];
+  S.slots = Array(SIZE).fill(null);
+  S.trace = [];
+  S.latestKey = null;
+  S.latestTarget = null;
+  elements.status.textContent = 'Tự dự đoán hai cách bố trí, rồi bấm STEP.';
+  render();
+}
+
+elements.step.addEventListener('click', step);
+elements.play.addEventListener('click', play);
+elements.reset.addEventListener('click', resetSim);
+
+resetSim();
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "argv": [
+    "exec",
+    "--json",
+    "--output-schema",
+    "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-0\\attempt-1-verdict-schema.json",
+    "--output-last-message",
+    "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault\\scripts\\.zcode-dispatch\\dx-research-20260913-01\\review\\round-0\\attempt-1-last-message.json",
+    "-C",
+    "C:\\Users\\terasumi\\Documents\\source_code\\mdx-vault",
+    "-m",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=xhigh",
+    "-s",
+    "read-only",
+    "--skip-git-repo-check",
+    "--color",
+    "never",
+    "-c",
+    "mcp_servers.context7.enabled=false",
+    "-c",
+    "mcp_servers.node_repl.enabled=false",
+    "-c",
+    "mcp_servers.shadcn.enabled=false"
+  ],
+  "disabledMcp": [
+    "context7",
+    "node_repl",
+    "shadcn"
+  ],
+  "context": "fresh exec; no parent task history"
+}

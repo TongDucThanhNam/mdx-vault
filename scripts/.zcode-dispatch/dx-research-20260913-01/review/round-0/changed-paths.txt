@@ -1,0 +1,20 @@
+Source identity: verified
+Fingerprint before stage: cd9aa3c41486323703a41fac77da77e783e99148f1c3e6f051a2b715ad3c4d30
+Fingerprint after worker round 0: 8307081cc2780bca79c48adb30bcb9f2fc68d2b829346b199ff0652d7dc276fb
+
+Changed:
+Added:
+- docs/research/developer-dx-audit-2026-09-13.md
+- docs/research/evidence/developer-dx-audit-2026-09-13/dx-audit-results.json
+- docs/research/evidence/developer-dx-audit-2026-09-13/find-panel-source.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/ime-composition.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/project-search-deep-reveal.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/project-search-hit.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/project-search-opened.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/project-search-tsx-miss.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/quickopen-opened-large.png
+- docs/research/evidence/developer-dx-audit-2026-09-13/quickopen.png
+- docs/verification/developer-dx-audit-2026-09-13.md
+- scripts/verify-dev-dx-audit.py
+Removed:
+
