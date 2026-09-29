@@ -164,7 +164,7 @@ function BinarySearchView({
                 'min-w-12 flex-1 basis-12 border-2 border-foreground bg-background px-2 py-2 text-center',
                 index < step.low || index > step.high ? 'opacity-35' : 'bg-muted',
                 step.mid === index &&
-                  'border-[var(--editorial-red)] bg-[var(--editorial-red)] text-white'
+                  'border-[var(--editorial-red)] bg-[var(--editorial-red)] text-[var(--note-on-solid)]'
               )}
             >
               <div className="min-h-4 font-mono text-xs font-bold uppercase text-muted-foreground">
@@ -199,8 +199,9 @@ function BubbleSortView({
             <div
               className={cn(
                 'w-full border-2 border-foreground bg-background px-2 py-2 text-center font-mono text-sm font-bold tabular-nums',
-                comparing && 'border-[var(--editorial-red)] bg-[var(--editorial-red)] text-white',
-                sorted && 'border-[var(--success)] bg-[var(--success)] text-white'
+                comparing &&
+                  'border-[var(--editorial-red)] bg-[var(--editorial-red)] text-[var(--note-on-solid)]',
+                sorted && 'border-[var(--success)] bg-[var(--success)] text-[var(--note-on-solid)]'
               )}
               style={{ minHeight: `${Math.max(36, Math.min(120, Math.abs(value) * 4))}px` }}
             >

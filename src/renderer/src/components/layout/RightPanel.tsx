@@ -107,7 +107,7 @@ export function RightPanel(props: RightPanelProps): React.JSX.Element {
         <select
           id="context-utility-selector"
           value={props.activePanel}
-          className="h-8 w-full appearance-none rounded-sm border border-transparent bg-chrome pr-8 pl-8 font-sans text-xs font-semibold text-foreground outline-none hover:border-border focus-visible:border-instrument-blue focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-8 w-full appearance-none rounded-sm border border-input bg-chrome pr-8 pl-8 font-sans text-xs font-semibold text-foreground outline-none hover:border-instrument-blue focus-visible:border-instrument-blue focus-visible:ring-2 focus-visible:ring-ring"
           onChange={(event) =>
             props.onActivePanelChange(event.currentTarget.value as KnowledgePanelId)
           }

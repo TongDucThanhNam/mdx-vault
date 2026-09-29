@@ -51,7 +51,7 @@ export function QuizBlock({
                       ? 'selected'
                       : undefined
               }
-              className="flex w-full items-start gap-3 border-2 border-foreground bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="flex w-full items-start gap-3 border-2 border-foreground bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
               onClick={() => setSelectedIndex(index)}
             >
               <QuizOptionIcon

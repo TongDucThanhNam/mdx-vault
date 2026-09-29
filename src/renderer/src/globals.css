@@ -42,7 +42,7 @@
   --editorial-yellow: var(--signal);
 
   --border: #cbd2da;
-  --input: #aeb8c4;
+  --input: #798593;
   --ring: #2457ff;
   --radius: 3px;
   --shadow-hard: 0 14px 36px rgb(20 24 31 / 14%);
@@ -67,6 +67,32 @@
   --chrome-control-height: 2rem;
   --chrome-row-height: 2.25rem;
   --ui-scale: 1;
+}
+
+/* A full-strength keyboard indicator survives utility ring opacity on either bench. */
+:is(
+  button,
+  input,
+  select,
+  textarea,
+  a[href],
+  summary,
+  [role='tab'],
+  [role='separator']
+):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
 }
 
 .cm-find-replace-panel {
@@ -164,7 +190,7 @@
   --editorial-yellow: var(--signal);
 
   --border: #384554;
-  --input: #536276;
+  --input: #667789;
   --ring: #8aa3ff;
   --shadow-hard: 0 16px 42px rgb(0 0 0 / 38%);
   --shadow-hard-sm: 0 8px 22px rgb(0 0 0 / 30%);
@@ -245,7 +271,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;

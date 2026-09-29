@@ -115,7 +115,6 @@ export class ExportService {
     const html = renderExportTemplate({
       title: internal.scan.noteTitle,
       bodyHtml: rendered.bodyHtml,
-      frontmatter: internal.frontmatter,
       registryBundle,
       interactiveNoteTheme: internal.frontmatter.theme === 'interactive-note',
       exportData:

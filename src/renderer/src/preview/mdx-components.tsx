@@ -92,7 +92,7 @@ export function createMdxComponents({
       <button
         type="button"
         className={cn(
-          'inline cursor-pointer border-0 bg-transparent p-0 align-baseline font-semibold underline underline-offset-3 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+          'inline cursor-pointer border-0 bg-transparent p-0 align-baseline font-semibold underline underline-offset-3 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none',
           resolvedNote
             ? 'text-[var(--editorial-red)] decoration-[var(--editorial-red)]'
             : 'text-muted-foreground decoration-dashed decoration-muted-foreground/50'

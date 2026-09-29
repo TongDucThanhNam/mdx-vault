@@ -271,20 +271,6 @@ header.mdx-export-header .mdx-export-meta {
 .mdx-vault-component[data-mdx-component-id] {
   display: block;
 }
-.mdx-vault-frontmatter {
-  margin: 1rem 0 1.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--mdx-radius);
-  border: 1px solid var(--mdx-border);
-  background: var(--mdx-muted-bg);
-  font-size: 0.85rem;
-}
-.mdx-vault-frontmatter dt {
-  font-weight: 600;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--mdx-muted);
-}
-.mdx-vault-frontmatter dd { margin: 0 0 0.5rem; }
 .mdx-vault-static-control-summary,
 .mdx-vault-static-data-summary,
 .mdx-vault-static-quiz {
@@ -334,8 +320,6 @@ ${KATEX_EXPORT_STYLESHEET}
 export interface RenderTemplateInput {
   title: string
   bodyHtml: string
-  /** Front-matter map (stringified safely) — rendered as a small key/value block. */
-  frontmatter?: Record<string, unknown>
   /** Inline CSS — defaults to STATIC_STYLESHEET. */
   stylesheet?: string
   /** Optional hydration script (interactive mode). */
@@ -353,7 +337,6 @@ export interface RenderTemplateInput {
 export function renderExportTemplate({
   title,
   bodyHtml,
-  frontmatter,
   stylesheet,
   hydrationScript,
   registryBundle,
@@ -362,7 +345,6 @@ export function renderExportTemplate({
   generatedAt
 }: RenderTemplateInput): string {
   const safeTitle = escapeHtml(title)
-  const frontmatterBlock = frontmatter ? renderFrontmatter(frontmatter) : ''
   const stamp = generatedAt ?? new Date().toISOString()
   const inlineRegistry = registryBundle ? `<script>\n${registryBundle}\n</script>` : ''
   const inlineHydration = hydrationScript ? `<script>\n${hydrationScript}\n</script>` : ''
@@ -403,7 +385,6 @@ export function renderExportTemplate({
 </header>
 <main class="${mainClass}">
 ${staticNotice}
-${frontmatterBlock}
 <article class="${articleClass}">
 ${bodyHtml}
 </article>
@@ -425,36 +406,6 @@ function serializeInlineJson(value: unknown): string {
     .replaceAll('&', '\\u0026')
     .replaceAll('<', '\\u003c')
     .replaceAll('>', '\\u003e')
-}
-
-function renderFrontmatter(frontmatter: Record<string, unknown>): string {
-  const entries = Object.entries(frontmatter).filter(([, value]) => value !== undefined)
-  if (entries.length === 0) {
-    return ''
-  }
-
-  const items = entries
-    .map(([key, value]) => {
-      const safeKey = escapeHtml(key)
-      const displayValue = escapeHtml(formatFrontmatterValue(value))
-      return `<dt>${safeKey}</dt><dd>${displayValue}</dd>`
-    })
-    .join('')
-
-  return `<dl class="mdx-vault-frontmatter">${items}</dl>`
-}
-
-function formatFrontmatterValue(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString().slice(0, 10)
-  }
-  if (Array.isArray(value)) {
-    return value.map(formatFrontmatterValue).join(', ')
-  }
-  if (value && typeof value === 'object') {
-    return JSON.stringify(value)
-  }
-  return String(value)
 }
 
 function escapeHtml(value: string): string {

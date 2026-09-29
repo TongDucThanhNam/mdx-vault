@@ -25,7 +25,7 @@ export function Counter({ initial = 0 }: CounterProps): React.JSX.Element {
         <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           Counter
         </div>
-        <div className="mt-1 bg-[var(--editorial-blue)] px-2 font-mono text-2xl font-bold tabular-nums text-white">
+        <div className="mt-1 bg-[var(--editorial-blue)] px-2 font-mono text-2xl font-bold tabular-nums text-[var(--note-on-solid)]">
           {count}
         </div>
       </div>

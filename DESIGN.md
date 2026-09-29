@@ -25,12 +25,13 @@ update both in the same change.
 | Role | Light | Dark | Meaning |
 | --- | --- | --- | --- |
 | Bench | `#F6F8FA` | `#0F141A` | Chrome and editable workspace; Reading uses its own sheet |
-| Carbon | `#14181F` | `#EDF2F7` | Primary text and strong controls |
+| Carbon | `#14181F` | `#EDF2F7` | Primary text and strong controls; 16.71:1 / 16.42:1 on Bench |
 | Instrument Blue | `#2457FF` | `#8AA3FF` | Focus, navigation, active selection |
 | Signal | `#A34700` | `#FF9A57` | Attention, pending state, prediction |
 | Evidence Teal | `#0F6F5C` | `#42C7A5` | Verified result, resolved relation |
-| Alloy | `#CBD2DA` | `#384554` | Structural rules and boundaries |
-| Muted text | `#59636F` | `#AAB4C0` | Secondary labels on chrome, at least 4.5:1 |
+| Alloy | `#CBD2DA` | `#384554` | Decorative structural rules, not the sole control boundary |
+| Control edge | `#798593` | `#667789` | Input/outline boundaries; 3.53:1 / 4.02:1 on Bench |
+| Muted text | `#59636F` | `#AAB4C0` | Secondary labels on chrome; 5.39:1 / 8.43:1 |
 
 Destructive state has its own semantic token (`#B42318` light, `#FF8A80`
 dark). Color is never the only signal: icon, label, stroke or pattern must also
@@ -47,11 +48,12 @@ default**. The Reading paper setting can pin them to light. Export and print
 | --- | --- | --- | --- |
 | Paper | `#F9F9F7` | `#17212A` | Lifted note sheet, only a gentle step from dark Bench |
 | Paper muted | `#EFEFEA` | `#23303A` | Secondary panels, code and table rhythm |
-| Ink | `#111111` | `#E8E9E2` | Warm legible text and strong structure |
-| Accent | `#C02626` | `#FF9489` | Links, action and emphasis; AA on each paper |
+| Ink | `#111111` | `#E8E9E2` | Warm legible text and strong structure; 17.91:1 / 13.35:1 |
+| Accent | `#C02626` | `#FF9489` | Links, action and emphasis; 5.62:1 / 7.65:1 |
 | Line | `#CCCCCC` | `#667583` | Quiet secondary rules and scrollbars |
 | Result | `#2B5797` | `#A4C5FF` | Computed or dynamic results only |
 | Solid ink | `#FFFFFF` | `#17212A` | Text on accent/result fills |
+| Inverse fill/ink | `#111111` / `#F9F9F7` | `#23303A` / `#E8E9E2` | Code, table heads and neutral chips; 17.91:1 / 11.05:1 |
 
 Both editions keep display serif, 2px structural rules, zero radius and one
 red accent. In dark paper the offset shadow is alloy-tinted, not black on
@@ -60,6 +62,10 @@ never decorative. Note content uses no gradient or blurred shadow. A pressed
 control translates `2px 2px` and loses its shadow. Untrusted custom islands
 retain a **light card inside the sandbox frame** unless their own content
 styles itself; the app never reaches across that boundary to restyle them.
+Dark neutral inverse fills use the lifted muted paper and a thin alloy rule,
+not a pale slab; only answer/result states keep solid accent fills. Reading
+display type steps down with the **column** below 560px; body type and wide
+Reading/export remain unchanged.
 
 ### Typography
 

@@ -62,7 +62,7 @@ export function AppTopBar({
         <button
           type="button"
           className={cn(
-            'relative flex h-7 max-w-[min(14rem,40vw)] min-w-0 items-center rounded-[2px] border border-border bg-background px-2.5 font-sans text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-instrument-blue disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none',
+            'relative flex h-7 max-w-[min(14rem,40vw)] min-w-0 items-center rounded-[2px] border border-input bg-background px-2.5 font-sans text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-instrument-blue disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none',
             vaultName &&
               'after:absolute after:inset-x-[-1px] after:bottom-[-1px] after:h-px after:bg-instrument-blue'
           )}

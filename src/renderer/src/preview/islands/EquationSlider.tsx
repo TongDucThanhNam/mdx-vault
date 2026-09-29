@@ -144,11 +144,9 @@ export function EquationSlider({
           </div>
           <div className="mt-1 font-mono text-lg font-bold">{formula}</div>
         </div>
-        <div className="border-2 border-foreground bg-[var(--editorial-blue)] px-3 py-2 text-right text-white shadow-[2px_2px_0_0_var(--foreground)]">
-          <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-white">
-            Result
-          </div>
-          <div className="font-mono text-2xl font-bold tabular-nums text-white">
+        <div className="border-2 border-foreground bg-[var(--editorial-blue)] px-3 py-2 text-right text-[var(--note-on-solid)] shadow-[2px_2px_0_0_var(--foreground)]">
+          <div className="font-mono text-xs font-bold uppercase tracking-[0.15em]">Result</div>
+          <div className="font-mono text-2xl font-bold tabular-nums">
             {result.ok ? numberFormatter.format(result.value) : 'Error'}
           </div>
         </div>
@@ -195,11 +193,11 @@ export function EquationSlider({
                   <XAxis
                     dataKey="input"
                     type="number"
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 12 }}
                     stroke="var(--muted-foreground)"
                     domain={[chartVariable[1].min, chartVariable[1].max]}
                   />
-                  <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={44} />
+                  <YAxis tick={{ fontSize: 12 }} stroke="var(--muted-foreground)" width={44} />
                   <Tooltip
                     contentStyle={{
                       border: '2px solid var(--note-ink)',

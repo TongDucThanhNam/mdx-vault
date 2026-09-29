@@ -182,7 +182,7 @@ export const OutlinePanel = memo(function OutlinePanel({
                   aria-current={heading.id === activeHeadingId ? 'location' : undefined}
                   onClick={() => onSelectHeading(heading)}
                 >
-                  <span className="font-mono text-xs font-medium tabular-nums opacity-70">
+                  <span className="font-mono text-xs font-medium tabular-nums">
                     H{heading.depth}
                   </span>
                   <span className="truncate text-sm font-medium">{heading.text}</span>

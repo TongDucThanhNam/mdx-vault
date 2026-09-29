@@ -243,13 +243,13 @@ function renderGridAndAxes({
       <XAxis
         dataKey={x}
         type={scatter ? 'number' : undefined}
-        tick={{ fontSize: 11 }}
+        tick={{ fontSize: 12 }}
         stroke="var(--muted-foreground)"
       />
       <YAxis
         dataKey={y}
         type="number"
-        tick={{ fontSize: 11 }}
+        tick={{ fontSize: 12 }}
         stroke="var(--muted-foreground)"
         width={44}
       />

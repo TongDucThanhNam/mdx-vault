@@ -55,6 +55,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-35-theme-paper-and-panels.md | Theme-following Reading paper, resizable side panels, content-fit islands | 26, 28, 32, 33, 34 |
 | GOAL-36-export-fidelity.md | Offline, scoped export styling for every registry island | 26, 28, 35 |
 | GOAL-37-compact-layout-tabs-find-states.md | Non-occluding compact docks, tab overflow, find/replace, graph and panel states | 33, 35 |
+| GOAL-38-dark-paper-craft-and-contrast.md | Night-edition inverse fills, AA contrast, narrow Reading type and export frontmatter parity | 33, 35, 36 |
 
 ## Trạng thái ký hiệu trong goal
 
