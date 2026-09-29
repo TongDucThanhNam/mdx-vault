@@ -19,6 +19,7 @@ export interface RenameRequest {
 }
 
 interface UseVaultSessionOptions {
+  initialLastOpenVault?: string | null
   vault: VaultInfo | null
   setVault: Dispatch<SetStateAction<VaultInfo | null>>
   workbench: WorkbenchController
@@ -29,6 +30,7 @@ interface UseVaultSessionOptions {
 }
 
 export function useVaultSession({
+  initialLastOpenVault,
   vault,
   setVault,
   workbench,
@@ -361,6 +363,8 @@ export function useVaultSession({
         return
       }
 
+      performance.mark('g39:vault-session-start')
+
       workbench.resetForVault(openedVault)
       setIndexNotes([])
       setVault(openedVault)
@@ -374,6 +378,7 @@ export function useVaultSession({
         window.indexApi.notes(),
         firstFile ? workbench.openOrActivate(firstFile.relativePath) : Promise.resolve(false)
       ])
+      performance.mark('g39:vault-index-and-first-file-ready')
       setIndexNotes(notes)
       bumpIndexRevision()
     },
@@ -409,7 +414,9 @@ export function useVaultSession({
       onError(null)
 
       try {
+        performance.mark('g39:vault-open-path-request')
         const openedVault = await window.vaultApi.openVaultPath(path)
+        performance.mark('g39:vault-open-path-done')
         await openVaultInternal(openedVault)
         return openedVault !== null
       } catch (reopenError) {
@@ -427,7 +434,11 @@ export function useVaultSession({
   useEffect(() => {
     let cancelled = false
 
-    void window.vaultApi.lastOpenVault().then((path) => {
+    void (
+      initialLastOpenVault === undefined
+        ? window.vaultApi.lastOpenVault()
+        : Promise.resolve(initialLastOpenVault)
+    ).then((path) => {
       if (cancelled || !path) {
         return
       }
@@ -437,7 +448,7 @@ export function useVaultSession({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [initialLastOpenVault])
 
   useEffect(() => {
     if (!vault) {

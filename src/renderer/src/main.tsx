@@ -34,10 +34,26 @@ import './globals.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
+performance.mark('g39:renderer-module-evaluated')
+performance.mark('g39:bootstrap-settings-start')
+const appModule = import('./App')
+const settings = window.appApi.getSettings().catch(() => null)
+const lastVault = window.vaultApi.lastOpenVault().catch(() => undefined)
+
+void Promise.all([appModule, settings, lastVault]).then(
+  ([{ default: App }, initialSettings, initialVaultPath]) => {
+    performance.mark('g39:app-module-evaluated')
+    performance.mark('g39:bootstrap-settings-done')
+    const dark =
+      initialSettings?.theme === 'dark' ||
+      (initialSettings?.theme !== 'light' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    document.documentElement.classList.toggle('dark', dark)
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <App initialSettings={initialSettings} initialVaultPath={initialVaultPath} />
+      </StrictMode>
+    )
+  }
 )

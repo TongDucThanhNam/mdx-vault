@@ -99,13 +99,20 @@ export function EditorTabs({
   const measureOverflow = useCallback(() => {
     const strip = tablistRef.current
     if (!strip) return
-    setOverflow(tabOverflowEdges(strip.scrollLeft, strip.clientWidth, strip.scrollWidth))
-    setVisibleRange(
-      tabVisibleRange(
-        items.map((item) => spanForTab(strip, item.id)),
-        strip.scrollLeft,
-        strip.clientWidth
-      )
+    const edges = tabOverflowEdges(strip.scrollLeft, strip.clientWidth, strip.scrollWidth)
+    setOverflow((previous) =>
+      previous.left === edges.left && previous.right === edges.right ? previous : edges
+    )
+    const range =
+      edges.left || edges.right || strip.scrollWidth > strip.clientWidth
+        ? tabVisibleRange(
+            items.map((item) => spanForTab(strip, item.id)),
+            strip.scrollLeft,
+            strip.clientWidth
+          )
+        : { first: 0, last: items.length - 1 }
+    setVisibleRange((previous) =>
+      previous.first === range.first && previous.last === range.last ? previous : range
     )
   }, [items, spanForTab])
 
@@ -173,13 +180,12 @@ export function EditorTabs({
       }
       const strip = tablistRef.current
       const tab = tabRefs.current.get(activeId)
-      if (strip && tab) {
+      if (strip && tab && strip.scrollWidth > strip.clientWidth) {
         strip.scrollLeft = tabScrollTarget(
           spanForTab(strip, activeId),
           strip.scrollLeft,
           strip.clientWidth - 32
         )
-        measureOverflow()
       }
       return
     }

@@ -39,6 +39,7 @@ export default defineConfig({
   },
   preload: {},
   renderer: {
+    build: { sourcemap: process.env['MDX_VAULT_PERF'] === '1' },
     // Analysis workers lazily import parser chunks; IIFE cannot code-split.
     worker: { format: 'es' },
     resolve: {

@@ -1,4 +1,4 @@
-import { EditorView } from '@codemirror/view'
+import { getActiveEditorView } from '@/editor/active-editor-view'
 
 export function focusActiveDocument(): void {
   const readingSurface = document.querySelector<HTMLElement>(
@@ -8,10 +8,7 @@ export function focusActiveDocument(): void {
     readingSurface.focus()
     return
   }
-  const editorElement = document.querySelector<HTMLElement>(
-    '[data-document-surface="active"] .cm-editor'
-  )
-  const editorView = editorElement ? EditorView.findFromDOM(editorElement) : null
+  const editorView = getActiveEditorView()
 
   if (editorView) {
     editorView.focus()

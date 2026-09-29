@@ -23,3 +23,19 @@ export function displayFileName(
   })
   return ambiguous ? name : stem
 }
+
+/** Tree row selection can redraw every visible row; resolve each label once per path set. */
+export function createFileLabelCache(
+  visiblePaths: readonly string[],
+  showFileExtensions: boolean
+): (relativePath: string) => string {
+  const labels = new Map<string, string>()
+  return (relativePath) => {
+    let label = labels.get(relativePath)
+    if (label === undefined) {
+      label = displayFileName(relativePath, showFileExtensions, visiblePaths)
+      labels.set(relativePath, label)
+    }
+    return label
+  }
+}

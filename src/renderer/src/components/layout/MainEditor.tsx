@@ -12,7 +12,9 @@ import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import { EditorAppearance } from '@/editor/EditorAppearance'
 import type { GotoDefinitionTarget } from '@/editor/goto-definition'
 import { MdxEditor } from '@/editor/MdxEditor'
-import { TextFileEditor } from '@/editor/TextFileEditor'
+import { GraphLoadingSurface } from '@/graph/GraphLoadingSurface'
+import { loadGraphSurface } from '@/graph/load-graph-surface'
+import { useGraphPreload } from '@/graph/useGraphPreload'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { NoteEditorController } from '@/hooks/useNoteEditor'
@@ -22,7 +24,6 @@ import type { ReadingZoomController } from '@/hooks/useReadingZoom'
 import type { TextFileEditorController } from '@/hooks/useTextFileEditor'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { useI18n } from '@/i18n/useI18n'
-import { InteractiveProofWorkbench } from '@/interactive/InteractiveProofWorkbench'
 import { formatError } from '@/lib/format-error'
 import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
@@ -39,9 +40,17 @@ import {
 } from '../../../../shared/wikilinks'
 
 const LazyGraphSurface = lazy(async () => {
-  const module = await import('@/graph/GraphSurface')
+  const module = await loadGraphSurface()
   return { default: module.GraphSurface }
 })
+const loadTextFileEditor = () => import('@/editor/TextFileEditor')
+const loadInteractiveProofWorkbench = () => import('@/interactive/InteractiveProofWorkbench')
+const LazyTextFileEditor = lazy(async () => ({
+  default: (await loadTextFileEditor()).TextFileEditor
+}))
+const LazyInteractiveProofWorkbench = lazy(async () => ({
+  default: (await loadInteractiveProofWorkbench()).InteractiveProofWorkbench
+}))
 
 interface MainEditorProps {
   hasVault: boolean
@@ -94,6 +103,7 @@ export function MainEditor({
   onBookmarkNote,
   onError
 }: MainEditorProps): React.JSX.Element {
+  useGraphPreload()
   const { t } = useI18n()
   const [imageMetadata, setImageMetadata] = useState<{
     relativePath: string
@@ -303,13 +313,7 @@ export function MainEditor({
       <div className="relative flex min-h-0 flex-1">
         <div className="relative min-h-0 min-w-0 flex-1">
           {activeItem?.kind === 'graph' ? (
-            <Suspense
-              fallback={
-                <div className="grid h-full place-items-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  Loading graph renderer…
-                </div>
-              }
-            >
+            <Suspense fallback={<GraphLoadingSurface />}>
               <LazyGraphSurface
                 mode="global"
                 vaultSessionId={editorTabs.state.sessionId}
@@ -399,30 +403,34 @@ export function MainEditor({
                 onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
               />
             ) : interactiveProjectPath && !activeItemMissing ? (
-              <InteractiveProofWorkbench
-                activeRelativePath={selectedPath}
-                value={textEditor.content}
-                savedContent={textEditor.savedContent}
-                treeFiles={vaultTreeFiles}
-                vaultSessionId={editorTabs.state.sessionId}
-                starterConsented={starterProofProjectRoot === interactiveProjectPath.projectRoot}
-                onConsumeStarterConsent={() =>
-                  onConsumeStarterProofConsent(interactiveProjectPath.projectRoot)
-                }
-                onChange={textEditor.setContent}
-                onSave={textEditor.saveCurrentFile}
-                onOpenFile={editorTabs.openOrActivate}
-                getSavedContent={() => textEditor.savedContentRef.current}
-                onRevealProject={onRevealInExplorer}
-              />
+              <Suspense fallback={null}>
+                <LazyInteractiveProofWorkbench
+                  activeRelativePath={selectedPath}
+                  value={textEditor.content}
+                  savedContent={textEditor.savedContent}
+                  treeFiles={vaultTreeFiles}
+                  vaultSessionId={editorTabs.state.sessionId}
+                  starterConsented={starterProofProjectRoot === interactiveProjectPath.projectRoot}
+                  onConsumeStarterConsent={() =>
+                    onConsumeStarterProofConsent(interactiveProjectPath.projectRoot)
+                  }
+                  onChange={textEditor.setContent}
+                  onSave={textEditor.saveCurrentFile}
+                  onOpenFile={editorTabs.openOrActivate}
+                  getSavedContent={() => textEditor.savedContentRef.current}
+                  onRevealProject={onRevealInExplorer}
+                />
+              </Suspense>
             ) : (
-              <TextFileEditor
-                key={selectedPath}
-                relativePath={selectedPath}
-                value={textEditor.content}
-                onChange={textEditor.setContent}
-                onSelectionChange={editorInteractions.handleEditorSelectionChange}
-              />
+              <Suspense fallback={null}>
+                <LazyTextFileEditor
+                  key={selectedPath}
+                  relativePath={selectedPath}
+                  value={textEditor.content}
+                  onChange={textEditor.setContent}
+                  onSelectionChange={editorInteractions.handleEditorSelectionChange}
+                />
+              </Suspense>
             )
           ) : selectedPath ? (
             <NoVaultFilePreview

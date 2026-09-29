@@ -1,4 +1,4 @@
-import { EditorView } from '@codemirror/view'
+import { getActiveEditorView } from './active-editor-view'
 
 export interface EditorViewSnapshot {
   anchor: number
@@ -8,7 +8,7 @@ export interface EditorViewSnapshot {
 }
 
 export function captureActiveEditorView(): EditorViewSnapshot | null {
-  const view = findActiveEditorView()
+  const view = getActiveEditorView()
 
   if (!view) {
     return null
@@ -23,7 +23,7 @@ export function captureActiveEditorView(): EditorViewSnapshot | null {
 }
 
 export function restoreActiveEditorView(snapshot: EditorViewSnapshot | null): boolean {
-  const view = findActiveEditorView()
+  const view = getActiveEditorView()
 
   if (!view || !snapshot) {
     return false
@@ -55,13 +55,6 @@ export function clampEditorViewSnapshot(
     scrollTop: Math.max(0, snapshot.scrollTop),
     scrollLeft: Math.max(0, snapshot.scrollLeft)
   }
-}
-
-function findActiveEditorView(): EditorView | null {
-  const editorElement = document.querySelector<HTMLElement>(
-    '[data-document-surface="active"] .cm-editor, .cm-editor'
-  )
-  return editorElement ? EditorView.findFromDOM(editorElement) : null
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {

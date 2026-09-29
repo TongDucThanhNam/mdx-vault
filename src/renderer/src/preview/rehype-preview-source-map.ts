@@ -1,8 +1,23 @@
 import type { Element, Root, Text } from 'hast'
+import type { Root as MarkdownRoot } from 'mdast'
+import type { MdxStructureHeading } from '../../../shared/markdown-source'
 import { analyzeMdxStructure } from '../../../shared/markdown-source'
 
 interface PreviewSourceMapOptions {
   source: string
+  headingsByOffset?: Map<number, MdxStructureHeading>
+}
+
+/** Reuse the MDX compiler's parsed tree instead of parsing a 36 KB note twice. */
+export function remarkCollectPreviewHeadings({
+  source,
+  headingsByOffset
+}: Required<PreviewSourceMapOptions>) {
+  return function collectPreviewHeadings(tree: MarkdownRoot): void {
+    for (const heading of analyzeMdxStructure(source, tree).headings) {
+      headingsByOffset.set(heading.sourceFrom, heading)
+    }
+  }
 }
 
 const eligibleTextParents = new Set([
@@ -41,9 +56,12 @@ export function rehypePreviewSourceMap({ source }: PreviewSourceMapOptions) {
 }
 
 /** Add app-generated heading identities after user HTML has passed sanitization. */
-export function rehypePreviewHeadingIdentity({ source }: PreviewSourceMapOptions) {
+export function rehypePreviewHeadingIdentity({
+  source,
+  headingsByOffset
+}: PreviewSourceMapOptions) {
   return function identifyPreviewHeadings(tree: Root): Root {
-    annotateHeadingIdentities(tree, source)
+    annotateHeadingIdentities(tree, source, headingsByOffset)
     return tree
   }
 }
@@ -112,10 +130,14 @@ function annotateBlockChildren(parent: Root | Element): void {
   })
 }
 
-function annotateHeadingIdentities(tree: Root, source: string): void {
-  const headingsByOffset = new Map(
-    analyzeMdxStructure(source).headings.map((heading) => [heading.sourceFrom, heading])
-  )
+function annotateHeadingIdentities(
+  tree: Root,
+  source: string,
+  precomputed?: Map<number, MdxStructureHeading>
+): void {
+  const headingsByOffset =
+    precomputed ??
+    new Map(analyzeMdxStructure(source).headings.map((heading) => [heading.sourceFrom, heading]))
 
   visitElements(tree, (element, parent) => {
     if (!/^h[1-6]$/.test(element.tagName)) return

@@ -21,6 +21,14 @@ that boundary while allowing Bun-native APIs in project tooling. Detailed ration
 
 ## Process model (Electron)
 
+### Production startup path (GOAL-39)
+
+Main registers every IPC handler synchronously before creating or loading the window. AI adapter and approval-service code are imported only when their already-registered handlers are called; this does not defer handler registration. The window background is selected from the persisted light/dark/system theme before its first paint, without changing `webPreferences` or preload.
+
+The renderer entry starts the App module import, settings read and last-vault-path read in parallel, applies the resolved theme before React mounts, and passes the bootstrap results into the existing settings/vault controllers. React warms the MDX compile worker at root commit. After Welcome is laid out, an idle, bounded in-memory worker parse may precompile a likely next note **as data only**; generated MDX code is still evaluated only after that note is opened. No compiled-code disk cache exists. Graph/chart chunks warm after Reading paint; feature preloads must not affect the security boundary or typing responsiveness.
+
+`MDX_VAULT_PERF=1` enables main startup timestamp logs and renderer source maps for local waterfall profiling; no new renderer capability or IPC channel is exposed.
+
 ```
 Electron
 ├── Main process (src/main/)

@@ -274,6 +274,7 @@ export function useWorkbench({
         },
         (loadError) => onError(formatError(loadError))
       )
+      performance.mark('g39:workbench-file-read-done')
 
       if (result.status === 'unavailable' && isCurrent()) {
         onError(`Cannot restore ${item.relativePath}: its session buffer is unavailable`)
@@ -364,6 +365,7 @@ export function useWorkbench({
 
   const openGlobalGraph = useCallback(
     async (options: Pick<OpenWorkbenchOptions, 'focus'> = {}): Promise<boolean> => {
+      performance.mark('g39:graph-open-request')
       const currentState = stateRef.current
       const existingItem = currentState.items.find((item) => item.id === GLOBAL_GRAPH_WORKBENCH_ID)
       const destination =
@@ -424,6 +426,7 @@ export function useWorkbench({
           return openOrActivateWorkbenchItem(capturedState, prepared)
         },
         commit: () => {
+          performance.mark('g39:graph-workbench-commit')
           if (options.focus !== false) {
             window.setTimeout(focusActiveDocument, 0)
           }
@@ -445,6 +448,7 @@ export function useWorkbench({
 
   const openOrActivate = useCallback(
     async (relativePath: string, options: OpenWorkbenchOptions = {}): Promise<boolean> => {
+      performance.mark('g39:workbench-open-request')
       if (relativePath === GLOBAL_GRAPH_WORKBENCH_ID) {
         return openGlobalGraph(options)
       }
@@ -558,6 +562,7 @@ export function useWorkbench({
           }
 
           commitItemLoad(prepared)
+          performance.mark('g39:workbench-commit')
           preparedLoad = null
           restoreItemView(committedItem, options.focus !== false)
           committedEditor = true

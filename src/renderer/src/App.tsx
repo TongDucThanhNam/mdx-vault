@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { CommandPalette } from '@/commands/CommandPalette'
 import { isReadingFullViewActionEnabled } from '@/commands/reading-full-view-action'
 import { isReadingZoomActionEnabled } from '@/commands/reading-zoom-actions'
@@ -12,7 +12,11 @@ import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
 import { QuickSwitcher } from '@/explorer/QuickSwitcher'
 import { ExportDialog } from '@/export/ExportDialog'
 import { dispatchGraphSurfaceCommand } from '@/graph/graph-commands'
-import { DEFAULT_APP_SETTINGS_SNAPSHOT, useAppSettings } from '@/hooks/useAppSettings'
+import {
+  type AppSettingsSnapshot,
+  DEFAULT_APP_SETTINGS_SNAPSHOT,
+  useAppSettings
+} from '@/hooks/useAppSettings'
 import { useCommandActions } from '@/hooks/useCommandActions'
 import { useEditorInteractions } from '@/hooks/useEditorInteractions'
 import { useGlobalSurface } from '@/hooks/useGlobalSurface'
@@ -23,6 +27,7 @@ import { useKnowledgeUtilities } from '@/hooks/useKnowledgeUtilities'
 import { useNoteActions } from '@/hooks/useNoteActions'
 import { useNoteEditor } from '@/hooks/useNoteEditor'
 import { useNoteIndex } from '@/hooks/useNoteIndex'
+import { usePreviewPrefetch } from '@/hooks/usePreviewPrefetch'
 import { useReadingZoom } from '@/hooks/useReadingZoom'
 import { useRecentNotes } from '@/hooks/useRecentNotes'
 import { useTextFileEditor } from '@/hooks/useTextFileEditor'
@@ -33,9 +38,11 @@ import { useWorkbench } from '@/hooks/useWorkbench'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { CreateInteractiveDialog } from '@/interactive/CreateInteractiveDialog'
 import { deriveNoteTitle } from '@/lib/note-title'
+import { warmMdxPreviewCompiler } from '@/preview/mdx-preview-compiler'
 import { PagePreviewSettingsProvider } from '@/preview/PagePreviewSettingsProvider'
 import { ReadingPaperContext } from '@/preview/ReadingPaperContext'
 import { SearchPane } from '@/search/SearchPane'
+import { SettingsDialog } from '@/settings/SettingsDialog'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import { focusActiveDocument, focusExplorer, isExplorerFocused } from '@/workbench/document-focus'
@@ -48,12 +55,17 @@ interface DeleteRequest {
   relativePath: string
 }
 
-const LazySettingsDialog = lazy(async () => {
-  const module = await import('@/settings/SettingsDialog')
-  return { default: module.SettingsDialog }
-})
-
-function App(): React.JSX.Element {
+function App({
+  initialSettings = null,
+  initialVaultPath
+}: {
+  initialSettings?: Partial<AppSettingsSnapshot> | null
+  initialVaultPath?: string | null
+} = {}): React.JSX.Element {
+  useEffect(() => {
+    performance.mark('g39:react-root-commit')
+    warmMdxPreviewCompiler()
+  }, [])
   const [vault, setVault] = useState<VaultInfo | null>(null)
   const [selectedVaultPath, setSelectedVaultPath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +90,7 @@ function App(): React.JSX.Element {
   useEffect(() => {
     if (settingsOpen) setSettingsMounted(true)
   }, [settingsOpen])
-  const appSettings = useAppSettings({ onError: setError })
+  const appSettings = useAppSettings({ onError: setError, initialSnapshot: initialSettings })
   const { toggle: toggleTheme, resolvedTheme } = useTheme({ settings: appSettings })
   const settingsSnapshot = appSettings.snapshot ?? DEFAULT_APP_SETTINGS_SNAPSHOT
   const effectiveTheme =
@@ -97,6 +109,7 @@ function App(): React.JSX.Element {
   const textEditor = useTextFileEditor({ onError: setError })
   const readingZoom = useReadingZoom()
   const selectedNotePath = isNotePath(selectedVaultPath) ? editor.selectedPath : null
+  usePreviewPrefetch(vault, selectedNotePath, viewMode, editor.isDirty)
   const readingFullViewEnabled = isReadingFullViewActionEnabled(selectedNotePath, viewMode)
   const readingFullViewActive = readingFullViewEnabled && readingFullView
 
@@ -139,6 +152,7 @@ function App(): React.JSX.Element {
     setStarterProofProjectRoot(null)
   }, [editorTabs.state.sessionId])
   const vaultSession = useVaultSession({
+    initialLastOpenVault: initialVaultPath,
     vault,
     setVault,
     workbench: editorTabs,
@@ -501,7 +515,7 @@ function App(): React.JSX.Element {
               />
               {settingsMounted ? (
                 <Suspense fallback={null}>
-                  <LazySettingsDialog
+                  <SettingsDialog
                     open={settingsOpen}
                     startSection={settingsStartSection}
                     onOpenChange={(open) => {

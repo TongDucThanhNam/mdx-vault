@@ -1,6 +1,6 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, Menu, shell } from 'electron'
-import { existsSync } from 'fs'
+import { app, BrowserWindow, Menu, nativeTheme, shell } from 'electron'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { registerAiIpc } from './ipc/ai-ipc'
@@ -26,6 +26,13 @@ import {
   type NativeMenuItemSpec,
   WINDOW_SHORTCUT_WATCHER_OPTIONS
 } from './window-shortcut-policy'
+
+const perfLog = process.env['MDX_VAULT_PERF'] === '1'
+function markStartup(stage: string): void {
+  if (perfLog) console.log(`[goal39] ${stage} ${Date.now()} ${Math.round(process.uptime() * 1000)}`)
+}
+
+markStartup('main-eval')
 
 function configurePackagedEsbuildBinary(): void {
   if (!app.isPackaged) {
@@ -80,6 +87,7 @@ function enableNativeVisualZoom(mainWindow: BrowserWindow): void {
 }
 
 function createWindow(): void {
+  markStartup('window-create-start')
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -87,6 +95,7 @@ function createWindow(): void {
     minWidth: 980,
     minHeight: 640,
     show: false,
+    backgroundColor: startupBackgroundColor(),
     autoHideMenuBar: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -98,6 +107,7 @@ function createWindow(): void {
       webSecurity: true
     }
   })
+  markStartup('window-created')
 
   enableNativeVisualZoom(mainWindow)
   registerWindowStateEvents(mainWindow)
@@ -118,12 +128,28 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  markStartup('load-file')
+}
+
+function startupBackgroundColor(): string {
+  let theme: unknown = 'system'
+  try {
+    const settings = JSON.parse(
+      readFileSync(join(app.getPath('userData'), 'app-settings.json'), 'utf8')
+    ) as { theme?: unknown }
+    theme = settings.theme
+  } catch {
+    // Missing or invalid settings fall back to the operating-system theme.
+  }
+  const dark = theme === 'dark' || (theme !== 'light' && nativeTheme.shouldUseDarkColors)
+  return dark ? '#0f141a' : '#f6f8fa'
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  markStartup('app-ready')
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -157,6 +183,8 @@ app.whenReady().then(() => {
   registerInteractiveAuthoringIpc({ onTreeChanged: broadcastVaultTreeChanged })
   registerWindowIpc()
   registerAppSettingsIpc(appSettings)
+
+  markStartup('ipc-registered')
 
   createWindow()
 

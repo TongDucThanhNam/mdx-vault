@@ -21,6 +21,7 @@ import {
 } from '@/preview/registry'
 import type { IndexedNoteSummary } from '@/vault/types'
 import { getNoteLinkKeys, type WikilinkSubpath } from '../../../shared/wikilinks'
+import { registerActiveEditorView } from './active-editor-view'
 import { ComponentDefinitionPopover } from './ComponentDefinitionPopover'
 import { ComponentInsertPalette } from './ComponentInsertPalette'
 import { useSourceEditorPreferences } from './editor-preferences-context'
@@ -481,9 +482,11 @@ export function MdxEditor({
     })
 
     viewRef.current = view
+    const unregisterActiveView = registerActiveEditorView(view)
     onSelectionChangeRef.current?.(buildEditorSelectionSnapshot(view))
 
     return () => {
+      unregisterActiveView()
       view.destroy()
       viewRef.current = null
     }

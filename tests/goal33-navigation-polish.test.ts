@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { displayFileName } from '../src/renderer/src/explorer/file-label'
+import { createFileLabelCache, displayFileName } from '../src/renderer/src/explorer/file-label'
 import { FILE_TREE_ICONS } from '../src/renderer/src/explorer/file-tree-icons'
 import { selectVisibleGraphLabels } from '../src/renderer/src/graph/graph-label-culling'
 import { focusAfterViewModeSwitch } from '../src/renderer/src/workbench/document-focus'
@@ -26,6 +26,17 @@ describe('GOAL-33 navigation and accessibility', () => {
     expect(displayFileName('notes/Beta.mdx', false, files)).toBe('Beta.mdx')
     expect(displayFileName('other/Beta.md', false, files)).toBe('Beta')
     expect(displayFileName('data.json', false, files)).toBe('data.json')
+  })
+
+  test('caches tree labels until the visible path set changes', () => {
+    const paths = ['notes/Alpha.mdx']
+    const label = createFileLabelCache(paths, false)
+    expect(label('notes/Alpha.mdx')).toBe('Alpha')
+    paths.push('notes/Alpha.md')
+    expect(label('notes/Alpha.mdx')).toBe('Alpha')
+    const updated = createFileLabelCache(paths, false)
+    expect(updated('notes/Alpha.mdx')).toBe('Alpha.mdx')
+    expect(updated('notes/Alpha.md')).toBe('Alpha.md')
   })
 
   test('restores focus only after a committed mode change', () => {

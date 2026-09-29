@@ -11,6 +11,7 @@ import {
   Waypoints
 } from 'lucide-react'
 import { lazy, Suspense } from 'react'
+import { loadGraphSurface } from '@/graph/load-graph-surface'
 import type { LocalGraphUnavailableReason } from '@/graph/local-graph-state'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
 import type { KnowledgeUtilitiesController } from '@/hooks/useKnowledgeUtilities'
@@ -29,7 +30,7 @@ import type { NoteHeadingResult } from '@/vault/types'
 import type { KnowledgePanelId, SourceRange } from '../../../../shared/knowledge'
 
 const LazyGraphSurface = lazy(async () => {
-  const module = await import('@/graph/GraphSurface')
+  const module = await loadGraphSurface()
   return { default: module.GraphSurface }
 })
 

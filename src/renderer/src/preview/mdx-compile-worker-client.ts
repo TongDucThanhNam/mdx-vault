@@ -36,6 +36,10 @@ export class MdxCompileWorkerClient {
     })
   }
 
+  warm(): void {
+    this.ensureWorker()
+  }
+
   terminate(reason = 'MDX compiler worker stopped'): void {
     this.worker?.terminate()
     this.worker = null
@@ -52,6 +56,7 @@ export class MdxCompileWorkerClient {
     }
 
     const worker = this.createWorker()
+    performance.mark('g39:compile-worker-spawned')
     worker.addEventListener('message', this.handleMessage)
     worker.addEventListener('error', this.handleError)
     this.worker = worker

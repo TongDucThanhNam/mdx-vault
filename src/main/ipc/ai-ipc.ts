@@ -15,17 +15,9 @@ import {
   type PatchOperation,
   patchOperationSchema
 } from '../../shared/ai'
-import { approveAiPatch } from '../services/ai-approval-service'
 import { applyAllOperations } from '../services/ai-patch-engine'
 import { AiSettingsService } from '../services/ai-settings'
-import {
-  ALLOWED_PATCH_OPERATIONS,
-  cancelChat,
-  findAction,
-  indexedNoteExists,
-  startChat
-} from '../services/ai-tanstack-adapter'
-import { getCurrentVault } from '../services/vault-session'
+import { getCurrentIndex, getCurrentVault } from '../services/vault-session'
 import type { IpcFailure, IpcResult } from './vault-ipc'
 
 const AI_PUSH_CHANNEL = 'ai:event'
@@ -74,11 +66,12 @@ export function registerAiIpc(): void {
       return handleAiRequest(async () => {
         assertMainFrame(event)
         const input = assistantChatStartInputSchema.parse(payload)
+        const { findAction, startChat } = await import('../services/ai-tanstack-adapter')
         const action = findAction(input.actionId)
         if (!action) {
           throw new Error(`Unknown action: ${input.actionId}`)
         }
-        const sessionId = pushChatStream(input.context, action, input.userMessage)
+        const sessionId = pushChatStream(input.context, action, input.userMessage, startChat)
         return { sessionId }
       })
     }
@@ -90,6 +83,7 @@ export function registerAiIpc(): void {
       return handleAiRequest(async () => {
         assertMainFrame(event)
         const input = assistantChatCancelInputSchema.parse(payload)
+        const { cancelChat } = await import('../services/ai-tanstack-adapter')
         return cancelChat(input.sessionId)
       })
     }
@@ -117,6 +111,7 @@ export function registerAiIpc(): void {
             `Cannot approve patches: note "${input.noteRelativePath}" is not indexed.`
           )
         }
+        const { approveAiPatch } = await import('../services/ai-approval-service')
         return approveAiPatch(getCurrentVault(), input.noteRelativePath, input.operations)
       })
     }
@@ -127,7 +122,7 @@ export function registerAiIpc(): void {
     (event): Promise<IpcResult<ReadonlyArray<PatchOperation['kind']>>> => {
       return handleAiRequest(async () => {
         assertMainFrame(event)
-        return ALLOWED_PATCH_OPERATIONS
+        return ['textPatch', 'interactiveInsert', 'componentDraft'] as const
       })
     }
   )
@@ -140,7 +135,8 @@ export function registerAiIpc(): void {
 function pushChatStream(
   context: import('../../shared/ai').AssistantContext,
   action: import('../services/ai-system-prompt').ActionDescriptor,
-  userMessage: string
+  userMessage: string,
+  startChat: typeof import('../services/ai-tanstack-adapter').startChat
 ): string {
   const result = startChat(
     (envelope) => {
@@ -158,6 +154,16 @@ function pushChatStream(
   )
 
   return result.sessionId
+}
+
+function indexedNoteExists(relativePath: string): boolean {
+  try {
+    return getCurrentIndex()
+      .database.listNotes()
+      .some((note) => note.relativePath === relativePath)
+  } catch {
+    return false
+  }
 }
 
 function broadcastAssistantEvent(sessionId: string, event: AssistantEvent): void {

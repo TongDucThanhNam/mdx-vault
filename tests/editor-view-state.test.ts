@@ -1,5 +1,6 @@
 import { EditorState, type TransactionSpec } from '@codemirror/state'
-import { EditorView, type MeasureRequest } from '@codemirror/view'
+import type { EditorView, MeasureRequest } from '@codemirror/view'
+import { registerActiveEditorView } from '../src/renderer/src/editor/active-editor-view'
 import {
   clampEditorViewSnapshot,
   restoreActiveEditorView
@@ -115,31 +116,12 @@ test('late restore measurement cannot scroll over a newer edit or cursor move', 
 })
 
 function withActiveEditorView(view: EditorView | null, run: () => void): void {
-  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
-  const originalFindFromDOM = Object.getOwnPropertyDescriptor(EditorView, 'findFromDOM')
-  const editorElement = {} as HTMLElement
-
-  Object.defineProperty(globalThis, 'document', {
-    configurable: true,
-    value: {
-      querySelector: () => (view ? editorElement : null)
-    }
-  })
-  Object.defineProperty(EditorView, 'findFromDOM', {
-    configurable: true,
-    value: () => view
-  })
+  if (view) Object.defineProperty(view, 'dom', { value: { isConnected: true } })
+  const release = view ? registerActiveEditorView(view) : () => undefined
 
   try {
     run()
   } finally {
-    if (originalDocument) {
-      Object.defineProperty(globalThis, 'document', originalDocument)
-    } else {
-      Reflect.deleteProperty(globalThis, 'document')
-    }
-    if (originalFindFromDOM) {
-      Object.defineProperty(EditorView, 'findFromDOM', originalFindFromDOM)
-    }
+    release()
   }
 }

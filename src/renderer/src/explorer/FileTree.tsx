@@ -16,7 +16,7 @@ import { isNotePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
 import type { UiDensity } from '../../../shared/app-settings'
 import type { BookmarkTarget } from '../../../shared/bookmarks'
-import { displayFileName } from './file-label'
+import { createFileLabelCache } from './file-label'
 import { resolveFileTreeClickPath, shouldActivateTreeSelection } from './file-tree-activation'
 import { FILE_TREE_ICONS } from './file-tree-icons'
 
@@ -143,6 +143,10 @@ export function FileTree({
   onBookmark
 }: FileTreeProps): React.JSX.Element {
   const paths = useMemo(() => files.map((file) => file.relativePath), [files])
+  const fileLabel = useMemo(
+    () => createFileLabelCache(paths, showFileExtensions),
+    [paths, showFileExtensions]
+  )
   const filesByPath = useMemo(
     () => new Map(files.map((file) => [file.relativePath, file])),
     [files]
@@ -201,10 +205,7 @@ export function FileTree({
     itemHeight: density === 'compact' ? 24 : 28,
     icons: FILE_TREE_ICONS,
     renderRowDecoration: ({ item }) => ({
-      text:
-        item.kind === 'directory'
-          ? item.name
-          : displayFileName(item.path, showFileExtensions, pathsRef.current),
+      text: item.kind === 'directory' ? item.name : fileLabel(item.path),
       title: item.name
     }),
     renaming: {

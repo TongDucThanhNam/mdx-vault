@@ -1,10 +1,8 @@
-import { redo, undo } from '@codemirror/commands'
-import { EditorView } from '@codemirror/view'
 import { Check, ChevronRight, Menu } from 'lucide-react'
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
 import type { CommandActionRegistry } from '@/commands/actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
-import { openFindOnly, openReplace } from '@/editor/find-replace-panel'
+import { getActiveEditorView } from '@/editor/active-editor-view'
 import { cn } from '@/lib/utils'
 
 interface AppMenuBarProps {
@@ -120,26 +118,26 @@ export function AppMenuBar({
             label="Undo"
             shortcut="Ctrl+Z"
             disabled={!editorAvailable}
-            onSelect={() => runEditorCommand(undo)}
+            onSelect={() => void runEditorCommand('undo')}
           />
           <MenuItem
             label="Redo"
             shortcut="Ctrl+Y"
             disabled={!editorAvailable}
-            onSelect={() => runEditorCommand(redo)}
+            onSelect={() => void runEditorCommand('redo')}
           />
           <MenuSeparator />
           <MenuItem
             label="Find in Note"
             shortcut="Ctrl+F"
             disabled={!editorAvailable}
-            onSelect={() => runEditorCommand(openFindOnly)}
+            onSelect={() => void runEditorCommand('find')}
           />
           <MenuItem
             label="Find and Replace in Note"
             shortcut="Ctrl+H"
             disabled={!editorAvailable}
-            onSelect={() => runEditorCommand(openReplace)}
+            onSelect={() => void runEditorCommand('replace')}
           />
         </MenuSub>
 
@@ -370,14 +368,18 @@ function MenuSeparator(): React.JSX.Element {
   return <DropdownMenuPrimitive.Separator className="my-1 h-px bg-border" />
 }
 
-function runEditorCommand(command: (view: EditorView) => boolean): void {
-  const editorElement = document.querySelector<HTMLElement>('.cm-editor')
-  const editorView = editorElement ? EditorView.findFromDOM(editorElement) : null
-
-  if (!editorView) {
-    return
+async function runEditorCommand(action: 'undo' | 'redo' | 'find' | 'replace'): Promise<void> {
+  const editorView = getActiveEditorView()
+  if (!editorView) return
+  if (action === 'undo' || action === 'redo') {
+    const commands = await import('@codemirror/commands')
+    if (getActiveEditorView() !== editorView) return
+    commands[action](editorView)
+  } else {
+    const panel = await import('@/editor/find-replace-panel')
+    if (getActiveEditorView() !== editorView) return
+    if (action === 'find') panel.openFindOnly(editorView)
+    else panel.openReplace(editorView)
   }
-
-  command(editorView)
   queueMicrotask(() => editorView.focus())
 }

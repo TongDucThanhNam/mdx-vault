@@ -215,7 +215,16 @@ export function MdxPreview({
   useLayoutEffect(() => {
     const root = scrollRootRef.current
     if (!root || !Content) return
+    performance.mark('g39:preview-mounted')
     root.dataset.previewLayoutReady = 'true'
+    performance.mark('g39:preview-layout-ready')
+    if (
+      selectedPath?.endsWith('Welcome.mdx') &&
+      root.textContent?.includes('Welcome') &&
+      performance.getEntriesByName('g39:welcome-visible-frame').length === 0
+    ) {
+      requestAnimationFrame(() => performance.mark('g39:welcome-visible-frame'))
+    }
     const pendingTop = root.dataset.pendingRestoreTop
     if (pendingTop !== undefined) {
       root.scrollTop = Number(pendingTop)
@@ -231,7 +240,7 @@ export function MdxPreview({
       revealReadingSourceOffset(root, initialSourceOffset)
       initialAnchorAppliedRef.current = true
     }
-  }, [Content, initialSourceOffset])
+  }, [Content, initialSourceOffset, selectedPath])
 
   useEffect(() => {
     if (!revealHeadingRequest) {

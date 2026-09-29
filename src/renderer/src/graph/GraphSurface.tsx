@@ -8,7 +8,7 @@ import {
   Waypoints,
   X
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -56,6 +56,9 @@ export function GraphSurface({
   className,
   ...nodeActions
 }: GraphSurfaceProps): React.JSX.Element {
+  useLayoutEffect(() => {
+    performance.mark('g39:graph-surface-mounted')
+  }, [])
   const config = useGraphConfigController(mode, vaultSessionId)
   const localDepth = 'depth' in config.settings ? config.settings.depth : 1
   const scope = useMemo<GraphScope | null>(() => {
@@ -165,6 +168,7 @@ export function GraphSurface({
           return
         }
         adapterRef.current = adapter
+        performance.mark('g39:graph-adapter-ready')
         adapter.setSelection(selectedNodeIdRef.current)
         setRendererError(null)
       })

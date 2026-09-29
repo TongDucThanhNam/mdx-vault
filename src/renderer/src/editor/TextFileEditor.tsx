@@ -14,6 +14,7 @@ import {
   mapInteractiveDiagnosticsForEditor
 } from '@/interactive/interactive-code-intelligence'
 import type { InteractiveDiagnostic } from '../../../shared/interactive-authoring'
+import { registerActiveEditorView } from './active-editor-view'
 import { readEditorDocument } from './editor-document'
 import { useSourceEditorPreferences } from './editor-preferences-context'
 import { buildEditorSelectionSnapshot, type EditorSelectionSnapshot } from './editor-selection'
@@ -106,9 +107,11 @@ export function TextFileEditor({
     })
 
     viewRef.current = view
+    const unregisterActiveView = registerActiveEditorView(view)
     onSelectionChangeRef.current?.(buildEditorSelectionSnapshot(view))
 
     return () => {
+      unregisterActiveView()
       view.destroy()
       viewRef.current = null
     }

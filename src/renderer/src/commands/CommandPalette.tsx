@@ -1,6 +1,7 @@
 import { Command as CommandIcon, CornerDownLeft, Pin, Search } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { loadGraphSurface } from '@/graph/load-graph-surface'
 import { isSubsequence } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'
 import { containDialogTabKey } from '@/workbench/dialog-focus'
@@ -62,6 +63,16 @@ export function CommandPalette({
   useEffect(() => {
     saveCommandPaletteState(pinnedActionIds, recentActionIds)
   }, [pinnedActionIds, recentActionIds])
+
+  useEffect(() => {
+    if (
+      open &&
+      query.toLocaleLowerCase().includes('graph') &&
+      results.some(({ action }) => action.id === 'graph.open-global' && !action.disabled)
+    ) {
+      void loadGraphSurface().catch(() => undefined)
+    }
+  }, [open, query, results])
 
   useEffect(() => {
     if (!open || activeIndex < 0) {

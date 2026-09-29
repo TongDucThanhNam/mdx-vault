@@ -1,15 +1,17 @@
-import { EditorView } from '@codemirror/view'
-import { openFindOnly, openReplace } from './find-replace-panel'
-import { createMarkdownFormattingTransaction } from './markdown-formatting'
+import { getActiveEditorView } from './active-editor-view'
 
-export function runEditorPaletteAction(action: 'find' | 'replace' | 'highlight'): boolean {
-  const host = Array.from(
-    document.querySelectorAll<HTMLElement>('[data-document-surface] .cm-editor')
-  ).find((element) => element.getClientRects().length > 0)
-  const view = host ? EditorView.findFromDOM(host) : null
+export async function runEditorPaletteAction(
+  action: 'find' | 'replace' | 'highlight'
+): Promise<boolean> {
+  const view = getActiveEditorView()
   if (!view) return false
-  if (action === 'find') return openFindOnly(view)
-  if (action === 'replace') return openReplace(view)
+  if (action === 'find' || action === 'replace') {
+    const panel = await import('./find-replace-panel')
+    if (getActiveEditorView() !== view) return false
+    return action === 'find' ? panel.openFindOnly(view) : panel.openReplace(view)
+  }
+  const { createMarkdownFormattingTransaction } = await import('./markdown-formatting')
+  if (getActiveEditorView() !== view) return false
   view.dispatch(createMarkdownFormattingTransaction(view.state, 'highlight'))
   view.focus()
   return true

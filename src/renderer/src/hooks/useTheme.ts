@@ -27,7 +27,9 @@ interface UseThemeResult {
  */
 export function useTheme({ settings }: UseThemeOptions): UseThemeResult {
   const theme = settings.snapshot?.theme ?? DEFAULT_APP_SETTINGS_SNAPSHOT.theme
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  )
 
   // Track the OS color scheme for 'system' mode.
   useEffect(() => {

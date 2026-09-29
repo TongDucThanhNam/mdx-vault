@@ -13,13 +13,15 @@ import { type PreviewWarning, remarkPreviewWarnings } from './preview-metadata'
 import {
   rehypePreviewBlockMap,
   rehypePreviewHeadingIdentity,
-  rehypePreviewSourceMap
+  rehypePreviewSourceMap,
+  remarkCollectPreviewHeadings
 } from './rehype-preview-source-map'
 import { rehypeSafeHtml } from './safe-html'
 
 /** Compile and transform MDX as data. Generated code is executed only by the trusted renderer. */
 export async function compileMdxFunctionBody(source: string): Promise<MdxCompileWorkerResult> {
   const warnings: PreviewWarning[] = []
+  const headingsByOffset = new Map()
   const file = await compile(source, {
     development: false,
     outputFormat: 'function-body',
@@ -28,6 +30,7 @@ export async function compileMdxFunctionBody(source: string): Promise<MdxCompile
       remarkMath,
       remarkFrontmatter,
       remarkWikilink,
+      [remarkCollectPreviewHeadings, { source, headingsByOffset }],
       remarkMarks,
       remarkCallouts,
       [remarkPreviewWarnings, { warnings }]
@@ -36,7 +39,7 @@ export async function compileMdxFunctionBody(source: string): Promise<MdxCompile
       [rehypePreviewSourceMap, { source }],
       rehypeSafeHtml,
       rehypePreviewBlockMap,
-      [rehypePreviewHeadingIdentity, { source }],
+      [rehypePreviewHeadingIdentity, { source, headingsByOffset }],
       rehypeKatex,
       [rehypeHighlight, { plainText: ['mermaid'] }]
     ]

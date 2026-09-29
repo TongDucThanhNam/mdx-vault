@@ -15,6 +15,7 @@ interface UseAppSettingsOptions {
   enabled?: boolean
   /** Promotes settings failures to an application-level error surface. */
   onError?: (message: string) => void
+  initialSnapshot?: Partial<AppSettingsSnapshot> | null
 }
 
 export interface AppSettingsController {
@@ -35,9 +36,12 @@ export interface AppSettingsController {
 
 export function useAppSettings({
   enabled = true,
-  onError
+  onError,
+  initialSnapshot = null
 }: UseAppSettingsOptions = {}): AppSettingsController {
-  const [snapshot, setSnapshot] = useState<AppSettingsSnapshot | null>(null)
+  const [snapshot, setSnapshot] = useState<AppSettingsSnapshot | null>(() =>
+    initialSnapshot ? { ...DEFAULT_APP_SETTINGS_SNAPSHOT, ...initialSnapshot } : null
+  )
   const [loadingCount, setLoadingCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -88,7 +92,9 @@ export function useAppSettings({
     }
 
     try {
+      performance.mark('g39:settings-read-start')
       const confirmed = { ...DEFAULT_APP_SETTINGS_SNAPSHOT, ...(await window.appApi.getSettings()) }
+      performance.mark('g39:settings-read-done')
       commitConfirmedSnapshot(confirmed, requestSequence)
       return confirmed
     } catch (loadError) {
@@ -102,10 +108,10 @@ export function useAppSettings({
   }, [commitConfirmedSnapshot, publishError])
 
   useEffect(() => {
-    if (enabled) {
+    if (enabled && !initialSnapshot) {
       void reload()
     }
-  }, [enabled, reload])
+  }, [enabled, initialSnapshot, reload])
 
   const updateSettings = useCallback(
     (patch: AppSettingsPatch): Promise<AppSettingsSnapshot | null> => {

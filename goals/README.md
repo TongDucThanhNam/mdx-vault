@@ -56,6 +56,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-36-export-fidelity.md | Offline, scoped export styling for every registry island | 26, 28, 35 |
 | GOAL-37-compact-layout-tabs-find-states.md | Non-occluding compact docks, tab overflow, find/replace, graph and panel states | 33, 35 |
 | GOAL-38-dark-paper-craft-and-contrast.md | Night-edition inverse fills, AA contrast, narrow Reading type and export frontmatter parity | 33, 35, 36 |
+| GOAL-39-production-latency-round-2.md | Production startup/first-open A/B meets event-based medians; guarded prefetch and graph first-use tail closed | 34, 37 |
 
 ## Trạng thái ký hiệu trong goal
 

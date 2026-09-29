@@ -100,6 +100,7 @@ export function useNoteEditor({ onError, onRecentNote, showToast }: UseNoteEdito
       saveBeforeLoad = true,
       shouldCommit: () => boolean = () => true
     ): Promise<NoteFileLoadResult> => {
+      performance.mark('g39:note-load-request')
       const requestId = loadRequestRef.current + 1
       loadRequestRef.current = requestId
       setIsLoadingFile(true)
@@ -124,6 +125,7 @@ export function useNoteEditor({ onError, onRecentNote, showToast }: UseNoteEdito
         }
 
         const fileContent = await window.vaultApi.readFile(relativePath)
+        performance.mark('g39:note-file-read-done')
 
         if (requestId !== loadRequestRef.current || !shouldCommit()) {
           return 'superseded'

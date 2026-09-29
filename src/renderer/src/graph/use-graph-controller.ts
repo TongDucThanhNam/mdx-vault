@@ -225,6 +225,7 @@ export function useGraphSnapshotController(options: {
   const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshRevision, setRefreshRevision] = useState(0)
+  const hasRequestedRef = useRef(false)
   const requestCoordinatorRef = useRef(createGraphRequestCoordinator())
   const requestKey = createGraphTopologyRequestKey(options.scope, options.settings, options.groups)
   const queryRequest = useMemo<GraphSnapshotRequest | null>(() => {
@@ -261,11 +262,15 @@ export function useGraphSnapshotController(options: {
     setStatus('loading')
     setSnapshot(null)
     setError(null)
+    const delay = hasRequestedRef.current ? 160 : 0
+    hasRequestedRef.current = true
     const timer = setTimeout(() => {
+      performance.mark('g39:graph-query-start')
       void window.graphApi
         .getSnapshot(queryRequest)
         .then((nextSnapshot) => {
           if (!requestCoordinatorRef.current.isCurrent(token)) return
+          performance.mark('g39:graph-query-done')
           setSnapshot(nextSnapshot)
           setStatus('ready')
         })
@@ -275,7 +280,7 @@ export function useGraphSnapshotController(options: {
           setStatus('error')
           setError(formatGraphError(queryError, 'Graph query could not be evaluated.'))
         })
-    }, 160)
+    }, delay)
 
     return () => {
       clearTimeout(timer)
