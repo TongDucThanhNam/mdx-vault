@@ -1,6 +1,9 @@
-import { Activity, type KeyboardEvent, useRef } from 'react'
+import { Activity, type KeyboardEvent, type RefObject, useRef } from 'react'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
+import type { PanelWidthKey } from '../../../../shared/app-settings'
+import { PanelSeparator } from './PanelSeparator'
+import type { PanelWidths } from './workspace-layout'
 import {
   resolveVisibleSupplementaryDockTab,
   type SupplementaryDockTab,
@@ -8,6 +11,9 @@ import {
 } from './workspace-layout'
 
 export function ResponsiveSupplementaryDock({
+  gridRef,
+  panelWidths,
+  onPanelWidthChange,
   mode,
   contextOpen,
   aiOpen,
@@ -16,6 +22,9 @@ export function ResponsiveSupplementaryDock({
   contextPanel,
   aiPanel
 }: {
+  gridRef: RefObject<HTMLElement | null>
+  panelWidths: PanelWidths
+  onPanelWidthChange: (key: PanelWidthKey, width: number) => void
   mode: WorkspaceLayoutMode
   contextOpen: boolean
   aiOpen: boolean
@@ -119,6 +128,7 @@ export function ResponsiveSupplementaryDock({
       <Activity mode={contextOpen && (wide || visibleTab === 'context') ? 'visible' : 'hidden'}>
         <DockPanel
           id="supplementary-context-panel"
+          panelWidth="rightPanelWidth"
           wide={wide}
           label={t('dock.context')}
           labelledBy="supplementary-context-tab"
@@ -131,9 +141,19 @@ export function ResponsiveSupplementaryDock({
         </DockPanel>
       </Activity>
 
+      {wide && aiOpen ? (
+        <PanelSeparator
+          panel="aiPanelWidth"
+          width={panelWidths.aiPanelWidth}
+          gridRef={gridRef}
+          onCommit={onPanelWidthChange}
+        />
+      ) : null}
+
       <Activity mode={aiOpen && (wide || visibleTab === 'ai') ? 'visible' : 'hidden'}>
         <DockPanel
           id="supplementary-ai-panel"
+          panelWidth="aiPanelWidth"
           wide={wide}
           label={t('dock.ai')}
           labelledBy="supplementary-ai-tab"
@@ -151,6 +171,7 @@ export function ResponsiveSupplementaryDock({
 
 function DockPanel({
   id,
+  panelWidth,
   wide,
   label,
   labelledBy,
@@ -158,6 +179,7 @@ function DockPanel({
   children
 }: {
   id: string
+  panelWidth: PanelWidthKey
   wide: boolean
   label: string
   labelledBy: string
@@ -166,7 +188,13 @@ function DockPanel({
 }): React.JSX.Element {
   if (wide) {
     return (
-      <div id={id} role="region" aria-label={label} className={className}>
+      <div
+        id={id}
+        role="region"
+        aria-label={label}
+        data-panel-width={panelWidth}
+        className={className}
+      >
         {children}
       </div>
     )

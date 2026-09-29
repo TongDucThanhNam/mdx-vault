@@ -43,6 +43,7 @@ interface UseCommandActionsOptions {
   keymapOverrides: KeymapOverrides
   openVault: () => Promise<void>
   toggleTheme: () => Promise<void>
+  toggleReadingPaper: () => Promise<void>
   openCreateNote: () => void
   openCreateInteractive: () => void
   interactiveCreateEnabled: boolean
@@ -83,6 +84,7 @@ export function useCommandActions({
   keymapOverrides,
   openVault,
   toggleTheme,
+  toggleReadingPaper,
   openCreateNote,
   openCreateInteractive,
   interactiveCreateEnabled,
@@ -215,6 +217,7 @@ export function useCommandActions({
       'note.export': openExport,
       'ai.toggle': toggleAiPanel,
       'theme.toggle': toggleTheme,
+      'reading-paper.toggle': toggleReadingPaper,
       'settings.open': openSettings,
       'vault.open': openVault,
       'vault.empty-trash': openEmptyTrash
@@ -248,6 +251,7 @@ export function useCommandActions({
       showKnowledgePanel,
       toggleReadingFullView,
       toggleTheme,
+      toggleReadingPaper,
       zoomReadingIn,
       zoomReadingOut,
       workbench.activateVisual,
@@ -322,6 +326,7 @@ export function useCommandActions({
       'note.export': hasNote,
       'ai.toggle': hasVault,
       'theme.toggle': true,
+      'reading-paper.toggle': true,
       'settings.open': true,
       'vault.open': true,
       'vault.empty-trash': hasVault && trashCount > 0

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { mermaidSecureConfig } from '../../../shared/mermaid-config'
+import { type ResolvedReadingPaper, useReadingPaper } from './ReadingPaperContext'
 
 const sandboxCsp = [
   "default-src 'none'",
@@ -38,18 +39,19 @@ interface SanitizedSvg {
 }
 
 export function MermaidDiagram({ chart }: MermaidDiagramProps): React.JSX.Element {
+  const paper = useReadingPaper()
   const instanceId = useMemo(() => window.crypto.randomUUID(), [])
   const [state, setState] = useState<MermaidState>({ status: 'loading' })
 
   useEffect(() => {
     let cancelled = false
 
-    void renderMermaidChart(chart, instanceId)
+    void renderMermaidChart(chart, instanceId, paper)
       .then((result) => {
         if (!cancelled) {
           setState({
             status: 'ready',
-            srcDoc: createMermaidSandboxDocument(result.svg),
+            srcDoc: createMermaidSandboxDocument(result.svg, paper),
             height: estimateFrameHeight(result)
           })
         }
@@ -63,7 +65,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps): React.JSX.Elemen
     return () => {
       cancelled = true
     }
-  }, [chart, instanceId])
+  }, [chart, instanceId, paper])
 
   return (
     <section className="mdx-mermaid my-5 overflow-hidden border-2 border-foreground bg-background shadow-[3px_3px_0_0_var(--foreground)]">
@@ -111,9 +113,13 @@ async function loadMermaidRuntime(): Promise<MermaidRuntime> {
   return mermaidRuntimePromise
 }
 
-async function renderMermaidChart(chart: string, instanceId: string): Promise<SanitizedSvg> {
+async function renderMermaidChart(
+  chart: string,
+  instanceId: string,
+  paper: ResolvedReadingPaper
+): Promise<SanitizedSvg> {
   const mermaid = await loadMermaidRuntime()
-  mermaid.initialize(createMermaidRuntimeConfig())
+  mermaid.initialize(createMermaidRuntimeConfig(paper))
 
   const result = await mermaid.render(
     `mdx-mermaid-${instanceId.replace(/[^a-zA-Z0-9_-]/g, '')}`,
@@ -123,17 +129,35 @@ async function renderMermaidChart(chart: string, instanceId: string): Promise<Sa
   return sanitizeMermaidSvg(result.svg)
 }
 
-function createMermaidRuntimeConfig(): Record<string, unknown> {
+function createMermaidRuntimeConfig(paper: ResolvedReadingPaper): Record<string, unknown> {
+  const dark = paper === 'dark'
   return {
     ...mermaidSecureConfig,
+    darkMode: dark,
     secure: [...mermaidSecureConfig.secure],
-    themeVariables: { ...mermaidSecureConfig.themeVariables },
+    themeVariables: {
+      ...mermaidSecureConfig.themeVariables,
+      ...(dark
+        ? {
+            background: '#17212a',
+            primaryColor: '#23303a',
+            primaryTextColor: '#e8e9e2',
+            primaryBorderColor: '#667583',
+            secondaryColor: '#23303a',
+            tertiaryColor: '#17212a',
+            lineColor: '#a4c5ff',
+            textColor: '#e8e9e2'
+          }
+        : {})
+    },
     flowchart: { ...mermaidSecureConfig.flowchart }
   }
 }
 
-function createMermaidSandboxDocument(svg: string): string {
+function createMermaidSandboxDocument(svg: string, paper: ResolvedReadingPaper): string {
   const imageSrc = svgToDataUrl(svg)
+  const background = paper === 'dark' ? '#17212a' : '#f9f9f7'
+  const foreground = paper === 'dark' ? '#e8e9e2' : '#111111'
 
   return `<!doctype html>
 <html>
@@ -142,8 +166,8 @@ function createMermaidSandboxDocument(svg: string): string {
 <meta http-equiv="Content-Security-Policy" content="${escapeAttribute(sandboxCsp)}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root { color-scheme: light; }
-html, body { margin: 0; min-height: 100%; background: #f9f9f7; color: #111111; }
+:root { color-scheme: ${paper}; }
+html, body { margin: 0; min-height: 100%; background: ${background}; color: ${foreground}; }
 body { overflow: hidden; padding: 16px; }
 img {
   display: block;

@@ -7,6 +7,8 @@
   --note-line: #cccccc;
   --note-result: #2b5797;
   --note-on-solid: #fff;
+  /* Untrusted islands keep a neutral light card; no sandbox capability is added. */
+  --sandbox-island-surface: #f9f9f7;
 
   --note-font-display: 'Playfair Display', serif;
   --note-font-body: 'Lora', serif;
@@ -436,17 +438,17 @@
 
 .mdx-preview .in-cell-current {
   background: var(--in-accent);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview .in-cell-hit {
   background: var(--in-result);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview .in-cell-miss {
   background: var(--in-accent);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview .in-cell-cached {
@@ -501,7 +503,7 @@
 
 .mdx-preview .in-flow-node-accent {
   background: var(--in-accent);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview .in-flow-node-label {
@@ -622,7 +624,7 @@
   font-weight: 700;
 }
 
-/* The note is always a paper document; the surrounding app keeps its own chrome theme. */
+/* Paper aliases are scoped to the note, independently of workbench chrome. */
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) {
   --background: var(--in-paper);
   --foreground: var(--in-ink);
@@ -633,7 +635,7 @@
   --popover: var(--in-paper);
   --popover-foreground: var(--in-ink);
   --primary: var(--in-accent);
-  --primary-foreground: #fff;
+  --primary-foreground: var(--note-on-solid);
   --secondary: var(--in-paper-dark);
   --secondary-foreground: var(--in-ink);
   --muted: var(--in-paper-dark);
@@ -641,9 +643,9 @@
   --accent: var(--in-paper-dark);
   --accent-foreground: var(--in-ink);
   --destructive: var(--in-accent);
-  --destructive-foreground: #fff;
+  --destructive-foreground: var(--note-on-solid);
   --success: var(--in-result);
-  --success-foreground: #fff;
+  --success-foreground: var(--note-on-solid);
   --border: var(--in-ink);
   --input: var(--in-ink);
   --ring: var(--in-accent);
@@ -672,6 +674,65 @@
   font-feature-settings: 'kern', 'liga';
   hanging-punctuation: first last;
   text-rendering: optimizeLegibility;
+}
+
+/* Night edition: a lifted sheet with warm ink and quiet alloy rules. */
+.note-editorial-surface[data-reading-paper='dark'],
+.mdx-preview[data-reading-paper='dark'],
+[data-wikilink-preview-layer][data-reading-paper='dark'] {
+  color-scheme: dark;
+  --note-paper: #17212a;
+  --note-paper-muted: #23303a;
+  --note-ink: #e8e9e2;
+  --note-accent: #ff9489;
+  --note-line: #667583;
+  --note-result: #a4c5ff;
+  --note-on-solid: #17212a;
+  --note-shadow-sm: 2px 2px 0 #52616e;
+  --note-shadow: 4px 4px 0 #52616e;
+  --in-paper: var(--note-paper);
+  --in-paper-dark: var(--note-paper-muted);
+  --in-ink: var(--note-ink);
+  --in-accent: var(--note-accent);
+  --in-line: var(--note-line);
+  --in-result: var(--note-result);
+  --in-shadow: var(--note-shadow);
+  background: var(--note-paper);
+  color: var(--note-ink);
+}
+
+.mdx-preview[data-reading-paper='dark']:is(.theme-editorial-note, .theme-interactive-note) {
+  --primary-foreground: var(--note-on-solid);
+  --destructive-foreground: var(--note-on-solid);
+  --success-foreground: var(--note-on-solid);
+}
+
+.mdx-preview[data-reading-paper='dark'] :is(mark, .in-label, .in-pill) {
+  color: var(--note-on-solid);
+}
+
+.mdx-preview[data-reading-paper='dark'] :is(pre, details, img, .in-widget, .note-panel) {
+  box-shadow: var(--note-shadow-sm);
+}
+
+.mdx-preview[data-reading-paper='dark'] .katex {
+  color: inherit;
+}
+
+.mdx-preview[data-reading-paper='dark'] ::selection {
+  background: var(--note-accent);
+  color: var(--note-on-solid);
+}
+
+[data-wikilink-preview-layer][data-reading-paper='dark'] {
+  border-color: var(--note-line);
+  box-shadow: 3px 3px 0 #52616e;
+}
+
+[data-wikilink-preview-layer][data-reading-paper='dark'] :is(header, footer) {
+  background: var(--note-paper-muted);
+  color: var(--note-ink);
+  border-color: var(--note-line);
 }
 
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) *,
@@ -754,7 +815,7 @@
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) mark {
   background: var(--in-accent);
   padding: 0 0.18em;
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) a {
@@ -941,6 +1002,28 @@
 }
 
 @media print {
+  .note-editorial-surface[data-reading-paper='dark'],
+  .mdx-preview[data-reading-paper='dark'] {
+    color-scheme: light;
+    --note-paper: #f9f9f7;
+    --note-paper-muted: #efefea;
+    --note-ink: #111111;
+    --note-accent: #c02626;
+    --note-line: #cccccc;
+    --note-result: #2b5797;
+    --note-on-solid: #fff;
+    --note-shadow-sm: 2px 2px 0 var(--note-ink);
+    --note-shadow: 4px 4px 0 var(--note-ink);
+    --in-paper: var(--note-paper);
+    --in-paper-dark: var(--note-paper-muted);
+    --in-ink: var(--note-ink);
+    --in-accent: var(--note-accent);
+    --in-line: var(--note-line);
+    --in-result: var(--note-result);
+    --in-shadow: var(--note-shadow);
+    background: var(--note-paper);
+    color: var(--note-ink);
+  }
   .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnotes] {
     break-before: auto;
     border-top-color: #111;
@@ -1257,13 +1340,13 @@ button:not([data-page-preview-owned='true']),
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) button[data-feedback='correct'] {
   border-color: var(--in-result);
   background: var(--in-result);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) button[data-feedback='wrong'] {
   border-color: var(--in-accent);
   background: var(--in-accent);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) .recharts-wrapper text {
@@ -1302,7 +1385,7 @@ button:not([data-page-preview-owned='true']),
   [data-hover-preview-target='true'] {
   background: var(--in-accent);
   box-shadow: inset 3px 0 0 var(--in-ink);
-  color: #fff;
+  color: var(--note-on-solid);
 }
 
 .mdx-preview.mdx-hover-preview:is(.theme-editorial-note, .theme-interactive-note)

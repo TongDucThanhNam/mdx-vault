@@ -124,6 +124,14 @@ adds source offsets to generated block elements and neutral wrappers around
 trusted MDX flow islands. These offsets drive Reading↔Source/Live position
 transfer; tab pixel scroll is replayed after Reading's first layout.
 
+GOAL-35 Reading paper is a renderer-scoped edition selected from the resolved
+app theme and the additive `readingPaper` preference. Trusted registry islands
+inherit note tokens, while untrusted custom islands keep a neutral light frame
+without changing postMessage, CSP, or iframe sandbox attributes. Hover previews
+share the paper edition. Print and the independent export template force the
+light edition. The single document grid uses persisted, bounded panel widths;
+separators change CSS tracks without persisting tabs or pane layout.
+
 ## SQLite schema (khởi điểm)
 
 ```sql

@@ -49,6 +49,10 @@ describe('app settings IPC', () => {
 
     const updateResult = await requireHandler('app-settings:update')(mainFrameEvent(), {
       theme: 'dark',
+      readingPaper: 'light',
+      leftPanelWidth: 22,
+      rightPanelWidth: 24,
+      aiPanelWidth: 28,
       locale: 'vi',
       density: 'compact',
       uiScale: 115,
@@ -72,6 +76,10 @@ describe('app settings IPC', () => {
 
     expect(updateResult.ok).toBe(true)
     expect((updateResult.data as AppSettingsSnapshot).theme).toBe('dark')
+    expect((updateResult.data as AppSettingsSnapshot).readingPaper).toBe('light')
+    expect((updateResult.data as AppSettingsSnapshot).leftPanelWidth).toBe(22)
+    expect((updateResult.data as AppSettingsSnapshot).rightPanelWidth).toBe(24)
+    expect((updateResult.data as AppSettingsSnapshot).aiPanelWidth).toBe(28)
     expect((updateResult.data as AppSettingsSnapshot).locale).toBe('vi')
     expect((updateResult.data as AppSettingsSnapshot).density).toBe('compact')
     expect((updateResult.data as AppSettingsSnapshot).uiScale).toBe(115)
@@ -101,6 +109,10 @@ describe('app settings IPC', () => {
 
     for (const payload of [
       { editorFontSize: 100 },
+      { readingPaper: 'dark' },
+      { leftPanelWidth: 11 },
+      { rightPanelWidth: 33 },
+      { aiPanelWidth: Number.POSITIVE_INFINITY },
       { editorFontFamily: 'papyrus' },
       { editorFontWeight: 'bold' },
       { editorLineHeight: 4 },
@@ -247,6 +259,10 @@ function createSnapshot(): AppSettingsSnapshot {
   return {
     version: 6,
     theme: 'system',
+    readingPaper: 'follow-theme',
+    leftPanelWidth: 15.5,
+    rightPanelWidth: 18,
+    aiPanelWidth: 21,
     locale: 'system',
     density: 'comfortable',
     uiScale: 100,

@@ -573,6 +573,15 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     defaultBindings: bindings()
   }),
   action({
+    id: 'reading-paper.toggle',
+    title: 'Toggle Reading paper',
+    description: 'Switch between theme-following and always-light note paper.',
+    category: 'App',
+    keywords: ['paper', 'reading', 'dark', 'light'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
     id: 'settings.open',
     title: 'Open Settings',
     description: 'Configure application, editor, workbench, and AI preferences.',

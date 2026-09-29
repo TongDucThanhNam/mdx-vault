@@ -251,11 +251,11 @@ function renderGridAndAxes({
       />
       <Tooltip
         contentStyle={{
-          border: '2px solid #111111',
+          border: '2px solid var(--note-ink)',
           borderRadius: 0,
-          background: '#f9f9f7',
-          boxShadow: '2px 2px 0 #111111',
-          color: '#111111',
+          background: 'var(--note-paper)',
+          boxShadow: 'var(--note-shadow-sm)',
+          color: 'var(--note-ink)',
           fontFamily: "'Courier Prime', monospace",
           fontSize: 12
         }}

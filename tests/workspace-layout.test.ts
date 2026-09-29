@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import {
+  fitPanelWidths,
   resolveVisibleSupplementaryDockTab,
   resolveWorkspaceLayoutMode,
   workspaceGridTemplate
@@ -27,10 +28,11 @@ describe('responsive workspace layout', () => {
       leftPanelOpen: true,
       rightPanelOpen: true,
       aiPanelOpen: true,
-      readingFullView: false
+      readingFullView: false,
+      widths: { leftPanelWidth: 15.5, rightPanelWidth: 18, aiPanelWidth: 21 }
     })
 
-    expect(compact).toBe('minmax(13.5rem, 14rem) minmax(0, 1fr)')
+    expect(compact).toBe('var(--left-panel-width, 15.5rem) 6px minmax(30rem, 1fr)')
     expect(compact).not.toContain('18rem')
     expect(compact).not.toContain('21rem')
   })
@@ -43,7 +45,8 @@ describe('responsive workspace layout', () => {
         leftPanelOpen: true,
         rightPanelOpen: true,
         aiPanelOpen: true,
-        readingFullView: false
+        readingFullView: false,
+        widths: { leftPanelWidth: 15.5, rightPanelWidth: 18, aiPanelWidth: 21 }
       })
     ).toBe(expected)
     expect(
@@ -52,9 +55,51 @@ describe('responsive workspace layout', () => {
         leftPanelOpen: true,
         rightPanelOpen: true,
         aiPanelOpen: true,
-        readingFullView: true
+        readingFullView: true,
+        widths: { leftPanelWidth: 15.5, rightPanelWidth: 18, aiPanelWidth: 21 }
       })
     ).toBe(expected)
+  })
+
+  test('uses persisted widths with bounded tracks and document floor', () => {
+    expect(
+      workspaceGridTemplate({
+        mode: 'wide',
+        leftPanelOpen: true,
+        rightPanelOpen: true,
+        aiPanelOpen: true,
+        readingFullView: false,
+        widths: { leftPanelWidth: 99, rightPanelWidth: 13, aiPanelWidth: 22.2 }
+      })
+    ).toBe(
+      'var(--left-panel-width, 28rem) 6px minmax(30rem, 1fr) 6px var(--right-panel-width, 14rem) 6px var(--ai-panel-width, 22rem)'
+    )
+  })
+
+  test('fits open panels around the document floor at both breakpoints', () => {
+    expect(
+      fitPanelWidths({
+        widths: { leftPanelWidth: 28, rightPanelWidth: 32, aiPanelWidth: 36 },
+        mode: 'compact',
+        viewportWidth: 800,
+        remPx: 16,
+        leftPanelOpen: true,
+        rightPanelOpen: true,
+        aiPanelOpen: true
+      }).leftPanelWidth
+    ).toBe(19.5)
+    const wide = fitPanelWidths({
+      widths: { leftPanelWidth: 28, rightPanelWidth: 32, aiPanelWidth: 36 },
+      mode: 'wide',
+      viewportWidth: 1360,
+      remPx: 16,
+      leftPanelOpen: true,
+      rightPanelOpen: true,
+      aiPanelOpen: true
+    })
+    expect(
+      wide.leftPanelWidth + wide.rightPanelWidth + wide.aiPanelWidth + 30 + (3 * 6) / 16
+    ).toBeLessThanOrEqual(1360 / 16)
   })
 
   test('never selects a closed supplementary dock tab', () => {

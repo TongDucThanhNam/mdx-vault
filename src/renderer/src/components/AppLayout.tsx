@@ -14,11 +14,15 @@ import { AppStatusBar } from '@/components/AppStatusBar'
 import { AppTopBar } from '@/components/AppTopBar'
 import { LeftPanel } from '@/components/layout/LeftPanel'
 import { MainEditor } from '@/components/layout/MainEditor'
+import { PanelSeparator } from '@/components/layout/PanelSeparator'
 import { ResponsiveSupplementaryDock } from '@/components/layout/ResponsiveSupplementaryDock'
 import { RightPanel } from '@/components/layout/RightPanel'
+import type { PanelWidths } from '@/components/layout/workspace-layout'
 import {
+  fitPanelWidths,
+  resolveWorkspaceLayoutMode,
   type SupplementaryDockTab,
-  useWorkspaceLayoutMode,
+  useWorkspaceViewportWidth,
   workspaceGridTemplate
 } from '@/components/layout/workspace-layout'
 import type { ViewMode } from '@/components/ViewModeToggle'
@@ -37,7 +41,7 @@ import { useI18n } from '@/i18n/useI18n'
 import { completeInteractiveAiHandoff } from '@/interactive/interactive-ai-handoff'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { NoteHeadingResult, VaultInfo } from '@/vault/types'
-import type { UiDensity } from '../../../shared/app-settings'
+import type { PanelWidthKey, UiDensity } from '../../../shared/app-settings'
 import type { BookmarkTarget } from '../../../shared/bookmarks'
 import type { KnowledgePanelId, SourceRange } from '../../../shared/knowledge'
 import type { WikilinkSubpath } from '../../../shared/wikilinks'
@@ -53,6 +57,9 @@ interface AppLayoutProps {
   leftPanelOpen: boolean
   rightPanelOpen: boolean
   density: UiDensity
+  uiScale: number
+  panelWidths: PanelWidths
+  onPanelWidthChange: (key: PanelWidthKey, width: number) => void
   showFileExtensions: boolean
   commandActions: CommandActionRegistry
   editor: NoteEditorController
@@ -92,6 +99,9 @@ export function AppLayout({
   leftPanelOpen,
   rightPanelOpen,
   density,
+  uiScale,
+  panelWidths,
+  onPanelWidthChange,
   showFileExtensions,
   commandActions,
   editor,
@@ -117,7 +127,18 @@ export function AppLayout({
   onError
 }: AppLayoutProps): React.JSX.Element {
   const { t } = useI18n()
-  const layoutMode = useWorkspaceLayoutMode()
+  const gridRef = useRef<HTMLElement>(null)
+  const viewportWidth = useWorkspaceViewportWidth()
+  const layoutMode = resolveWorkspaceLayoutMode(viewportWidth)
+  const fittedPanelWidths = fitPanelWidths({
+    widths: panelWidths,
+    mode: layoutMode,
+    viewportWidth,
+    remPx: (16 * uiScale) / 100,
+    leftPanelOpen,
+    rightPanelOpen,
+    aiPanelOpen
+  })
   const [explorerRevealRequest, setExplorerRevealRequest] = useState<{
     path: string
     requestId: number
@@ -187,7 +208,8 @@ export function AppLayout({
     leftPanelOpen,
     rightPanelOpen,
     aiPanelOpen,
-    readingFullView
+    readingFullView,
+    widths: fittedPanelWidths
   })
   const bookmarkHeading = useCallback(
     (heading: NoteHeadingResult): void => {
@@ -245,6 +267,7 @@ export function AppLayout({
       ) : null}
 
       <main
+        ref={gridRef}
         id="workspace"
         tabIndex={-1}
         data-reading-full-view={readingFullView ? 'active' : undefined}
@@ -265,6 +288,7 @@ export function AppLayout({
         <Activity mode={leftPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
           <div
             data-workspace-dock="left"
+            data-panel-width="leftPanelWidth"
             className={
               layoutMode === 'overlay'
                 ? 'absolute top-2 bottom-2 left-2 z-20 w-[min(17rem,calc(100%-3rem))] overflow-hidden rounded-md border border-border bg-chrome shadow-[var(--shadow-hard)]'
@@ -286,6 +310,14 @@ export function AppLayout({
             />
           </div>
         </Activity>
+        {leftPanelOpen && !readingFullView && layoutMode !== 'overlay' ? (
+          <PanelSeparator
+            panel="leftPanelWidth"
+            width={fittedPanelWidths.leftPanelWidth}
+            gridRef={gridRef}
+            onCommit={onPanelWidthChange}
+          />
+        ) : null}
         <MainEditor
           showFileExtensions={showFileExtensions}
           hasVault={vault !== null}
@@ -321,7 +353,18 @@ export function AppLayout({
           }
           onError={onError}
         />
+        {rightPanelOpen && !readingFullView && layoutMode === 'wide' ? (
+          <PanelSeparator
+            panel="rightPanelWidth"
+            width={fittedPanelWidths.rightPanelWidth}
+            gridRef={gridRef}
+            onCommit={onPanelWidthChange}
+          />
+        ) : null}
         <ResponsiveSupplementaryDock
+          gridRef={gridRef}
+          panelWidths={fittedPanelWidths}
+          onPanelWidthChange={onPanelWidthChange}
           mode={layoutMode}
           contextOpen={rightPanelOpen && !readingFullView}
           aiOpen={aiPanelOpen && !readingFullView}

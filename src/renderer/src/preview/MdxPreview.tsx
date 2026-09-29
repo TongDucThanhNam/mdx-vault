@@ -16,6 +16,7 @@ import { sourceOffsetToLine } from './preview-anchor'
 import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
 import { PreviewImageCache } from './preview-image'
 import { isInteractiveNoteTheme, readPreviewFrontmatter } from './preview-metadata'
+import { useReadingPaper } from './ReadingPaperContext'
 import { revealReadingSourceOffset, topReadingSourceLine } from './reading-navigation'
 import { normalizeReadingWheelDelta } from './reading-zoom'
 import { PreviewRuntimeContext } from './runtime'
@@ -69,6 +70,7 @@ export function MdxPreview({
   onLeaveReading,
   onCompileStateChange
 }: MdxPreviewProps): React.JSX.Element {
+  const readingPaper = useReadingPaper()
   const scrollRootRef = useRef<HTMLDivElement | null>(null)
   const previewContentRef = useRef<HTMLDivElement | null>(null)
   const readingZoomLiveLayerRef = useRef<HTMLDivElement | null>(null)
@@ -335,6 +337,7 @@ export function MdxPreview({
       data-testid="reading-preview-scroll"
       data-workbench-scroll-surface="true"
       data-preview-layout-surface="true"
+      data-reading-paper={readingPaper}
       tabIndex={-1}
       className="note-editorial-surface h-full min-h-0 overflow-x-hidden overflow-y-auto transform-[translateZ(0)]"
       role="region"
@@ -351,6 +354,7 @@ export function MdxPreview({
         <div
           ref={previewContentRef}
           data-reading-zoom={readingZoomFactor}
+          data-reading-paper={readingPaper}
           className={cn(
             'mdx-preview theme-editorial-note px-5 py-10 sm:px-8',
             isInteractiveNoteTheme(previewFrontmatter) && 'theme-interactive-note'

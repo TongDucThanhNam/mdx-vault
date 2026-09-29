@@ -11,6 +11,8 @@ import {
   EDITOR_WHITESPACE_VALUES,
   EDITOR_WORD_WRAP_VALUES,
   FILE_TREE_SORT_VALUES,
+  PANEL_WIDTH_RANGES,
+  READING_PAPER_VALUES,
   UI_DENSITY_VALUES,
   WHEN_CLOSING_WITH_NO_TABS_VALUES
 } from '../../shared/app-settings'
@@ -76,6 +78,25 @@ const workbenchPatchSchema = z
 const appSettingsPatchSchema: z.ZodType<AppSettingsPatch> = z
   .object({
     theme: themeSchema.optional(),
+    readingPaper: z.enum(READING_PAPER_VALUES).optional(),
+    leftPanelWidth: z
+      .number()
+      .finite()
+      .min(PANEL_WIDTH_RANGES.leftPanelWidth.min)
+      .max(PANEL_WIDTH_RANGES.leftPanelWidth.max)
+      .optional(),
+    rightPanelWidth: z
+      .number()
+      .finite()
+      .min(PANEL_WIDTH_RANGES.rightPanelWidth.min)
+      .max(PANEL_WIDTH_RANGES.rightPanelWidth.max)
+      .optional(),
+    aiPanelWidth: z
+      .number()
+      .finite()
+      .min(PANEL_WIDTH_RANGES.aiPanelWidth.min)
+      .max(PANEL_WIDTH_RANGES.aiPanelWidth.max)
+      .optional(),
     locale: localeSchema.optional(),
     density: densitySchema.optional(),
     uiScale: uiScaleSchema.optional(),

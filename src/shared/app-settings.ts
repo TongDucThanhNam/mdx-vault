@@ -6,6 +6,20 @@ import {
 } from './workspace-actions'
 
 export type AppTheme = 'light' | 'dark' | 'system'
+export type ReadingPaper = 'follow-theme' | 'light'
+export type PanelWidthKey = 'leftPanelWidth' | 'rightPanelWidth' | 'aiPanelWidth'
+export const PANEL_WIDTH_RANGES = {
+  leftPanelWidth: { min: 12, max: 28, defaultValue: 15.5 },
+  rightPanelWidth: { min: 14, max: 32, defaultValue: 18 },
+  aiPanelWidth: { min: 16, max: 36, defaultValue: 21 }
+} as const
+
+export function normalizePanelWidth(key: PanelWidthKey, value: unknown): number {
+  const range = PANEL_WIDTH_RANGES[key]
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(range.max, Math.max(range.min, Math.round(value * 2) / 2))
+    : range.defaultValue
+}
 export type AppLocale = 'system' | 'en' | 'vi'
 export type UiDensity = 'comfortable' | 'compact'
 export type FileTreeSortSetting = 'name' | 'modified-desc' | 'created-desc'
@@ -38,6 +52,10 @@ export interface WorkbenchSettings {
 export interface AppSettingsSnapshot {
   version: 6
   theme: AppTheme
+  readingPaper: ReadingPaper
+  leftPanelWidth: number
+  rightPanelWidth: number
+  aiPanelWidth: number
   locale: AppLocale
   density: UiDensity
   uiScale: number
@@ -63,6 +81,10 @@ export interface AppSettingsSnapshot {
 
 export interface AppSettingsPatch {
   theme?: AppTheme
+  readingPaper?: ReadingPaper
+  leftPanelWidth?: number
+  rightPanelWidth?: number
+  aiPanelWidth?: number
   locale?: AppLocale
   density?: UiDensity
   uiScale?: number
@@ -142,6 +164,39 @@ const themeDefinition = {
   ],
   normalize: normalizeTheme
 } as const satisfies AppSettingDefinition<AppTheme>
+
+const readingPaperDefinition = {
+  key: 'readingPaper',
+  category: 'General',
+  label: 'Reading paper',
+  description: 'Let note paper follow the workbench theme or keep it light.',
+  control: 'choice',
+  defaultValue: 'follow-theme',
+  searchTerms: ['appearance', 'paper', 'reading', 'light', 'dark'],
+  options: [
+    {
+      value: 'follow-theme',
+      label: 'Follow theme',
+      description: 'Dark paper in the dark workbench'
+    },
+    { value: 'light', label: 'Always light', description: 'Keep traditional light paper' }
+  ],
+  normalize: (value: unknown): ReadingPaper => (value === 'light' ? 'light' : 'follow-theme')
+} as const satisfies AppSettingDefinition<ReadingPaper>
+
+function panelWidthDefinition(key: PanelWidthKey, label: string) {
+  return {
+    key,
+    category: 'Workbench',
+    label,
+    description: 'Saved width; drag its divider or use arrow keys to resize.',
+    control: 'range',
+    defaultValue: PANEL_WIDTH_RANGES[key].defaultValue,
+    searchTerms: ['panel', 'width', 'resize', 'divider', 'workbench'],
+    range: { min: PANEL_WIDTH_RANGES[key].min, max: PANEL_WIDTH_RANGES[key].max, step: 0.5 },
+    normalize: (value: unknown) => normalizePanelWidth(key, value)
+  } as const satisfies AppSettingDefinition<number>
+}
 
 const localeDefinition = {
   key: 'locale',
@@ -505,6 +560,10 @@ const keymapOverridesDefinition = {
 /** Source of truth for renderer-visible, non-secret application settings. */
 export const APP_SETTINGS_CATALOG = {
   theme: themeDefinition,
+  readingPaper: readingPaperDefinition,
+  leftPanelWidth: panelWidthDefinition('leftPanelWidth', 'Explorer width'),
+  rightPanelWidth: panelWidthDefinition('rightPanelWidth', 'Context width'),
+  aiPanelWidth: panelWidthDefinition('aiPanelWidth', 'Assistant width'),
   locale: localeDefinition,
   density: densityDefinition,
   uiScale: uiScaleDefinition,
@@ -531,6 +590,7 @@ export const APP_SETTINGS_CATALOG = {
 } as const
 
 export const APP_THEME_VALUES = choiceValues(APP_SETTINGS_CATALOG.theme.options)
+export const READING_PAPER_VALUES = choiceValues(APP_SETTINGS_CATALOG.readingPaper.options)
 export const APP_LOCALE_VALUES = choiceValues(APP_SETTINGS_CATALOG.locale.options)
 export const UI_DENSITY_VALUES = choiceValues(APP_SETTINGS_CATALOG.density.options)
 export const FILE_TREE_SORT_VALUES = choiceValues(APP_SETTINGS_CATALOG.fileTreeSort.options)
@@ -555,6 +615,10 @@ export const DEFAULT_WORKBENCH_SETTINGS: Readonly<WorkbenchSettings> = {
 export const DEFAULT_APP_SETTINGS_SNAPSHOT: Readonly<AppSettingsSnapshot> = {
   version: 6,
   theme: APP_SETTINGS_CATALOG.theme.defaultValue,
+  readingPaper: APP_SETTINGS_CATALOG.readingPaper.defaultValue,
+  leftPanelWidth: APP_SETTINGS_CATALOG.leftPanelWidth.defaultValue,
+  rightPanelWidth: APP_SETTINGS_CATALOG.rightPanelWidth.defaultValue,
+  aiPanelWidth: APP_SETTINGS_CATALOG.aiPanelWidth.defaultValue,
   locale: APP_SETTINGS_CATALOG.locale.defaultValue,
   density: APP_SETTINGS_CATALOG.density.defaultValue,
   uiScale: APP_SETTINGS_CATALOG.uiScale.defaultValue,

@@ -77,6 +77,10 @@ export interface PersistedAppSettings {
   version: 6
   lastVaultPath: string | null
   theme: AppTheme
+  readingPaper: AppSettingsSnapshot['readingPaper']
+  leftPanelWidth: number
+  rightPanelWidth: number
+  aiPanelWidth: number
   locale: AppLocale
   density: UiDensity
   uiScale: number
@@ -104,6 +108,10 @@ const DEFAULT_SETTINGS: Readonly<PersistedAppSettings> = {
   version: 6,
   lastVaultPath: null,
   theme: DEFAULT_APP_SETTINGS_SNAPSHOT.theme,
+  readingPaper: DEFAULT_APP_SETTINGS_SNAPSHOT.readingPaper,
+  leftPanelWidth: DEFAULT_APP_SETTINGS_SNAPSHOT.leftPanelWidth,
+  rightPanelWidth: DEFAULT_APP_SETTINGS_SNAPSHOT.rightPanelWidth,
+  aiPanelWidth: DEFAULT_APP_SETTINGS_SNAPSHOT.aiPanelWidth,
   locale: DEFAULT_APP_SETTINGS_SNAPSHOT.locale,
   density: DEFAULT_APP_SETTINGS_SNAPSHOT.density,
   uiScale: DEFAULT_APP_SETTINGS_SNAPSHOT.uiScale,
@@ -260,6 +268,16 @@ function applyPatch(settings: PersistedAppSettings, patch: AppSettingsPatch): Pe
   return {
     ...settings,
     theme: patch.theme ?? settings.theme,
+    readingPaper: patch.readingPaper ?? settings.readingPaper,
+    leftPanelWidth: APP_SETTINGS_CATALOG.leftPanelWidth.normalize(
+      patch.leftPanelWidth ?? settings.leftPanelWidth
+    ),
+    rightPanelWidth: APP_SETTINGS_CATALOG.rightPanelWidth.normalize(
+      patch.rightPanelWidth ?? settings.rightPanelWidth
+    ),
+    aiPanelWidth: APP_SETTINGS_CATALOG.aiPanelWidth.normalize(
+      patch.aiPanelWidth ?? settings.aiPanelWidth
+    ),
     locale: patch.locale ?? settings.locale,
     density: patch.density ?? settings.density,
     uiScale:
@@ -315,6 +333,10 @@ function normalizePersistedSettings(value: unknown): PersistedAppSettings {
     version: 6,
     lastVaultPath: typeof parsed.lastVaultPath === 'string' ? parsed.lastVaultPath : null,
     theme: APP_SETTINGS_CATALOG.theme.normalize(parsed.theme),
+    readingPaper: APP_SETTINGS_CATALOG.readingPaper.normalize(parsed.readingPaper),
+    leftPanelWidth: APP_SETTINGS_CATALOG.leftPanelWidth.normalize(parsed.leftPanelWidth),
+    rightPanelWidth: APP_SETTINGS_CATALOG.rightPanelWidth.normalize(parsed.rightPanelWidth),
+    aiPanelWidth: APP_SETTINGS_CATALOG.aiPanelWidth.normalize(parsed.aiPanelWidth),
     locale: APP_SETTINGS_CATALOG.locale.normalize(parsed.locale),
     density: APP_SETTINGS_CATALOG.density.normalize(parsed.density),
     uiScale: APP_SETTINGS_CATALOG.uiScale.normalize(parsed.uiScale),
@@ -361,6 +383,10 @@ function toSnapshot(settings: PersistedAppSettings): AppSettingsSnapshot {
   return {
     version: 6,
     theme: settings.theme,
+    readingPaper: settings.readingPaper,
+    leftPanelWidth: settings.leftPanelWidth,
+    rightPanelWidth: settings.rightPanelWidth,
+    aiPanelWidth: settings.aiPanelWidth,
     locale: settings.locale,
     density: settings.density,
     uiScale: settings.uiScale,
@@ -390,6 +416,10 @@ function clonePersistedSettings(settings: Readonly<PersistedAppSettings>): Persi
     version: 6,
     lastVaultPath: settings.lastVaultPath,
     theme: settings.theme,
+    readingPaper: settings.readingPaper,
+    leftPanelWidth: settings.leftPanelWidth,
+    rightPanelWidth: settings.rightPanelWidth,
+    aiPanelWidth: settings.aiPanelWidth,
     locale: settings.locale,
     density: settings.density,
     uiScale: settings.uiScale,

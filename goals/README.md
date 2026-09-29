@@ -52,6 +52,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-32-zed-grade-reading-ux.md | Stable, keyboard-first single-pane Reading and source-position navigation | 22, 26, 27, 28, 29 |
 | GOAL-33-navigation-focus-accessibility.md | JSX headings, focus, states, file clarity, graph labels and accessibility floor | 23, 26, 29, 32 |
 | GOAL-34-speed-and-raster-integrity.md | Production note speed, Reading raster integrity and graph template filtering | 29, 32, 33 |
+| GOAL-35-theme-paper-and-panels.md | Theme-following Reading paper, resizable side panels, content-fit islands | 26, 28, 32, 33, 34 |
 
 ## Trạng thái ký hiệu trong goal
 

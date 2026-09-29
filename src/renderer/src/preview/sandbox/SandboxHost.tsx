@@ -23,7 +23,7 @@ import {
   sandboxToHostMessageSchema
 } from '../../../../shared/sandbox'
 import { usePreviewRuntime } from '../runtime'
-import { sandboxFrameHeight, sandboxIframeHeight } from './sandbox-height'
+import { sandboxFrameHeight, sandboxIframeHeight, shouldApplySandboxHeight } from './sandbox-height'
 
 const emptySandboxProps: Record<string, unknown> = {}
 
@@ -207,7 +207,9 @@ export function SandboxHost({
       }
 
       if (message.type === 'resize') {
-        setReportedHeight(message.height)
+        setReportedHeight((previous) =>
+          shouldApplySandboxHeight(previous, message.height) ? message.height : previous
+        )
         return
       }
 
@@ -286,7 +288,7 @@ export function SandboxHost({
         </div>
       ) : state.status === 'ready' ? (
         <div
-          className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-150"
+          className="overflow-hidden bg-[var(--sandbox-island-surface)]"
           style={{ height: sandboxFrameHeight(reportedHeight) }}
         >
           <iframe
@@ -296,7 +298,7 @@ export function SandboxHost({
             sandbox="allow-scripts"
             referrerPolicy="no-referrer"
             src={state.document.documentUrl}
-            className="block w-full border-0 bg-transparent motion-safe:transition-[height] motion-safe:duration-150"
+            className="block w-full border-0 bg-[var(--sandbox-island-surface)]"
             style={{ height: sandboxIframeHeight(reportedHeight) }}
             onLoad={postInit}
           />

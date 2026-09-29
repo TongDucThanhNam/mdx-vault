@@ -33,6 +33,9 @@ import {
   type EditorTabSizeSetting,
   type EditorWhitespaceSetting,
   type EditorWordWrapSetting,
+  PANEL_WIDTH_RANGES,
+  type PanelWidthKey,
+  type ReadingPaper,
   type UiDensity
 } from '../../../shared/app-settings'
 import type { KeybindingPlatform } from '../../../shared/workspace-actions'
@@ -72,6 +75,7 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
     icon: Settings2,
     searchText: `${appSettingSearchText([
       APP_SETTINGS_CATALOG.theme,
+      APP_SETTINGS_CATALOG.readingPaper,
       APP_SETTINGS_CATALOG.locale,
       APP_SETTINGS_CATALOG.density,
       APP_SETTINGS_CATALOG.uiScale,
@@ -106,6 +110,9 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
     label: 'Workbench',
     icon: SlidersHorizontal,
     searchText: appSettingSearchText([
+      APP_SETTINGS_CATALOG.leftPanelWidth,
+      APP_SETTINGS_CATALOG.rightPanelWidth,
+      APP_SETTINGS_CATALOG.aiPanelWidth,
       APP_SETTINGS_CATALOG.activateOnClose,
       APP_SETTINGS_CATALOG.whenClosingWithNoTabs
     ])
@@ -151,6 +158,7 @@ export function SettingsDialog({
   const snapshot = settings.snapshot ?? DEFAULT_APP_SETTINGS_SNAPSHOT
   const keymapOverrides = settings.snapshot?.keymapOverrides ?? {}
   const theme = settings.snapshot?.theme ?? APP_SETTINGS_CATALOG.theme.defaultValue
+  const readingPaper = snapshot.readingPaper
   const locale = settings.snapshot?.locale ?? APP_SETTINGS_CATALOG.locale.defaultValue
   const density = settings.snapshot?.density ?? APP_SETTINGS_CATALOG.density.defaultValue
   const uiScale = settings.snapshot?.uiScale ?? APP_SETTINGS_CATALOG.uiScale.defaultValue
@@ -357,6 +365,7 @@ export function SettingsDialog({
           {visibleSection === 'general' ? (
             <GeneralSection
               theme={theme}
+              readingPaper={readingPaper}
               locale={locale}
               density={density}
               uiScale={uiScale}
@@ -366,6 +375,9 @@ export function SettingsDialog({
               openingVault={openingVault}
               settingsPending={settings.isPending || !settings.snapshot}
               onThemeChange={handleThemeChange}
+              onReadingPaperChange={(value) =>
+                void settings.updateSettings({ readingPaper: value })
+              }
               onLocaleChange={handleLocaleChange}
               onDensityChange={handleDensityChange}
               onUiScaleChange={handleUiScaleChange}
@@ -403,6 +415,7 @@ export function SettingsDialog({
 
 function GeneralSection({
   theme,
+  readingPaper,
   locale,
   density,
   uiScale,
@@ -412,6 +425,7 @@ function GeneralSection({
   openingVault,
   settingsPending,
   onThemeChange,
+  onReadingPaperChange,
   onLocaleChange,
   onDensityChange,
   onUiScaleChange,
@@ -420,6 +434,7 @@ function GeneralSection({
   onOpenAnotherVault
 }: {
   theme: AppTheme
+  readingPaper: ReadingPaper
   locale: AppLocale
   density: UiDensity
   uiScale: number
@@ -429,6 +444,7 @@ function GeneralSection({
   openingVault: boolean
   settingsPending: boolean
   onThemeChange: (theme: AppTheme) => void | Promise<void>
+  onReadingPaperChange: (value: ReadingPaper) => void
   onLocaleChange: (locale: AppLocale) => void | Promise<void>
   onDensityChange: (density: UiDensity) => void | Promise<void>
   onUiScaleChange: (scale: number) => void | Promise<void>
@@ -453,6 +469,20 @@ function GeneralSection({
           options={APP_SETTINGS_CATALOG.theme.options}
           disabled={settingsPending}
           onChange={(value) => void onThemeChange(value as AppTheme)}
+        />
+      </SettingGroup>
+
+      <SettingGroup
+        title={APP_SETTINGS_CATALOG.readingPaper.label}
+        description={APP_SETTINGS_CATALOG.readingPaper.description}
+      >
+        <ChoiceGroup
+          name="settings-reading-paper"
+          label="Reading paper"
+          value={readingPaper}
+          options={APP_SETTINGS_CATALOG.readingPaper.options}
+          disabled={settingsPending}
+          onChange={(value) => onReadingPaperChange(value as ReadingPaper)}
         />
       </SettingGroup>
 
@@ -881,6 +911,29 @@ function WorkbenchSection({
     >
       {workbench ? (
         <>
+          <SettingGroup
+            title="Panel widths"
+            description="Drag the panel dividers, use arrow keys, or reset them here."
+          >
+            <div className="grid gap-5">
+              {(['leftPanelWidth', 'rightPanelWidth', 'aiPanelWidth'] as const).map(
+                (key: PanelWidthKey) => (
+                  <RangeSetting
+                    key={key}
+                    id={`settings-${key}`}
+                    label={APP_SETTINGS_CATALOG[key].label}
+                    value={controller.snapshot?.[key] ?? PANEL_WIDTH_RANGES[key].defaultValue}
+                    min={PANEL_WIDTH_RANGES[key].min}
+                    max={PANEL_WIDTH_RANGES[key].max}
+                    step={0.5}
+                    suffix=" rem"
+                    disabled={disabled}
+                    onChange={(value) => void controller.updateSettings({ [key]: value })}
+                  />
+                )
+              )}
+            </div>
+          </SettingGroup>
           <SettingGroup
             title={APP_SETTINGS_CATALOG.activateOnClose.label}
             description={APP_SETTINGS_CATALOG.activateOnClose.description}

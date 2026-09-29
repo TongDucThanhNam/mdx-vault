@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { KNOWLEDGE_PREVIEW_CACHE_SIZE } from '../../../shared/knowledge'
 import { formatWikilinkSubpath, type WikilinkSubpath } from '../../../shared/wikilinks'
 import { SafeHoverPreviewDocument } from './hover-preview-document'
+import { useReadingPaper } from './ReadingPaperContext'
 import type { ActiveWikilinkPreview } from './useWikilinkPreview'
 import { resolveWikilinkPreviewPosition } from './wikilink-preview-position'
 
@@ -34,6 +35,7 @@ export function WikilinkPreviewLayer({
   onDismiss: () => void
   onScheduleDismiss: (relatedTarget?: EventTarget | null) => void
 }): React.JSX.Element | null {
+  const readingPaper = useReadingPaper()
   const sourceCacheRef = useRef(new Map<string, CachedPreviewSource>())
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const [loadState, setLoadState] = useState<HoverPreviewLoadState | null>(null)
@@ -136,6 +138,7 @@ export function WikilinkPreviewLayer({
   return createPortal(
     <aside
       data-wikilink-preview-layer="true"
+      data-reading-paper={readingPaper}
       role="dialog"
       aria-label={`Page preview: ${preview.note.title}`}
       className="fixed z-[80] flex max-h-[min(480px,calc(100vh-24px))] flex-col overflow-hidden border-2 border-foreground bg-popover text-popover-foreground shadow-[var(--shadow-hard)]"
@@ -227,9 +230,13 @@ function HoverPreviewContent({
   source: string
   subpath: WikilinkSubpath | null
 }): React.JSX.Element {
+  const readingPaper = useReadingPaper()
   try {
     return (
-      <div className="mdx-preview mdx-hover-preview theme-editorial-note">
+      <div
+        className="mdx-preview mdx-hover-preview theme-editorial-note"
+        data-reading-paper={readingPaper}
+      >
         <SafeHoverPreviewDocument source={source} subpath={subpath} />
       </div>
     )

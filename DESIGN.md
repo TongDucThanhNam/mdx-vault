@@ -24,7 +24,7 @@ update both in the same change.
 
 | Role | Light | Dark | Meaning |
 | --- | --- | --- | --- |
-| Bench | `#F6F8FA` | `#0F141A` | Primary document/workspace surface |
+| Bench | `#F6F8FA` | `#0F141A` | Chrome and editable workspace; Reading uses its own sheet |
 | Carbon | `#14181F` | `#EDF2F7` | Primary text and strong controls |
 | Instrument Blue | `#2457FF` | `#8AA3FF` | Focus, navigation, active selection |
 | Signal | `#A34700` | `#FF9A57` | Attention, pending state, prediction |
@@ -38,24 +38,28 @@ express the state.
 
 #### Note paper — Editorial / Print Neo-Brutalism
 
-The workbench palette above belongs to app chrome and editable buffers. Reading, hover
-previews, trusted note components and exported note content form a separate,
-always-light paper context:
+The workbench palette belongs to chrome and editable buffers. Reading paper,
+hover previews and trusted note components **follow the resolved app theme by
+default**. The Reading paper setting can pin them to light. Export and print
+**always use the light edition**, independent of the live setting.
 
-| Token | Value | Role |
-| --- | --- | --- |
-| Paper | `#F9F9F7` | Note canvas and primary component surface |
-| Paper Dark | `#EFEFEA` | Secondary panels, code blocks and neutral state |
-| Ink | `#111111` | Text, 2px borders and zero-blur offset shadows |
-| Accent | `#C02626` | Action, active state, link and emphasis |
-| Line | `#CCCCCC` | Secondary dividers and scrollbars |
-| Result | `#2B5797` | Computed or dynamic results only |
+| Note token | Light paper | Dark paper | Role |
+| --- | --- | --- | --- |
+| Paper | `#F9F9F7` | `#17212A` | Lifted note sheet, only a gentle step from dark Bench |
+| Paper muted | `#EFEFEA` | `#23303A` | Secondary panels, code and table rhythm |
+| Ink | `#111111` | `#E8E9E2` | Warm legible text and strong structure |
+| Accent | `#C02626` | `#FF9489` | Links, action and emphasis; AA on each paper |
+| Line | `#CCCCCC` | `#667583` | Quiet secondary rules and scrollbars |
+| Result | `#2B5797` | `#A4C5FF` | Computed or dynamic results only |
+| Solid ink | `#FFFFFF` | `#17212A` | Text on accent/result fills |
 
-The four mandatory tells are hard offset shadows, 2px ink borders, zero radius
-and one red accent. The Result blue is never decorative. Note content uses no
-gradient, blurred shadow, pastel tint or framework semantic color. A pressed
-note control translates `2px 2px` and loses its shadow so it sinks into the
-paper.
+Both editions keep display serif, 2px structural rules, zero radius and one
+red accent. In dark paper the offset shadow is alloy-tinted, not black on
+black; structure and type carry the editorial character. The Result blue is
+never decorative. Note content uses no gradient or blurred shadow. A pressed
+control translates `2px 2px` and loses its shadow. Untrusted custom islands
+retain a **light card inside the sandbox frame** unless their own content
+styles itself; the app never reaches across that boundary to restyle them.
 
 ### Typography
 

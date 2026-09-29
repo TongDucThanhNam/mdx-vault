@@ -11,6 +11,10 @@ describe('non-secret app settings catalog', () => {
   test('defines every renderer-visible setting with reset and searchable metadata', () => {
     expect(APP_SETTINGS_DEFINITIONS.map((definition) => definition.key)).toEqual([
       'theme',
+      'readingPaper',
+      'leftPanelWidth',
+      'rightPanelWidth',
+      'aiPanelWidth',
       'locale',
       'density',
       'uiScale',
@@ -62,6 +66,11 @@ describe('non-secret app settings catalog', () => {
 
   test('catalog normalizers apply typed defaults and editor bounds', () => {
     expect(APP_SETTINGS_CATALOG.theme.normalize('neon')).toBe('system')
+    expect(APP_SETTINGS_CATALOG.readingPaper.normalize('dark')).toBe('follow-theme')
+    expect(APP_SETTINGS_CATALOG.readingPaper.normalize('light')).toBe('light')
+    expect(APP_SETTINGS_CATALOG.leftPanelWidth.normalize(100)).toBe(28)
+    expect(APP_SETTINGS_CATALOG.rightPanelWidth.normalize(0)).toBe(14)
+    expect(APP_SETTINGS_CATALOG.aiPanelWidth.normalize(Number.NaN)).toBe(21)
     expect(APP_SETTINGS_CATALOG.locale.normalize('fr')).toBe('system')
     expect(APP_SETTINGS_CATALOG.density.normalize('dense')).toBe('comfortable')
     expect(APP_SETTINGS_CATALOG.uiScale.normalize(112)).toBe(110)
