@@ -171,7 +171,7 @@ function CreateNoteForm({
         </div>
         {templates.length > 0 ? (
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Template
             </span>
             <select

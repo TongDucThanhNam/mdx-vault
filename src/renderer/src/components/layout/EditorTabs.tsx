@@ -1,7 +1,7 @@
 import { FileWarning, Waypoints, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { deriveNoteTitle } from '@/lib/note-title'
+import { displayFileName } from '@/explorer/file-label'
 import { cn } from '@/lib/utils'
 import { focusActiveDocument } from '@/workbench/document-focus'
 import {
@@ -14,6 +14,8 @@ import type { WorkbenchItem } from '@/workbench/types'
 export interface EditorTabsProps {
   items: WorkbenchItem[]
   activeId: string | null
+  showFileExtensions: boolean
+  visiblePaths: readonly string[]
   onActivate: (id: string) => void
   onClose: (id: string) => Promise<boolean>
   onCloseItems: (ids: readonly string[]) => Promise<boolean>
@@ -42,6 +44,8 @@ interface PendingFocusAfterClose {
 export function EditorTabs({
   items,
   activeId,
+  showFileExtensions,
+  visiblePaths,
   onActivate,
   onClose,
   onCloseItems,
@@ -58,7 +62,10 @@ export function EditorTabs({
     () => activeId ?? items[0]?.id ?? null
   )
 
-  const presentations = useMemo(() => createTabPresentations(items), [items])
+  const presentations = useMemo(
+    () => createTabPresentations(items, showFileExtensions, visiblePaths),
+    [items, showFileExtensions, visiblePaths]
+  )
   const closeTargets = useMemo(
     () =>
       new Map(
@@ -220,7 +227,10 @@ export function EditorTabs({
             }
           }}
           item={item}
-          presentation={presentations.get(item.id) ?? createTabPresentation(item, false)}
+          presentation={
+            presentations.get(item.id) ??
+            createTabPresentation(item, false, showFileExtensions, visiblePaths)
+          }
           closeTargets={closeTargets.get(item.id) ?? deriveTabContextCloseTargets(items, item.id)}
           isActive={item.id === activeId}
           isFocusable={item.id === rovingId}
@@ -460,7 +470,7 @@ function EditorTabContextMenu({
         data-slot="tab-context-menu-content"
         collisionPadding={8}
         loop
-        className="z-[100] min-w-56 border-2 border-foreground bg-popover p-1 font-mono text-[11px] text-popover-foreground shadow-[var(--shadow-hard)]"
+        className="z-[100] min-w-56 border-2 border-foreground bg-popover p-1 font-mono text-xs text-popover-foreground shadow-[var(--shadow-hard)]"
         onKeyDown={(event) => event.stopPropagation()}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
@@ -544,7 +554,7 @@ function TabContextMenuItem({
     >
       <span>{label}</span>
       {shortcut ? (
-        <span className="ml-auto pl-8 text-[9px] tracking-wide text-muted-foreground group-data-[highlighted]:text-background/70">
+        <span className="ml-auto pl-8 text-xs tracking-wide text-muted-foreground group-data-[highlighted]:text-background/70">
           {shortcut}
         </span>
       ) : null}
@@ -552,22 +562,39 @@ function TabContextMenuItem({
   )
 }
 
-function createTabPresentations(items: WorkbenchItem[]): Map<string, TabPresentation> {
+function createTabPresentations(
+  items: WorkbenchItem[],
+  showFileExtensions: boolean,
+  visiblePaths: readonly string[]
+): Map<string, TabPresentation> {
   const labelCounts = new Map<string, number>()
   for (const item of items) {
-    const labelKey = getTabLabel(item).toLocaleLowerCase()
+    const labelKey = getTabLabel(item, showFileExtensions, visiblePaths).toLocaleLowerCase()
     labelCounts.set(labelKey, (labelCounts.get(labelKey) ?? 0) + 1)
   }
 
   return new Map(
     items.map((item) => {
-      const labelKey = getTabLabel(item).toLocaleLowerCase()
-      return [item.id, createTabPresentation(item, (labelCounts.get(labelKey) ?? 0) > 1)]
+      const labelKey = getTabLabel(item, showFileExtensions, visiblePaths).toLocaleLowerCase()
+      return [
+        item.id,
+        createTabPresentation(
+          item,
+          (labelCounts.get(labelKey) ?? 0) > 1,
+          showFileExtensions,
+          visiblePaths
+        )
+      ]
     })
   )
 }
 
-function createTabPresentation(item: WorkbenchItem, showDirectory: boolean): TabPresentation {
+function createTabPresentation(
+  item: WorkbenchItem,
+  showDirectory: boolean,
+  showFileExtensions: boolean,
+  visiblePaths: readonly string[]
+): TabPresentation {
   if (item.kind === 'graph') {
     return {
       label: 'Graph',
@@ -581,12 +608,18 @@ function createTabPresentation(item: WorkbenchItem, showDirectory: boolean): Tab
   const directory = pathSegments.slice(0, -1).join('/') || 'vault root'
 
   return {
-    label: deriveNoteTitle(normalizedPath),
+    label: displayFileName(normalizedPath, showFileExtensions, visiblePaths),
     directory,
     showDirectory
   }
 }
 
-function getTabLabel(item: WorkbenchItem): string {
-  return item.kind === 'graph' ? 'Graph' : deriveNoteTitle(item.relativePath)
+function getTabLabel(
+  item: WorkbenchItem,
+  showFileExtensions: boolean,
+  visiblePaths: readonly string[]
+): string {
+  return item.kind === 'graph'
+    ? 'Graph'
+    : displayFileName(item.relativePath, showFileExtensions, visiblePaths)
 }

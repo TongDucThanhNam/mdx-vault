@@ -1,5 +1,5 @@
 import type { Element, Root, Text } from 'hast'
-import { createUniqueHeadingId } from '../../../shared/heading-identity'
+import { analyzeMdxStructure } from '../../../shared/markdown-source'
 
 interface PreviewSourceMapOptions {
   source: string
@@ -41,9 +41,9 @@ export function rehypePreviewSourceMap({ source }: PreviewSourceMapOptions) {
 }
 
 /** Add app-generated heading identities after user HTML has passed sanitization. */
-export function rehypePreviewHeadingIdentity() {
+export function rehypePreviewHeadingIdentity({ source }: PreviewSourceMapOptions) {
   return function identifyPreviewHeadings(tree: Root): Root {
-    annotateHeadingIdentities(tree)
+    annotateHeadingIdentities(tree, source)
     return tree
   }
 }
@@ -112,26 +112,29 @@ function annotateBlockChildren(parent: Root | Element): void {
   })
 }
 
-function annotateHeadingIdentities(tree: Root): void {
-  const occurrences = new Map<string, number>()
-  let position = 0
+function annotateHeadingIdentities(tree: Root, source: string): void {
+  const headingsByOffset = new Map(
+    analyzeMdxStructure(source).headings.map((heading) => [heading.sourceFrom, heading])
+  )
 
   visitElements(tree, (element, parent) => {
     if (!/^h[1-6]$/.test(element.tagName)) return
-
-    const identity = createUniqueHeadingId(readElementText(element), occurrences)
-    const isFootnoteLabel =
+    if (
       parent.type === 'element' &&
       parent.tagName === 'section' &&
-      parent.properties.dataFootnotes !== undefined &&
-      element.tagName === 'h2'
+      parent.properties.dataFootnotes !== undefined
+    ) {
+      element.properties.id = 'footnote-label'
+      return
+    }
+    const heading = headingsByOffset.get(element.position?.start.offset ?? -1)
+    if (!heading) return
     element.properties = {
       ...element.properties,
-      id: isFootnoteLabel ? 'footnote-label' : identity.id,
-      dataMdxHeadingId: identity.id,
-      dataMdxHeadingPosition: String(position)
+      id: heading.id,
+      dataMdxHeadingId: heading.id,
+      dataMdxHeadingPosition: String(heading.position)
     }
-    position += 1
   })
 }
 
@@ -144,17 +147,6 @@ function visitElements(
     visit(child, parent)
     visitElements(child, visit)
   })
-}
-
-function readElementText(element: Element): string {
-  return element.children
-    .map((child) => {
-      if (child.type === 'text') return child.value
-      if (child.type === 'element') return readElementText(child)
-      return ''
-    })
-    .join('')
-    .trim()
 }
 
 function annotateChildren(parent: Root | Element, ancestors: string[], source: string): void {

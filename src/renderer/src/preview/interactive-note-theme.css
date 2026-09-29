@@ -3,7 +3,7 @@
   --note-paper: #f9f9f7;
   --note-paper-muted: #efefea;
   --note-ink: #111111;
-  --note-accent: #d32f2f;
+  --note-accent: #c02626;
   --note-line: #cccccc;
   --note-result: #2b5797;
   --note-on-solid: #fff;
@@ -47,6 +47,7 @@
 
 .note-editorial-surface {
   background: var(--note-paper, #f9f9f7);
+  color: var(--note-ink, #111111);
   scrollbar-color: var(--note-line, #cccccc) transparent;
   scrollbar-width: thin;
 }

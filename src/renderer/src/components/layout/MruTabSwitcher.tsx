@@ -89,15 +89,12 @@ export function MruTabSwitcher({
         }}
       >
         <header className="flex items-baseline justify-between gap-4 border-b-2 border-foreground bg-masthead px-3 py-2">
-          <h2
-            id={headingId}
-            className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
-          >
+          <h2 id={headingId} className="font-mono text-xs font-bold uppercase tracking-[0.16em]">
             Recent tabs
           </h2>
           <p
             id={hintId}
-            className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground"
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground"
           >
             Enter to open · Esc to cancel
           </p>
@@ -156,11 +153,11 @@ export function MruTabSwitcher({
                       aria-hidden="true"
                     />
                   )}
-                  <span className="truncate font-mono text-[11px] font-bold">{label}</span>
+                  <span className="truncate font-mono text-xs font-bold">{label}</span>
                   {item.dirty ? (
                     <span
                       className={cn(
-                        'font-mono text-[8px] font-bold uppercase tracking-widest',
+                        'font-mono text-xs font-bold uppercase tracking-widest',
                         isHighlighted ? 'text-background/70' : 'text-[var(--editorial-red)]'
                       )}
                       aria-hidden="true"
@@ -172,7 +169,7 @@ export function MruTabSwitcher({
 
                 <span
                   className={cn(
-                    'max-w-44 truncate text-right font-mono text-[9px] uppercase tracking-wider',
+                    'max-w-44 truncate text-right font-mono text-xs uppercase tracking-wider',
                     isHighlighted ? 'text-background/65' : 'text-muted-foreground'
                   )}
                   aria-hidden="true"

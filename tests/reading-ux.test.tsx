@@ -19,6 +19,7 @@ import {
 import { PreviewImageCache } from '../src/renderer/src/preview/preview-image'
 import { RegistryIslandBoundary } from '../src/renderer/src/preview/registry/RegistryIslandBoundary'
 import { visibleRenderState } from '../src/renderer/src/preview/useLastGoodRender'
+import { analyzeMdxStructure } from '../src/shared/markdown-source'
 
 describe('single-pane Reading state', () => {
   test('retains the last good render while pending and after failure, but not across notes', () => {
@@ -91,6 +92,25 @@ describe('single-pane Reading state', () => {
     for (const line of [1, 3, 5, 7, 11]) {
       expect(html).toContain(`data-preview-block-line="${line}"`)
     }
+  })
+
+  test('matches analyzer ids for DNS-like literal JSX sections in Reading', async () => {
+    const source = [
+      '# DNS Resolution Path',
+      ...Array.from(
+        { length: 11 },
+        (_, index) =>
+          `<h2 id="${index === 0 ? '2.section' : `section-${index + 1}`}">Section ${index + 1}</h2>`
+      )
+    ].join('\n\n')
+    const expected = analyzeMdxStructure(source).headings.map((heading) => heading.id)
+    const compiled = await compileMdxFunctionBody(source)
+    const module = await run(compiled.code, { Fragment, jsx, jsxs })
+    const html = renderToStaticMarkup(createElement(module.default))
+    const rendered = [...html.matchAll(/data-mdx-heading-id="([^"]+)"/g)].map((match) => match[1])
+    expect(expected).toHaveLength(12)
+    expect(rendered).toEqual(expected)
+    for (const id of expected) expect(html).toContain(`id="${id}"`)
   })
 
   test('contains a trusted island failure without replacing sibling prose', () => {

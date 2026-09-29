@@ -28,22 +28,22 @@ export function BacklinksPanel({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-4">
-        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           <Link2 className="size-3.5" aria-hidden="true" />
           Backlinks
         </div>
-        <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
+        <div className="font-mono text-xs tabular-nums text-muted-foreground">
           {linkedBacklinks.length}/{unlinkedBacklinks.length}
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-2 py-2">
         {!selectedPath ? (
-          <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
             Select a note.
           </div>
         ) : backlinks.length === 0 ? (
-          <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
             No backlinks.
           </div>
         ) : (
@@ -65,7 +65,7 @@ export function BacklinksPanel({
                 />
                 <select
                   value={sortMode}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[11px] outline-none"
+                  className="min-w-0 flex-1 bg-transparent font-mono text-xs outline-none"
                   aria-label="Sort backlinks"
                   onChange={(event) => setSortMode(event.currentTarget.value as BacklinkSortMode)}
                 >
@@ -104,12 +104,12 @@ function BacklinkSection({
 }): React.JSX.Element {
   return (
     <section>
-      <div className="flex items-center justify-between border-b border-[var(--line)] px-1 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-1 py-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
         <span>{label}</span>
         <span>{backlinks.length}</span>
       </div>
       {backlinks.length === 0 ? (
-        <div className="px-2 py-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        <div className="px-2 py-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
           No matches.
         </div>
       ) : (
@@ -124,7 +124,7 @@ function BacklinkSection({
               onClick={() => onSelectNote(backlink.source.relativePath)}
             >
               <div className="truncate font-display text-sm font-bold">{backlink.source.title}</div>
-              <div className="mt-0.5 truncate font-mono text-[11px] opacity-70">
+              <div className="mt-0.5 truncate font-mono text-xs opacity-70">
                 {backlink.source.relativePath}
               </div>
               <div className="mt-1 line-clamp-2 text-xs opacity-80">

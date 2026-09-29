@@ -148,11 +148,11 @@ export function SlashCommandPalette({
                   <span className="truncate font-mono text-[12px] font-bold uppercase tracking-wider">
                     {item.title}
                   </span>
-                  <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider opacity-70">
+                  <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider opacity-70">
                     {item.category}
                   </span>
                 </span>
-                <span className="mt-0.5 block truncate font-mono text-[11px] uppercase tracking-wider opacity-70">
+                <span className="mt-0.5 block truncate font-mono text-xs uppercase tracking-wider opacity-70">
                   {item.description}
                 </span>
               </span>

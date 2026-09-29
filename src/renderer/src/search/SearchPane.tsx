@@ -206,7 +206,7 @@ export function SearchPane({
                     {result.note.relativePath}
                   </div>
                   {result.heading ? (
-                    <div className="mt-1 flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-instrument-blue">
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-instrument-blue">
                       <CornerDownRight className="size-3 shrink-0" aria-hidden="true" />
                       <span className="shrink-0">H{result.heading.depth}</span>
                       <span className="truncate">{result.heading.text}</span>
@@ -217,7 +217,7 @@ export function SearchPane({
                       {result.matches.map((match) => (
                         <span
                           key={match}
-                          className="border border-current px-1 py-0.5 font-mono text-[10px] uppercase tracking-wider opacity-75"
+                          className="border border-current px-1 py-0.5 font-mono text-xs uppercase tracking-wider opacity-75"
                         >
                           {match}
                         </span>
@@ -239,7 +239,7 @@ export function SearchPane({
 
 function EmptySearchState({ label }: { label: string }): React.JSX.Element {
   return (
-    <div className="flex h-40 flex-col items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+    <div className="flex h-40 flex-col items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
       <FileSearch className="size-5" aria-hidden="true" />
       <div>{label}</div>
     </div>

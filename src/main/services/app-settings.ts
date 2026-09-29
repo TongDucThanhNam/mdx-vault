@@ -81,6 +81,7 @@ export interface PersistedAppSettings {
   density: UiDensity
   uiScale: number
   fileTreeSort: FileTreeSortSetting
+  showFileExtensions: boolean
   defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
   editorFontFamily: EditorFontFamilySetting
@@ -107,6 +108,7 @@ const DEFAULT_SETTINGS: Readonly<PersistedAppSettings> = {
   density: DEFAULT_APP_SETTINGS_SNAPSHOT.density,
   uiScale: DEFAULT_APP_SETTINGS_SNAPSHOT.uiScale,
   fileTreeSort: DEFAULT_APP_SETTINGS_SNAPSHOT.fileTreeSort,
+  showFileExtensions: DEFAULT_APP_SETTINGS_SNAPSHOT.showFileExtensions,
   defaultNoteView: DEFAULT_APP_SETTINGS_SNAPSHOT.defaultNoteView,
   editorFontSize: DEFAULT_APP_SETTINGS_SNAPSHOT.editorFontSize,
   editorFontFamily: DEFAULT_APP_SETTINGS_SNAPSHOT.editorFontFamily,
@@ -265,6 +267,7 @@ function applyPatch(settings: PersistedAppSettings, patch: AppSettingsPatch): Pe
         ? settings.uiScale
         : APP_SETTINGS_CATALOG.uiScale.normalize(patch.uiScale),
     fileTreeSort: patch.fileTreeSort ?? settings.fileTreeSort,
+    showFileExtensions: patch.showFileExtensions ?? settings.showFileExtensions,
     defaultNoteView: patch.defaultNoteView ?? settings.defaultNoteView,
     editorFontSize:
       patch.editorFontSize === undefined
@@ -316,6 +319,9 @@ function normalizePersistedSettings(value: unknown): PersistedAppSettings {
     density: APP_SETTINGS_CATALOG.density.normalize(parsed.density),
     uiScale: APP_SETTINGS_CATALOG.uiScale.normalize(parsed.uiScale),
     fileTreeSort: APP_SETTINGS_CATALOG.fileTreeSort.normalize(parsed.fileTreeSort),
+    showFileExtensions: APP_SETTINGS_CATALOG.showFileExtensions.normalize(
+      parsed.showFileExtensions
+    ),
     defaultNoteView: APP_SETTINGS_CATALOG.defaultNoteView.normalize(parsed.defaultNoteView),
     editorFontSize: APP_SETTINGS_CATALOG.editorFontSize.normalize(parsed.editorFontSize),
     editorFontFamily: APP_SETTINGS_CATALOG.editorFontFamily.normalize(parsed.editorFontFamily),
@@ -359,6 +365,7 @@ function toSnapshot(settings: PersistedAppSettings): AppSettingsSnapshot {
     density: settings.density,
     uiScale: settings.uiScale,
     fileTreeSort: settings.fileTreeSort,
+    showFileExtensions: settings.showFileExtensions,
     defaultNoteView: settings.defaultNoteView,
     editorFontSize: settings.editorFontSize,
     editorFontFamily: settings.editorFontFamily,
@@ -387,6 +394,7 @@ function clonePersistedSettings(settings: Readonly<PersistedAppSettings>): Persi
     density: settings.density,
     uiScale: settings.uiScale,
     fileTreeSort: settings.fileTreeSort,
+    showFileExtensions: settings.showFileExtensions,
     defaultNoteView: settings.defaultNoteView,
     editorFontSize: settings.editorFontSize,
     editorFontFamily: settings.editorFontFamily,

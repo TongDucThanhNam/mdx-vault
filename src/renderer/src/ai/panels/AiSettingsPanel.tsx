@@ -53,7 +53,7 @@ export function AiSettingsPanel({
           <AlertDialogTitle>AI assistant</AlertDialogTitle>
           <AlertDialogDescription>
             Configure the model and your OpenAI API key. The key is encrypted with Electron
-            <code className="mx-1 bg-muted px-1 py-0.5 text-[11px]">safeStorage</code>
+            <code className="mx-1 bg-muted px-1 py-0.5 text-xs">safeStorage</code>
             and never leaves the main process in plaintext.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -139,7 +139,7 @@ export function AiSettingsForm({
   return (
     <div className="grid gap-4">
       {!settings.safeStorageAvailable ? (
-        <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
+        <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
           <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
             <div className="font-bold">safeStorage unavailable</div>
@@ -152,7 +152,7 @@ export function AiSettingsForm({
       ) : null}
 
       <div className="grid gap-3">
-        <label className="grid gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider">
+        <label className="grid gap-1.5 font-mono text-xs font-bold uppercase tracking-wider">
           Model
           <select
             value={model}
@@ -172,7 +172,7 @@ export function AiSettingsForm({
           </select>
         </label>
 
-        <label className="grid gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider">
+        <label className="grid gap-1.5 font-mono text-xs font-bold uppercase tracking-wider">
           <span className="inline-flex items-center gap-1.5">
             <KeyRound className="size-3" aria-hidden="true" />
             OpenAI API key
@@ -207,7 +207,7 @@ export function AiSettingsForm({
               )}
             </button>
           </div>
-          <span className="font-sans text-[11px] font-normal normal-case tracking-normal text-muted-foreground">
+          <span className="font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
             {settings.hasApiKey
               ? 'A key is already stored. Type a new one to replace it.'
               : 'Key is sent to the main process, encrypted, and never returned in plaintext.'}
@@ -215,7 +215,7 @@ export function AiSettingsForm({
         </label>
 
         {error ? (
-          <div className="border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
+          <div className="border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
             {error}
           </div>
         ) : null}

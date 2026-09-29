@@ -108,7 +108,7 @@ export function InteractiveProofWorkbench({
                 Interactive Proof · {project.projectName}
               </h2>
             </div>
-            <p className="truncate font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="truncate font-mono text-xs uppercase tracking-wider text-muted-foreground">
               {project.projectRoot}
             </p>
           </div>
@@ -165,7 +165,7 @@ export function InteractiveProofWorkbench({
                   : `${file.label} is missing; reveal the interactive project folder`
               }
               className={cn(
-                'h-7 shrink-0 border-b-2 px-2 font-mono text-[10px] font-bold uppercase tracking-wide outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+                'h-7 shrink-0 border-b-2 px-2 font-mono text-xs font-bold uppercase tracking-wide outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
                 file.relativePath === activeRelativePath
                   ? 'border-editorial-blue text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -196,7 +196,7 @@ export function InteractiveProofWorkbench({
               aria-selected={narrowMode === mode}
               aria-controls={`interactive-${mode}-panel`}
               className={cn(
-                'h-8 border-r border-border font-mono text-[10px] font-bold uppercase tracking-wider outline-none last:border-r-0 focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
+                'h-8 border-r border-border font-mono text-xs font-bold uppercase tracking-wider outline-none last:border-r-0 focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
                 narrowMode === mode
                   ? 'bg-foreground text-background'
                   : 'bg-background text-muted-foreground'
@@ -222,7 +222,7 @@ export function InteractiveProofWorkbench({
           <PaneLabel label="Source" />
           {project.intelligenceStatus === 'unavailable' ? (
             <div className="flex items-center justify-between gap-2 border-b border-destructive bg-destructive/10 px-3 py-1.5">
-              <p className="font-mono text-[10px] text-destructive">
+              <p className="font-mono text-xs text-destructive">
                 Type intelligence unavailable
                 {project.intelligenceMessage ? ` · ${project.intelligenceMessage}` : ''}
               </p>
@@ -261,7 +261,7 @@ export function InteractiveProofWorkbench({
           >
             <PaneLabel label="Proof" />
             {proof.hasLastGoodWithNewerIssues ? (
-              <div className="border-b border-destructive bg-destructive/10 px-3 py-2 font-mono text-[10px] text-destructive">
+              <div className="border-b border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs text-destructive">
                 Source has newer issues. Showing the last known good proof.
               </div>
             ) : null}
@@ -283,7 +283,7 @@ export function InteractiveProofWorkbench({
                   <p className="font-display text-base font-black">
                     {INTERACTIVE_PROOF_STATE_LABELS[proof.state]}
                   </p>
-                  <p className="mt-1 max-w-sm font-mono text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="mt-1 max-w-sm font-mono text-xs leading-relaxed text-muted-foreground">
                     Run starts a memory-only, zero-capability session. Network, filesystem, vault
                     data, navigation, and same-origin access remain unavailable.
                   </p>
@@ -292,7 +292,7 @@ export function InteractiveProofWorkbench({
             )}
             <div className="border-t border-border p-3">
               <label htmlFor="interactive-preview-props">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Preview props · session only
                 </span>
               </label>
@@ -318,7 +318,7 @@ export function InteractiveProofWorkbench({
           >
             <PaneLabel label={`Problems · ${problemCount}`} />
             {diagnostics.length === 0 ? (
-              <div className="flex items-center gap-2 px-3 py-4 font-mono text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2 px-3 py-4 font-mono text-xs text-muted-foreground">
                 <CheckCircle2 className="size-4 text-editorial-blue" aria-hidden="true" />
                 No project problems
               </div>
@@ -336,10 +336,10 @@ export function InteractiveProofWorkbench({
                         aria-hidden="true"
                       />
                       <span className="min-w-0">
-                        <span className="block font-mono text-[10px] font-bold text-destructive">
+                        <span className="block font-mono text-xs font-bold text-destructive">
                           {diagnostic.code} · {formatDiagnosticLocation(diagnostic)}
                         </span>
-                        <span className="mt-0.5 block font-mono text-[10px] leading-relaxed text-foreground">
+                        <span className="mt-0.5 block font-mono text-xs leading-relaxed text-foreground">
                           {diagnostic.message}
                         </span>
                       </span>
@@ -357,7 +357,7 @@ export function InteractiveProofWorkbench({
 
 function PaneLabel({ label }: { label: string }): React.JSX.Element {
   return (
-    <div className="flex h-7 shrink-0 items-center border-b border-border bg-muted px-3 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="flex h-7 shrink-0 items-center border-b border-border bg-muted px-3 font-mono text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
       {label}
     </div>
   )
@@ -374,7 +374,7 @@ function ProofStateMark({
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center gap-1 border px-2 font-mono text-[9px] font-bold uppercase tracking-wider',
+        'inline-flex h-6 items-center gap-1 border px-2 font-mono text-xs font-bold uppercase tracking-wider',
         issue
           ? 'border-destructive text-destructive'
           : state === 'ready'

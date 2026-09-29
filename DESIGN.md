@@ -30,6 +30,7 @@ update both in the same change.
 | Signal | `#A34700` | `#FF9A57` | Attention, pending state, prediction |
 | Evidence Teal | `#0F6F5C` | `#42C7A5` | Verified result, resolved relation |
 | Alloy | `#CBD2DA` | `#384554` | Structural rules and boundaries |
+| Muted text | `#59636F` | `#AAB4C0` | Secondary labels on chrome, at least 4.5:1 |
 
 Destructive state has its own semantic token (`#B42318` light, `#FF8A80`
 dark). Color is never the only signal: icon, label, stroke or pattern must also
@@ -46,7 +47,7 @@ always-light paper context:
 | Paper | `#F9F9F7` | Note canvas and primary component surface |
 | Paper Dark | `#EFEFEA` | Secondary panels, code blocks and neutral state |
 | Ink | `#111111` | Text, 2px borders and zero-blur offset shadows |
-| Accent | `#D32F2F` | Action, active state, link and emphasis |
+| Accent | `#C02626` | Action, active state, link and emphasis |
 | Line | `#CCCCCC` | Secondary dividers and scrollbars |
 | Result | `#2B5797` | Computed or dynamic results only |
 

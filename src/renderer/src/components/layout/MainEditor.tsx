@@ -1,11 +1,12 @@
 import { Blocks, Save } from 'lucide-react'
-import { lazy, Suspense, useCallback, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
 import { EditorHeader } from '@/components/layout/EditorHeader'
 import { EditorTabs } from '@/components/layout/EditorTabs'
 import { NoVaultFilePreview, VaultImagePreview } from '@/components/layout/VaultFilePreview'
+import { WorkspaceStart } from '@/components/layout/WorkspaceStart'
 import { Button } from '@/components/ui/button'
 import { type ViewMode, ViewModeToggle } from '@/components/ViewModeToggle'
 import { EditorAppearance } from '@/editor/EditorAppearance'
@@ -27,6 +28,7 @@ import { MdxPreview } from '@/preview/MdxPreview'
 import { resolvePreviewImageSource } from '@/preview/preview-image'
 import { isEditableTextPath, isNotePath, isPreviewableVaultImagePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
+import { focusAfterViewModeSwitch } from '@/workbench/document-focus'
 import { resolveInteractiveProjectPath } from '../../../../shared/interactive-authoring'
 import {
   formatWikilinkSubpath,
@@ -43,6 +45,7 @@ const LazyGraphSurface = lazy(async () => {
 
 interface MainEditorProps {
   hasVault: boolean
+  showFileExtensions: boolean
   viewMode: ViewMode
   readingFullView: boolean
   selectedPath: string | null
@@ -68,6 +71,7 @@ interface MainEditorProps {
 
 export function MainEditor({
   hasVault,
+  showFileExtensions,
   viewMode,
   readingFullView,
   selectedPath,
@@ -106,6 +110,7 @@ export function MainEditor({
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
   const lastEditableModeRef = useRef<'source' | 'live'>('live')
   const previousSurfaceRef = useRef<{ path: string | null; mode: ViewMode } | null>(null)
+  const committedModeRef = useRef<ViewMode | null>(null)
   const readingAnchorRef = useRef<number | null>(null)
   const explicitRevealRef = useRef(false)
   const currentSurfaceRef = useRef({ path: selectedPath, mode: viewMode })
@@ -123,6 +128,10 @@ export function MainEditor({
     explicitRevealRef.current = false
   }
   previousSurfaceRef.current = { path: selectedPath, mode: viewMode }
+  useLayoutEffect(() => {
+    focusAfterViewModeSwitch(committedModeRef.current, viewMode)
+    committedModeRef.current = viewMode
+  }, [viewMode])
   const { factor: readingZoomFactor, adjustFromWheel: adjustReadingZoomFromWheel } = readingZoom
 
   const revealFromReading = useCallback(
@@ -229,6 +238,8 @@ export function MainEditor({
       {readingFullView ? null : (
         <>
           <EditorTabs
+            showFileExtensions={showFileExtensions}
+            visiblePaths={vaultTreeFiles.map((file) => file.relativePath)}
             items={editorTabs.tabs}
             activeId={editorTabs.activeId}
             onActivate={(relativePath) => void editorTabs.openOrActivate(relativePath)}
@@ -242,7 +253,11 @@ export function MainEditor({
             closeShortcut={commandActions.getAction('workbench.close-item')?.hotkeys?.[0]}
           />
           {activeItem?.kind === 'graph' ? null : (
-            <EditorHeader selectedPath={selectedPath}>
+            <EditorHeader
+              selectedPath={selectedPath}
+              showFileExtensions={showFileExtensions}
+              visiblePaths={vaultTreeFiles.map((file) => file.relativePath)}
+            >
               {(noteSelected && viewMode !== 'reading') || textSelected ? (
                 <EditorAppearance live={noteSelected && viewMode === 'live'} />
               ) : null}
@@ -265,7 +280,7 @@ export function MainEditor({
                   />
                 </>
               ) : selectedPath ? (
-                <span className="px-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground tabular-nums">
+                <span className="px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums">
                   {imageSelected && selectedImageMetadata
                     ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
                     : textSelected
@@ -280,7 +295,7 @@ export function MainEditor({
       {activeItemMissing && !readingFullView ? (
         <div
           role="status"
-          className="shrink-0 border-b border-destructive bg-destructive/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-destructive"
+          className="shrink-0 border-b border-destructive bg-destructive/10 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-destructive"
         >
           File deleted outside mdx-vault · Session content is preserved · Autosave paused
         </div>
@@ -414,6 +429,8 @@ export function MainEditor({
               relativePath={selectedPath}
               onRevealInExplorer={() => onRevealInExplorer(selectedPath)}
             />
+          ) : hasVault ? (
+            <WorkspaceStart emptyVault={vaultTreeFiles.length === 0} actions={commandActions} />
           ) : (
             <EmptyState
               icon={<Save className="size-5" aria-hidden="true" />}

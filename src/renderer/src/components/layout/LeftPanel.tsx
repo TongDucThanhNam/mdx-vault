@@ -8,6 +8,7 @@ import { FileTree, type FileTreeRevealRequest } from '@/explorer/FileTree'
 import type { NoteIndexController } from '@/hooks/useNoteIndex'
 import type { VaultSessionController } from '@/hooks/useVaultSession'
 import type { VaultInfo } from '@/vault/types'
+import type { UiDensity } from '../../../../shared/app-settings'
 import type { BookmarkTarget } from '../../../../shared/bookmarks'
 import { isVisibleVaultPath } from '../../../../shared/vault-path-visibility'
 
@@ -18,6 +19,8 @@ interface LeftPanelProps {
   vaultSession: VaultSessionController
   commandActions: CommandActionRegistry
   revealRequest: FileTreeRevealRequest | null
+  density: UiDensity
+  showFileExtensions: boolean
   onCreateNoteInFolder: (directoryPath: string) => void
   onRequestDelete: (relativePath: string) => void
   onAddBookmark: (target: BookmarkTarget, title?: string | null) => void | Promise<void>
@@ -30,6 +33,8 @@ export function LeftPanel({
   vaultSession,
   commandActions,
   revealRequest,
+  density,
+  showFileExtensions,
   onCreateNoteInFolder,
   onRequestDelete,
   onAddBookmark
@@ -87,7 +92,10 @@ export function LeftPanel({
       <div className="h-[calc(100%-2.5rem)] overflow-hidden">
         {vault ? (
           <FileTree
+            key={`${density}:${showFileExtensions}`}
             files={visibleTreeFiles}
+            density={density}
+            showFileExtensions={showFileExtensions}
             notes={noteIndex.indexNotes}
             selectedPath={selectedPath}
             revealRequest={revealRequest}

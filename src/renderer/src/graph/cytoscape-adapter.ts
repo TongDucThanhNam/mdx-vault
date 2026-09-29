@@ -7,6 +7,7 @@ import type {
   GraphViewSettings,
   GraphVisualToken
 } from '../../../shared/graph'
+import { selectVisibleGraphLabels } from './graph-label-culling'
 import { loadCytoscape } from './load-cytoscape'
 
 export interface GraphContextRequest {
@@ -83,6 +84,7 @@ export async function createCytoscapeGraphAdapter(
   let layout: cytoscape.Layouts | null = null
   let layoutTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
+  let labelFrame = 0
   const cy = cytoscapeLibrary({
     container: options.container,
     elements: createGraphElements(snapshot, settings, options.activeRelativePath, groups),
@@ -108,6 +110,7 @@ export async function createCytoscapeGraphAdapter(
     const focusedId = hoveredNodeId ?? selectedNodeId
     const all = cy.elements()
     all.removeClass('muted neighbor selected')
+    scheduleLabelVisibility()
     if (!focusedId) return
     const focused = cy.getElementById(focusedId)
     if (focused.empty()) return
@@ -119,7 +122,45 @@ export async function createCytoscapeGraphAdapter(
 
   const updateLabelVisibility = (): void => {
     if (destroyed) return
-    cy.nodes().toggleClass('labels-hidden', cy.zoom() < settings.labelFadeThreshold)
+    const focusedId = hoveredNodeId ?? selectedNodeId
+    const neighbors = new Set<string>()
+    if (focusedId) {
+      cy.getElementById(focusedId)
+        .neighborhood('node')
+        .forEach((node) => {
+          neighbors.add(node.id())
+        })
+    }
+    const degrees = new Map(snapshot.nodes.map((node) => [node.id, node.degree]))
+    const visible = selectVisibleGraphLabels(
+      cy.nodes().map((node) => ({
+        id: node.id(),
+        title: String(node.data('label')),
+        x: node.renderedPosition().x,
+        y: node.renderedPosition().y,
+        radius: node.width() / 2,
+        degree: degrees.get(node.id()) ?? 0
+      })),
+      {
+        zoom: cy.zoom(),
+        fadeThreshold: settings.labelFadeThreshold,
+        hoveredId: hoveredNodeId,
+        selectedId: selectedNodeId,
+        neighborIds: neighbors
+      }
+    )
+    cy.batch(() => {
+      cy.nodes().forEach((node) => {
+        node.toggleClass('labels-hidden', !visible.has(node.id()))
+      })
+    })
+  }
+  const scheduleLabelVisibility = (): void => {
+    if (labelFrame || typeof requestAnimationFrame !== 'function') return
+    labelFrame = requestAnimationFrame(() => {
+      labelFrame = 0
+      updateLabelVisibility()
+    })
   }
 
   const applyTheme = (): void => {
@@ -170,11 +211,12 @@ export async function createCytoscapeGraphAdapter(
       y: event.renderedPosition.y
     })
   })
-  cy.on('zoom', updateLabelVisibility)
+  cy.on('zoom pan layoutstop position', scheduleLabelVisibility)
 
   const resizeObserver = new ResizeObserver(() => {
     if (destroyed) return
     cy.resize()
+    scheduleLabelVisibility()
   })
   const themeObserver =
     typeof MutationObserver === 'undefined'
@@ -188,7 +230,7 @@ export async function createCytoscapeGraphAdapter(
     attributeFilter: ['class']
   })
   runLayout()
-  updateLabelVisibility()
+  scheduleLabelVisibility()
 
   return {
     setSnapshot: (nextSnapshot, nextSettings, nextGroups = groups) => {
@@ -204,7 +246,7 @@ export async function createCytoscapeGraphAdapter(
       cy.style(createGraphStyles(settings))
       runLayout()
       applyHighlight()
-      updateLabelVisibility()
+      scheduleLabelVisibility()
     },
     setSelection: (nodeId) => {
       if (destroyed) return
@@ -227,7 +269,7 @@ export async function createCytoscapeGraphAdapter(
         }
       })
       cy.style(createGraphStyles(settings))
-      updateLabelVisibility()
+      scheduleLabelVisibility()
       if (forcesChanged) {
         if (layoutTimer) clearTimeout(layoutTimer)
         layoutTimer = setTimeout(runLayout, 180)
@@ -257,6 +299,7 @@ export async function createCytoscapeGraphAdapter(
     destroy: () => {
       if (destroyed) return
       destroyed = true
+      if (labelFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(labelFrame)
       if (layoutTimer) clearTimeout(layoutTimer)
       layout?.stop()
       resizeObserver.disconnect()
@@ -362,7 +405,7 @@ function createGraphStyles(settings: GraphViewSettings): cytoscape.StylesheetJso
         label: 'data(label)',
         color: ink,
         'font-family': 'ui-monospace, SFMono-Regular, Menlo, monospace',
-        'font-size': 9,
+        'font-size': 12,
         'text-wrap': 'ellipsis',
         'text-max-width': '120px',
         'text-valign': 'bottom',

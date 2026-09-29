@@ -120,7 +120,7 @@ function CreateInteractiveForm({
 
       <div className="mt-5 grid gap-4">
         <label className="grid gap-1.5" htmlFor="interactive-display-name">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Display name
           </span>
           <input
@@ -145,7 +145,7 @@ function CreateInteractiveForm({
         </label>
 
         <label className="grid gap-1.5" htmlFor="interactive-slug">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Folder slug
           </span>
           <input
@@ -166,7 +166,7 @@ function CreateInteractiveForm({
         </label>
 
         <fieldset className="grid gap-2">
-          <legend className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <legend className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Starter
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -193,7 +193,7 @@ function CreateInteractiveForm({
           id="interactive-destination"
           className="border-l-4 border-editorial-blue bg-muted px-3 py-2"
         >
-          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Destination
           </p>
           <p className="mt-1 truncate font-mono text-xs text-foreground">
@@ -203,7 +203,7 @@ function CreateInteractiveForm({
 
         <div className="flex gap-2 border-2 border-foreground bg-background p-3">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-          <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+          <p className="font-mono text-xs leading-relaxed text-muted-foreground">
             The starter requests zero capabilities. Its source opens for review; execution still
             requires explicit Run consent in the sandbox.
           </p>
@@ -270,7 +270,7 @@ function StarterOption({
       <span className="font-display text-sm font-black">{title}</span>
       <span
         className={cn(
-          'font-mono text-[10px] leading-relaxed',
+          'font-mono text-xs leading-relaxed',
           selected ? 'text-background/75' : 'text-muted-foreground'
         )}
       >

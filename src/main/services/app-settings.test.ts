@@ -34,6 +34,7 @@ describe('AppSettingsService v6', () => {
       expect(settings.lastVaultPath).toBe('C:\\notes')
       expect(settings.theme).toBe('dark')
       expect(settings.fileTreeSort).toBe('modified-desc')
+      expect(settings.showFileExtensions).toBe(false)
       expect(settings.defaultNoteView).toBe('reading')
       expect(settings.editorFontSize).toBe(DEFAULT_EDITOR_FONT_SIZE)
       expect(settings.locale).toBe('system')
@@ -130,6 +131,19 @@ describe('AppSettingsService v6', () => {
       const nonObject = await service.read()
       expect(nonObject.fileTreeSort).toBe('name')
       expect(nonObject.keymapOverrides).toEqual({})
+    })
+  })
+
+  test('round-trips the extension preference and rejects persisted non-booleans', async () => {
+    await withSettingsDirectory(async (root) => {
+      const service = new AppSettingsService(root)
+      expect((await service.getSettings()).showFileExtensions).toBe(false)
+      expect((await service.updateSettings({ showFileExtensions: true })).showFileExtensions).toBe(
+        true
+      )
+      expect((await new AppSettingsService(root).getSettings()).showFileExtensions).toBe(true)
+      await writeSettings(root, { version: 6, showFileExtensions: 'yes' })
+      expect((await service.getSettings()).showFileExtensions).toBe(false)
     })
   })
 

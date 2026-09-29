@@ -75,7 +75,8 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
       APP_SETTINGS_CATALOG.locale,
       APP_SETTINGS_CATALOG.density,
       APP_SETTINGS_CATALOG.uiScale,
-      APP_SETTINGS_CATALOG.fileTreeSort
+      APP_SETTINGS_CATALOG.fileTreeSort,
+      APP_SETTINGS_CATALOG.showFileExtensions
     ])} vault folder path`
   },
   {
@@ -155,6 +156,7 @@ export function SettingsDialog({
   const uiScale = settings.snapshot?.uiScale ?? APP_SETTINGS_CATALOG.uiScale.defaultValue
   const fileTreeSort =
     settings.snapshot?.fileTreeSort ?? APP_SETTINGS_CATALOG.fileTreeSort.defaultValue
+  const showFileExtensions = settings.snapshot?.showFileExtensions ?? false
 
   const matchingSections = useMemo(
     () =>
@@ -242,6 +244,10 @@ export function SettingsDialog({
     await settings.updateSettings({ fileTreeSort: nextSort })
   }
 
+  const handleShowFileExtensionsChange = async (value: boolean): Promise<void> => {
+    await settings.updateSettings({ showFileExtensions: value })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -251,7 +257,7 @@ export function SettingsDialog({
         <aside className="min-h-0 border-b-2 border-foreground bg-chrome p-3 sm:border-r-2 sm:border-b-0 sm:p-4">
           <div className="mb-3 pr-8 sm:mb-5 sm:pr-0">
             <DialogTitle className="font-display text-2xl font-black">Settings</DialogTitle>
-            <DialogDescription id="settings-description" className="mt-1 text-[10px]">
+            <DialogDescription id="settings-description" className="mt-1 text-xs">
               Confirmed preferences apply immediately
             </DialogDescription>
           </div>
@@ -299,7 +305,7 @@ export function SettingsDialog({
                   key={item.id}
                   type="button"
                   className={cn(
-                    'flex min-w-32 items-center gap-2 border-l-2 px-2.5 py-2 text-left font-mono text-[11px] font-bold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none sm:mb-1 sm:w-full',
+                    'flex min-w-32 items-center gap-2 border-l-2 px-2.5 py-2 text-left font-mono text-xs font-bold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none sm:mb-1 sm:w-full',
                     active
                       ? 'border-editorial-red bg-foreground text-background'
                       : 'border-transparent text-muted-foreground hover:border-foreground hover:bg-background hover:text-foreground'
@@ -315,14 +321,14 @@ export function SettingsDialog({
           </nav>
 
           {matchingSections.length === 0 ? (
-            <p className="border-l-2 border-editorial-red px-2 py-1 font-mono text-[10px] leading-relaxed text-muted-foreground">
+            <p className="border-l-2 border-editorial-red px-2 py-1 font-mono text-xs leading-relaxed text-muted-foreground">
               No settings match “{query}”.
             </p>
           ) : null}
 
           {settings.isLoading || settings.isPending ? (
             <div
-              className="mt-3 font-mono text-[9px] uppercase tracking-wider text-muted-foreground"
+              className="mt-3 font-mono text-xs uppercase tracking-wider text-muted-foreground"
               aria-live="polite"
             >
               {settings.isPending ? 'Saving confirmed snapshot…' : 'Loading confirmed snapshot…'}
@@ -333,7 +339,7 @@ export function SettingsDialog({
         <div className="min-h-0 overflow-y-auto overscroll-contain">
           {settings.error ? (
             <div
-              className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b-2 border-destructive bg-background px-5 py-3 font-mono text-[11px] leading-relaxed text-destructive"
+              className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b-2 border-destructive bg-background px-5 py-3 font-mono text-xs leading-relaxed text-destructive"
               role="alert"
             >
               <span>{settings.error}</span>
@@ -355,6 +361,7 @@ export function SettingsDialog({
               density={density}
               uiScale={uiScale}
               fileTreeSort={fileTreeSort}
+              showFileExtensions={showFileExtensions}
               vaultPath={vaultPath}
               openingVault={openingVault}
               settingsPending={settings.isPending || !settings.snapshot}
@@ -363,6 +370,7 @@ export function SettingsDialog({
               onDensityChange={handleDensityChange}
               onUiScaleChange={handleUiScaleChange}
               onFileTreeSortChange={handleFileTreeSortChange}
+              onShowFileExtensionsChange={handleShowFileExtensionsChange}
               onOpenAnotherVault={handleOpenAnotherVault}
             />
           ) : null}
@@ -399,6 +407,7 @@ function GeneralSection({
   density,
   uiScale,
   fileTreeSort,
+  showFileExtensions,
   vaultPath,
   openingVault,
   settingsPending,
@@ -407,6 +416,7 @@ function GeneralSection({
   onDensityChange,
   onUiScaleChange,
   onFileTreeSortChange,
+  onShowFileExtensionsChange,
   onOpenAnotherVault
 }: {
   theme: AppTheme
@@ -414,6 +424,7 @@ function GeneralSection({
   density: UiDensity
   uiScale: number
   fileTreeSort: FileTreeSortMode
+  showFileExtensions: boolean
   vaultPath: string | null
   openingVault: boolean
   settingsPending: boolean
@@ -422,6 +433,7 @@ function GeneralSection({
   onDensityChange: (density: UiDensity) => void | Promise<void>
   onUiScaleChange: (scale: number) => void | Promise<void>
   onFileTreeSortChange: (sort: FileTreeSortMode) => void
+  onShowFileExtensionsChange: (value: boolean) => void
   onOpenAnotherVault: () => Promise<void>
 }): React.JSX.Element {
   return (
@@ -515,9 +527,22 @@ function GeneralSection({
         />
       </SettingGroup>
 
+      <SettingGroup
+        title={APP_SETTINGS_CATALOG.showFileExtensions.label}
+        description={APP_SETTINGS_CATALOG.showFileExtensions.description}
+      >
+        <ToggleSetting
+          id="settings-show-file-extensions"
+          label="Show .mdx and .md"
+          checked={showFileExtensions}
+          disabled={settingsPending}
+          onChange={onShowFileExtensionsChange}
+        />
+      </SettingGroup>
+
       <SettingGroup title="Vault" description="Notes remain files in this local folder.">
         <div className="border-2 border-foreground bg-card p-3">
-          <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Current path
           </div>
           <code className="mt-1.5 block break-all font-mono text-xs text-foreground">
@@ -821,9 +846,7 @@ function ToggleSetting({
       )}
     >
       <span>
-        <span className="block font-mono text-[11px] font-bold uppercase tracking-wider">
-          {label}
-        </span>
+        <span className="block font-mono text-xs font-bold uppercase tracking-wider">{label}</span>
         {description ? (
           <span className="mt-1 block max-w-xl text-xs leading-relaxed text-muted-foreground">
             {description}
@@ -970,12 +993,12 @@ function AiSection({
       title="AI"
       description="Assistant provider, model, and protected credentials."
     >
-      <div className="border-l-2 border-editorial-red bg-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+      <div className="border-l-2 border-editorial-red bg-muted px-3 py-2 font-mono text-xs leading-relaxed text-muted-foreground">
         API keys are encrypted by Electron safeStorage and never returned to this screen after
         saving.
       </div>
       {error ? (
-        <div className="border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
+        <div className="border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
           {error}
         </div>
       ) : settings ? (
@@ -999,7 +1022,7 @@ function AboutSection(): React.JSX.Element {
       <div className="border-2 border-foreground bg-card shadow-[3px_3px_0_0_var(--foreground)]">
         <div className="border-b-2 border-foreground bg-foreground px-4 py-3 text-background">
           <div className="font-display text-2xl font-black">mdx-vault</div>
-          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.15em] text-background/75">
+          <div className="mt-1 font-mono text-xs uppercase tracking-[0.15em] text-background/75">
             Version {packageJson.version}
           </div>
         </div>
@@ -1065,12 +1088,12 @@ function ChoiceGroup({
               className="sr-only"
               onChange={() => onChange(option.value)}
             />
-            <span className="block font-mono text-[11px] font-bold uppercase tracking-wider">
+            <span className="block font-mono text-xs font-bold uppercase tracking-wider">
               {option.label}
             </span>
             <span
               className={cn(
-                'mt-1 block text-[11px] leading-snug',
+                'mt-1 block text-xs leading-snug',
                 selected ? 'text-background/70' : 'text-muted-foreground'
               )}
             >

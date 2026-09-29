@@ -20,7 +20,7 @@
   --secondary: #e9edf2;
   --secondary-foreground: #202630;
   --muted: #e9edf2;
-  --muted-foreground: #66707c;
+  --muted-foreground: #59636f;
   --accent: #e4eaff;
   --accent-foreground: #1746d1;
 
@@ -698,7 +698,7 @@
     background: var(--paper-dark);
     padding: 0.05rem 0.35rem;
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--muted-foreground);
   }
 
@@ -714,7 +714,7 @@
     background: var(--paper-dark);
     padding: 0.55rem 0.7rem;
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--muted-foreground);
   }
 

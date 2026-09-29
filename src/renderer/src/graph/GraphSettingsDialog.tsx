@@ -209,7 +209,7 @@ export function GraphSettingsDialog({
               <h3 id="graph-groups-title" className="font-display text-lg font-black">
                 Query groups
               </h3>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 First match owns shape/color; every match remains in details.
               </p>
             </div>
@@ -236,7 +236,7 @@ export function GraphSettingsDialog({
                   key={group.id}
                   className="grid gap-2 border-2 border-foreground p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_7rem_auto]"
                 >
-                  <label className="grid gap-1 font-mono text-[10px] font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
                     Label
                     <input
                       value={group.label}
@@ -252,7 +252,7 @@ export function GraphSettingsDialog({
                       }
                     />
                   </label>
-                  <label className="grid gap-1 font-mono text-[10px] font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
                     Search query
                     <input
                       value={group.query}
@@ -269,7 +269,7 @@ export function GraphSettingsDialog({
                       }
                     />
                   </label>
-                  <label className="grid gap-1 font-mono text-[10px] font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
                     Token
                     <select
                       value={group.visualToken}
@@ -330,7 +330,7 @@ export function GraphSettingsDialog({
         </section>
 
         <DialogFooter className="items-center justify-between sm:justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {isSaving ? 'Saving…' : recovery ? 'Defaults active' : 'Vault settings'}
           </span>
           <Button type="button" variant="outline" onClick={onReset}>

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { formatError } from '@/lib/format-error'
 import { persistAndReconcileSettings } from '@/settings/app-settings-reconciliation'
-import type { AppSettingsPatch, AppSettingsSnapshot } from '../../../shared/app-settings'
+import {
+  type AppSettingsPatch,
+  type AppSettingsSnapshot,
+  DEFAULT_APP_SETTINGS_SNAPSHOT
+} from '../../../shared/app-settings'
 
 export type { AppSettingsPatch, AppSettingsSnapshot } from '../../../shared/app-settings'
 export { DEFAULT_APP_SETTINGS_SNAPSHOT } from '../../../shared/app-settings'
@@ -84,7 +88,7 @@ export function useAppSettings({
     }
 
     try {
-      const confirmed = await window.appApi.getSettings()
+      const confirmed = { ...DEFAULT_APP_SETTINGS_SNAPSHOT, ...(await window.appApi.getSettings()) }
       commitConfirmedSnapshot(confirmed, requestSequence)
       return confirmed
     } catch (loadError) {
@@ -124,12 +128,19 @@ export function useAppSettings({
       const operation = mutationQueueRef.current.then(async () => {
         const result = await persistAndReconcileSettings(window.appApi, patch)
         if (result.snapshot) {
-          commitConfirmedSnapshot(result.snapshot, requestSequence)
+          commitConfirmedSnapshot(
+            { ...DEFAULT_APP_SETTINGS_SNAPSHOT, ...result.snapshot },
+            requestSequence
+          )
         }
         if (!result.saved) {
           publishError(result.error)
         }
-        resolveMutation(result.saved ? result.snapshot : null)
+        resolveMutation(
+          result.saved && result.snapshot
+            ? { ...DEFAULT_APP_SETTINGS_SNAPSHOT, ...result.snapshot }
+            : null
+        )
 
         if (mountedRef.current) {
           setPendingCount((count) => Math.max(0, count - 1))

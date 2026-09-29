@@ -255,15 +255,15 @@ export function CommandPalette({
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate text-sm font-medium">{action.title}</span>
-                        <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           {action.category}
                         </span>
                         {pinned ? (
-                          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             Pinned
                           </span>
                         ) : recent ? (
-                          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             Recent
                           </span>
                         ) : null}
@@ -277,7 +277,7 @@ export function CommandPalette({
                         {action.hotkeys.map((hotkey) => (
                           <span
                             key={hotkey}
-                            className="border border-current px-1 py-0.5 font-mono text-[10px] leading-none"
+                            className="border border-current px-1 py-0.5 font-mono text-xs leading-none"
                           >
                             {hotkey}
                           </span>
@@ -285,7 +285,7 @@ export function CommandPalette({
                       </span>
                     ) : null}
                     {runningActionId === action.id ? (
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider">
+                      <span className="shrink-0 font-mono text-xs uppercase tracking-wider">
                         Running
                       </span>
                     ) : isActive && !action.disabled ? (

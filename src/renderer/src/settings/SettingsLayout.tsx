@@ -12,7 +12,7 @@ export function SettingsPage({
   return (
     <section className="p-5 sm:p-7">
       <header className="mb-7 border-b-2 border-foreground pb-4 pr-8">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-editorial-red">
+        <div className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-editorial-red">
           {eyebrow}
         </div>
         <h2 className="mt-1 font-display text-3xl leading-tight font-black tracking-tight">

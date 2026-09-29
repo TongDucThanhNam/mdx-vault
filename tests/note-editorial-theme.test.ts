@@ -20,7 +20,7 @@ describe('Editorial note theme', () => {
     expect(noteStyles).toContain('--note-paper: #f9f9f7')
     expect(noteStyles).toContain('--note-paper-muted: #efefea')
     expect(noteStyles).toContain('--note-ink: #111111')
-    expect(noteStyles).toContain('--note-accent: #d32f2f')
+    expect(noteStyles).toContain('--note-accent: #c02626')
     expect(noteStyles).toContain('--note-result: #2b5797')
     expect(noteStyles).toContain('--note-shadow: 4px 4px 0 var(--note-ink)')
     expect(noteStyles).toContain('--in-paper: var(--note-paper)')

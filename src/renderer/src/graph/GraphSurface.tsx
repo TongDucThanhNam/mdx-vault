@@ -282,7 +282,7 @@ export function GraphSurface({
             <h2 className="truncate font-display text-sm font-black">
               {mode === 'global' ? 'Global Graph' : 'Local Graph'}
             </h2>
-            <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
               {formatGraphSummary(graph.snapshot)}
             </p>
           </div>
@@ -306,7 +306,7 @@ export function GraphSurface({
         </label>
 
         {mode === 'local' && 'depth' in config.settings ? (
-          <label className="flex items-center gap-1 font-mono text-[9px] font-bold uppercase">
+          <label className="flex items-center gap-1 font-mono text-xs font-bold uppercase">
             Depth
             <select
               value={config.settings.depth}
@@ -367,7 +367,7 @@ export function GraphSurface({
       {config.recovery ? (
         <div className="absolute top-12 right-2 left-2 z-20 flex items-start gap-2 border-2 border-foreground bg-background p-2 shadow-[2px_2px_0_0_var(--foreground)]">
           <SlidersHorizontal className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          <p className="font-mono text-[9px] leading-relaxed uppercase tracking-wider">
+          <p className="font-mono text-xs leading-relaxed uppercase tracking-wider">
             Defaults active. {config.recovery.relativePath} was preserved for recovery.
           </p>
         </div>
@@ -410,7 +410,7 @@ export function GraphSurface({
           {graph.snapshot?.truncated ? (
             <div
               role="status"
-              className="absolute right-2 bottom-2 left-2 z-10 border-2 border-foreground bg-background p-2 font-mono text-[9px] leading-relaxed uppercase tracking-wider shadow-[2px_2px_0_0_var(--foreground)]"
+              className="absolute right-2 bottom-2 left-2 z-10 border-2 border-foreground bg-background p-2 font-mono text-xs leading-relaxed uppercase tracking-wider shadow-[2px_2px_0_0_var(--foreground)]"
             >
               {graph.snapshot.truncationReason}
             </div>

@@ -12,8 +12,11 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
+import type { UiDensity } from '../../../shared/app-settings'
 import type { BookmarkTarget } from '../../../shared/bookmarks'
+import { displayFileName } from './file-label'
 import { resolveFileTreeClickPath, shouldActivateTreeSelection } from './file-tree-activation'
+import { FILE_TREE_ICONS } from './file-tree-icons'
 
 export type FileTreeSortMode = 'name' | 'modified-desc' | 'created-desc'
 
@@ -29,6 +32,8 @@ interface FileTreeProps {
   selectedPath: string | null
   revealRequest: FileTreeRevealRequest | null
   sortMode: FileTreeSortMode
+  density: UiDensity
+  showFileExtensions: boolean
   onSelectFile: (relativePath: string) => void
   onCreateNoteInFolder: (directoryPath: string) => void
   onDeleteFile: (relativePath: string) => void
@@ -85,6 +90,23 @@ const TREE_STYLE = {
 } as CSSProperties
 
 const TREE_UNSAFE_CSS = `
+  [data-item-section='content']:not(:has(input)) { display: none; }
+  [data-item-section='content']:has(input) ~ [data-item-section='decoration'] { display: none; }
+  [data-item-section='decoration'] {
+    color: inherit;
+    text-align: start;
+    justify-content: flex-start;
+  }
+  [data-item-section='decoration'] > span {
+    display: block;
+    text-align: start;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+  }
+  [data-item-section='icon'] { width: 16px; min-width: 16px; color: var(--muted-foreground); }
+  [data-item-section='icon'] svg { width: 16px; height: 16px; }
   [data-type='item'] {
     transition: background-color 120ms ease, color 120ms ease;
   }
@@ -107,6 +129,8 @@ export function FileTree({
   selectedPath,
   revealRequest,
   sortMode,
+  density,
+  showFileExtensions,
   onSelectFile,
   onCreateNoteInFolder,
   onDeleteFile,
@@ -171,9 +195,16 @@ export function FileTree({
     initialExpansion: 'open',
     initialSelectedPaths: selectedPath ? [selectedPath] : [],
     sort,
-    density: 'default',
-    itemHeight: 32,
-    icons: { set: 'complete', colored: false },
+    density: density === 'compact' ? 'compact' : 'default',
+    itemHeight: density === 'compact' ? 24 : 28,
+    icons: FILE_TREE_ICONS,
+    renderRowDecoration: ({ item }) => ({
+      text:
+        item.kind === 'directory'
+          ? item.name
+          : displayFileName(item.path, showFileExtensions, pathsRef.current),
+      title: item.name
+    }),
     renaming: {
       canRename: (item) => !item.isFolder && isNotePath(item.path),
       onRename: ({ sourcePath, destinationPath }) => {
@@ -304,7 +335,7 @@ export function FileTree({
 
   if (files.length === 0) {
     return (
-      <div className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="px-4 py-10 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
         No files found.
       </div>
     )

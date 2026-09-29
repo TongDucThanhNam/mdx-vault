@@ -29,7 +29,7 @@ export function ToastView({ message, variant }: ToastViewProps): React.JSX.Eleme
         <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       )}
       <div className="min-w-0">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] opacity-75">
+        <div className="font-mono text-xs font-bold uppercase tracking-[0.14em] opacity-75">
           {destructive ? 'Action failed' : 'Vault updated'}
         </div>
         <div className="mt-0.5 break-words text-[13px] leading-snug font-medium">{message}</div>

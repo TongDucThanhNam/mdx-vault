@@ -192,13 +192,17 @@ function App(): React.JSX.Element {
   )
   const toggleLeftPanel = useCallback((): void => {
     setLeftPanelOpen((current) => {
-      if (current && isExplorerFocused()) {
+      if ((current && isExplorerFocused()) || document.activeElement === document.body) {
         window.setTimeout(() => focusActiveDocument(), 0)
       }
       return !current
     })
   }, [])
   const toggleExplorerFocus = useCallback((): void => {
+    if (document.activeElement === document.body) {
+      focusActiveDocument()
+      return
+    }
     if (!leftPanelOpen) {
       setLeftPanelOpen(true)
       window.setTimeout(() => focusExplorer(), 0)
@@ -340,6 +344,8 @@ function App(): React.JSX.Element {
               aiPanelOpen={aiPanelOpen}
               leftPanelOpen={leftPanelOpen}
               rightPanelOpen={rightPanelOpen}
+              density={settingsSnapshot.density}
+              showFileExtensions={settingsSnapshot.showFileExtensions}
               commandActions={commandActions}
               editor={editor}
               textEditor={textEditor}
@@ -502,7 +508,7 @@ function App(): React.JSX.Element {
               description={
                 <>
                   Renaming to{' '}
-                  <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                  <code className="bg-foreground px-1 py-0.5 font-mono text-xs text-background">
                     {vaultSession.renameRequest?.toRelativePath ?? ''}
                   </code>{' '}
                   can update every link that currently resolves to this note. Display aliases will
@@ -542,7 +548,7 @@ function App(): React.JSX.Element {
               description={
                 <>
                   The note will be moved to{' '}
-                  <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                  <code className="bg-foreground px-1 py-0.5 font-mono text-xs text-background">
                     {'.trash/'}
                   </code>
                   . You can recover it from there with your file manager, or use “Empty trash” to
@@ -569,7 +575,7 @@ function App(): React.JSX.Element {
                     {vaultSession.trashCount} item{vaultSession.trashCount === 1 ? '' : 's'}
                   </strong>{' '}
                   from{' '}
-                  <code className="bg-foreground px-1 py-0.5 font-mono text-[11px] text-background">
+                  <code className="bg-foreground px-1 py-0.5 font-mono text-xs text-background">
                     {'.trash/'}
                   </code>
                   . This cannot be undone.

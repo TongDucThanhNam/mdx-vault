@@ -64,4 +64,45 @@ describe('safe MDX structure analysis', () => {
     expect(sections[2].body).toContain('const proof = true')
     expect(sections[2].body).not.toContain('Beta with')
   })
+
+  test('collects inert JSX flow and inline headings in source order', () => {
+    const source = [
+      '# Alpha',
+      '',
+      '<h2>Alpha</h2>',
+      '',
+      '## Alpha',
+      '',
+      '<h2 id="authored">Alpha <em>static</em> {dangerous()}</h2>',
+      '',
+      '<h3>{dangerous()}</h3>',
+      '',
+      '<h3></h3>',
+      '',
+      '<h4 id={dangerous()}>Literal</h4>',
+      '',
+      '<h5 id="2.section">Numbered</h5>',
+      '',
+      '<h6 id="bad id">Fallback</h6>'
+    ].join('\n')
+    const headings = analyzeMdxStructure(source).headings
+    expect(headings.map(({ id, text, depth }) => ({ id, text, depth }))).toEqual([
+      { id: 'alpha', text: 'Alpha', depth: 1 },
+      { id: 'alpha-2', text: 'Alpha', depth: 2 },
+      { id: 'alpha-3', text: 'Alpha', depth: 2 },
+      { id: 'user-content-authored', text: 'Alpha static', depth: 2 },
+      { id: 'literal', text: 'Literal', depth: 4 },
+      { id: 'user-content-2.section', text: 'Numbered', depth: 5 },
+      { id: 'fallback', text: 'Fallback', depth: 6 }
+    ])
+    expect(headings.map(({ position }) => position)).toEqual([0, 1, 2, 3, 4, 5, 6])
+  })
+
+  test('indexes prose under a literal JSX section heading', () => {
+    const sections = analyzeMdxStructure(
+      '# DNS\n\n<h2>Resolution</h2>\n\nResolver follows referrals.\n'
+    ).sections
+    expect(sections.map((section) => section.heading?.id)).toEqual(['dns', 'resolution'])
+    expect(sections[1].body).toBe('Resolver follows referrals.')
+  })
 })

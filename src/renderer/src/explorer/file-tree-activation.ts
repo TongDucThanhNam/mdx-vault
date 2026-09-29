@@ -4,6 +4,7 @@ interface DatasetTarget {
   }
 }
 
+/** Resolve a file row through the tree component's shadow-DOM event path. */
 export function resolveFileTreeClickPath(
   composedPath: readonly unknown[],
   filePaths: ReadonlySet<string>

@@ -111,7 +111,7 @@ export function SortMenu({ sortMode, onChange, disabled }: SortMenuProps): React
               ) : null}
             </button>
           ))}
-          <p className="px-2 pt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className="px-2 pt-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
             *Created time is not yet tracked; falls back to Name.
           </p>
         </div>

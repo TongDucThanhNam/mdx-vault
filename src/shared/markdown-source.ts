@@ -1,4 +1,4 @@
-import type { Heading, Nodes, Root } from 'mdast'
+import type { Nodes, Root } from 'mdast'
 import remarkFrontmatterImport from 'remark-frontmatter'
 import remarkGfmImport from 'remark-gfm'
 import remarkMdxImport from 'remark-mdx'
@@ -76,19 +76,26 @@ export function analyzeMdxStructure(
   const headings: MdxStructureHeading[] = []
   const occurrences = new Map<string, number>()
 
-  visit(parsedTree, 'heading', (node: Heading) => {
+  visit(parsedTree, (node) => {
     if (headings.length >= MAX_MDX_STRUCTURE_HEADINGS) return
+    const depth = node.type === 'heading' ? node.depth : jsxHeadingDepth(node)
+    if (depth === null) return
 
-    const text = readNodeText(node).trim()
+    const text = readStaticHeadingText(node).trim()
     if (!text) return
 
     const identity = createUniqueHeadingId(text, occurrences)
+    const authorId =
+      node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement'
+        ? staticHeadingId(node)
+        : null
     const sourceFrom = clampSourceOffset(node.position?.start.offset, source.length, 0)
     const sourceTo = clampSourceOffset(node.position?.end.offset, source.length, sourceFrom)
 
     headings.push({
       ...identity,
-      depth: node.depth,
+      id: authorId ?? identity.id,
+      depth,
       text,
       position: headings.length,
       sourceFrom,
@@ -150,12 +157,40 @@ function createSections(
     .map((section, position) => ({ ...section, position }))
 }
 
-function readNodeText(node: Nodes): string {
+function jsxHeadingDepth(node: Nodes): number | null {
+  if (
+    (node.type !== 'mdxJsxFlowElement' && node.type !== 'mdxJsxTextElement') ||
+    !/^h[1-6]$/.test(node.name ?? '')
+  )
+    return null
+  return Number(node.name?.slice(1))
+}
+
+/** Expressions and component output are never used to derive navigation identity. */
+function readStaticHeadingText(node: Nodes): string {
+  if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') return ''
+  if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
+    if (!node.name || !/^[a-z][a-z\d-]*$/.test(node.name)) return ''
+  }
   if ('value' in node && typeof node.value === 'string') return node.value
   if ('children' in node && Array.isArray(node.children)) {
-    return node.children.map((child) => readNodeText(child)).join('')
+    return node.children.map((child) => readStaticHeadingText(child)).join('')
   }
   return ''
+}
+
+function staticHeadingId(
+  node: Extract<Nodes, { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
+): string | null {
+  const attribute = node.attributes.find(
+    (candidate) => candidate.type === 'mdxJsxAttribute' && candidate.name === 'id'
+  )
+  if (!attribute || attribute.type !== 'mdxJsxAttribute') return null
+  const value = attribute.value
+  // The sanitizer's clobber prefix remains mandatory for user-authored IDs.
+  return typeof value === 'string' && /^[^\p{Cc}\s]{1,96}$/u.test(value)
+    ? `user-content-${value}`
+    : null
 }
 
 function isSearchableValueNode(node: Nodes): node is Nodes & { value: string } {

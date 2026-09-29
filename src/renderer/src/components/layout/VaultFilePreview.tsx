@@ -57,7 +57,7 @@ export function VaultImagePreview({
             })
           }}
         />
-        <figcaption className="max-w-full truncate font-mono text-[10px] tracking-wide text-muted-foreground">
+        <figcaption className="max-w-full truncate font-mono text-xs tracking-wide text-muted-foreground">
           {relativePath}
         </figcaption>
       </figure>

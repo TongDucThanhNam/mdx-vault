@@ -100,7 +100,7 @@ export function GraphNodeNavigator({
         }}
       >
         {visibleNodes.length === 0 ? (
-          <p className="p-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className="p-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
             No returned node matches.
           </p>
         ) : (
@@ -124,12 +124,12 @@ export function GraphNodeNavigator({
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold">{node.title}</span>
-                <span className="block truncate font-mono text-[9px] uppercase tracking-wider opacity-70">
+                <span className="block truncate font-mono text-xs uppercase tracking-wider opacity-70">
                   {node.status}
                   {node.orphan ? ' · orphan' : ''}
                 </span>
               </span>
-              <span className="font-mono text-[10px] tabular-nums opacity-70">{node.degree}</span>
+              <span className="font-mono text-xs tabular-nums opacity-70">{node.degree}</span>
             </button>
           ))
         )}
@@ -139,7 +139,7 @@ export function GraphNodeNavigator({
         {selectedNode ? (
           <GraphNodeDetails node={selectedNode} {...actions} />
         ) : (
-          <p className="font-mono text-[10px] leading-relaxed uppercase tracking-wider text-muted-foreground">
+          <p className="font-mono text-xs leading-relaxed uppercase tracking-wider text-muted-foreground">
             Select a node to inspect its path, degree, groups, and available actions.
           </p>
         )}
@@ -159,11 +159,11 @@ export function GraphNodeDetails({
     <div role="group" className="space-y-2" aria-label={`Selected node: ${node.title}`}>
       <div>
         <h3 className="truncate text-sm font-bold">{node.title}</h3>
-        <p className="break-all font-mono text-[10px] text-muted-foreground">
+        <p className="break-all font-mono text-xs text-muted-foreground">
           {node.relativePath ?? `${node.status} target`}
         </p>
       </div>
-      <dl className="grid grid-cols-3 gap-2 font-mono text-[9px] uppercase tracking-wider">
+      <dl className="grid grid-cols-3 gap-2 font-mono text-xs uppercase tracking-wider">
         <div>
           <dt className="text-muted-foreground">In</dt>
           <dd className="font-bold">{node.incomingCount}</dd>
@@ -179,15 +179,13 @@ export function GraphNodeDetails({
       </dl>
 
       {node.groupIds.length > 0 ? (
-        <p className="font-mono text-[9px] uppercase tracking-wider">
+        <p className="font-mono text-xs uppercase tracking-wider">
           Groups: {node.groupIds.join(', ')}
         </p>
       ) : null}
       {node.status === 'ambiguous' ? (
         <div className="space-y-1">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-wider">
-            Choose a candidate
-          </p>
+          <p className="font-mono text-xs font-bold uppercase tracking-wider">Choose a candidate</p>
           {node.candidatePaths.map((path) => (
             <Button
               key={path}
@@ -238,7 +236,7 @@ export function GraphNodeDetails({
           </Button>
         </div>
       ) : node.status === 'unresolved' ? (
-        <p className="font-mono text-[9px] leading-relaxed uppercase tracking-wider text-muted-foreground">
+        <p className="font-mono text-xs leading-relaxed uppercase tracking-wider text-muted-foreground">
           Display-only unresolved target. No file action is available.
         </p>
       ) : null}

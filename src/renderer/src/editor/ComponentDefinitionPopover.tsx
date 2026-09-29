@@ -100,7 +100,7 @@ function RegistryDefinition({
       <PopoverHeader eyebrow="Registry component" name={entry.name} onClose={onClose} />
       <div className="space-y-4 p-3">
         <div>
-          <span className="inline-block border border-foreground bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em]">
+          <span className="inline-block border border-foreground bg-muted px-1.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.14em]">
             {entry.category}
           </span>
           <p className="mt-2 text-sm leading-relaxed">{entry.description}</p>
@@ -109,7 +109,7 @@ function RegistryDefinition({
         <section aria-labelledby="component-props-heading">
           <h3
             id="component-props-heading"
-            className="border-b-2 border-foreground pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em]"
+            className="border-b-2 border-foreground pb-1 font-mono text-xs font-bold uppercase tracking-[0.16em]"
           >
             Props
           </h3>
@@ -118,7 +118,7 @@ function RegistryDefinition({
               {props.map((prop) => (
                 <div key={prop.name} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 py-1.5">
                   <dt className="min-w-0 font-mono text-xs font-bold">{prop.name}</dt>
-                  <dd className="text-right font-mono text-[10px] text-muted-foreground">
+                  <dd className="text-right font-mono text-xs text-muted-foreground">
                     <span className="text-editorial-blue">{prop.type}</span>
                     <span className="ml-1.5 uppercase tracking-wider">
                       {prop.optional ? 'optional' : 'required'}
@@ -136,11 +136,11 @@ function RegistryDefinition({
           <section aria-labelledby="component-snippet-heading">
             <h3
               id="component-snippet-heading"
-              className="font-mono text-[10px] font-bold uppercase tracking-[0.16em]"
+              className="font-mono text-xs font-bold uppercase tracking-[0.16em]"
             >
               Insert snippet
             </h3>
-            <code className="mt-1.5 block overflow-x-auto border-2 border-foreground bg-foreground p-2 font-mono text-[11px] leading-relaxed whitespace-pre text-background">
+            <code className="mt-1.5 block overflow-x-auto border-2 border-foreground bg-foreground p-2 font-mono text-xs leading-relaxed whitespace-pre text-background">
               {entry.insertSnippet}
             </code>
           </section>
@@ -193,7 +193,7 @@ function PopoverHeader({
         aria-hidden="true"
       />
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
           {eyebrow}
         </p>
         <h2 className="truncate font-mono text-sm font-bold">{name}</h2>

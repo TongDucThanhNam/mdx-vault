@@ -448,7 +448,7 @@ function DraftFilesList({
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2 border-t-2 border-foreground bg-muted/20 px-3 py-2">
-      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
+      <div className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
         New interactive component ({files.length} files)
       </div>
       <div className="max-h-64 space-y-2 overflow-auto">
@@ -457,7 +457,7 @@ function DraftFilesList({
             <summary className="cursor-pointer px-2 py-1 font-mono text-xs">
               + {file.relativePath}
             </summary>
-            <pre className="overflow-auto border-t border-foreground/30 p-2 font-mono text-[11px] text-foreground">
+            <pre className="overflow-auto border-t border-foreground/30 p-2 font-mono text-xs text-foreground">
               {file.content}
             </pre>
           </details>

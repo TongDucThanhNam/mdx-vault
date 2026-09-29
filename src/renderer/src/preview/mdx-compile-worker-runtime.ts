@@ -36,7 +36,7 @@ export async function compileMdxFunctionBody(source: string): Promise<MdxCompile
       [rehypePreviewSourceMap, { source }],
       rehypeSafeHtml,
       rehypePreviewBlockMap,
-      rehypePreviewHeadingIdentity,
+      [rehypePreviewHeadingIdentity, { source }],
       rehypeKatex,
       [rehypeHighlight, { plainText: ['mermaid'] }]
     ]

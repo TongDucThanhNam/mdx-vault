@@ -42,6 +42,7 @@ export interface AppSettingsSnapshot {
   density: UiDensity
   uiScale: number
   fileTreeSort: FileTreeSortSetting
+  showFileExtensions: boolean
   defaultNoteView: DefaultNoteViewSetting
   editorFontSize: number
   editorFontFamily: EditorFontFamilySetting
@@ -66,6 +67,7 @@ export interface AppSettingsPatch {
   density?: UiDensity
   uiScale?: number
   fileTreeSort?: FileTreeSortSetting
+  showFileExtensions?: boolean
   defaultNoteView?: DefaultNoteViewSetting
   editorFontSize?: number
   editorFontFamily?: EditorFontFamilySetting
@@ -199,6 +201,17 @@ const fileTreeSortDefinition = {
   ],
   normalize: normalizeFileTreeSort
 } as const satisfies AppSettingDefinition<FileTreeSortSetting>
+
+const showFileExtensionsDefinition = {
+  key: 'showFileExtensions',
+  category: 'General',
+  label: 'Show file extensions',
+  description: 'Show .mdx and .md in navigation; ambiguous siblings always show extensions.',
+  control: 'toggle',
+  defaultValue: false,
+  searchTerms: ['files', 'extensions', 'explorer', 'tabs', 'breadcrumb'],
+  normalize: normalizeBooleanWithDefault(false)
+} as const satisfies AppSettingDefinition<boolean>
 
 const editorFontSizeDefinition = {
   key: 'editorFontSize',
@@ -496,6 +509,7 @@ export const APP_SETTINGS_CATALOG = {
   density: densityDefinition,
   uiScale: uiScaleDefinition,
   fileTreeSort: fileTreeSortDefinition,
+  showFileExtensions: showFileExtensionsDefinition,
   defaultNoteView: defaultNoteViewDefinition,
   editorFontSize: editorFontSizeDefinition,
   editorFontFamily: editorFontFamilyDefinition,
@@ -545,6 +559,7 @@ export const DEFAULT_APP_SETTINGS_SNAPSHOT: Readonly<AppSettingsSnapshot> = {
   density: APP_SETTINGS_CATALOG.density.defaultValue,
   uiScale: APP_SETTINGS_CATALOG.uiScale.defaultValue,
   fileTreeSort: APP_SETTINGS_CATALOG.fileTreeSort.defaultValue,
+  showFileExtensions: APP_SETTINGS_CATALOG.showFileExtensions.defaultValue,
   defaultNoteView: APP_SETTINGS_CATALOG.defaultNoteView.defaultValue,
   editorFontSize: APP_SETTINGS_CATALOG.editorFontSize.defaultValue,
   editorFontFamily: APP_SETTINGS_CATALOG.editorFontFamily.defaultValue,

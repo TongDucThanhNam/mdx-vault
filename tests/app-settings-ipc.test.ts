@@ -52,6 +52,7 @@ describe('app settings IPC', () => {
       locale: 'vi',
       density: 'compact',
       uiScale: 115,
+      showFileExtensions: true,
       defaultNoteView: 'source',
       editorFontFamily: 'ibm-plex-mono',
       editorFontWeight: 'medium',
@@ -74,6 +75,7 @@ describe('app settings IPC', () => {
     expect((updateResult.data as AppSettingsSnapshot).locale).toBe('vi')
     expect((updateResult.data as AppSettingsSnapshot).density).toBe('compact')
     expect((updateResult.data as AppSettingsSnapshot).uiScale).toBe(115)
+    expect((updateResult.data as AppSettingsSnapshot).showFileExtensions).toBe(true)
     expect((updateResult.data as AppSettingsSnapshot).defaultNoteView).toBe('source')
     expect((updateResult.data as AppSettingsSnapshot).editorFontFamily).toBe('ibm-plex-mono')
     expect((updateResult.data as AppSettingsSnapshot).editorWrapColumn).toBe(96)
@@ -112,6 +114,7 @@ describe('app settings IPC', () => {
       { density: 'dense' },
       { uiScale: 111 },
       { uiScale: 130 },
+      { showFileExtensions: 'yes' },
       { defaultNoteView: 'split' },
       { pagePreview: { enabled: 'yes' } },
       { workbench: { activateOnClose: 'newest' } },
@@ -248,6 +251,7 @@ function createSnapshot(): AppSettingsSnapshot {
     density: 'comfortable',
     uiScale: 100,
     fileTreeSort: 'name',
+    showFileExtensions: false,
     defaultNoteView: 'reading',
     editorFontSize: 14,
     editorFontFamily: 'maple-mono',

@@ -40,7 +40,7 @@ export function AiDiffReview({
 
   return (
     <div className="flex flex-col gap-2 border-t-2 border-foreground bg-muted/20 px-3 py-2">
-      <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
         <FileCode2 className="size-3.5" aria-hidden="true" />
         <span className="truncate font-bold text-foreground">{model.fileLabel}</span>
         <span className="ml-auto">{changed ? 'Changes pending review' : 'No textual changes'}</span>

@@ -126,7 +126,7 @@ function ToolCallChip({ trace }: { trace: ToolCallTrace }): React.JSX.Element {
       : `${trace.toolName}(${summariseArgs(trace.args)})`
 
   return (
-    <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
       <span className="flex size-5 items-center justify-center border-2 border-foreground bg-background">
         <Wrench className="size-3" aria-hidden="true" />
       </span>
@@ -156,7 +156,7 @@ function summariseArgs(args: Record<string, unknown>): string {
 function ProposalCard({ proposal }: { proposal: PatchProposal }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-1 border-2 border-foreground bg-muted/30 px-2.5 py-2">
-      <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
+      <div className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-foreground">
         <ChevronRight className="size-3 text-[var(--editorial-red)]" aria-hidden="true" />
         Proposed changes ({proposal.patches.length})
       </div>
@@ -192,7 +192,7 @@ function describeOperation(op: PatchOperation): string {
 
 function ErrorBanner({ message, code }: { message: string; code?: string }): React.JSX.Element {
   return (
-    <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-[11px] uppercase tracking-wider text-destructive">
+    <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
       <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
       <div className="min-w-0">
         <div className="font-bold">{code ?? 'error'}</div>

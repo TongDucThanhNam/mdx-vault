@@ -301,7 +301,7 @@ export function QuickSwitcher({
             }}
             onKeyDown={handleKeyDown}
           />
-          <span className="shrink-0 border border-foreground/45 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="shrink-0 border border-foreground/45 px-1.5 py-0.5 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
             Esc
           </span>
         </div>
@@ -356,7 +356,7 @@ export function QuickSwitcher({
                       ? 'Creating MDX note…'
                       : `Create “${trimmedQuery}”`}
                   </span>
-                  <span className="block truncate font-mono text-[11px] text-muted-foreground group-hover:text-current">
+                  <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
                     Explicit note creation · Markdown with native MDX
                   </span>
                 </span>
@@ -368,7 +368,7 @@ export function QuickSwitcher({
           {itemCount === 0 ? (
             <div
               id={statusId}
-              className="px-3 py-10 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
+              className="px-3 py-10 text-center font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground"
               role="status"
             >
               {getEmptyMessage(finder.status, trimmedQuery)}
@@ -386,7 +386,7 @@ export function QuickSwitcher({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-[var(--line)] px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-muted-foreground">
           <span>{finder.status === 'ready' ? `${finder.results.length} files` : 'No vault'}</span>
           <span>↑↓ Navigate · Enter Open · Esc Cancel</span>
         </div>
@@ -438,11 +438,11 @@ function FileFinderOption({
       <FileKindIcon kind={result.kind} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{result.title}</span>
-        <span className="block truncate font-mono text-[11px] text-muted-foreground group-hover:text-current">
+        <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
           {result.relativePath}
         </span>
         {aliasLabel ? (
-          <span className="block truncate font-mono text-[10px] text-muted-foreground group-hover:text-current">
+          <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
             Alias: {aliasLabel}
           </span>
         ) : null}
@@ -484,10 +484,10 @@ function OptionLedger({
 
   return (
     <span className="ml-2 flex shrink-0 flex-col items-end gap-1 font-mono uppercase">
-      <span className="border border-current/45 px-1.5 py-0.5 text-[10px] tracking-[0.12em]">
+      <span className="border border-current/45 px-1.5 py-0.5 text-xs tracking-[0.12em]">
         {extensionLabel}
       </span>
-      <span className="max-w-20 truncate text-[9px] tracking-[0.1em] opacity-70">{state}</span>
+      <span className="max-w-20 truncate text-xs tracking-[0.1em] opacity-70">{state}</span>
     </span>
   )
 }

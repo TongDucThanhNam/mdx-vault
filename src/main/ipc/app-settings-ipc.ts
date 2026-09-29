@@ -80,6 +80,7 @@ const appSettingsPatchSchema: z.ZodType<AppSettingsPatch> = z
     density: densitySchema.optional(),
     uiScale: uiScaleSchema.optional(),
     fileTreeSort: fileTreeSortSchema.optional(),
+    showFileExtensions: z.boolean().optional(),
     defaultNoteView: defaultNoteViewSchema.optional(),
     editorFontSize: editorFontSizeSchema.optional(),
     editorFontFamily: editorFontFamilySchema.optional(),

@@ -1,11 +1,19 @@
+import { displayFileName } from '@/explorer/file-label'
 import { cn } from '@/lib/utils'
 
 interface EditorHeaderProps {
   selectedPath: string | null
+  showFileExtensions: boolean
+  visiblePaths: readonly string[]
   children?: React.ReactNode
 }
 
-export function EditorHeader({ selectedPath, children }: EditorHeaderProps): React.JSX.Element {
+export function EditorHeader({
+  selectedPath,
+  showFileExtensions,
+  visiblePaths,
+  children
+}: EditorHeaderProps): React.JSX.Element {
   const pathParts = selectedPath?.split(/[\\/]/).filter(Boolean) ?? []
 
   return (
@@ -32,6 +40,7 @@ export function EditorHeader({ selectedPath, children }: EditorHeaderProps): Rea
                   </span>
                 ) : null}
                 <span
+                  title={part}
                   className={cn(
                     'truncate',
                     isCurrentNote
@@ -39,7 +48,9 @@ export function EditorHeader({ selectedPath, children }: EditorHeaderProps): Rea
                       : 'max-w-28 text-muted-foreground'
                   )}
                 >
-                  {part}
+                  {isCurrentNote && selectedPath
+                    ? displayFileName(selectedPath, showFileExtensions, visiblePaths)
+                    : part}
                 </span>
               </span>
             )

@@ -343,7 +343,7 @@ function ModeButton({
         {icon}
         {title}
       </div>
-      <div className="mt-1 font-mono text-[11px] uppercase tracking-wider opacity-70">
+      <div className="mt-1 font-mono text-xs uppercase tracking-wider opacity-70">
         {description}
       </div>
     </button>
@@ -358,10 +358,10 @@ function ScanSummary({ scan }: { scan: ExportScanResult }): React.JSX.Element {
 
   return (
     <div className="border-2 border-foreground bg-muted/30 p-3 text-sm">
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
         Note contents
       </div>
-      <ul className="mt-2 space-y-1 font-mono text-[11px]">
+      <ul className="mt-2 space-y-1 font-mono text-xs">
         <li>
           <strong>{scan.usedComponents.length}</strong> registry component
           {scan.usedComponents.length === 1 ? '' : 's'}: {scan.usedComponents.join(', ') || 'none'}
@@ -386,7 +386,7 @@ function ScanSummary({ scan }: { scan: ExportScanResult }): React.JSX.Element {
         </li>
       </ul>
       {scan.diagnostics.length > 0 ? (
-        <ul className="mt-3 space-y-2 border-t-2 border-foreground/20 pt-3 font-mono text-[11px]">
+        <ul className="mt-3 space-y-2 border-t-2 border-foreground/20 pt-3 font-mono text-xs">
           {scan.diagnostics.map((diagnostic, index) => (
             <li
               className={
@@ -417,27 +417,25 @@ function ProgressLine({ event }: { event: ExportProgressEvent | null }): React.J
     label = `size-warning: ${formatBytes(event.totalBytes)}`
   }
   return (
-    <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-      {label}
-    </div>
+    <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
   )
 }
 
 function ResultPanel({ result }: { result: ExportRunResult }): React.JSX.Element {
   return (
     <div className="border-2 border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)] p-3 text-sm">
-      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--success)]">
+      <div className="font-mono text-xs font-bold uppercase tracking-wider text-[var(--success)]">
         Exported · {formatBytes(result.size)}
       </div>
       {result.warnings.length > 0 ? (
-        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-foreground/80">
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-xs text-foreground/80">
           {result.warnings.map((warning, index) => (
             <li key={index}>{warning}</li>
           ))}
         </ul>
       ) : null}
       {result.sandboxSkipped.length > 0 ? (
-        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-muted-foreground">
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-xs text-muted-foreground">
           {result.sandboxSkipped.map((entry, index) => (
             <li key={index}>
               Skipped {entry.resolvedPath} — {entry.reason}
@@ -446,7 +444,7 @@ function ResultPanel({ result }: { result: ExportRunResult }): React.JSX.Element
         </ul>
       ) : null}
       {result.fallbacksUsed.length > 0 ? (
-        <ul className="mt-2 space-y-1 pl-5 font-mono text-[11px] text-muted-foreground">
+        <ul className="mt-2 space-y-1 pl-5 font-mono text-xs text-muted-foreground">
           {result.fallbacksUsed.map((fallback, index) => (
             <li key={`${fallback}-${index}`}>Fallback: {fallback}</li>
           ))}
@@ -477,11 +475,11 @@ function SizeWarningBanner({
 }): React.JSX.Element {
   return (
     <div className="border-2 border-destructive bg-destructive/10 p-3 text-sm">
-      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+      <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-destructive">
         <TriangleAlert className="size-4" aria-hidden="true" />
         Final self-contained file is large ({formatBytes(totalBytes)})
       </div>
-      <p className="mt-1 font-mono text-[11px] text-foreground/80">
+      <p className="mt-1 font-mono text-xs text-foreground/80">
         This size includes CSS, fonts, trusted bundles, sandbox bundles, and base64 assets. Files
         over 25 MiB are blocked. Continue?
       </p>
@@ -493,7 +491,7 @@ function SizeWarningBanner({
           Export anyway
         </Button>
       </div>
-      <div className="mt-1 truncate text-[11px] text-muted-foreground">{target}</div>
+      <div className="mt-1 truncate text-xs text-muted-foreground">{target}</div>
     </div>
   )
 }

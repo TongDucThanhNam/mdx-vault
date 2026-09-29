@@ -117,11 +117,11 @@ export function AiSelectionActionPalette({
       )}
       style={{ top: position.top, left: position.left }}
     >
-      <div className="flex items-center gap-1.5 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-2 py-1.5 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
         <Sparkles className="size-3.5" aria-hidden="true" />
         Ask the assistant
         {hasSelection ? (
-          <span className="ml-auto truncate font-mono text-[10px] text-[var(--editorial-red)]">
+          <span className="ml-auto truncate font-mono text-xs text-[var(--editorial-red)]">
             {truncate(selectedText, 32)}
           </span>
         ) : null}
@@ -129,7 +129,7 @@ export function AiSelectionActionPalette({
 
       <div className="max-h-72 overflow-auto">
         {visibleActions.length === 0 ? (
-          <div className="px-3 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="px-3 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
             Select some prose to enable template actions.
           </div>
         ) : (
@@ -154,7 +154,7 @@ export function AiSelectionActionPalette({
                 <span className="block font-mono text-[12px] font-bold uppercase tracking-wider">
                   {action.label}
                 </span>
-                <span className="mt-0.5 block font-mono text-[11px] uppercase tracking-wider opacity-70">
+                <span className="mt-0.5 block font-mono text-xs uppercase tracking-wider opacity-70">
                   {action.description}
                 </span>
               </span>

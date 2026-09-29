@@ -4,6 +4,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState
 } from 'react'
@@ -36,6 +37,7 @@ import { useI18n } from '@/i18n/useI18n'
 import { completeInteractiveAiHandoff } from '@/interactive/interactive-ai-handoff'
 import { deriveNoteTitle } from '@/lib/note-title'
 import type { NoteHeadingResult, VaultInfo } from '@/vault/types'
+import type { UiDensity } from '../../../shared/app-settings'
 import type { BookmarkTarget } from '../../../shared/bookmarks'
 import type { KnowledgePanelId, SourceRange } from '../../../shared/knowledge'
 import type { WikilinkSubpath } from '../../../shared/wikilinks'
@@ -50,6 +52,8 @@ interface AppLayoutProps {
   aiPanelOpen: boolean
   leftPanelOpen: boolean
   rightPanelOpen: boolean
+  density: UiDensity
+  showFileExtensions: boolean
   commandActions: CommandActionRegistry
   editor: NoteEditorController
   textEditor: TextFileEditorController
@@ -87,6 +91,8 @@ export function AppLayout({
   aiPanelOpen,
   leftPanelOpen,
   rightPanelOpen,
+  density,
+  showFileExtensions,
   commandActions,
   editor,
   textEditor,
@@ -123,6 +129,30 @@ export function AppLayout({
   } | null>(null)
   const previousRightPanelOpen = useRef(rightPanelOpen)
   const previousAiPanelOpen = useRef(aiPanelOpen)
+  const previousOverlayState = useRef<{ mode: string | null; path: string | null }>({
+    mode: null,
+    path: selectedVaultPath
+  })
+
+  useLayoutEffect(() => {
+    const previous = previousOverlayState.current
+    if (
+      layoutMode !== 'wide' &&
+      (previous.mode !== layoutMode || previous.path !== selectedVaultPath)
+    ) {
+      setRightPanelOpen(false)
+    }
+    previousOverlayState.current = { mode: layoutMode, path: selectedVaultPath }
+  }, [layoutMode, selectedVaultPath, setRightPanelOpen])
+
+  useEffect(() => {
+    if (layoutMode === 'wide' || !rightPanelOpen) return
+    const onEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setRightPanelOpen(false)
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
+  }, [layoutMode, rightPanelOpen, setRightPanelOpen])
 
   useEffect(() => {
     if (aiPanelOpen && !previousAiPanelOpen.current) {
@@ -221,6 +251,16 @@ export function AppLayout({
         data-layout-mode={layoutMode}
         className="relative grid min-h-0 flex-1 overflow-hidden bg-background"
         style={{ gridTemplateColumns }}
+        onPointerDownCapture={(event) => {
+          if (
+            layoutMode !== 'wide' &&
+            rightPanelOpen &&
+            event.target instanceof Element &&
+            event.target.closest('[data-document-surface]')
+          ) {
+            setRightPanelOpen(false)
+          }
+        }}
       >
         <Activity mode={leftPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
           <div
@@ -232,6 +272,8 @@ export function AppLayout({
             }
           >
             <LeftPanel
+              density={density}
+              showFileExtensions={showFileExtensions}
               vault={vault}
               selectedPath={selectedVaultPath}
               noteIndex={noteIndex}
@@ -245,6 +287,7 @@ export function AppLayout({
           </div>
         </Activity>
         <MainEditor
+          showFileExtensions={showFileExtensions}
           hasVault={vault !== null}
           viewMode={viewMode}
           readingFullView={readingFullView}
@@ -300,7 +343,10 @@ export function AppLayout({
               activeHeadingId={livingOutline.activeHeadingId}
               knowledge={knowledge}
               onActivePanelChange={setActiveRightPanel}
-              onSelectHeading={editorInteractions.revealHeading}
+              onSelectHeading={(heading) => {
+                editorInteractions.revealHeading(heading)
+                if (layoutMode !== 'wide') setRightPanelOpen(false)
+              }}
               onBookmarkHeading={bookmarkHeading}
               onRevealRange={(range: SourceRange) => {
                 void commandActions.dispatch('view.source')

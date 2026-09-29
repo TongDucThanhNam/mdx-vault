@@ -220,7 +220,7 @@ export function KeymapSettings({
             {visibleActions.length} of {WORKSPACE_ACTION_DEFINITIONS.length} actions
           </p>
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
           {platform === 'darwin' ? 'macOS' : platform === 'win32' ? 'Windows' : 'Linux'} key labels
         </div>
       </div>
@@ -272,7 +272,7 @@ export function KeymapSettings({
           onKeyDownCapture={handleRecorderKeyDown}
         >
           <AlertDialogHeader>
-            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-editorial-red">
+            <div className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-editorial-red">
               Key recorder
             </div>
             <AlertDialogTitle>
@@ -311,7 +311,7 @@ export function KeymapSettings({
               <div className="mt-3 font-mono text-sm font-bold uppercase tracking-[0.12em]">
                 Listening…
               </div>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-background/70">
+              <div className="mt-1 font-mono text-xs uppercase tracking-wider text-background/70">
                 Modifiers alone are not bindings
               </div>
             </div>
@@ -320,7 +320,7 @@ export function KeymapSettings({
           {recorder?.message ? (
             <p
               className={cn(
-                'border-l-2 px-3 py-2 font-mono text-[11px] leading-relaxed',
+                'border-l-2 px-3 py-2 font-mono text-xs leading-relaxed',
                 recorder.conflicts.length
                   ? 'border-destructive text-destructive'
                   : 'border-editorial-red text-foreground'
@@ -376,14 +376,14 @@ function KeymapRow({
       <div className="min-w-0 border-l-2 border-transparent pl-3 group-focus-within:border-editorial-red group-hover:border-foreground">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <h3 className="font-mono text-xs font-bold uppercase tracking-wider">{action.title}</h3>
-          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {action.category} · {action.context}
           </span>
         </div>
         <p className="mt-1 max-w-prose text-xs leading-relaxed text-muted-foreground">
           {action.description}
         </p>
-        <code className="mt-1 block truncate font-mono text-[9px] text-muted-foreground/80">
+        <code className="mt-1 block truncate font-mono text-xs text-muted-foreground/80">
           {action.id}
         </code>
       </div>
@@ -396,7 +396,7 @@ function KeymapRow({
                 key={binding}
                 className="inline-flex h-7 items-stretch border-2 border-foreground bg-card shadow-[2px_2px_0_0_var(--foreground)]"
               >
-                <kbd className="inline-flex items-center px-2 font-mono text-[10px] font-bold whitespace-nowrap">
+                <kbd className="inline-flex items-center px-2 font-mono text-xs font-bold whitespace-nowrap">
                   {displayBinding(binding, platform)}
                 </kbd>
                 <button
@@ -411,7 +411,7 @@ function KeymapRow({
               </span>
             ))
           ) : (
-            <span className="inline-flex h-7 items-center border-2 border-dashed border-line px-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="inline-flex h-7 items-center border-2 border-dashed border-line px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
               Unbound
             </span>
           )}

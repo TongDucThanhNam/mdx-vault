@@ -15,6 +15,7 @@ describe('non-secret app settings catalog', () => {
       'density',
       'uiScale',
       'fileTreeSort',
+      'showFileExtensions',
       'defaultNoteView',
       'editorFontSize',
       'editorFontFamily',
@@ -66,6 +67,8 @@ describe('non-secret app settings catalog', () => {
     expect(APP_SETTINGS_CATALOG.uiScale.normalize(112)).toBe(110)
     expect(APP_SETTINGS_CATALOG.uiScale.normalize(500)).toBe(125)
     expect(APP_SETTINGS_CATALOG.fileTreeSort.normalize('size')).toBe('name')
+    expect(APP_SETTINGS_CATALOG.showFileExtensions.normalize('yes')).toBe(false)
+    expect(APP_SETTINGS_CATALOG.showFileExtensions.normalize(true)).toBe(true)
     expect(APP_SETTINGS_CATALOG.defaultNoteView.normalize('split')).toBe('reading')
     expect(APP_SETTINGS_CATALOG.defaultNoteView.normalize('source')).toBe('source')
     expect(APP_SETTINGS_CATALOG.editorFontSize.normalize(8)).toBe(12)

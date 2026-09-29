@@ -23,19 +23,17 @@ export function TagsPanel({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-4">
-        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           <Hash className="size-3.5" aria-hidden="true" />
           Tags
         </div>
-        <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
-          {tags.length}
-        </div>
+        <div className="font-mono text-xs tabular-nums text-muted-foreground">{tags.length}</div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(120px,0.8fr)_minmax(0,1fr)]">
         <div className="min-h-0 overflow-auto border-r-2 border-foreground p-2">
           {tags.length === 0 ? (
-            <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
               No tags.
             </div>
           ) : (
@@ -64,15 +62,15 @@ export function TagsPanel({
 
         <div className="min-h-0 overflow-auto p-2">
           {!selectedTag ? (
-            <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
               Choose a tag.
             </div>
           ) : isLoading ? (
-            <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
               Loading notes.
             </div>
           ) : taggedNotes.length === 0 ? (
-            <div className="px-2 py-6 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
               No notes.
             </div>
           ) : (
@@ -92,7 +90,7 @@ export function TagsPanel({
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{note.title}</span>
-                    <span className="block truncate font-mono text-[11px] opacity-70">
+                    <span className="block truncate font-mono text-xs opacity-70">
                       {note.relativePath}
                     </span>
                   </span>

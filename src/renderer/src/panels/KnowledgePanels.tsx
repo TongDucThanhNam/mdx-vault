@@ -117,11 +117,11 @@ function OutgoingLinkRow({
     <div className="border-l-2 border-foreground/20 px-2 py-2">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 truncate font-mono text-xs font-bold">{link.display}</span>
-        <span className="shrink-0 font-mono text-[9px] uppercase text-muted-foreground">
+        <span className="shrink-0 font-mono text-xs uppercase text-muted-foreground">
           {link.kind}
         </span>
       </div>
-      <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+      <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
         {link.target}
         {link.subpath}
       </div>
@@ -165,7 +165,7 @@ function MentionRow({
         <select
           aria-label={`Destination for ${mention.text}`}
           value={target}
-          className="h-8 min-w-0 flex-1 border-2 border-foreground bg-background px-1 font-mono text-[10px]"
+          className="h-8 min-w-0 flex-1 border-2 border-foreground bg-background px-1 font-mono text-xs"
           onChange={(event) => setTarget(event.currentTarget.value)}
         >
           {mention.candidates.map((candidate) => (
@@ -249,7 +249,7 @@ export function PropertiesPanel({
             role="tab"
             aria-selected={scope === id}
             className={cn(
-              'h-8 font-mono text-[10px] font-bold uppercase tracking-wider',
+              'h-8 font-mono text-xs font-bold uppercase tracking-wider',
               scope === id ? 'bg-foreground text-background' : 'bg-background'
             )}
             onClick={() => setScope(id)}
@@ -311,7 +311,7 @@ export function PropertiesPanel({
               }}
             >
               <span className="truncate text-sm font-medium">{property.name}</span>
-              <span className="font-mono text-[10px] opacity-70">
+              <span className="font-mono text-xs opacity-70">
                 {property.type} · {property.useCount}
               </span>
             </button>
@@ -360,7 +360,7 @@ function PropertyRow({
     return (
       <div className="border-2 border-foreground/30 p-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[11px] font-bold">{property.name}</span>
+          <span className="font-mono text-xs font-bold">{property.name}</span>
           <Button type="button" size="sm" variant="outline" onClick={onReveal}>
             Source
           </Button>
@@ -380,14 +380,12 @@ function PropertyRow({
       <div className="mb-2 flex items-center justify-between gap-2">
         <label
           htmlFor={`property-${property.normalizedName}`}
-          className="font-mono text-[11px] font-bold"
+          className="font-mono text-xs font-bold"
         >
           {property.name}
         </label>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-[9px] uppercase text-muted-foreground">
-            {property.type}
-          </span>
+          <span className="font-mono text-xs uppercase text-muted-foreground">{property.type}</span>
           <Button
             type="button"
             size="icon-xs"
@@ -443,7 +441,7 @@ function PropertyRow({
               key={note.relativePath}
               type="button"
               data-page-preview-path={note.relativePath}
-              className="border border-foreground px-1.5 py-1 font-mono text-[9px] hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="border border-foreground px-1.5 py-1 font-mono text-xs hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
               onClick={() => onSelectNote(note.relativePath)}
             >
               ↗ {note.title}
@@ -476,7 +474,7 @@ function AddPropertyForm({
         if (name.trim()) void onAdd({ kind: 'add', name, value })
       }}
     >
-      <div className="font-mono text-[10px] font-bold uppercase tracking-wider">New property</div>
+      <div className="font-mono text-xs font-bold uppercase tracking-wider">New property</div>
       <input
         ref={inputRef}
         value={name}
@@ -836,7 +834,7 @@ function FootnoteRow({
         </button>
         <span
           className={cn(
-            'font-mono text-[9px] uppercase',
+            'font-mono text-xs uppercase',
             entry.status === 'defined' ? 'text-muted-foreground' : 'text-destructive'
           )}
         >
@@ -900,13 +898,13 @@ function PanelFrame({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-3">
-        <div className="flex min-w-0 items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           <Icon className="size-3.5 shrink-0" aria-hidden="true" />
           <span className="truncate">{title}</span>
         </div>
         <div className="flex items-center gap-2">
           {action}
-          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
+          <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-2">{children}</div>
@@ -925,7 +923,7 @@ function PanelSection({
 }): React.JSX.Element {
   return (
     <section>
-      <div className="mb-1 flex items-center justify-between border-b border-foreground/30 px-1 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1 flex items-center justify-between border-b border-foreground/30 px-1 py-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
         <span>{title}</span>
         <span>{count}</span>
       </div>
@@ -957,7 +955,7 @@ function FreshnessNotice({
 
 function EmptyLine({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="px-2 py-6 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   )
