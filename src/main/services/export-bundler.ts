@@ -80,6 +80,11 @@ import {
   hostToSandboxMessageSchema,
   sandboxToHostMessageSchema
 } from '../src/shared/sandbox'
+import {
+  sandboxFrameHeight,
+  sandboxIframeHeight,
+  shouldApplySandboxHeight
+} from '../src/renderer/src/preview/sandbox/sandbox-height'
 
 ${importLines}
 
@@ -260,7 +265,11 @@ function initializeSandboxHost(configs) {
     }
 
     if (message.type === 'resize') {
-      frame.iframe.style.height = Math.max(120, Math.ceil(message.height)) + 'px'
+      if (shouldApplySandboxHeight(frame.reportedHeight, message.height)) {
+        frame.reportedHeight = message.height
+        frame.reservation.style.height = sandboxFrameHeight(message.height) + 'px'
+        frame.iframe.style.height = sandboxIframeHeight(message.height) + 'px'
+      }
       return
     }
 
@@ -296,10 +305,14 @@ function initializeSandboxHost(configs) {
     iframe.setAttribute('sandbox', 'allow-scripts')
     iframe.setAttribute('referrerpolicy', 'no-referrer')
     iframe.setAttribute('title', config.title)
-    iframe.style.height = '220px'
+    iframe.style.height = sandboxIframeHeight(null) + 'px'
     iframe.srcdoc = config.srcdoc
-    slot.replaceChildren(iframe)
-    frames.push({ config, iframe })
+    const reservation = document.createElement('div')
+    reservation.className = 'mdx-vault-sandbox-content'
+    reservation.style.height = sandboxFrameHeight(null) + 'px'
+    reservation.append(iframe)
+    slot.replaceChildren(reservation)
+    frames.push({ config, iframe, reservation, reportedHeight: null })
   }
 }
 

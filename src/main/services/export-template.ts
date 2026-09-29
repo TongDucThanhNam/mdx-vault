@@ -14,14 +14,16 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, extname, join } from 'node:path'
-
+import registryUtilitySource from '../../renderer/src/preview/export-registry.css?inline'
 import interactiveNoteThemeSource from '../../renderer/src/preview/interactive-note-theme.css?raw'
+import { scopeRegistryStylesheet } from './export-registry-style'
 
 const nodeRequire = createRequire(__filename)
 const KATEX_EXPORT_STYLESHEET = loadKatexExportStylesheet()
 const INTERACTIVE_NOTE_EXPORT_STYLESHEET = createInteractiveNoteExportStylesheet(
   interactiveNoteThemeSource
 )
+const REGISTRY_EXPORT_STYLESHEET = scopeRegistryStylesheet(registryUtilitySource)
 const NOTE_EXPORT_FONT_STYLESHEET = loadNoteExportFontStylesheet()
 
 export const STATIC_STYLESHEET = `
@@ -63,6 +65,14 @@ header.mdx-export-header {
 header.mdx-export-header .mdx-export-meta {
   font-size: 0.75rem;
   color: #d32f2f;
+}
+.mdx-export-static-notice {
+  margin: 0 0 1rem;
+  color: var(--mdx-muted);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--mdx-border);
+  padding-bottom: 0.5rem;
 }
 .mdx-vault-export h1, .mdx-vault-export h2, .mdx-vault-export h3 {
   font-weight: 650;
@@ -242,10 +252,11 @@ header.mdx-export-header .mdx-export-meta {
 }
 .mdx-vault-sandbox {
   margin: 1.25rem 0;
-  border: 1px solid var(--mdx-border);
-  border-radius: var(--mdx-radius);
+  border: 2px solid var(--mdx-fg);
+  box-shadow: 3px 3px 0 var(--mdx-fg);
   overflow: hidden;
 }
+.mdx-vault-sandbox-content { overflow: hidden; background: var(--mdx-bg); }
 .mdx-vault-sandbox-frame {
   display: block;
   width: 100%;
@@ -283,6 +294,8 @@ header.mdx-export-header .mdx-export-meta {
   box-shadow: 3px 3px 0 var(--mdx-fg);
   padding: 1rem;
 }
+.mdx-vault-export .mdx-vault-static-island { margin: 1.25rem 0; }
+.mdx-vault-export .mdx-vault-static-island > :is(figure, section) { margin-top: 0; }
 .mdx-vault-static-control-summary figcaption,
 .mdx-vault-static-data-summary figcaption {
   margin-bottom: 0.65rem;
@@ -355,7 +368,7 @@ export function renderExportTemplate({
   const inlineHydration = hydrationScript ? `<script>\n${hydrationScript}\n</script>` : ''
   const resolvedStylesheet =
     stylesheet ??
-    `${NOTE_EXPORT_FONT_STYLESHEET}\n${STATIC_STYLESHEET}\n${INTERACTIVE_NOTE_EXPORT_STYLESHEET}`
+    `${NOTE_EXPORT_FONT_STYLESHEET}\n${STATIC_STYLESHEET}\n${INTERACTIVE_NOTE_EXPORT_STYLESHEET}\n${REGISTRY_EXPORT_STYLESHEET}`
   const exportDataBlock =
     exportData === undefined
       ? ''
@@ -367,6 +380,11 @@ export function renderExportTemplate({
     ? 'mdx-vault-export theme-editorial-note theme-interactive-note'
     : 'mdx-vault-export theme-editorial-note'
   const mainClass = 'mdx-export mdx-vault-export--interactive-note'
+  const staticNotice =
+    bodyHtml.includes('class="mdx-vault-static-island"') ||
+    bodyHtml.includes('class="mdx-vault-sandbox-fallback-slot"')
+      ? '<p class="mdx-export-static-notice">Static snapshots · Controls are available in the interactive export.</p>'
+      : ''
 
   return `<!doctype html>
 <html lang="en">
@@ -384,6 +402,7 @@ export function renderExportTemplate({
   <span class="mdx-export-meta">Exported by mdx-vault · ${escapeHtml(stamp)}</span>
 </header>
 <main class="${mainClass}">
+${staticNotice}
 ${frontmatterBlock}
 <article class="${articleClass}">
 ${bodyHtml}

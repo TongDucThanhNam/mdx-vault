@@ -1,0 +1,47 @@
+/* Export-only Tailwind utilities. No preflight or application-wide source scan. */
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@source './islands';
+@source './Counter.tsx';
+@source '../components/ui/button.tsx';
+
+@theme inline {
+  --spacing: 0.25rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-2xl: 1.5rem;
+  --tracking-wider: 0.05em;
+  --container-lg: 32rem;
+  --container-xs: 20rem;
+  --breakpoint-lg: 64rem;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --radius-sm: 2px;
+  --leading-snug: 1.375;
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  --color-background: var(--background);
+  --color-white: #fff;
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-instrument-blue: var(--instrument-blue);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --font-sans: var(--note-font-ui);
+  --font-display: var(--note-font-display);
+  --font-mono: var(--note-font-ui);
+}

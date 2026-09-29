@@ -105,7 +105,17 @@ function createStaticNode(node: ExportIrNode, sandboxFallbacks: Map<string, stri
     createStaticNode(child, sandboxFallbacks)
   )
   const props = validateRegistryProps(entry, node.props, children, node.children.length > 0)
-  return createStaticPolicyElement(entry.exportPolicy.static, node, props, children)
+  const snapshot = createStaticPolicyElement(entry.exportPolicy.static, node, props, children)
+  if (
+    entry.exportPolicy.static === 'counter-summary' ||
+    entry.exportPolicy.static === 'quiz-disclosure' ||
+    entry.exportPolicy.static === 'equation-summary' ||
+    entry.exportPolicy.static === 'data-table' ||
+    entry.exportPolicy.static === 'algorithm-summary'
+  ) {
+    return createElement('div', { className: 'mdx-vault-static-island', key: node.id }, snapshot)
+  }
+  return snapshot
 }
 
 function createStaticPolicyElement(

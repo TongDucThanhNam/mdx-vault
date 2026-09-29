@@ -132,6 +132,22 @@ share the paper edition. Print and the independent export template force the
 light edition. The single document grid uses persisted, bounded panel widths;
 separators change CSS tracks without persisting tabs or pane layout.
 
+GOAL-36 export compiles a separate Tailwind utility entry during the main build.
+Its sources are limited to the legacy registry island components and shared
+Button, with no preflight or app-wide stylesheet. The generated CSS is inlined
+with selectors prefixed by `:where(.mdx-vault-export)` after the common note CSS;
+`@property` registrations remain top-level, and native `in-*`
+islands continue to use the same note stylesheet as Reading. Main builds do not
+run Tailwind at export time. Static policies render ruled cards with a visible
+document-level snapshot notice, while interactive registry roots hydrate against
+the same scoped light tokens. The export CSP and custom iframe sandbox remain
+unchanged; validated sandbox resize messages use the Reading height policy.
+The export IR assembler keeps paragraphs containing inline trusted JSX separate
+from ordinary Markdown batches, so a registry component after a table retains
+its component identity and styling in static and hydrated output. Paragraphs
+containing only trusted JSX and inter-island whitespace are unwrapped to avoid
+invalid `<p>` wrappers around block-rendering islands.
+
 ## SQLite schema (khởi điểm)
 
 ```sql

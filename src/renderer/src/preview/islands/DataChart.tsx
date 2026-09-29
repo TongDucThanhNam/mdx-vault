@@ -4,6 +4,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -191,6 +192,7 @@ function renderChart({
         <BarChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
           {renderGridAndAxes({ x, y, scatter: false })}
           <Bar dataKey={y} fill="var(--chart-1)" radius={0} isAnimationActive={false} />
+          <Legend />
         </BarChart>
       </ResponsiveContainer>
     )
@@ -202,6 +204,7 @@ function renderChart({
         <ScatterChart margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
           {renderGridAndAxes({ x, y, scatter: true })}
           <Scatter data={data} dataKey={y} fill="var(--chart-2)" isAnimationActive={false} />
+          <Legend />
         </ScatterChart>
       </ResponsiveContainer>
     )
@@ -219,6 +222,7 @@ function renderChart({
           dot={{ r: 2 }}
           isAnimationActive={false}
         />
+        <Legend />
       </LineChart>
     </ResponsiveContainer>
   )

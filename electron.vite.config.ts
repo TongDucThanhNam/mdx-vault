@@ -22,6 +22,7 @@ const rendererWorkerSafeAliases = {
 
 export default defineConfig({
   main: {
+    plugins: [tailwindcss()],
     resolve: {
       alias: sharedAliases
     },

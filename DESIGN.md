@@ -145,7 +145,8 @@ supplementary dock.
 
 ### Reading and editing
 
-- Reading uses the always-light Editorial paper context: Lora body,
+- Reading follows the app theme by default (with a light-paper setting); export and
+  print stay light. Editorial paper uses Lora body,
   Playfair Display headings, Courier Prime code/labels, newspaper rules and a
   bounded readable line length. Live is an editing surface: it shares Source's
   font metrics and theme, with restrained heading emphasis and hidden syntax

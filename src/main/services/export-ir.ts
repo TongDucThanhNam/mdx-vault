@@ -350,7 +350,13 @@ function buildExportNodes(nodes: MdxNode[], context: ParseContext): ExportIrNode
 function buildMixedMarkdownNode(node: MdxNode, context: ParseContext): ExportIrNode[] {
   const children = node.children ?? []
 
-  if (node.type === 'paragraph' && children.length > 0 && children.every(isMdxJsxElement)) {
+  if (
+    node.type === 'paragraph' &&
+    children.some(isMdxJsxElement) &&
+    children.every(
+      (child) => isMdxJsxElement(child) || (child.type === 'text' && !(child.value ?? '').trim())
+    )
+  ) {
     return buildExportNodes(children, context)
   }
 
@@ -1012,6 +1018,7 @@ function isMdxJsxElement(node: MdxNode): boolean {
 function isOrdinaryMarkdownNode(node: MdxNode): boolean {
   return (
     !isMdxJsxElement(node) &&
+    !containsExportSyntax(node) &&
     node.type !== 'mdxFlowExpression' &&
     node.type !== 'mdxTextExpression' &&
     node.type !== 'mdxjsEsm'
