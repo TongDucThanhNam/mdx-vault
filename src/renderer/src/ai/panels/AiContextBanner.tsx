@@ -27,39 +27,42 @@ export function AiContextBanner({
 }: AiContextBannerProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-1 border-b-2 border-foreground bg-muted/20 px-3 py-2 font-mono text-xs text-muted-foreground">
-      <div className="flex items-center gap-1.5 truncate">
+      <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
         <FileText className="size-3.5 shrink-0" aria-hidden="true" />
-        <span className="truncate font-bold text-foreground">
+        <span
+          className="max-w-[55%] shrink-0 truncate font-bold text-foreground"
+          title={noteRelativePath ? noteTitle : undefined}
+        >
           {noteRelativePath ? noteTitle : 'No note open'}
         </span>
         {noteRelativePath ? (
-          <span className="truncate text-muted-foreground">— {noteRelativePath}</span>
+          <span className="min-w-0 truncate text-muted-foreground" title={noteRelativePath}>
+            — {noteRelativePath}
+          </span>
         ) : null}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
         {selection ? (
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex max-w-full items-center gap-1 whitespace-nowrap">
             <Pin className="size-3" aria-hidden="true" />
             Selection {selection.startLine}:{selection.startColumn}–{selection.endLine}:
             {selection.endColumn}
           </span>
         ) : (
-          <span>No selection</span>
+          <span className="whitespace-nowrap">No selection</span>
         )}
-        <span className="ml-auto inline-flex items-center gap-1">
+        <span className="ml-auto inline-flex max-w-full items-center gap-1 whitespace-nowrap">
           <Sparkles className="size-3" aria-hidden="true" />
           {hasApiKey ? (
             safeStorageAvailable ? (
               'Ready'
             ) : (
-              <span className="text-destructive">
-                safeStorage unavailable — key cannot be stored
-              </span>
+              <span className="text-destructive">Secure storage unavailable</span>
             )
           ) : safeStorageAvailable ? (
-            'Add an API key in settings to start'
+            'API key needed'
           ) : (
-            <span className="text-destructive">safeStorage unavailable</span>
+            <span className="text-destructive">Secure storage unavailable</span>
           )}
         </span>
       </div>

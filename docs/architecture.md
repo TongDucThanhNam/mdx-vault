@@ -132,6 +132,16 @@ share the paper edition. Print and the independent export template force the
 light edition. The single document grid uses persisted, bounded panel widths;
 separators change CSS tracks without persisting tabs or pane layout.
 
+GOAL-37 keeps Context and AI in dedicated tracks even in compact mode. The pure
+`resolveDockPolicy` fits saved GOAL-35 widths against a 26rem compact document
+floor (30rem wide), temporarily suppressing Explorer only when the minimum
+visible tracks cannot coexist. Fitted widths are not persisted. `AppLayout`
+owns dock focus/return; `EditorTabs` owns the overflow viewport and all-tabs
+list. Source and Live share an editor-owned find/replace panel: Ctrl+F starts
+collapsed, Ctrl+H expands Replace, and Markdown highlight moves to
+Ctrl+Shift+H. The graph adapter separates orphan compound nodes from connected
+topology after layout while keeping the template filter intact.
+
 GOAL-36 export compiles a separate Tailwind utility entry during the main build.
 Its sources are limited to the legacy registry island components and shared
 Button, with no preflight or app-wide stylesheet. The generated CSS is inlined
@@ -280,12 +290,11 @@ tham gia đường này.
 
 ### Responsive single-pane shell (Goal 26)
 
-`workspace-layout.ts` chia viewport thành `wide` (>=1360px), `compact`
-(800–1359px) và `overlay` (<800px CSS width, bao gồm physical zoom). Wide dùng dock
-tracks riêng. Compact chỉ giữ left track; Context/AI chuyển vào một supplementary
-dock có tab. Overlay lấy toàn bộ grid track cho document và layer side docks lên trên.
-Đây vẫn là single-pane workbench. GOAL-27 intentionally keeps this ownership
-model and uses anchored editor overlays instead of a split/peek tree.
+`workspace-layout.ts` resolves `wide` (>=1360px) and `compact` (<1360px) track
+policies. At supported widths (980–1920px), all open docks push rather than
+overlay the document. Compact policy may temporarily hide Explorer to preserve
+26rem of document space. This remains a single-pane workbench; GOAL-27 keeps
+anchored editor controls instead of a split or peek tree.
 
 The named Outline panel receives a deferred structure projection of the active unsaved
 buffer, with indexed headings only as a load/error fallback. Source/Live resolve the

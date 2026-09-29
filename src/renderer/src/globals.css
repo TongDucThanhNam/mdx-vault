@@ -69,6 +69,60 @@
   --ui-scale: 1;
 }
 
+.cm-find-replace-panel {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.cm-find-row,
+.cm-replace-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cm-replace-row[hidden] {
+  display: none;
+}
+
+.cm-find-replace-panel input[name='find'],
+.cm-find-replace-panel input[name='replace'] {
+  min-width: 7rem;
+  width: min(18rem, 34vw);
+}
+
+.cm-find-replace-panel button {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.4rem;
+  color: var(--foreground);
+  background: var(--card);
+  font: 500 0.75rem var(--font-sans);
+}
+
+.cm-find-replace-panel button:hover,
+.cm-find-replace-panel button:focus-visible {
+  border-color: var(--instrument-blue);
+  outline: 2px solid var(--instrument-blue);
+}
+
+.cm-find-replace-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 1100px) {
+  .cm-find-row,
+  .cm-replace-row {
+    flex-wrap: wrap;
+  }
+}
+
 :root[data-density='compact'] {
   --chrome-control-height: 1.75rem;
   --chrome-row-height: 2rem;

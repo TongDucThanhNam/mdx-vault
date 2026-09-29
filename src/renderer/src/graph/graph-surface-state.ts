@@ -12,6 +12,7 @@ export type GraphSurfaceStateId =
   | 'renderer-error'
   | 'missing-root'
   | 'filter-empty'
+  | 'empty-vault'
   | 'no-links'
 
 export function getGraphSurfaceState(options: {
@@ -37,7 +38,8 @@ export function getGraphSurfaceState(options: {
   if (options.rendererError) return 'renderer-error'
   if (options.snapshot?.state === 'missing-root') return 'missing-root'
   if (options.snapshot && options.snapshot.nodes.length === 0) {
-    return options.query.trim() ? 'filter-empty' : 'no-links'
+    if (options.query.trim()) return 'filter-empty'
+    return options.snapshot.totals.nodes === 0 ? 'empty-vault' : 'no-links'
   }
   return null
 }

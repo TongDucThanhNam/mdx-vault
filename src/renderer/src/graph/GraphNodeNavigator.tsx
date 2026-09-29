@@ -1,5 +1,5 @@
 import { Bookmark, Copy, ExternalLink, FolderOpen, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -27,6 +27,7 @@ export function GraphNodeNavigator({
   ...actions
 }: GraphNodeNavigatorProps): React.JSX.Element {
   const [query, setQuery] = useState('')
+  const listRef = useRef<HTMLDivElement>(null)
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const visibleNodes = useMemo(
     () =>
@@ -39,12 +40,20 @@ export function GraphNodeNavigator({
         })
         .sort(
           (left, right) =>
+            Number(left.orphan) - Number(right.orphan) ||
             left.title.localeCompare(right.title, 'en', { sensitivity: 'base' }) ||
             left.id.localeCompare(right.id)
         ),
     [nodes, normalizedQuery]
   )
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null
+  const orphanCount = visibleNodes.filter((node) => node.orphan).length
+  useEffect(() => {
+    if (!selectedNodeId) return
+    listRef.current
+      ?.querySelector<HTMLElement>(`[id="${CSS.escape(graphOptionId(selectedNodeId))}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [selectedNodeId])
 
   return (
     <aside
@@ -71,6 +80,7 @@ export function GraphNodeNavigator({
       </label>
 
       <div
+        ref={listRef}
         tabIndex={0}
         role="listbox"
         aria-label="Returned graph nodes"
@@ -101,36 +111,48 @@ export function GraphNodeNavigator({
       >
         {visibleNodes.length === 0 ? (
           <p className="p-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-            No returned node matches.
+            {nodes.length === 0 ? 'No nodes to navigate yet.' : 'No nodes match this search.'}
           </p>
         ) : (
-          visibleNodes.map((node) => (
-            <button
-              key={node.id}
-              id={graphOptionId(node.id)}
-              type="button"
-              role="option"
-              aria-selected={node.id === selectedNodeId}
-              className={cn(
-                'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-foreground/20 px-3 py-2 text-left outline-none last:border-b-0 hover:bg-background focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
-                node.id === selectedNodeId && 'bg-foreground text-background'
-              )}
-              onClick={() => onSelectNode(node.id)}
-              onDoubleClick={() => {
-                if (node.status === 'resolved' && node.relativePath) {
-                  void actions.onOpenNote(node.relativePath)
-                }
-              }}
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold">{node.title}</span>
-                <span className="block truncate font-mono text-xs uppercase tracking-wider opacity-70">
-                  {node.status}
-                  {node.orphan ? ' · orphan' : ''}
+          visibleNodes.map((node, index) => (
+            <Fragment key={node.id}>
+              {node.orphan && !visibleNodes[index - 1]?.orphan ? (
+                <div
+                  role="presentation"
+                  className="border-y border-foreground/20 bg-muted/20 px-3 py-1.5 font-mono text-xs font-bold tracking-wide text-muted-foreground"
+                >
+                  Orphans ({orphanCount})
+                </div>
+              ) : null}
+              <button
+                id={graphOptionId(node.id)}
+                type="button"
+                role="option"
+                aria-selected={node.id === selectedNodeId}
+                aria-label={`${node.title}, ${node.status}${node.orphan ? ', orphan' : ''}`}
+                title={node.title}
+                className={cn(
+                  'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-foreground/20 px-3 py-2 text-left outline-none last:border-b-0 hover:bg-background focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
+                  node.id === selectedNodeId && 'bg-foreground text-background'
+                )}
+                onClick={() => onSelectNode(node.id)}
+                onFocus={() => onSelectNode(node.id)}
+                onDoubleClick={() => {
+                  if (node.status === 'resolved' && node.relativePath) {
+                    void actions.onOpenNote(node.relativePath)
+                  }
+                }}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold">{node.title}</span>
+                  <span className="block truncate font-mono text-xs uppercase tracking-wider opacity-70">
+                    {node.status}
+                    {node.orphan ? ' · orphan' : ''}
+                  </span>
                 </span>
-              </span>
-              <span className="font-mono text-xs tabular-nums opacity-70">{node.degree}</span>
-            </button>
+                <span className="font-mono text-xs tabular-nums opacity-70">{node.degree}</span>
+              </button>
+            </Fragment>
           ))
         )}
       </div>
@@ -140,7 +162,9 @@ export function GraphNodeNavigator({
           <GraphNodeDetails node={selectedNode} {...actions} />
         ) : (
           <p className="font-mono text-xs leading-relaxed uppercase tracking-wider text-muted-foreground">
-            Select a node to inspect its path, degree, groups, and available actions.
+            {nodes.length === 0
+              ? 'Create a note to add nodes to this graph.'
+              : 'Select a node to inspect its path, degree, groups, and available actions.'}
           </p>
         )}
       </div>

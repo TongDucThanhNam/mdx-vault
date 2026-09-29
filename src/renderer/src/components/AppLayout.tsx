@@ -4,7 +4,6 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState
 } from 'react'
@@ -19,9 +18,8 @@ import { ResponsiveSupplementaryDock } from '@/components/layout/ResponsiveSuppl
 import { RightPanel } from '@/components/layout/RightPanel'
 import type { PanelWidths } from '@/components/layout/workspace-layout'
 import {
-  fitPanelWidths,
+  resolveDockPolicy,
   resolveWorkspaceLayoutMode,
-  type SupplementaryDockTab,
   useWorkspaceViewportWidth,
   workspaceGridTemplate
 } from '@/components/layout/workspace-layout'
@@ -62,6 +60,7 @@ interface AppLayoutProps {
   onPanelWidthChange: (key: PanelWidthKey, width: number) => void
   showFileExtensions: boolean
   commandActions: CommandActionRegistry
+  onOpenAiSettings: () => void
   editor: NoteEditorController
   textEditor: TextFileEditorController
   noteIndex: NoteIndexController
@@ -104,6 +103,7 @@ export function AppLayout({
   onPanelWidthChange,
   showFileExtensions,
   commandActions,
+  onOpenAiSettings,
   editor,
   textEditor,
   noteIndex,
@@ -130,7 +130,7 @@ export function AppLayout({
   const gridRef = useRef<HTMLElement>(null)
   const viewportWidth = useWorkspaceViewportWidth()
   const layoutMode = resolveWorkspaceLayoutMode(viewportWidth)
-  const fittedPanelWidths = fitPanelWidths({
+  const dockPolicy = resolveDockPolicy({
     widths: panelWidths,
     mode: layoutMode,
     viewportWidth,
@@ -139,51 +139,75 @@ export function AppLayout({
     rightPanelOpen,
     aiPanelOpen
   })
+  const fittedPanelWidths = dockPolicy.widths
+  const effectiveLeftOpen = leftPanelOpen && !dockPolicy.collapsedLeft
   const [explorerRevealRequest, setExplorerRevealRequest] = useState<{
     path: string
     requestId: number
   } | null>(null)
-  const [supplementaryDockTab, setSupplementaryDockTab] = useState<SupplementaryDockTab>('context')
   const [compileState, setCompileState] = useState<{
     path: string
     status: 'pending' | 'error' | 'ready'
   } | null>(null)
-  const previousRightPanelOpen = useRef(rightPanelOpen)
-  const previousAiPanelOpen = useRef(aiPanelOpen)
-  const previousOverlayState = useRef<{ mode: string | null; path: string | null }>({
-    mode: null,
-    path: selectedVaultPath
+  const previousDocks = useRef({ left: leftPanelOpen, right: rightPanelOpen, ai: aiPanelOpen })
+  const dockReturnFocus = useRef<{
+    left: HTMLElement | null
+    right: HTMLElement | null
+    ai: HTMLElement | null
+  }>({
+    left: null,
+    right: null,
+    ai: null
   })
-
-  useLayoutEffect(() => {
-    const previous = previousOverlayState.current
-    if (
-      layoutMode !== 'wide' &&
-      (previous.mode !== layoutMode || previous.path !== selectedVaultPath)
-    ) {
-      setRightPanelOpen(false)
+  useEffect(() => {
+    const previous = previousDocks.current
+    for (const [key, open, panelId] of [
+      ['left', leftPanelOpen && effectiveLeftOpen, 'workspace-left-panel'],
+      ['right', rightPanelOpen, 'supplementary-context-panel'],
+      ['ai', aiPanelOpen, 'supplementary-ai-panel']
+    ] as const) {
+      if (open && !previous[key]) {
+        dockReturnFocus.current[key] =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null
+        document.getElementById(panelId)?.focus({ preventScroll: true })
+      } else if (!open && previous[key] && (key !== 'left' || !leftPanelOpen)) {
+        const previousFocus = dockReturnFocus.current[key]
+        if (previousFocus?.isConnected && previousFocus.getClientRects().length > 0)
+          previousFocus.focus({ preventScroll: true })
+        else
+          document
+            .querySelector<HTMLElement>('[data-document-surface]')
+            ?.focus({ preventScroll: true })
+      }
     }
-    previousOverlayState.current = { mode: layoutMode, path: selectedVaultPath }
-  }, [layoutMode, selectedVaultPath, setRightPanelOpen])
+    previousDocks.current = { left: leftPanelOpen, right: rightPanelOpen, ai: aiPanelOpen }
+  }, [leftPanelOpen, effectiveLeftOpen, rightPanelOpen, aiPanelOpen])
 
   useEffect(() => {
-    if (layoutMode === 'wide' || !rightPanelOpen) return
+    if (!leftPanelOpen && !rightPanelOpen && !aiPanelOpen) return
     const onEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setRightPanelOpen(false)
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      const target = document.activeElement
+      if (aiPanelOpen && document.getElementById('supplementary-ai-panel')?.contains(target)) {
+        event.preventDefault()
+        void commandActions.dispatch('ai.toggle')
+      } else if (
+        rightPanelOpen &&
+        document.getElementById('supplementary-context-panel')?.contains(target)
+      ) {
+        event.preventDefault()
+        setRightPanelOpen(false)
+      } else if (
+        leftPanelOpen &&
+        document.getElementById('workspace-left-panel')?.contains(target)
+      ) {
+        event.preventDefault()
+        void commandActions.dispatch('view.toggle-left-panel')
+      }
     }
     window.addEventListener('keydown', onEscape)
     return () => window.removeEventListener('keydown', onEscape)
-  }, [layoutMode, rightPanelOpen, setRightPanelOpen])
-
-  useEffect(() => {
-    if (aiPanelOpen && !previousAiPanelOpen.current) {
-      setSupplementaryDockTab('ai')
-    } else if (rightPanelOpen && !previousRightPanelOpen.current) {
-      setSupplementaryDockTab('context')
-    }
-    previousRightPanelOpen.current = rightPanelOpen
-    previousAiPanelOpen.current = aiPanelOpen
-  }, [aiPanelOpen, rightPanelOpen])
+  }, [leftPanelOpen, rightPanelOpen, aiPanelOpen, commandActions, setRightPanelOpen])
   const noteSelected = selectedNotePath !== null
   const textSelected = selectedVaultPath !== null && textEditor.selectedPath === selectedVaultPath
   const activeEditor = textSelected ? textEditor : editor
@@ -205,7 +229,7 @@ export function AppLayout({
   })
   const gridTemplateColumns = workspaceGridTemplate({
     mode: layoutMode,
-    leftPanelOpen,
+    leftPanelOpen: effectiveLeftOpen,
     rightPanelOpen,
     aiPanelOpen,
     readingFullView,
@@ -274,26 +298,16 @@ export function AppLayout({
         data-layout-mode={layoutMode}
         className="relative grid min-h-0 flex-1 overflow-hidden bg-background"
         style={{ gridTemplateColumns }}
-        onPointerDownCapture={(event) => {
-          if (
-            layoutMode !== 'wide' &&
-            rightPanelOpen &&
-            event.target instanceof Element &&
-            event.target.closest('[data-document-surface]')
-          ) {
-            setRightPanelOpen(false)
-          }
-        }}
       >
-        <Activity mode={leftPanelOpen && !readingFullView ? 'visible' : 'hidden'}>
+        <Activity mode={effectiveLeftOpen && !readingFullView ? 'visible' : 'hidden'}>
           <div
+            id="workspace-left-panel"
+            role="region"
+            aria-label="Vault explorer dock"
             data-workspace-dock="left"
+            tabIndex={-1}
             data-panel-width="leftPanelWidth"
-            className={
-              layoutMode === 'overlay'
-                ? 'absolute top-2 bottom-2 left-2 z-20 w-[min(17rem,calc(100%-3rem))] overflow-hidden rounded-md border border-border bg-chrome shadow-[var(--shadow-hard)]'
-                : 'min-h-0 min-w-0 overflow-hidden border-r border-border bg-chrome'
-            }
+            className="min-h-0 min-w-0 overflow-hidden border-r border-border bg-chrome"
           >
             <LeftPanel
               density={density}
@@ -310,12 +324,13 @@ export function AppLayout({
             />
           </div>
         </Activity>
-        {leftPanelOpen && !readingFullView && layoutMode !== 'overlay' ? (
+        {effectiveLeftOpen && !readingFullView ? (
           <PanelSeparator
             panel="leftPanelWidth"
             width={fittedPanelWidths.leftPanelWidth}
             gridRef={gridRef}
             onCommit={onPanelWidthChange}
+            documentFloor={dockPolicy.documentFloor}
           />
         ) : null}
         <MainEditor
@@ -353,12 +368,13 @@ export function AppLayout({
           }
           onError={onError}
         />
-        {rightPanelOpen && !readingFullView && layoutMode === 'wide' ? (
+        {rightPanelOpen && !readingFullView ? (
           <PanelSeparator
             panel="rightPanelWidth"
             width={fittedPanelWidths.rightPanelWidth}
             gridRef={gridRef}
             onCommit={onPanelWidthChange}
+            documentFloor={dockPolicy.documentFloor}
           />
         ) : null}
         <ResponsiveSupplementaryDock
@@ -368,8 +384,6 @@ export function AppLayout({
           mode={layoutMode}
           contextOpen={rightPanelOpen && !readingFullView}
           aiOpen={aiPanelOpen && !readingFullView}
-          activeTab={supplementaryDockTab}
-          onActiveTabChange={setSupplementaryDockTab}
           contextPanel={
             <RightPanel
               hasVault={vault !== null}
@@ -443,6 +457,7 @@ export function AppLayout({
                 }).then(() => undefined)
               }
               onRequestActionPalette={editorInteractions.openAiPalette}
+              onOpenAiSettings={onOpenAiSettings}
             />
           }
         />

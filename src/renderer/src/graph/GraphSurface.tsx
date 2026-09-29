@@ -70,6 +70,9 @@ export function GraphSurface({
     groups: config.groups
   })
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [hoveredNode, setHoveredNode] = useState<{ title: string; x: number; y: number } | null>(
+    null
+  )
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const visibleSnapshot = useMemo(
@@ -147,6 +150,10 @@ export function GraphSurface({
         if (!nodeId) setContextRequest(null)
       },
       onOpenNode: openNodeById,
+      onHoverNode: (nodeId, x = 0, y = 0) => {
+        const node = snapshot.nodes.find((candidate) => candidate.id === nodeId)
+        setHoveredNode(node ? { title: node.title, x, y } : null)
+      },
       onContextNode: (request) => {
         setContextRequest(request)
         window.setTimeout(() => contextMenuRef.current?.focus(), 0)
@@ -391,11 +398,26 @@ export function GraphSurface({
           <button
             ref={canvasRef}
             type="button"
-            aria-label={`${mode === 'global' ? 'Global' : 'Local'} graph canvas`}
+            aria-label={`${mode === 'global' ? 'Global' : 'Local'} graph canvas${selectedNode ? `, selected ${selectedNode.title}` : ''}`}
             aria-describedby={`${mode}-graph-instructions`}
             className="relative block h-full w-full cursor-default border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/70"
             onKeyDown={handleCanvasKeyDown}
           />
+          {hoveredNode ? (
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute z-20 max-w-64 border border-border bg-popover px-2 py-1 font-sans text-xs text-popover-foreground shadow-[var(--shadow-hard-sm)]"
+              style={{
+                left: Math.min(
+                  hoveredNode.x + 10,
+                  Math.max(8, (canvasRef.current?.clientWidth ?? 280) - 260)
+                ),
+                top: Math.max(4, hoveredNode.y - 36)
+              }}
+            >
+              {hoveredNode.title}
+            </div>
+          ) : null}
           <p id={`${mode}-graph-instructions`} className="sr-only">
             Use plus and minus to zoom, arrow keys to pan, Shift for faster panning, Enter to open
             the selected resolved note, and Escape to clear selection. Use the node navigator for a
@@ -546,6 +568,10 @@ export function GraphSurfaceState({
     'filter-empty': {
       title: 'No matching notes',
       detail: 'The current Search files filter removes every returned note.'
+    },
+    'empty-vault': {
+      title: 'No notes to graph yet',
+      detail: 'Create a note to begin building your vault graph.'
     },
     'no-links': {
       title: 'No visible links',

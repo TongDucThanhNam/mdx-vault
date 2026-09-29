@@ -47,6 +47,7 @@ type SettingsSectionId = 'general' | 'editor' | 'workbench' | 'keymap' | 'ai' | 
 
 export interface SettingsDialogProps {
   open: boolean
+  startSection?: 'general' | 'ai'
   onOpenChange: (open: boolean) => void
   onOpenAnotherVault: () => Promise<void>
   /** Pass the app-wide controller so workbench behavior and Settings share one snapshot. */
@@ -121,7 +122,7 @@ const SECTIONS: readonly SettingsSectionDefinition[] = [
     id: 'keymap',
     label: 'Keymap',
     icon: Keyboard,
-    searchText: appSettingSearchText([APP_SETTINGS_CATALOG.keymapOverrides])
+    searchText: `${appSettingSearchText([APP_SETTINGS_CATALOG.keymapOverrides])} Ctrl+F find Ctrl+H replace Ctrl+Shift+H highlight`
   },
   {
     id: 'ai',
@@ -141,6 +142,7 @@ const assistantRuntime = createAssistantRuntime()
 
 export function SettingsDialog({
   open,
+  startSection = 'general',
   onOpenChange,
   onOpenAnotherVault,
   appSettings,
@@ -149,6 +151,9 @@ export function SettingsDialog({
   const privateSettings = useAppSettings({ enabled: open && !appSettings })
   const settings = appSettings ?? privateSettings
   const [section, setSection] = useState<SettingsSectionId>('general')
+  useEffect(() => {
+    if (open) setSection(startSection)
+  }, [open, startSection])
   const [query, setQuery] = useState('')
   const [vaultPath, setVaultPath] = useState<string | null>(null)
   const [openingVault, setOpeningVault] = useState(false)

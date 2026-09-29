@@ -8,7 +8,6 @@ import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
 import { LanguageDescription, syntaxHighlighting } from '@codemirror/language'
-import { search } from '@codemirror/search'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
 import { Strikethrough, Table } from '@lezer/markdown'
@@ -396,7 +395,6 @@ export function MdxEditor({
           mdxExpressionHighlightExtension,
           mdxSyntaxDiagnosticsExtension,
           Prec.highest(markdownFormattingKeymap),
-          search({ top: true }),
           autocompletion({
             override: [wikilinkCompletions, registryCompletions],
             activateOnTyping: true

@@ -25,7 +25,7 @@ export const markdownFormattingKeymap = keymap.of([
   { key: 'Mod-b', run: formatMarkdown('bold') },
   { key: 'Mod-i', run: formatMarkdown('italic') },
   { key: 'Mod-e', run: formatMarkdown('inline-code') },
-  { key: 'Ctrl-h', run: formatMarkdown('highlight') }
+  { key: 'Ctrl-Shift-h', run: formatMarkdown('highlight') }
 ])
 
 export function createMarkdownFormattingTransaction(

@@ -7,6 +7,7 @@ import {
   type ReadingZoomActionHandlersInput
 } from '@/commands/reading-zoom-actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
+import { runEditorPaletteAction } from '@/editor/editor-palette-actions'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { formatError } from '@/lib/format-error'
@@ -141,6 +142,9 @@ export function useCommandActions({
       'file.open': openFileFinder,
       'command-palette.toggle': openCommandPalette,
       'note.search': openSearch,
+      'editor.find': () => runEditorPaletteAction('find'),
+      'editor.replace': () => runEditorPaletteAction('replace'),
+      'editor.highlight': () => runEditorPaletteAction('highlight'),
       'file.save': workbench.saveActiveItem,
       'workbench.close-item': (input) => {
         const targetedId = getTargetItemId(input)
@@ -284,6 +288,9 @@ export function useCommandActions({
       'command-palette.toggle': true,
       'note.search': hasVault,
       'file.save': activeEditable,
+      'editor.find': activeEditable && viewMode !== 'reading',
+      'editor.replace': activeEditable && viewMode !== 'reading',
+      'editor.highlight': hasNote && viewMode !== 'reading',
       'workbench.close-item': true,
       'workbench.reopen-closed-item': workbench.state.closedIds.length > 0,
       'workbench.mru-next': hasSeveralItems,
@@ -340,6 +347,7 @@ export function useCommandActions({
     selectedPath,
     trashCount,
     vault,
+    viewMode,
     workbench.activeItem,
     workbench.state.closedIds.length,
     workbench.tabs.length

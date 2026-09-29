@@ -24,6 +24,7 @@ import {
   scrollPastEnd
 } from '@codemirror/view'
 import { editorTabKeymap } from './editor-keymap'
+import { findReplaceExtension } from './find-replace-panel'
 
 /** Deliberate workbench setup; unlike CodeMirror basicSetup, every behavior here is owned. */
 export const sourceEditorSetup: Extension = [
@@ -46,6 +47,7 @@ export const sourceEditorSetup: Extension = [
   highlightSelectionMatches(),
   scrollPastEnd(),
   editorTabKeymap,
+  findReplaceExtension,
   keymap.of([
     ...closeBracketsKeymap,
     ...defaultKeymap,

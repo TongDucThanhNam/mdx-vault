@@ -225,6 +225,13 @@ export function KeymapSettings({
         </div>
       </div>
 
+      <div className="border-b border-line py-3 text-xs text-muted-foreground">
+        <strong className="text-foreground">Editor-local chords:</strong> Ctrl+F finds; Ctrl+H opens
+        Replace; Ctrl+Shift+H highlights Markdown. These CodeMirror chords apply in Source and Live,
+        not Reading. Their palette actions are listed below and can be assigned additional workbench
+        bindings.
+      </div>
+
       {snapshot ? (
         visibleActions.length > 0 ? (
           <ul className="divide-y divide-line border-y border-line" aria-label="Key bindings">

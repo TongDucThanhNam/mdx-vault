@@ -182,6 +182,33 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     defaultBindings: bindings(['Mod+Shift+F'])
   }),
   action({
+    id: 'editor.find',
+    title: 'Editor: Find in note',
+    description: 'Open the find row in Source or Live.',
+    category: 'Editor',
+    keywords: ['Ctrl+F', 'search', 'find'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'editor.replace',
+    title: 'Editor: Find and replace',
+    description: 'Open the replace row in Source or Live.',
+    category: 'Editor',
+    keywords: ['Ctrl+H', 'replace'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
+    id: 'editor.highlight',
+    title: 'Editor: Highlight Markdown',
+    description: 'Wrap selected prose in Markdown highlight delimiters.',
+    category: 'Editor',
+    keywords: ['Ctrl+Shift+H', 'highlight'],
+    context: 'Workspace',
+    defaultBindings: bindings()
+  }),
+  action({
     id: 'file.save',
     title: 'Save active item',
     description: 'Save the active item when it supports editing.',

@@ -9,6 +9,8 @@ import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@p
 import { BookmarkPlus, Copy, ExternalLink, FilePlus, Files, Pencil, Trash2 } from 'lucide-react'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { EmptyState } from '@/components/EmptyState'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
@@ -335,8 +337,17 @@ export function FileTree({
 
   if (files.length === 0) {
     return (
-      <div className="px-4 py-10 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        No files found.
+      <div className="h-full">
+        <EmptyState
+          icon={<FilePlus className="size-5" aria-hidden="true" />}
+          title="No files yet"
+          description="Create the first note in this vault."
+          action={
+            <Button type="button" size="sm" onClick={() => onCreateNoteInFolder('')}>
+              <FilePlus className="size-4" aria-hidden="true" /> New note
+            </Button>
+          }
+        />
       </div>
     )
   }

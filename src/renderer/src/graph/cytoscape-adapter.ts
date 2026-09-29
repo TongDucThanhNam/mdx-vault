@@ -38,6 +38,7 @@ interface CreateCytoscapeGraphAdapterOptions {
   onSelectNode: (nodeId: string | null) => void
   onOpenNode: (nodeId: string) => void
   onContextNode: (request: GraphContextRequest) => void
+  onHoverNode?: (nodeId: string | null, x?: number, y?: number) => void
 }
 
 const GROUP_COLORS_LIGHT: Record<GraphVisualToken, string> = {
@@ -133,7 +134,7 @@ export async function createCytoscapeGraphAdapter(
     }
     const degrees = new Map(snapshot.nodes.map((node) => [node.id, node.degree]))
     const visible = selectVisibleGraphLabels(
-      cy.nodes().map((node) => ({
+      cy.nodes('[status != "orphan-cluster"]').map((node) => ({
         id: node.id(),
         title: String(node.data('label')),
         x: node.renderedPosition().x,
@@ -150,7 +151,7 @@ export async function createCytoscapeGraphAdapter(
       }
     )
     cy.batch(() => {
-      cy.nodes().forEach((node) => {
+      cy.nodes('[status != "orphan-cluster"]').forEach((node) => {
         node.toggleClass('labels-hidden', !visible.has(node.id()))
       })
     })
@@ -178,14 +179,18 @@ export async function createCytoscapeGraphAdapter(
   }
 
   cy.on('mouseover', 'node', (event) => {
+    if (event.target.data('status') === 'orphan-cluster') return
     hoveredNodeId = event.target.id()
+    options.onHoverNode?.(hoveredNodeId, event.renderedPosition.x, event.renderedPosition.y)
     applyHighlight()
   })
   cy.on('mouseout', 'node', () => {
     hoveredNodeId = null
+    options.onHoverNode?.(null)
     applyHighlight()
   })
   cy.on('tap', 'node', (event) => {
+    if (event.target.data('status') === 'orphan-cluster') return
     selectedNodeId = event.target.id()
     options.onSelectNode(selectedNodeId)
     applyHighlight()
@@ -198,9 +203,11 @@ export async function createCytoscapeGraphAdapter(
     }
   })
   cy.on('dbltap', 'node', (event) => {
+    if (event.target.data('status') === 'orphan-cluster') return
     options.onOpenNode(event.target.id())
   })
   cy.on('cxttap', 'node', (event) => {
+    if (event.target.data('status') === 'orphan-cluster') return
     const nodeId = event.target.id()
     selectedNodeId = nodeId
     options.onSelectNode(nodeId)
@@ -210,6 +217,24 @@ export async function createCytoscapeGraphAdapter(
       x: event.renderedPosition.x,
       y: event.renderedPosition.y
     })
+  })
+  cy.on('layoutstop', () => {
+    const orphanGroup = cy.getElementById('graph:orphans')
+    if (orphanGroup.empty()) return
+    const connected = cy.nodes().filter((node) => !node.isParent() && !node.data('parent'))
+    if (connected.empty()) return
+    const orphanBounds = orphanGroup.boundingBox({ includeLabels: false, includeOverlays: false })
+    const connectedBounds = connected.boundingBox({ includeLabels: false, includeOverlays: false })
+    const shift = connectedBounds.y2 + 64 - orphanBounds.y1
+    if (shift > 0) {
+      cy.batch(() => {
+        orphanGroup.children().forEach((node) => {
+          const position = node.position()
+          node.position({ x: position.x, y: position.y + shift })
+        })
+      })
+      cy.fit(undefined, 32)
+    }
   })
   cy.on('zoom pan layoutstop position', scheduleLabelVisibility)
 
@@ -322,12 +347,14 @@ export function createGraphElements(
   const groupDefinitions = new Map(
     groups.map((group, index) => [group.id, { group, index }] as const)
   )
+  const orphanCount = snapshot.nodes.filter((node) => node.orphan).length
   const elements: cytoscape.ElementDefinition[] = snapshot.nodes.map((node) => {
     const primaryGroup = node.groupIds[0] ? (groupDefinitions.get(node.groupIds[0]) ?? null) : null
     return {
       group: 'nodes',
       data: {
         id: node.id,
+        ...(node.orphan ? { parent: 'graph:orphans' } : {}),
         label: node.title,
         status: node.status,
         size: calculateNodeSize(node, settings),
@@ -347,6 +374,12 @@ export function createGraphElements(
       }
     }
   })
+
+  if (orphanCount > 0)
+    elements.unshift({
+      group: 'nodes',
+      data: { id: 'graph:orphans', label: `Orphans (${orphanCount})`, status: 'orphan-cluster' }
+    })
 
   for (const edge of snapshot.edges) {
     elements.push({
@@ -411,6 +444,23 @@ function createGraphStyles(settings: GraphViewSettings): cytoscape.StylesheetJso
         'text-valign': 'bottom',
         'text-margin-y': 6,
         'overlay-opacity': 0
+      }
+    },
+    {
+      selector: 'node[status = "orphan-cluster"]',
+      style: {
+        shape: 'round-rectangle',
+        'background-color': dark ? '#94a3b8' : '#64748b',
+        'background-opacity': 0.045,
+        'border-color': dark ? '#94a3b8' : '#64748b',
+        'border-width': 1,
+        'border-style': 'dashed',
+        padding: '28px',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'text-margin-y': -8,
+        'font-size': 12,
+        'font-weight': 'bold'
       }
     },
     {

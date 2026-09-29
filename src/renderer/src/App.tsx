@@ -199,10 +199,15 @@ function App(): React.JSX.Element {
     () => globalSurface.openSurface('export'),
     [globalSurface.openSurface]
   )
-  const openSettings = useCallback(
-    () => globalSurface.openSurface('settings'),
-    [globalSurface.openSurface]
-  )
+  const [settingsStartSection, setSettingsStartSection] = useState<'general' | 'ai'>('general')
+  const openSettings = useCallback(() => {
+    setSettingsStartSection('general')
+    globalSurface.openSurface('settings')
+  }, [globalSurface.openSurface])
+  const openAiSettings = useCallback(() => {
+    setSettingsStartSection('ai')
+    globalSurface.openSurface('settings')
+  }, [globalSurface.openSurface])
   const toggleLeftPanel = useCallback((): void => {
     setLeftPanelOpen((current) => {
       if ((current && isExplorerFocused()) || document.activeElement === document.body) {
@@ -376,6 +381,7 @@ function App(): React.JSX.Element {
                 }
                 showFileExtensions={settingsSnapshot.showFileExtensions}
                 commandActions={commandActions}
+                onOpenAiSettings={openAiSettings}
                 editor={editor}
                 textEditor={textEditor}
                 noteIndex={noteIndex}
@@ -497,7 +503,11 @@ function App(): React.JSX.Element {
                 <Suspense fallback={null}>
                   <LazySettingsDialog
                     open={settingsOpen}
-                    onOpenChange={(open) => globalSurface.setSurfaceOpen('settings', open)}
+                    startSection={settingsStartSection}
+                    onOpenChange={(open) => {
+                      globalSurface.setSurfaceOpen('settings', open)
+                      if (!open) window.dispatchEvent(new Event('ai-settings-changed'))
+                    }}
                     onOpenAnotherVault={vaultSession.openVault}
                     appSettings={appSettings}
                     onKeyRecorderChange={setKeyRecorderActive}

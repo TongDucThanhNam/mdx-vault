@@ -307,6 +307,11 @@ export function QuickSwitcher({
         </div>
 
         <div className="max-h-[60vh] overflow-auto p-1.5">
+          {finder.status === 'ready' && trimmedQuery && finder.results.length === 0 ? (
+            <div className="px-3 py-2 font-mono text-xs text-muted-foreground" role="status">
+              No matching files. Create a new MDX note below, or refine your search.
+            </div>
+          ) : null}
           <div id={listboxId} role="listbox" aria-label="Vault files">
             {finder.results.map((result, index) => (
               <FileFinderOption

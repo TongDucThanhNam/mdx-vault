@@ -13,6 +13,19 @@ import {
 } from '../src/shared/graph'
 
 describe('GOAL-24 Cytoscape adapter', () => {
+  test('groups orphan nodes under a labeled, quiet parent without changing graph data', () => {
+    installDocumentStub()
+    const snapshot = createSnapshot()
+    snapshot.nodes[0]!.orphan = true
+    const elements = createGraphElements(snapshot, DEFAULT_GRAPH_VIEW_SETTINGS, null)
+    expect(elements.find((element) => element.data.id === 'graph:orphans')?.data.label).toBe(
+      'Orphans (1)'
+    )
+    expect(elements.find((element) => element.data.id === snapshot.nodes[0]!.id)?.data.parent).toBe(
+      'graph:orphans'
+    )
+    expect(snapshot.nodes).toHaveLength(2)
+  })
   test('creates stable element data and maps bounded controls to built-in CoSE', () => {
     installDocumentStub()
     const snapshot = createSnapshot()

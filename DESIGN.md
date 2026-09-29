@@ -110,8 +110,10 @@ supplementary dock.
 └───────────────────────────────────────────────────────────────┘
 ```
 
-- The document is the load-bearing surface. A dock must become an overlay before
-  it can collapse the document below a useful width.
+- The document is the load-bearing surface. Docks always occupy grid tracks and
+  never cover it. At 980–1359px the document keeps a 26rem minimum; Explorer
+  yields temporarily when supplementary docks need that space. At >=1360px the
+  document keeps a 30rem minimum. Fitted widths never replace saved preferences.
 - The resting app bar exposes one application-menu trigger and the active vault
   selector. File/Edit/View/Go/Window live in nested keyboard-accessible menu
   groups; they do not remain as five persistent titlebar labels.
@@ -120,10 +122,8 @@ supplementary dock.
   an Alloy hierarchy connector and Instrument Blue active segment visualize
   depth/current location without becoming a second interaction target.
 - **Wide:** left, document, Context and AI may use separate tracks.
-- **Compact:** left remains a bounded track when possible; Context and AI share a
-  keyboard-accessible supplementary dock.
-- **Overlay:** every side dock is layered over a full-width document. Open state
-  remains truthful and reachable.
+- **Compact:** Context and AI retain independent tracks. Explorer remains visible
+  when they fit together, and returns after a temporary collapse.
 - The workbench remains deliberately single-pane through GOAL-27. IDE-grade
   intelligence uses anchored, keyboard-accessible overlays instead of split or
   peek editors.
@@ -132,6 +132,10 @@ supplementary dock.
 
 - Visual tab order and MRU history remain separate. Existing transactional
   workbench behavior is preserved.
+- Overflowing tabs gain edge fades, wheel scrolling, active-tab reveal, and a
+  keyboard-navigable all-tabs list only while needed.
+- In Source and Live, Ctrl+F opens find only, Ctrl+H expands and focuses Replace,
+  and Ctrl+Shift+H applies Markdown highlight.
 - One global overlay owns shortcuts and focus at a time. Closing restores the
   invoking control where possible.
 - Pointer and keyboard actions are equivalent. Roving tab stops are used for
@@ -179,8 +183,9 @@ supplementary dock.
   the caret to the next configured indentation stop. Selected lines indent
   together; Shift+Tab outdents. Enter uses that same indentation unit.
 - Source formatting is keyboard-first and does not open a pointer toolbar over
-  selected text. In the MDX editor, `Mod+B`, `Mod+I`, `Mod+E` and `Ctrl+H`
-  format bold, italic, inline code and highlight respectively.
+  selected text. In the MDX editor, `Mod+B`, `Mod+I`, `Mod+E` and `Ctrl+Shift+H`
+  format bold, italic, inline code and highlight respectively. `Ctrl+F` opens Find only;
+  `Ctrl+H` opens Find with Replace expanded.
 - Reading zoom and interface scale are separate settings.
 - Reading retains the last good document while compiling, marks a stale or failed
   compile in a compact rail, and never replaces readable prose with a spinner.

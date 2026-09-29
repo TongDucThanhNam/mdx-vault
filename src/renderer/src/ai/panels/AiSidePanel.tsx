@@ -31,7 +31,7 @@ import { AiComposer } from './AiComposer'
 import { AiContextBanner } from './AiContextBanner'
 import { AiDiffReview, type DiffReviewModel } from './AiDiffReview'
 import { AiMessageList, type ChatMessage } from './AiMessageList'
-import { AiSettingsPanel } from './AiSettingsPanel'
+import { selectAiPanelState } from './ai-panel-state'
 
 interface AiSidePanelProps {
   noteRelativePath: string | null
@@ -45,6 +45,7 @@ interface AiSidePanelProps {
     output: AssistantApprovePatchOutput
   }) => Promise<void>
   onRequestActionPalette?: () => void
+  onOpenAiSettings: () => void
 }
 
 const runtime = createAssistantRuntime()
@@ -89,13 +90,13 @@ export function AiSidePanel({
   selection,
   backlinks,
   onApprovedPatch,
-  onRequestActionPalette
+  onRequestActionPalette,
+  onOpenAiSettings
 }: AiSidePanelProps): React.JSX.Element {
   const [settings, setSettings] = useState<import('../../../../shared/ai').AiPublicSettings | null>(
     null
   )
   const [streaming, setStreaming] = useState<StreamingState>(INITIAL_STREAMING)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
   const registryHints = useMemo(() => buildRegistryTemplateHints(), [])
@@ -107,20 +108,28 @@ export function AiSidePanel({
       .then((result) => {
         if (!cancelled) {
           setSettings(result)
-          if (result.provider === 'none' || !result.hasApiKey) {
-            setSettingsOpen(true)
-          }
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setSettingsOpen(true)
+          setSettings(null)
         }
       })
 
     return () => {
       cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    const refresh = (): void => {
+      void runtime
+        .getSettings()
+        .then(setSettings)
+        .catch(() => setSettings(null))
+    }
+    window.addEventListener('ai-settings-changed', refresh)
+    return () => window.removeEventListener('ai-settings-changed', refresh)
   }, [])
 
   const handleProposal = useCallback(
@@ -343,6 +352,12 @@ export function AiSidePanel({
 
   const canSend =
     !!noteRelativePath && settingsState.hasApiKey && settingsState.safeStorageAvailable
+  const panelState = selectAiPanelState({
+    noteOpen: !!noteRelativePath,
+    settingsLoaded: settings !== null,
+    hasApiKey: settingsState.hasApiKey,
+    safeStorageAvailable: settingsState.safeStorageAvailable
+  })
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -368,7 +383,7 @@ export function AiSidePanel({
             type="button"
             size="icon-sm"
             variant="ghost"
-            onClick={() => setSettingsOpen(true)}
+            onClick={onOpenAiSettings}
             aria-label="Assistant settings"
             title="Assistant settings"
             className={cn(
@@ -395,6 +410,19 @@ export function AiSidePanel({
         proposal={streaming.proposal}
         error={streaming.error}
         streaming={streaming.busy}
+        emptyState={
+          panelState.state === 'ready' ? undefined : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+              <Sparkles className="size-5" aria-hidden="true" />
+              <p className="max-w-56 text-sm">{panelState.emptyHint}</p>
+              {panelState.state === 'no-key' ? (
+                <Button type="button" onClick={onOpenAiSettings}>
+                  Open AI settings
+                </Button>
+              ) : null}
+            </div>
+          )
+        }
       />
 
       <AiDiffReview
@@ -415,17 +443,10 @@ export function AiSidePanel({
 
       <AiComposer
         disabled={!canSend}
+        placeholder={panelState.composerHint}
         busy={streaming.busy}
         onSend={sendPrompt}
         onCancel={() => void cancel()}
-      />
-
-      <AiSettingsPanel
-        key={settingsOpen ? 'open' : 'closed'}
-        open={settingsOpen}
-        settings={settingsState}
-        onClose={() => setSettingsOpen(false)}
-        onSaved={(next) => setSettings(next)}
       />
     </div>
   )

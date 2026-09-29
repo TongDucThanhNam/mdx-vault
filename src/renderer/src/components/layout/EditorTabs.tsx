@@ -1,6 +1,6 @@
-import { FileWarning, Waypoints, X } from 'lucide-react'
+import { ChevronDown, FileWarning, Waypoints, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { displayFileName } from '@/explorer/file-label'
 import { cn } from '@/lib/utils'
 import { focusActiveDocument } from '@/workbench/document-focus'
@@ -10,6 +10,7 @@ import {
   type TabContextCloseTargets
 } from '@/workbench/tab-context-actions'
 import type { WorkbenchItem } from '@/workbench/types'
+import { tabOverflowEdges, tabScrollTarget, tabVisibleRange } from './tab-overflow'
 
 export interface EditorTabsProps {
   items: WorkbenchItem[]
@@ -55,7 +56,13 @@ export function EditorTabs({
   closeShortcut
 }: EditorTabsProps): React.JSX.Element | null {
   const tablistRef = useRef<HTMLDivElement>(null)
+  const overflowButtonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef(new Map<string, HTMLButtonElement>())
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+  const [visibleRange, setVisibleRange] = useState({ first: 0, last: items.length - 1 })
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuIndex, setMenuIndex] = useState(0)
   const pendingFocusAfterCloseRef = useRef<PendingFocusAfterClose | null>(null)
   const previousActiveIdRef = useRef(activeId)
   const [focusableId, setFocusableId] = useState<string | null>(
@@ -80,6 +87,68 @@ export function EditorTabs({
       ? activeId
       : (items[0]?.id ?? null)
 
+  const spanForTab = useCallback((strip: HTMLDivElement, id: string) => {
+    const node = tabRefs.current.get(id)
+    if (!node) return { id, start: 0, end: 0 }
+    const tab = node.parentElement ?? node
+    const start =
+      tab.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft
+    return { id, start, end: start + tab.getBoundingClientRect().width }
+  }, [])
+
+  const measureOverflow = useCallback(() => {
+    const strip = tablistRef.current
+    if (!strip) return
+    setOverflow(tabOverflowEdges(strip.scrollLeft, strip.clientWidth, strip.scrollWidth))
+    setVisibleRange(
+      tabVisibleRange(
+        items.map((item) => spanForTab(strip, item.id)),
+        strip.scrollLeft,
+        strip.clientWidth
+      )
+    )
+  }, [items, spanForTab])
+
+  useLayoutEffect(() => {
+    measureOverflow()
+    const strip = tablistRef.current
+    if (!strip) return
+    const observer = new ResizeObserver(measureOverflow)
+    observer.observe(strip)
+    return () => observer.disconnect()
+  }, [measureOverflow])
+
+  useEffect(() => {
+    const strip = tablistRef.current
+    if (!strip) return
+    const onWheel = (event: WheelEvent): void => {
+      if (
+        strip.scrollWidth <= strip.clientWidth ||
+        Math.abs(event.deltaY) <= Math.abs(event.deltaX)
+      )
+        return
+      event.preventDefault()
+      strip.scrollLeft += event.deltaY
+    }
+    strip.addEventListener('wheel', onWheel, { passive: false })
+    return () => strip.removeEventListener('wheel', onWheel)
+  }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (event: PointerEvent): void => {
+      if (!(event.target instanceof Node)) return
+      if (
+        !menuRef.current?.contains(event.target) &&
+        !overflowButtonRef.current?.contains(event.target)
+      ) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [menuOpen])
+
   useLayoutEffect(() => {
     const pendingFocus = pendingFocusAfterCloseRef.current
     const activeChanged = previousActiveIdRef.current !== activeId
@@ -102,14 +171,23 @@ export function EditorTabs({
       if (focusableId !== activeId) {
         setFocusableId(activeId)
       }
-      tabRefs.current.get(activeId)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      const strip = tablistRef.current
+      const tab = tabRefs.current.get(activeId)
+      if (strip && tab) {
+        strip.scrollLeft = tabScrollTarget(
+          spanForTab(strip, activeId),
+          strip.scrollLeft,
+          strip.clientWidth - 32
+        )
+        measureOverflow()
+      }
       return
     }
 
     if (!focusableId || !itemIds.has(focusableId)) {
       setFocusableId(rovingId)
     }
-  }, [activeId, focusableId, itemIds, rovingId])
+  }, [activeId, focusableId, itemIds, rovingId, measureOverflow, spanForTab])
 
   const focusTab = useCallback((id: string) => {
     setFocusableId(id)
@@ -208,44 +286,142 @@ export function EditorTabs({
     return null
   }
 
+  const hasOverflow = overflow.left || overflow.right
   return (
     <div
-      ref={tablistRef}
-      role="tablist"
-      aria-label="Open files"
-      aria-orientation="horizontal"
-      className="flex h-10 shrink-0 items-stretch overflow-x-auto border-b border-border/60 bg-chrome [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative h-10 shrink-0 border-b border-border/60 bg-chrome"
+      data-tab-overflow={hasOverflow ? 'true' : 'false'}
     >
-      {items.map((item) => (
-        <EditorTab
-          key={item.id}
-          ref={(element) => {
-            if (element) {
-              tabRefs.current.set(item.id, element)
-            } else {
-              tabRefs.current.delete(item.id)
+      <div
+        ref={tablistRef}
+        role="tablist"
+        aria-label="Open files"
+        aria-orientation="horizontal"
+        onScroll={measureOverflow}
+        className="flex h-full min-w-0 items-stretch overflow-x-auto pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((item) => (
+          <EditorTab
+            key={item.id}
+            ref={(element) => {
+              if (element) {
+                tabRefs.current.set(item.id, element)
+              } else {
+                tabRefs.current.delete(item.id)
+              }
+            }}
+            item={item}
+            presentation={
+              presentations.get(item.id) ??
+              createTabPresentation(item, false, showFileExtensions, visiblePaths)
             }
-          }}
-          item={item}
-          presentation={
-            presentations.get(item.id) ??
-            createTabPresentation(item, false, showFileExtensions, visiblePaths)
-          }
-          closeTargets={closeTargets.get(item.id) ?? deriveTabContextCloseTargets(items, item.id)}
-          isActive={item.id === activeId}
-          isFocusable={item.id === rovingId}
-          onActivate={onActivate}
-          onClose={requestClose}
-          onCloseItems={requestContextMenuClose}
-          onCopyPath={onCopyPath}
-          onCopyRelativePath={onCopyRelativePath}
-          onRevealInExplorer={onRevealInExplorer}
-          onRestoreContextMenuFocus={restoreContextMenuFocus}
-          onFocus={setFocusableId}
-          onMoveFocus={moveFocus}
-          closeShortcut={closeShortcut}
-        />
-      ))}
+            closeTargets={closeTargets.get(item.id) ?? deriveTabContextCloseTargets(items, item.id)}
+            isActive={item.id === activeId}
+            isFocusable={item.id === rovingId}
+            onActivate={onActivate}
+            onClose={requestClose}
+            onCloseItems={requestContextMenuClose}
+            onCopyPath={onCopyPath}
+            onCopyRelativePath={onCopyRelativePath}
+            onRevealInExplorer={onRevealInExplorer}
+            onRestoreContextMenuFocus={restoreContextMenuFocus}
+            onFocus={setFocusableId}
+            onMoveFocus={moveFocus}
+            closeShortcut={closeShortcut}
+          />
+        ))}
+      </div>
+      {hasOverflow ? (
+        <>
+          {overflow.left ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-0 w-7 bg-gradient-to-r from-chrome to-transparent"
+            />
+          ) : null}
+          {overflow.right ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-8 w-7 bg-gradient-to-l from-chrome to-transparent"
+            />
+          ) : null}
+          <button
+            ref={overflowButtonRef}
+            type="button"
+            aria-label="Show all open tabs"
+            aria-expanded={menuOpen}
+            aria-controls="tab-overflow-list"
+            className="absolute inset-y-0 right-0 flex w-8 items-center justify-center border-l border-border bg-chrome text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            onClick={() => {
+              const next = !menuOpen
+              setMenuOpen(next)
+              setMenuIndex(
+                Math.max(
+                  0,
+                  items.findIndex((item) => item.id === activeId)
+                )
+              )
+              if (next)
+                requestAnimationFrame(() =>
+                  menuRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus()
+                )
+            }}
+          >
+            <ChevronDown className="size-4" aria-hidden="true" />
+          </button>
+          {menuOpen ? (
+            <div
+              id="tab-overflow-list"
+              ref={menuRef}
+              role="listbox"
+              aria-label="All open tabs"
+              className="absolute top-full right-0 z-40 max-h-80 w-72 overflow-y-auto border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-hard-sm)]"
+              onKeyDown={(event) => {
+                let next = menuIndex
+                if (event.key === 'ArrowDown') next = Math.min(items.length - 1, menuIndex + 1)
+                else if (event.key === 'ArrowUp') next = Math.max(0, menuIndex - 1)
+                else if (event.key === 'Home') next = 0
+                else if (event.key === 'End') next = items.length - 1
+                else if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setMenuOpen(false)
+                  overflowButtonRef.current?.focus()
+                  return
+                } else return
+                event.preventDefault()
+                setMenuIndex(next)
+                menuRef.current
+                  ?.querySelectorAll<HTMLButtonElement>('[role="option"]')
+                  [next]?.focus()
+              }}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="option"
+                  aria-selected={item.id === activeId}
+                  tabIndex={index === menuIndex ? 0 : -1}
+                  title={item.kind === 'graph' ? 'Global Graph' : item.relativePath}
+                  className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-xs outline-none hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                  onFocus={() => setMenuIndex(index)}
+                  onClick={() => {
+                    onActivate(item.id)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <span className="min-w-0 truncate">
+                    {presentations.get(item.id)?.label ?? item.id}
+                  </span>
+                  {index < visibleRange.first || index > visibleRange.last ? (
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">Hidden</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   )
 }

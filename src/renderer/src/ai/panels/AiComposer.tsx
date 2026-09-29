@@ -6,7 +6,7 @@
  */
 
 import { Send, Square } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -28,10 +28,6 @@ export function AiComposer({
 }: AiComposerProps): React.JSX.Element {
   const [draft, setDraft] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
 
   const submit = useCallback(() => {
     const value = draft.trim()
@@ -64,7 +60,7 @@ export function AiComposer({
         placeholder={
           placeholder ??
           (disabled
-            ? 'Select a note to chat about it…'
+            ? 'Open a note to chat about it…'
             : 'Ask the assistant. Enter sends, Shift+Enter inserts a newline.')
         }
         className={cn(
@@ -74,7 +70,13 @@ export function AiComposer({
         )}
       />
       {busy ? (
-        <Button type="button" size="icon-sm" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="outline"
+          onClick={onCancel}
+          aria-label="Cancel assistant request"
+        >
           <Square className="size-4" aria-hidden="true" />
         </Button>
       ) : (
@@ -83,6 +85,7 @@ export function AiComposer({
           size="icon-sm"
           onClick={submit}
           disabled={disabled || draft.trim().length === 0}
+          aria-label="Send assistant message"
         >
           <Send className="size-4" aria-hidden="true" />
         </Button>

@@ -1,10 +1,10 @@
 import { redo, undo } from '@codemirror/commands'
-import { openSearchPanel } from '@codemirror/search'
 import { EditorView } from '@codemirror/view'
 import { Check, ChevronRight, Menu } from 'lucide-react'
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
 import type { CommandActionRegistry } from '@/commands/actions'
 import type { ViewMode } from '@/components/ViewModeToggle'
+import { openFindOnly, openReplace } from '@/editor/find-replace-panel'
 import { cn } from '@/lib/utils'
 
 interface AppMenuBarProps {
@@ -133,7 +133,13 @@ export function AppMenuBar({
             label="Find in Note"
             shortcut="Ctrl+F"
             disabled={!editorAvailable}
-            onSelect={() => runEditorCommand(openSearchPanel)}
+            onSelect={() => runEditorCommand(openFindOnly)}
+          />
+          <MenuItem
+            label="Find and Replace in Note"
+            shortcut="Ctrl+H"
+            disabled={!editorAvailable}
+            onSelect={() => runEditorCommand(openReplace)}
           />
         </MenuSub>
 

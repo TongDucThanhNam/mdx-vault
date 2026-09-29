@@ -66,6 +66,13 @@ describe('GOAL-24 graph surface state contract', () => {
         'filter-empty',
         { ...baseline, snapshot: { ...createSnapshot(), nodes: [], edges: [] }, query: 'tag:#x' }
       ],
+      [
+        'empty-vault',
+        {
+          ...baseline,
+          snapshot: { ...createSnapshot(), nodes: [], edges: [], totals: { nodes: 0, edges: 0 } }
+        }
+      ],
       ['no-links', { ...baseline, snapshot: { ...createSnapshot(), nodes: [], edges: [] } }]
     ]
 
