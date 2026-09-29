@@ -93,7 +93,7 @@ export function getRegistryLanguageMetadata(): MdxRegistryComponentMetadata[] {
 }
 
 export function createRegistryComponents(
-  options: { source?: string; onRevealLine?: (line: number) => void } = {}
+  options: { source?: string | (() => string); onRevealLine?: (line: number) => void } = {}
 ): MDXComponents {
   return Object.fromEntries(
     componentRegistry.map((entry) => [entry.name, createValidatedComponent(entry, options)])
@@ -102,7 +102,7 @@ export function createRegistryComponents(
 
 function createValidatedComponent<TProps extends object>(
   entry: ComponentRegistryEntry<TProps>,
-  options: { source?: string; onRevealLine?: (line: number) => void }
+  options: { source?: string | (() => string); onRevealLine?: (line: number) => void }
 ): ComponentType<Record<string, unknown>> {
   function ValidatedRegistryComponent(rawProps: Record<string, unknown>): React.JSX.Element {
     const mergedProps = {
@@ -120,7 +120,7 @@ function createValidatedComponent<TProps extends object>(
     return (
       <RegistryIslandBoundary
         name={entry.name}
-        source={options.source ?? ''}
+        source={typeof options.source === 'function' ? options.source() : (options.source ?? '')}
         onRevealLine={options.onRevealLine}
       >
         <Component {...result.data} />

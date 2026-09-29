@@ -37,7 +37,7 @@ interface CreateMdxComponentsOptions {
   onNavigate: (relativePath: string, subpath?: WikilinkSubpath | null) => void
   selectedPath: string | null
   imageCache: PreviewImageCache
-  source?: string
+  source?: string | (() => string)
   onRevealLine?: (line: number) => void
   onPreviewRequest?: (intent: WikilinkPreviewIntent) => void
   onPreviewDismiss?: (relatedTarget?: EventTarget | null) => void

@@ -31,6 +31,7 @@ import {
   getGraphSurfaceState
 } from './graph-surface-state'
 import type { LocalGraphUnavailableReason } from './local-graph-state'
+import { filterTemplateGraphSnapshot } from './template-filter'
 import { useGraphConfigController, useGraphSnapshotController } from './use-graph-controller'
 
 interface GraphSurfaceProps extends GraphNodeActionPorts {
@@ -70,6 +71,11 @@ export function GraphSurface({
   })
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const visibleSnapshot = useMemo(
+    () => filterTemplateGraphSnapshot(graph.snapshot, showTemplates),
+    [graph.snapshot, showTemplates]
+  )
   const [contextRequest, setContextRequest] = useState<GraphContextRequest | null>(null)
   const [rendererError, setRendererError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -82,18 +88,18 @@ export function GraphSurface({
   const selectedNodeIdRef = useRef<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
   const surfaceKey = `${vaultSessionId}:${mode}:${rootRelativePath ?? 'global'}`
-  const selectedNode = graph.snapshot?.nodes.find((node) => node.id === selectedNodeId) ?? null
+  const selectedNode = visibleSnapshot?.nodes.find((node) => node.id === selectedNodeId) ?? null
   settingsRef.current = config.settings
   selectedNodeIdRef.current = selectedNodeId
 
   const openNodeById = useCallback(
     (nodeId: string): void => {
-      const node = graph.snapshot?.nodes.find((candidate) => candidate.id === nodeId)
+      const node = visibleSnapshot?.nodes.find((candidate) => candidate.id === nodeId)
       if (node?.status === 'resolved' && node.relativePath) {
         void nodeActions.onOpenNote(node.relativePath)
       }
     },
-    [graph.snapshot, nodeActions.onOpenNote]
+    [visibleSnapshot, nodeActions.onOpenNote]
   )
 
   useEffect(() => {
@@ -111,7 +117,7 @@ export function GraphSurface({
   }, [surfaceKey])
 
   useEffect(() => {
-    const snapshot = graph.snapshot
+    const snapshot = visibleSnapshot
     const container = canvasRef.current
     if (!snapshot || snapshot.nodes.length === 0 || !container) {
       adapterGenerationRef.current += 1
@@ -165,7 +171,7 @@ export function GraphSurface({
     return () => {
       disposed = true
     }
-  }, [activeRelativePath, config.groups, graph.snapshot, openNodeById, reducedMotion])
+  }, [activeRelativePath, config.groups, visibleSnapshot, openNodeById, reducedMotion])
 
   useEffect(() => {
     adapterRef.current?.updateSettings(config.settings)
@@ -189,11 +195,11 @@ export function GraphSurface({
   )
 
   useEffect(() => {
-    if (selectedNodeId && !graph.snapshot?.nodes.some((node) => node.id === selectedNodeId)) {
+    if (selectedNodeId && !visibleSnapshot?.nodes.some((node) => node.id === selectedNodeId)) {
       setSelectedNodeId(null)
       setContextRequest(null)
     }
-  }, [graph.snapshot, selectedNodeId])
+  }, [visibleSnapshot, selectedNodeId])
 
   const closeContextMenu = useCallback((): void => {
     setContextRequest(null)
@@ -259,10 +265,10 @@ export function GraphSurface({
     graphStatus: graph.status,
     graphError: graph.error,
     rendererError,
-    snapshot: graph.snapshot,
+    snapshot: visibleSnapshot,
     query: config.settings.query
   })
-  const canRender = state === null && Boolean(graph.snapshot?.nodes.length)
+  const canRender = state === null && Boolean(visibleSnapshot?.nodes.length)
 
   return (
     <section
@@ -283,7 +289,7 @@ export function GraphSurface({
               {mode === 'global' ? 'Global Graph' : 'Local Graph'}
             </h2>
             <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-              {formatGraphSummary(graph.snapshot)}
+              {formatGraphSummary(visibleSnapshot)}
             </p>
           </div>
         </div>
@@ -407,12 +413,12 @@ export function GraphSurface({
             />
           ) : null}
 
-          {graph.snapshot?.truncated ? (
+          {visibleSnapshot?.truncated ? (
             <div
               role="status"
               className="absolute right-2 bottom-2 left-2 z-10 border-2 border-foreground bg-background p-2 font-mono text-xs leading-relaxed uppercase tracking-wider shadow-[2px_2px_0_0_var(--foreground)]"
             >
-              {graph.snapshot.truncationReason}
+              {visibleSnapshot.truncationReason}
             </div>
           ) : null}
 
@@ -456,7 +462,7 @@ export function GraphSurface({
         </div>
 
         <GraphNodeNavigator
-          nodes={graph.snapshot?.nodes ?? []}
+          nodes={visibleSnapshot?.nodes ?? []}
           selectedNodeId={selectedNodeId}
           compact={compact}
           onSelectNode={(nodeId) => {
@@ -486,6 +492,8 @@ export function GraphSurface({
         onSettingsChange={config.updateSettings}
         onGroupsChange={config.updateGroups}
         onReset={config.resetSettings}
+        showTemplates={showTemplates}
+        onShowTemplatesChange={setShowTemplates}
       />
     </section>
   )

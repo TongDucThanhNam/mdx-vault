@@ -32,6 +32,8 @@ interface GraphSettingsDialogProps {
   onSettingsChange: (patch: Partial<LocalGraphViewSettings>) => void
   onGroupsChange: (groups: GraphGroup[]) => void
   onReset: () => void
+  showTemplates: boolean
+  onShowTemplatesChange: (show: boolean) => void
 }
 
 const VISUAL_TOKENS: readonly GraphVisualToken[] = [
@@ -57,7 +59,9 @@ export function GraphSettingsDialog({
   onOpenChange,
   onSettingsChange,
   onGroupsChange,
-  onReset
+  onReset,
+  showTemplates,
+  onShowTemplatesChange
 }: GraphSettingsDialogProps): React.JSX.Element {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,6 +108,11 @@ export function GraphSettingsDialog({
               label="Show orphans"
               checked={settings.showOrphans}
               onChange={(showOrphans) => onSettingsChange({ showOrphans })}
+            />
+            <CheckSetting
+              label="Show template notes"
+              checked={showTemplates}
+              onChange={onShowTemplatesChange}
             />
             {mode === 'local' && 'depth' in settings ? (
               <label className="grid gap-1 font-mono text-xs">

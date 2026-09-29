@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { CommandPalette } from '@/commands/CommandPalette'
 import { isReadingFullViewActionEnabled } from '@/commands/reading-full-view-action'
 import { isReadingZoomActionEnabled } from '@/commands/reading-zoom-actions'
@@ -35,7 +35,6 @@ import { CreateInteractiveDialog } from '@/interactive/CreateInteractiveDialog'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { PagePreviewSettingsProvider } from '@/preview/PagePreviewSettingsProvider'
 import { SearchPane } from '@/search/SearchPane'
-import { SettingsDialog } from '@/settings/SettingsDialog'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultInfo } from '@/vault/types'
 import { focusActiveDocument, focusExplorer, isExplorerFocused } from '@/workbench/document-focus'
@@ -47,6 +46,11 @@ import { resolveWikilinkHeading, type WikilinkSubpath } from '../../shared/wikil
 interface DeleteRequest {
   relativePath: string
 }
+
+const LazySettingsDialog = lazy(async () => {
+  const module = await import('@/settings/SettingsDialog')
+  return { default: module.SettingsDialog }
+})
 
 function App(): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null>(null)
@@ -64,10 +68,15 @@ function App(): React.JSX.Element {
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
   const [emptyTrashOpen, setEmptyTrashOpen] = useState(false)
   const [keyRecorderActive, setKeyRecorderActive] = useState(false)
+  const [settingsMounted, setSettingsMounted] = useState(false)
   const [starterProofProjectRoot, setStarterProofProjectRoot] = useState<string | null>(null)
 
   const { toast, showToast } = useToast()
   const globalSurface = useGlobalSurface()
+  const settingsOpen = globalSurface.isSurfaceOpen('settings')
+  useEffect(() => {
+    if (settingsOpen) setSettingsMounted(true)
+  }, [settingsOpen])
   const appSettings = useAppSettings({ onError: setError })
   const { toggle: toggleTheme } = useTheme({ settings: appSettings })
   const settingsSnapshot = appSettings.snapshot ?? DEFAULT_APP_SETTINGS_SNAPSHOT
@@ -464,13 +473,17 @@ function App(): React.JSX.Element {
                 globalSurface.completeSurface('create-interactive')
               }}
             />
-            <SettingsDialog
-              open={globalSurface.isSurfaceOpen('settings')}
-              onOpenChange={(open) => globalSurface.setSurfaceOpen('settings', open)}
-              onOpenAnotherVault={vaultSession.openVault}
-              appSettings={appSettings}
-              onKeyRecorderChange={setKeyRecorderActive}
-            />
+            {settingsMounted ? (
+              <Suspense fallback={null}>
+                <LazySettingsDialog
+                  open={settingsOpen}
+                  onOpenChange={(open) => globalSurface.setSurfaceOpen('settings', open)}
+                  onOpenAnotherVault={vaultSession.openVault}
+                  appSettings={appSettings}
+                  onKeyRecorderChange={setKeyRecorderActive}
+                />
+              </Suspense>
+            ) : null}
             <MruTabSwitcher
               state={editorTabs.state.mruSwitch}
               items={editorTabs.tabs}

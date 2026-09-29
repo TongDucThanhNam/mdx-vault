@@ -364,17 +364,18 @@ export function useVaultSession({
       workbench.resetForVault(openedVault)
       setIndexNotes([])
       setVault(openedVault)
-      setIndexNotes(await window.indexApi.notes())
-      bumpIndexRevision()
 
       const firstFile =
         openedVault.files.find((file) => file.relativePath.endsWith('/Welcome.mdx')) ??
         openedVault.files.find((file) => file.relativePath === 'Welcome.mdx') ??
         openedVault.files[0]
 
-      if (firstFile) {
-        await workbench.openOrActivate(firstFile.relativePath)
-      }
+      const [notes] = await Promise.all([
+        window.indexApi.notes(),
+        firstFile ? workbench.openOrActivate(firstFile.relativePath) : Promise.resolve(false)
+      ])
+      setIndexNotes(notes)
+      bumpIndexRevision()
     },
     [bumpIndexRevision, setIndexNotes, setVault, workbench.openOrActivate, workbench.resetForVault]
   )

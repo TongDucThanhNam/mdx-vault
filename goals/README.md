@@ -51,6 +51,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-31-reactive-vault.md | Shared cell bus: prose binding `{n}`, island publish/subscribe qua manifest cells, cross-note cells + permission, adaptive prose, dataflow view, export replay | 04, 05, 06, 17, 19, 22, 25, 28 |
 | GOAL-32-zed-grade-reading-ux.md | Stable, keyboard-first single-pane Reading and source-position navigation | 22, 26, 27, 28, 29 |
 | GOAL-33-navigation-focus-accessibility.md | JSX headings, focus, states, file clarity, graph labels and accessibility floor | 23, 26, 29, 32 |
+| GOAL-34-speed-and-raster-integrity.md | Production note speed, Reading raster integrity and graph template filtering | 29, 32, 33 |
 
 ## Trạng thái ký hiệu trong goal
 

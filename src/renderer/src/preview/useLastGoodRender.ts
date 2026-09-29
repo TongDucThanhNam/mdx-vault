@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LatestPreviewCompile, SupersededPreviewCompile } from './latest-preview-compile'
 import { type CompiledMdxPreview, compileMdxPreview } from './mdx-preview-compiler'
 
@@ -43,22 +43,18 @@ export function useLastGoodRender(notePath: string, source: string) {
     void scheduler.request(source).then(
       (result) => {
         if (cancelled) return
-        startTransition(() => {
-          setState({ notePath, source, result, failure: null })
-          setDismissedFailure(null)
-        })
+        setState({ notePath, source, result, failure: null })
+        setDismissedFailure(null)
       },
       (error: unknown) => {
         if (cancelled || error instanceof SupersededPreviewCompile) return
-        startTransition(() => {
-          setState((current) => ({
-            notePath,
-            source: current?.notePath === notePath && current.result ? current.source : '',
-            result: current?.notePath === notePath ? current.result : null,
-            failure: { source, diagnostic: createDiagnostic(error) }
-          }))
-          setDismissedFailure(null)
-        })
+        setState((current) => ({
+          notePath,
+          source: current?.notePath === notePath && current.result ? current.source : '',
+          result: current?.notePath === notePath ? current.result : null,
+          failure: { source, diagnostic: createDiagnostic(error) }
+        }))
+        setDismissedFailure(null)
       }
     )
     return () => {

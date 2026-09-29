@@ -5,12 +5,13 @@ import {
   PanelRightOpen,
   Sparkles
 } from 'lucide-react'
-import { useDeferredValue, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { computeWordCount } from '@/lib/word-count'
+import { WordCountScheduler } from '@/lib/word-count-scheduler'
 
 interface AppStatusBarProps {
   selectedPath: string | null
@@ -56,8 +57,21 @@ export function AppStatusBar({
   onResetReadingZoom
 }: AppStatusBarProps): React.JSX.Element {
   const { t, formatNumber, formatTime } = useI18n()
-  const deferredContent = useDeferredValue(content)
-  const wordCount = useMemo(() => computeWordCount(deferredContent), [deferredContent])
+  const [countState, setCountState] = useState(() => ({
+    source: content,
+    count: computeWordCount(content)
+  }))
+  const wordCountScheduler = useMemo(
+    () => new WordCountScheduler(window, (source, count) => setCountState({ source, count })),
+    []
+  )
+  useEffect(() => {
+    if (countState.source !== content) wordCountScheduler.schedule(content)
+    return () => wordCountScheduler.cancel()
+  }, [content, countState.source, wordCountScheduler])
+  const wordCount = countState.source === content ? countState.count : null
+  const countLabel = (value: number | undefined): string =>
+    value === undefined ? '—' : formatNumber(value)
   const saveLabel = getSaveLabel({
     hasFile: selectedPath !== null,
     isDirty,
@@ -132,11 +146,11 @@ export function AppStatusBar({
                   <span aria-hidden="true">·</span>
                 </>
               ) : null}
-              <span>{t('status.words', { count: formatNumber(wordCount.words) })}</span>
+              <span>{t('status.words', { count: countLabel(wordCount?.words) })}</span>
               <span aria-hidden="true">·</span>
-              <span>{t('status.chars', { count: formatNumber(wordCount.chars) })}</span>
+              <span>{t('status.chars', { count: countLabel(wordCount?.chars) })}</span>
               <span aria-hidden="true">·</span>
-              <span>{t('status.minutes', { count: formatNumber(wordCount.readingMinutes) })}</span>
+              <span>{t('status.minutes', { count: countLabel(wordCount?.readingMinutes) })}</span>
               {readingZoomPercent !== null ? (
                 <>
                   <span aria-hidden="true">·</span>

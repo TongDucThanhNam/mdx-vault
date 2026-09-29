@@ -1,5 +1,6 @@
 import { Highlighter } from 'lucide-react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { resolveActiveHeadingFromViewport } from '@/components/layout/living-outline'
@@ -80,27 +81,58 @@ export function MdxPreview({
   const imageCache = useMemo(() => new PreviewImageCache(), [selectedPath])
   const pagePreviewSettings = usePagePreviewSettings()
   const wikilinkPreview = useWikilinkPreview(pagePreviewSettings)
+  const componentInputsRef = useRef({
+    onNavigate,
+    onRevealLine,
+    requestPreview: wikilinkPreview.requestPreview,
+    scheduleDismiss: wikilinkPreview.scheduleDismiss,
+    renderedSource: render.renderedSource
+  })
+  componentInputsRef.current = {
+    onNavigate,
+    onRevealLine,
+    requestPreview: wikilinkPreview.requestPreview,
+    scheduleDismiss: wikilinkPreview.scheduleDismiss,
+    renderedSource: render.renderedSource
+  }
+  const navigateFromComponent = useCallback<MdxPreviewProps['onNavigate']>(
+    (...args) => componentInputsRef.current.onNavigate(...args),
+    []
+  )
+  const revealFromComponent = useCallback<MdxPreviewProps['onRevealLine']>(
+    (line) => componentInputsRef.current.onRevealLine(line),
+    []
+  )
+  const requestComponentPreview = useCallback<typeof wikilinkPreview.requestPreview>(
+    (intent) => componentInputsRef.current.requestPreview(intent),
+    []
+  )
+  const dismissComponentPreview = useCallback<typeof wikilinkPreview.scheduleDismiss>(
+    (target) => componentInputsRef.current.scheduleDismiss(target),
+    []
+  )
+  const renderedComponentSource = useCallback(() => componentInputsRef.current.renderedSource, [])
   const components = useMemo(
     () =>
       createMdxComponents({
         notes,
-        onNavigate,
+        onNavigate: navigateFromComponent,
         selectedPath,
         imageCache,
-        source: render.renderedSource,
-        onRevealLine,
-        onPreviewRequest: wikilinkPreview.requestPreview,
-        onPreviewDismiss: wikilinkPreview.scheduleDismiss
+        source: renderedComponentSource,
+        onRevealLine: revealFromComponent,
+        onPreviewRequest: requestComponentPreview,
+        onPreviewDismiss: dismissComponentPreview
       }),
     [
       notes,
-      onNavigate,
+      navigateFromComponent,
       selectedPath,
       imageCache,
-      render.renderedSource,
-      onRevealLine,
-      wikilinkPreview.requestPreview,
-      wikilinkPreview.scheduleDismiss
+      renderedComponentSource,
+      revealFromComponent,
+      requestComponentPreview,
+      dismissComponentPreview
     ]
   )
   const previewFrontmatter = useMemo(
@@ -304,7 +336,7 @@ export function MdxPreview({
       data-workbench-scroll-surface="true"
       data-preview-layout-surface="true"
       tabIndex={-1}
-      className="note-editorial-surface h-full min-h-0 overflow-x-hidden overflow-y-auto"
+      className="note-editorial-surface h-full min-h-0 overflow-x-hidden overflow-y-auto transform-[translateZ(0)]"
       role="region"
       aria-label="Reading preview"
     >
@@ -412,31 +444,38 @@ export function MdxPreview({
           </div>
         </div>
       </div>
-      {activeSelection ? (
-        <div
-          role="toolbar"
-          aria-label="Preview text formatting"
-          className="fixed z-[70] -translate-x-1/2 -translate-y-full border-2 border-foreground bg-background p-1 shadow-[3px_3px_0_0_var(--foreground)]"
-          style={{ left: activeSelection.left, top: activeSelection.top }}
-        >
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="default"
-            data-testid="preview-highlight-toggle"
-            title={
-              activeSelection.markStart === undefined ? 'Highlight selection' : 'Remove highlight'
-            }
-            aria-label={
-              activeSelection.markStart === undefined ? 'Highlight selection' : 'Remove highlight'
-            }
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={togglePreviewHighlight}
-          >
-            <Highlighter className="size-4" aria-hidden="true" />
-          </Button>
-        </div>
-      ) : null}
+      {activeSelection
+        ? createPortal(
+            <div
+              role="toolbar"
+              aria-label="Preview text formatting"
+              className="fixed z-[70] -translate-x-1/2 -translate-y-full border-2 border-foreground bg-background p-1 shadow-[3px_3px_0_0_var(--foreground)]"
+              style={{ left: activeSelection.left, top: activeSelection.top }}
+            >
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="default"
+                data-testid="preview-highlight-toggle"
+                title={
+                  activeSelection.markStart === undefined
+                    ? 'Highlight selection'
+                    : 'Remove highlight'
+                }
+                aria-label={
+                  activeSelection.markStart === undefined
+                    ? 'Highlight selection'
+                    : 'Remove highlight'
+                }
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={togglePreviewHighlight}
+              >
+                <Highlighter className="size-4" aria-hidden="true" />
+              </Button>
+            </div>,
+            document.body
+          )
+        : null}
       <WikilinkPreviewLayer
         preview={wikilinkPreview.activePreview}
         onNavigate={onNavigate}
