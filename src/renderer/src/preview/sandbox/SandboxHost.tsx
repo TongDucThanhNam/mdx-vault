@@ -23,6 +23,7 @@ import {
   sandboxToHostMessageSchema
 } from '../../../../shared/sandbox'
 import { usePreviewRuntime } from '../runtime'
+import { sandboxFrameHeight, sandboxIframeHeight } from './sandbox-height'
 
 const emptySandboxProps: Record<string, unknown> = {}
 
@@ -64,7 +65,7 @@ export function SandboxHost({
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [state, setState] = useState<SandboxState>({ status: 'loading' })
   const [dialogDescriptor, setDialogDescriptor] = useState<SandboxDescriptor | null>(null)
-  const [height, setHeight] = useState(220)
+  const [reportedHeight, setReportedHeight] = useState<number | null>(null)
   const propsFingerprint = useMemo(
     () => stableStringify(resolvedSandboxProps),
     [resolvedSandboxProps]
@@ -84,7 +85,7 @@ export function SandboxHost({
               resolvedSandboxProps
             )
 
-      setHeight(220)
+      setReportedHeight(null)
       setState({
         status: 'ready',
         descriptor,
@@ -206,7 +207,7 @@ export function SandboxHost({
       }
 
       if (message.type === 'resize') {
-        setHeight(Math.max(120, Math.ceil(message.height)))
+        setReportedHeight(message.height)
         return
       }
 
@@ -280,21 +281,26 @@ export function SandboxHost({
       )}
     >
       {state.status === 'loading' ? (
-        <div className="flex min-h-40 items-center justify-center px-4 font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+        <div className="flex min-h-[260px] items-center justify-center px-4 font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
           Preparing sandbox.
         </div>
       ) : state.status === 'ready' ? (
-        <iframe
-          key={state.document.instanceId}
-          ref={iframeRef}
-          title={`${state.descriptor.manifest.name} sandbox`}
-          sandbox="allow-scripts"
-          referrerPolicy="no-referrer"
-          src={state.document.documentUrl}
-          className="block w-full border-0 bg-transparent"
-          style={{ height }}
-          onLoad={postInit}
-        />
+        <div
+          className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-150"
+          style={{ height: sandboxFrameHeight(reportedHeight) }}
+        >
+          <iframe
+            key={state.document.instanceId}
+            ref={iframeRef}
+            title={`${state.descriptor.manifest.name} sandbox`}
+            sandbox="allow-scripts"
+            referrerPolicy="no-referrer"
+            src={state.document.documentUrl}
+            className="block w-full border-0 bg-transparent motion-safe:transition-[height] motion-safe:duration-150"
+            style={{ height: sandboxIframeHeight(reportedHeight) }}
+            onLoad={postInit}
+          />
+        </div>
       ) : state.status === 'blocked' ? (
         <SandboxBlockedCard
           descriptor={state.descriptor}

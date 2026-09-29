@@ -44,7 +44,7 @@ const safeHtmlSchema: SanitizeSchema = {
   },
   attributes: {
     '*': ['ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy', 'title'],
-    a: ['href', 'title'],
+    a: ['href', 'title', 'id', 'dataFootnoteRef', 'dataFootnoteBackref'],
     aside: [
       ['className', 'mdx-callout'],
       ['dataCallout', ...calloutTypes]
@@ -56,6 +56,7 @@ const safeHtmlSchema: SanitizeSchema = {
     del: ['cite'],
     div: [['className', 'mdx-callout-title']],
     img: ['src', 'alt', 'title', 'width', 'height'],
+    li: ['id'],
     ol: ['start', ['type', '1', 'a', 'A', 'i', 'I']],
     th: ['align'],
     td: ['align'],
@@ -70,6 +71,7 @@ const safeHtmlSchema: SanitizeSchema = {
     polyline: ['points', 'fill', 'stroke', 'strokeWidth'],
     mark: ['dataPreviewMarkStart', 'dataPreviewMarkEnd'],
     rect: ['x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'stroke', 'strokeWidth'],
+    section: ['dataFootnotes'],
     span: ['dataPreviewSourceStart', 'dataPreviewSourceEnd'],
     text: ['x', 'y', 'dx', 'dy', 'fill', 'fontSize', 'textAnchor']
   },
@@ -124,6 +126,7 @@ const safeHtmlSchema: SanitizeSchema = {
     'pre',
     'rect',
     's',
+    'section',
     'span',
     'strong',
     'sub',

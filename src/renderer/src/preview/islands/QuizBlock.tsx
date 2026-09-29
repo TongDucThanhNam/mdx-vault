@@ -23,7 +23,7 @@ export function QuizBlock({
   return (
     <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-3">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           Check understanding
         </div>
         <div className="mt-1 font-display text-lg font-bold leading-snug">{question}</div>
@@ -74,7 +74,7 @@ export function QuizBlock({
               : 'border-destructive bg-destructive text-destructive-foreground'
           )}
         >
-          <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
             {selectedCorrect ? (
               <CheckCircle2 className="size-4" aria-hidden="true" />
             ) : (
@@ -87,7 +87,7 @@ export function QuizBlock({
           ) : null}
         </div>
       ) : (
-        <div className="mt-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        <div className="mt-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
           Pick an answer to get immediate feedback.
         </div>
       )}

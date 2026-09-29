@@ -1,5 +1,5 @@
 import { Highlighter } from 'lucide-react'
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { resolveActiveHeadingFromViewport } from '@/components/layout/living-outline'
@@ -10,13 +10,15 @@ import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary } from '@/vault/types'
 import type { WikilinkSubpath } from '../../../shared/wikilinks'
 import { createMdxComponents } from './mdx-components'
-import { type CompiledMdxPreview, compileMdxPreview } from './mdx-preview-compiler'
 import { usePagePreviewSettings } from './page-preview-settings'
+import { sourceOffsetToLine } from './preview-anchor'
 import { applyPreviewHighlight, type PreviewHighlightSelection } from './preview-highlight'
 import { PreviewImageCache } from './preview-image'
 import { isInteractiveNoteTheme, readPreviewFrontmatter } from './preview-metadata'
+import { revealReadingSourceOffset, topReadingSourceLine } from './reading-navigation'
 import { normalizeReadingWheelDelta } from './reading-zoom'
 import { PreviewRuntimeContext } from './runtime'
+import { type PreviewDiagnostic, useLastGoodRender } from './useLastGoodRender'
 import { useWikilinkPreview } from './useWikilinkPreview'
 import { WikilinkPreviewLayer } from './WikilinkPreview'
 import './interactive-note-theme.css'
@@ -38,14 +40,9 @@ interface MdxPreviewProps {
   onReadingZoomWheel: (input: ReadingZoomWheelInput) => void
   onSourceChange: (source: string) => void
   onActiveHeadingChange?: (headingId: string | null) => void
-}
-
-interface PreviewDiagnostic {
-  message: string
-  line?: number
-  column?: number
-  source?: string
-  ruleId?: string
+  initialSourceOffset?: number | null
+  onLeaveReading?: (line: number) => void
+  onCompileStateChange?: (status: 'pending' | 'error' | 'ready') => void
 }
 
 interface PreviewTextSelection extends PreviewHighlightSelection {
@@ -66,22 +63,20 @@ export function MdxPreview({
   isPhysicalZoomModifierDown,
   onReadingZoomWheel,
   onSourceChange,
-  onActiveHeadingChange
+  onActiveHeadingChange,
+  initialSourceOffset,
+  onLeaveReading,
+  onCompileStateChange
 }: MdxPreviewProps): React.JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null)
   const previewContentRef = useRef<HTMLDivElement | null>(null)
   const readingZoomLiveLayerRef = useRef<HTMLDivElement | null>(null)
   const onActiveHeadingChangeRef = useRef(onActiveHeadingChange)
-  const [compiledPreview, setCompiledPreview] = useState<{
-    source: string
-    result: CompiledMdxPreview
-  } | null>(null)
-  const [compileFailure, setCompileFailure] = useState<{
-    source: string
-    diagnostic: PreviewDiagnostic
-  } | null>(null)
-  const [isCompiling, setIsCompiling] = useState(false)
+  const render = useLastGoodRender(selectedPath ?? '', source)
   const [previewSelection, setPreviewSelection] = useState<PreviewTextSelection | null>(null)
+  const leavingRef = useRef({ source: render.renderedSource, onLeaveReading })
+  leavingRef.current = { source: render.renderedSource, onLeaveReading }
+  const initialAnchorAppliedRef = useRef(false)
   const imageCache = useMemo(() => new PreviewImageCache(), [selectedPath])
   const pagePreviewSettings = usePagePreviewSettings()
   const wikilinkPreview = useWikilinkPreview(pagePreviewSettings)
@@ -92,6 +87,8 @@ export function MdxPreview({
         onNavigate,
         selectedPath,
         imageCache,
+        source: render.renderedSource,
+        onRevealLine,
         onPreviewRequest: wikilinkPreview.requestPreview,
         onPreviewDismiss: wikilinkPreview.scheduleDismiss
       }),
@@ -100,16 +97,21 @@ export function MdxPreview({
       onNavigate,
       selectedPath,
       imageCache,
+      render.renderedSource,
+      onRevealLine,
       wikilinkPreview.requestPreview,
       wikilinkPreview.scheduleDismiss
     ]
   )
-  const previewFrontmatter = useMemo(() => readPreviewFrontmatter(source), [source])
+  const previewFrontmatter = useMemo(
+    () => readPreviewFrontmatter(render.renderedSource),
+    [render.renderedSource]
+  )
   const runtimeValue = useMemo(() => ({ selectedPath }), [selectedPath])
   const activeSelection = previewSelection?.source === source ? previewSelection : null
-  const activePreview = compiledPreview?.source === source ? compiledPreview.result : null
+  const activePreview = render.result
   const Content = activePreview?.Content ?? null
-  const compileError = compileFailure?.source === source ? compileFailure.diagnostic : null
+  const compileError = render.failure
 
   useEffect(() => () => imageCache.dispose(), [imageCache])
 
@@ -162,37 +164,40 @@ export function MdxPreview({
   }, [isDarwin, isPhysicalZoomModifierDown, onReadingZoomWheel])
 
   useEffect(() => {
-    let isCancelled = false
-    setIsCompiling(true)
+    onCompileStateChange?.(render.pending ? 'pending' : render.hasError ? 'error' : 'ready')
+  }, [onCompileStateChange, render.hasError, render.pending])
 
-    void compileMdxPreview(source)
-      .then((result) => {
-        if (isCancelled) {
-          return
-        }
-
-        startTransition(() => {
-          setCompiledPreview({ source, result })
-          setCompileFailure(null)
-          setIsCompiling(false)
-        })
-      })
-      .catch((error: unknown) => {
-        if (isCancelled) {
-          return
-        }
-
-        startTransition(() => {
-          setCompiledPreview(null)
-          setCompileFailure({ source, diagnostic: createDiagnostic(error) })
-          setIsCompiling(false)
-        })
-      })
-
+  useLayoutEffect(() => {
+    const root = scrollRootRef.current
     return () => {
-      isCancelled = true
+      const { source: lastSource, onLeaveReading: notify } = leavingRef.current
+      if (root && notify) {
+        const line = topReadingSourceLine(root, lastSource)
+        if (line !== null) notify(line)
+      }
     }
-  }, [source])
+  }, [])
+
+  useLayoutEffect(() => {
+    const root = scrollRootRef.current
+    if (!root || !Content) return
+    root.dataset.previewLayoutReady = 'true'
+    const pendingTop = root.dataset.pendingRestoreTop
+    if (pendingTop !== undefined) {
+      root.scrollTop = Number(pendingTop)
+      root.scrollLeft = Number(root.dataset.pendingRestoreLeft ?? 0)
+      delete root.dataset.pendingRestoreTop
+      delete root.dataset.pendingRestoreLeft
+      initialAnchorAppliedRef.current = true
+    } else if (
+      !initialAnchorAppliedRef.current &&
+      initialSourceOffset !== null &&
+      initialSourceOffset !== undefined
+    ) {
+      revealReadingSourceOffset(root, initialSourceOffset)
+      initialAnchorAppliedRef.current = true
+    }
+  }, [Content, initialSourceOffset])
 
   useEffect(() => {
     if (!revealHeadingRequest) {
@@ -297,12 +302,18 @@ export function MdxPreview({
       ref={scrollRootRef}
       data-testid="reading-preview-scroll"
       data-workbench-scroll-surface="true"
+      data-preview-layout-surface="true"
+      tabIndex={-1}
       className="note-editorial-surface h-full min-h-0 overflow-x-hidden overflow-y-auto"
       role="region"
       aria-label="Reading preview"
     >
       <span className="sr-only" aria-live="polite">
-        {isCompiling ? 'Compiling preview' : 'Preview ready'}
+        {render.pending
+          ? 'Compiling preview'
+          : render.hasError
+            ? 'Preview compile error'
+            : 'Preview ready'}
       </span>
       <div className="mx-auto w-full max-w-[820px]">
         <div
@@ -314,11 +325,69 @@ export function MdxPreview({
           )}
           style={{ zoom: readingZoomFactor, width: `${100 / readingZoomFactor}%` }}
           onMouseUp={capturePreviewSelection}
+          onClick={(event) => {
+            if (
+              !event.altKey ||
+              (event.target instanceof Element &&
+                event.target.closest('a, button, input, textarea, select'))
+            )
+              return
+            const target =
+              event.target instanceof Element
+                ? event.target.closest<HTMLElement>('[data-preview-block-start]')
+                : null
+            const offset = Number(target?.dataset.previewBlockStart)
+            if (target && Number.isInteger(offset) && offset >= 0) {
+              event.preventDefault()
+              onRevealLine(sourceOffsetToLine(render.renderedSource, offset))
+            }
+          }}
         >
           <div ref={readingZoomLiveLayerRef} data-reading-zoom-live-layer="true">
+            {render.pending && Content ? (
+              <div className="sticky top-2 z-10 h-0 text-right">
+                <span
+                  role="status"
+                  className="inline-block border-l-2 border-[var(--note-accent)] bg-[var(--note-paper)] px-2 py-1 font-mono text-xs uppercase tracking-wider"
+                >
+                  Updating reading view
+                </span>
+              </div>
+            ) : null}
+            {compileError && Content ? (
+              <div className="sticky top-0 z-20 mb-6">
+                <div
+                  role="alert"
+                  className="mdx-compile-error-bar flex items-start gap-3 border-2 border-[var(--note-ink)] bg-[var(--note-paper-muted)] px-3 py-2 font-mono text-xs"
+                >
+                  <span className="min-w-0 flex-1 break-words">
+                    Compile error · {compileError.message}
+                  </span>
+                  <div className="flex shrink-0 items-start gap-2">
+                    {compileError.line ? (
+                      <button
+                        type="button"
+                        className="mdx-compile-error-action"
+                        onClick={() => onRevealLine(compileError.line ?? 1)}
+                      >
+                        Line {compileError.line}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="mdx-compile-error-action"
+                      aria-label="Dismiss compile error"
+                      onClick={render.dismissFailure}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <PreviewWarnings warnings={activePreview?.warnings ?? []} />
             <FrontmatterPropertiesBlock properties={previewFrontmatter} />
-            {compileError ? (
+            {compileError && !Content ? (
               <ErrorPanel
                 title="MDX compile error"
                 diagnostic={compileError}
@@ -326,7 +395,7 @@ export function MdxPreview({
               />
             ) : Content ? (
               <ErrorBoundary
-                resetKeys={[source]}
+                resetKeys={[render.renderedSource]}
                 fallbackRender={({ error }) => (
                   <ErrorPanel title="MDX runtime error" diagnostic={createDiagnostic(error)} />
                 )}
@@ -484,7 +553,7 @@ function PreviewWarnings({
 
   return (
     <div className="mb-4 border-2 border-destructive bg-background p-3 text-sm">
-      <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+      <div className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
         Note warning
       </div>
       <ul className="mt-2 space-y-1 pl-5 text-xs text-foreground/80">
@@ -512,7 +581,7 @@ function FrontmatterPropertiesBlock({
 
   return (
     <section className="mdx-frontmatter-properties mb-10 overflow-x-auto border-2 border-foreground bg-paper-dark px-5 py-4 text-sm">
-      <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="mb-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
         Properties
       </div>
       <dl className="grid gap-x-4 gap-y-2 font-mono text-[12px] sm:grid-cols-[7rem_minmax(0,1fr)]">
@@ -557,13 +626,13 @@ function ErrorPanel({
             {location}
           </Button>
         ) : location ? (
-          <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {location}
           </div>
         ) : null}
       </div>
       {diagnostic.source || diagnostic.ruleId ? (
-        <div className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        <div className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
           {[diagnostic.source, diagnostic.ruleId].filter(Boolean).join(' / ')}
         </div>
       ) : null}

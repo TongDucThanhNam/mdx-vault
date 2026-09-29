@@ -70,6 +70,15 @@ describe('preview image paths', () => {
 })
 
 describe('preview image blobs', () => {
+  test('remembers intrinsic aspect ratios for a stable slot on the next render', () => {
+    const cache = new PreviewImageCache()
+    expect(cache.getAspectRatio('assets/photo.png')).toBeNull()
+    cache.rememberAspectRatio('assets/photo.png', 1200, 800)
+    expect(cache.getAspectRatio('assets/photo.png')).toBe(1.5)
+    cache.dispose()
+    expect(cache.getAspectRatio('assets/photo.png')).toBeNull()
+  })
+
   test('infers common MIME types and decodes base64', async () => {
     expect(inferImageMimeType('assets/sample.PNG')).toBe('image/png')
     expect(inferImageMimeType('assets/photo.jpeg')).toBe('image/jpeg')

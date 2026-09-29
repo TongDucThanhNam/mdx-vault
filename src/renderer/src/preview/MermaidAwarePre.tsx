@@ -10,7 +10,16 @@ export function MermaidAwarePre({
   const chart = readMermaidChart(children)
 
   if (chart) {
-    return <MermaidDiagram chart={chart} />
+    const sourceOffset = (props as Record<string, unknown>)['data-preview-block-start']
+    const sourceLine = (props as Record<string, unknown>)['data-preview-block-line']
+    return (
+      <div
+        data-preview-block-start={typeof sourceOffset === 'string' ? sourceOffset : undefined}
+        data-preview-block-line={typeof sourceLine === 'string' ? sourceLine : undefined}
+      >
+        <MermaidDiagram chart={chart} />
+      </div>
+    )
   }
 
   return <pre {...props}>{children}</pre>

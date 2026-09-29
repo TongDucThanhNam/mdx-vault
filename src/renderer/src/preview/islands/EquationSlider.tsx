@@ -139,13 +139,13 @@ export function EquationSlider({
     <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
             Equation slider
           </div>
           <div className="mt-1 font-mono text-lg font-bold">{formula}</div>
         </div>
         <div className="border-2 border-foreground bg-[var(--editorial-blue)] px-3 py-2 text-right text-white shadow-[2px_2px_0_0_var(--foreground)]">
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-white">
+          <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-white">
             Result
           </div>
           <div className="font-mono text-2xl font-bold tabular-nums text-white">
@@ -175,7 +175,7 @@ export function EquationSlider({
                 className="w-full accent-[var(--editorial-red)]"
                 onChange={(event) => handleVariableChange(name, Number(event.currentTarget.value))}
               />
-              <div className="mt-1 flex justify-between font-mono text-[11px] text-muted-foreground">
+              <div className="mt-1 flex justify-between font-mono text-xs text-muted-foreground">
                 <span>{numberFormatter.format(config.min)}</span>
                 <span>{numberFormatter.format(config.max)}</span>
               </div>
@@ -184,7 +184,7 @@ export function EquationSlider({
         </div>
 
         <div className="min-w-0 border-2 border-foreground bg-card p-3">
-          <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          <div className="mb-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
             {chartVariable ? `Result as ${chartVariable[0]} changes` : 'Mini chart'}
           </div>
           <div className="h-56 min-w-0">

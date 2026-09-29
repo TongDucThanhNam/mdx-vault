@@ -333,8 +333,16 @@ export function useWorkbench({
         if (!restoredEditor && item.viewState) {
           const surface = getActiveDocumentScrollSurface()
           if (surface) {
-            surface.scrollTop = item.viewState.scrollTop ?? 0
-            surface.scrollLeft = item.viewState.scrollLeft ?? 0
+            if (
+              surface.dataset.previewLayoutSurface === 'true' &&
+              surface.dataset.previewLayoutReady !== 'true'
+            ) {
+              surface.dataset.pendingRestoreTop = String(item.viewState.scrollTop ?? 0)
+              surface.dataset.pendingRestoreLeft = String(item.viewState.scrollLeft ?? 0)
+            } else {
+              surface.scrollTop = item.viewState.scrollTop ?? 0
+              surface.scrollLeft = item.viewState.scrollLeft ?? 0
+            }
           }
         }
 

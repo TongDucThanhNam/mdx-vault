@@ -1,5 +1,5 @@
 import { Blocks, Save } from 'lucide-react'
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useRef, useState } from 'react'
 import { AiSelectionActionPalette } from '@/ai/panels/AiSelectionActionPalette'
 import type { CommandActionRegistry } from '@/commands/actions'
 import { EmptyState } from '@/components/EmptyState'
@@ -54,6 +54,7 @@ interface MainEditorProps {
   noteActions: NoteActionsController
   editorInteractions: EditorInteractionsController
   onReadingActiveHeadingChange: (headingId: string | null) => void
+  onReadingCompileStateChange: (path: string, status: 'pending' | 'error' | 'ready') => void
   readingZoom: ReadingZoomController
   vaultTreeFiles: readonly VaultTreeFile[]
   starterProofProjectRoot: string | null
@@ -78,6 +79,7 @@ export function MainEditor({
   noteActions,
   editorInteractions,
   onReadingActiveHeadingChange,
+  onReadingCompileStateChange,
   readingZoom,
   vaultTreeFiles,
   starterProofProjectRoot,
@@ -102,7 +104,48 @@ export function MainEditor({
   const activeItemMissing = activeItem?.id === selectedPath && activeItem.missing
   const selectedImageMetadata = imageMetadata?.relativePath === selectedPath ? imageMetadata : null
   const { isDarwin, isPhysicalModifierDown } = usePhysicalZoomModifier()
+  const lastEditableModeRef = useRef<'source' | 'live'>('live')
+  const previousSurfaceRef = useRef<{ path: string | null; mode: ViewMode } | null>(null)
+  const readingAnchorRef = useRef<number | null>(null)
+  const explicitRevealRef = useRef(false)
+  const currentSurfaceRef = useRef({ path: selectedPath, mode: viewMode })
+  currentSurfaceRef.current = { path: selectedPath, mode: viewMode }
+  if (viewMode !== 'reading') lastEditableModeRef.current = viewMode
+  if (
+    previousSurfaceRef.current?.path === selectedPath &&
+    previousSurfaceRef.current.mode !== 'reading' &&
+    viewMode === 'reading'
+  ) {
+    readingAnchorRef.current = editorInteractions.editorSelection?.head ?? 0
+    explicitRevealRef.current = false
+  } else if (previousSurfaceRef.current?.path !== selectedPath) {
+    readingAnchorRef.current = null
+    explicitRevealRef.current = false
+  }
+  previousSurfaceRef.current = { path: selectedPath, mode: viewMode }
   const { factor: readingZoomFactor, adjustFromWheel: adjustReadingZoomFromWheel } = readingZoom
+
+  const revealFromReading = useCallback(
+    (line: number): void => {
+      explicitRevealRef.current = true
+      void commandActions.dispatch(`view.${lastEditableModeRef.current}`)
+      window.setTimeout(() => editorInteractions.revealEditorLine(line), 0)
+    },
+    [commandActions, editorInteractions]
+  )
+
+  const leaveReading = useCallback(
+    (path: string, line: number): void => {
+      if (
+        currentSurfaceRef.current.path !== path ||
+        currentSurfaceRef.current.mode === 'reading' ||
+        explicitRevealRef.current
+      )
+        return
+      window.setTimeout(() => editorInteractions.revealEditorLine(line), 0)
+    },
+    [editorInteractions]
+  )
 
   const handleNavigateWikilink = useCallback(
     async (relativePath: string, subpath?: WikilinkSubpath | null): Promise<void> => {
@@ -275,6 +318,7 @@ export function MainEditor({
               />
             ) : viewMode === 'reading' ? (
               <MdxPreview
+                key={selectedPath}
                 source={editor.content}
                 selectedPath={selectedPath}
                 readingZoomFactor={readingZoomFactor}
@@ -282,7 +326,10 @@ export function MainEditor({
                 revealHeadingRequest={editorInteractions.previewHeadingRequest}
                 onActiveHeadingChange={onReadingActiveHeadingChange}
                 onNavigate={handleNavigateWikilink}
-                onRevealLine={editorInteractions.revealEditorLine}
+                onRevealLine={revealFromReading}
+                initialSourceOffset={readingAnchorRef.current}
+                onLeaveReading={(line) => leaveReading(selectedPath, line)}
+                onCompileStateChange={(status) => onReadingCompileStateChange(selectedPath, status)}
                 isDarwin={isDarwin}
                 isPhysicalZoomModifierDown={isPhysicalModifierDown}
                 onReadingZoomWheel={adjustReadingZoomFromWheel}

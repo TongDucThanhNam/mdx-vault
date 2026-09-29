@@ -67,28 +67,32 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps): React.JSX.Elemen
 
   return (
     <section className="mdx-mermaid my-5 overflow-hidden border-2 border-foreground bg-background shadow-[3px_3px_0_0_var(--foreground)]">
-      <div className="border-b-2 border-foreground bg-background px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="border-b-2 border-foreground bg-background px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
         Mermaid
       </div>
-      {state.status === 'ready' ? (
-        <iframe
-          key={instanceId}
-          title="Mermaid diagram"
-          sandbox=""
-          referrerPolicy="no-referrer"
-          srcDoc={state.srcDoc}
-          className="block w-full border-0 bg-background"
-          style={{ height: state.height }}
-        />
-      ) : state.status === 'error' ? (
-        <pre className="m-0 max-h-72 overflow-auto whitespace-pre-wrap border-0 bg-background p-4 font-mono text-xs text-destructive shadow-none">
-          {state.message}
-        </pre>
-      ) : (
-        <div className="flex min-h-40 items-center justify-center px-4 font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
-          Rendering diagram.
-        </div>
-      )}
+      <div
+        className="min-h-[260px] overflow-hidden motion-safe:transition-[height] motion-safe:duration-150"
+        style={{ height: state.status === 'ready' ? Math.max(260, state.height) : 260 }}
+      >
+        {state.status === 'ready' ? (
+          <iframe
+            key={instanceId}
+            title="Mermaid diagram"
+            sandbox=""
+            referrerPolicy="no-referrer"
+            srcDoc={state.srcDoc}
+            className="block size-full border-0 bg-background"
+          />
+        ) : state.status === 'error' ? (
+          <pre className="m-0 max-h-72 overflow-auto whitespace-pre-wrap border-0 bg-background p-4 font-mono text-xs text-destructive shadow-none">
+            {state.message}
+          </pre>
+        ) : (
+          <div className="flex size-full items-center justify-center px-4 font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+            Rendering diagram.
+          </div>
+        )}
+      </div>
     </section>
   )
 }

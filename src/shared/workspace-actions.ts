@@ -408,7 +408,7 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     category: 'View',
     keywords: ['editor'],
     context: 'Workspace',
-    defaultBindings: bindings()
+    defaultBindings: bindings(['Mod+Alt+1'])
   }),
   action({
     id: 'view.live',
@@ -417,7 +417,7 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     category: 'View',
     keywords: ['editor', 'preview'],
     context: 'Workspace',
-    defaultBindings: bindings()
+    defaultBindings: bindings(['Mod+Alt+2'])
   }),
   action({
     id: 'view.reading',
@@ -426,7 +426,79 @@ export const WORKSPACE_ACTION_DEFINITIONS = [
     category: 'View',
     keywords: ['rendered'],
     context: 'Workspace',
-    defaultBindings: bindings()
+    defaultBindings: bindings(['Mod+Alt+3'])
+  }),
+  action({
+    id: 'view.toggle-reading',
+    title: 'Toggle Reading view',
+    description: 'Switch between Reading and the last editable view.',
+    category: 'View',
+    keywords: ['source', 'live', 'preview'],
+    context: 'Workspace',
+    defaultBindings: bindings(['Mod+Alt+V'])
+  }),
+  action({
+    id: 'reading.edit-at-position',
+    title: 'Edit at this position',
+    description: 'Reveal the top visible Reading block in the last editable view.',
+    category: 'Reading',
+    keywords: ['source', 'cursor'],
+    context: 'Reading',
+    defaultBindings: bindings(['Mod+Alt+E'])
+  }),
+  action({
+    id: 'reading.next-heading',
+    title: 'Reading: Next heading',
+    description: 'Move to the next rendered heading.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['Alt+ArrowDown']),
+    allowRepeat: true
+  }),
+  action({
+    id: 'reading.previous-heading',
+    title: 'Reading: Previous heading',
+    description: 'Move to the previous rendered heading.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['Alt+ArrowUp']),
+    allowRepeat: true
+  }),
+  action({
+    id: 'reading.page-down',
+    title: 'Reading: Page down',
+    description: 'Scroll Reading by one viewport.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['PageDown']),
+    allowRepeat: true
+  }),
+  action({
+    id: 'reading.page-up',
+    title: 'Reading: Page up',
+    description: 'Scroll Reading up by one viewport.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['PageUp']),
+    allowRepeat: true
+  }),
+  action({
+    id: 'reading.half-page-down',
+    title: 'Reading: Half-page down',
+    description: 'Scroll Reading by half a viewport.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['Alt+PageDown']),
+    allowRepeat: true
+  }),
+  action({
+    id: 'reading.half-page-up',
+    title: 'Reading: Half-page up',
+    description: 'Scroll Reading up by half a viewport.',
+    category: 'Reading',
+    context: 'Reading',
+    defaultBindings: bindings(['Alt+PageUp']),
+    allowRepeat: true
   }),
   action({
     id: 'view.toggle-reading-full-view',

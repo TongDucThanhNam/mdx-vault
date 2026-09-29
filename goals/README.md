@@ -49,6 +49,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-29-living-outline-section-intelligence.md | Live active outline, stable heading identity, section-aware search/navigation | 02, 12, 23, 26, 27, 28 |
 | GOAL-30-compact-zed-titlebar-menu.md | One-trigger titlebar menu + active vault selector | 20, 22, 26, 29 |
 | GOAL-31-reactive-vault.md | Shared cell bus: prose binding `{n}`, island publish/subscribe qua manifest cells, cross-note cells + permission, adaptive prose, dataflow view, export replay | 04, 05, 06, 17, 19, 22, 25, 28 |
+| GOAL-32-zed-grade-reading-ux.md | Stable, keyboard-first single-pane Reading and source-position navigation | 22, 26, 27, 28, 29 |
 
 ## Trạng thái ký hiệu trong goal
 

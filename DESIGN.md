@@ -176,6 +176,16 @@ supplementary dock.
   selected text. In the MDX editor, `Mod+B`, `Mod+I`, `Mod+E` and `Ctrl+H`
   format bold, italic, inline code and highlight respectively.
 - Reading zoom and interface scale are separate settings.
+- Reading retains the last good document while compiling, marks a stale or failed
+  compile in a compact rail, and never replaces readable prose with a spinner.
+  Alt+click on a non-link block or the “Edit at this position” command reveals
+  its source line; links keep their normal navigation. Source/Live↔Reading
+  transfers the nearest semantic block, while tab restore retains pixel scroll.
+  Resizable evidence reserves its document space and respects scroll anchoring.
+  Each trusted island contains its own runtime error on the paper.
+- Note labels, captions and status text are at least 12px. Footnote references
+  use the red paper accent, a ruled notes section, explicit back-links and
+  ink-only print styling.
 - Source, Live Preview and Reading remain views of the same file/buffer.
 - Outline reflects the active unsaved buffer. Source/Live follow the caret;
   Reading follows the heading nearest the top of its nested viewport. Active

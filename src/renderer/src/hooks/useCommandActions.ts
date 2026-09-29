@@ -10,6 +10,11 @@ import type { ViewMode } from '@/components/ViewModeToggle'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
 import type { WorkbenchController } from '@/hooks/useWorkbench'
 import { formatError } from '@/lib/format-error'
+import {
+  navigateReadingHeading,
+  scrollReading,
+  topReadingSourceLine
+} from '@/preview/reading-navigation'
 import type { NoteTemplate, VaultInfo } from '@/vault/types'
 import {
   formatKeyBinding,
@@ -57,6 +62,9 @@ interface UseCommandActionsOptions {
   addProperty: () => void
   focusEditor: () => void
   setViewMode: Dispatch<SetStateAction<ViewMode>>
+  viewMode: ViewMode
+  readingSource: string
+  revealEditorLine: (line: number) => void
   readingFullViewEnabled: boolean
   toggleReadingFullView: () => void
   readingZoomEnabled: boolean
@@ -94,6 +102,9 @@ export function useCommandActions({
   addProperty,
   focusEditor,
   setViewMode,
+  viewMode,
+  readingSource,
+  revealEditorLine,
   readingFullViewEnabled,
   toggleReadingFullView,
   readingZoomEnabled,
@@ -101,6 +112,8 @@ export function useCommandActions({
   onError
 }: UseCommandActionsOptions): CommandActionRegistry {
   const platform = toKeybindingPlatform(window.windowApi.platform)
+  const lastEditingModeRef = useRef<'source' | 'live'>('live')
+  if (viewMode !== 'reading') lastEditingModeRef.current = viewMode
   const {
     zoomIn: zoomReadingIn,
     zoomOut: zoomReadingOut,
@@ -158,6 +171,41 @@ export function useCommandActions({
       'view.source': () => setViewMode('source'),
       'view.live': () => setViewMode('live'),
       'view.reading': () => setViewMode('reading'),
+      'view.toggle-reading': () =>
+        setViewMode((current) => (current === 'reading' ? lastEditingModeRef.current : 'reading')),
+      'reading.edit-at-position': () => {
+        const root = getReadingRoot()
+        if (!root) return false
+        const line = topReadingSourceLine(root, readingSource)
+        if (line === null) return false
+        setViewMode(lastEditingModeRef.current)
+        window.setTimeout(() => revealEditorLine(line), 0)
+        return true
+      },
+      'reading.next-heading': () => {
+        const root = getReadingRoot()
+        return root ? navigateReadingHeading(root, 1) : false
+      },
+      'reading.previous-heading': () => {
+        const root = getReadingRoot()
+        return root ? navigateReadingHeading(root, -1) : false
+      },
+      'reading.page-down': () => {
+        const root = getReadingRoot()
+        if (root) scrollReading(root, 1)
+      },
+      'reading.page-up': () => {
+        const root = getReadingRoot()
+        if (root) scrollReading(root, -1)
+      },
+      'reading.half-page-down': () => {
+        const root = getReadingRoot()
+        if (root) scrollReading(root, 0.5)
+      },
+      'reading.half-page-up': () => {
+        const root = getReadingRoot()
+        if (root) scrollReading(root, -0.5)
+      },
       'view.toggle-reading-full-view': toggleReadingFullView,
       ...createReadingZoomActionHandlers({
         zoomIn: zoomReadingIn,
@@ -190,6 +238,8 @@ export function useCommandActions({
       openSettings,
       openVault,
       resetReadingZoom,
+      readingSource,
+      revealEditorLine,
       setViewMode,
       toggleAiPanel,
       toggleExplorerFocus,
@@ -257,6 +307,14 @@ export function useCommandActions({
       'view.source': hasNote,
       'view.live': hasNote,
       'view.reading': hasNote,
+      'view.toggle-reading': hasNote,
+      'reading.edit-at-position': readingZoomEnabled,
+      'reading.next-heading': readingZoomEnabled,
+      'reading.previous-heading': readingZoomEnabled,
+      'reading.page-down': readingZoomEnabled,
+      'reading.page-up': readingZoomEnabled,
+      'reading.half-page-down': readingZoomEnabled,
+      'reading.half-page-up': readingZoomEnabled,
       'view.toggle-reading-full-view': readingFullViewEnabled,
       'view.zoom-in': readingZoomEnabled,
       'view.zoom-out': readingZoomEnabled,
@@ -394,4 +452,8 @@ function getTargetItemId(input: unknown): string | null {
 
 function toKeybindingPlatform(platform: typeof window.windowApi.platform): KeybindingPlatform {
   return platform === 'darwin' || platform === 'win32' ? platform : 'linux'
+}
+
+function getReadingRoot(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[data-testid="reading-preview-scroll"]')
 }

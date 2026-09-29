@@ -22,7 +22,7 @@ export function Counter({ initial = 0 }: CounterProps): React.JSX.Element {
         <Minus className="size-4" aria-hidden="true" />
       </Button>
       <div className="min-w-16 text-center">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           Counter
         </div>
         <div className="mt-1 bg-[var(--editorial-blue)] px-2 font-mono text-2xl font-bold tabular-nums text-white">

@@ -12,7 +12,7 @@ export function ComponentValidationWarning({
 }: ComponentValidationWarningProps): React.JSX.Element {
   return (
     <div className="my-4 border-2 border-destructive bg-background p-3 text-sm">
-      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+      <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-destructive">
         <AlertTriangle className="size-4" aria-hidden="true" />
         Invalid props for {componentName}
       </div>
@@ -34,11 +34,11 @@ export function UnknownComponentPlaceholder({
 }): React.JSX.Element {
   return (
     <div className="my-4 border-2 border-dashed border-foreground bg-muted p-3 text-sm text-muted-foreground">
-      <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">
+      <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-foreground">
         <CircleHelp className="size-4" aria-hidden="true" />
         Unknown component: {componentName}
       </div>
-      <div className="mt-1 font-mono text-[11px] uppercase tracking-wider">
+      <div className="mt-1 font-mono text-xs uppercase tracking-wider">
         Register this component before using it as a trusted MDX island.
       </div>
     </div>

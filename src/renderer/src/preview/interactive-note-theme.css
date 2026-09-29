@@ -74,7 +74,7 @@
   margin-bottom: 0.5rem;
   color: var(--in-accent);
   font-family: 'Courier Prime', monospace;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -98,7 +98,7 @@
 .mdx-preview .in-primer-link {
   color: var(--in-accent);
   font-family: 'Courier Prime', monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -213,7 +213,7 @@
   background: var(--in-ink);
   padding: 0.15rem 0.6rem;
   color: var(--in-paper);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .mdx-preview .in-widget-misconception {
@@ -346,7 +346,7 @@
   border-top: 2px dashed var(--in-line);
   padding-top: 0.35rem;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   letter-spacing: 1px;
   opacity: 0.7;
   text-transform: uppercase;
@@ -363,7 +363,7 @@
   gap: 0.5rem;
   margin: 0.28rem 0;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -415,7 +415,7 @@
   border-left: 2px solid var(--in-ink);
   padding: 1px 0;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   letter-spacing: 1px;
   text-align: center;
 }
@@ -494,7 +494,7 @@
   background: var(--in-paper);
   padding: 0.45rem 0.65rem;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-align: center;
 }
 
@@ -509,7 +509,7 @@
 
 .mdx-preview .in-flow-node-sublabel {
   margin-top: 0.15rem;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   opacity: 0.75;
 }
 
@@ -523,7 +523,7 @@
 }
 
 .mdx-preview .in-flow-edge-label {
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   letter-spacing: 1px;
 }
 
@@ -535,7 +535,7 @@
 .mdx-preview .in-visual-caption {
   margin-top: 0.5rem;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.5px;
   text-align: center;
   text-transform: uppercase;
@@ -572,7 +572,7 @@
   padding: 0.15rem 0.5rem;
   color: var(--in-paper);
   font-family: 'Courier Prime', monospace;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -893,6 +893,64 @@
   border-top: 2px solid var(--in-ink);
 }
 
+.note-editorial-surface {
+  overflow-anchor: auto;
+}
+
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnote-ref] {
+  color: var(--note-accent);
+  font-family: var(--note-font-ui);
+  font-size: var(--note-type-caption);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnotes] {
+  margin-top: var(--note-space-7);
+  border-top: 2px solid var(--note-ink);
+  padding-top: var(--note-space-4);
+  font-size: 0.9rem;
+}
+
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnotes] > h2 {
+  margin-bottom: var(--note-space-3);
+  margin-top: 0;
+  border: 0;
+  padding: 0;
+  color: var(--note-ink);
+  font-family: var(--note-font-ui);
+  font-size: var(--note-type-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnotes] ol {
+  padding-left: 1.5rem;
+}
+
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnote-backref] {
+  margin-left: 0.3rem;
+  color: var(--note-accent);
+  font-family: var(--note-font-ui);
+  font-size: var(--note-type-caption);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media print {
+  .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnotes] {
+    break-before: auto;
+    border-top-color: #111;
+  }
+
+  .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnote-ref],
+  .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) [data-footnote-backref] {
+    color: #111;
+  }
+}
+
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note) table {
   width: 100%;
   margin: 1rem 0;
@@ -1131,6 +1189,25 @@ button:not([data-page-preview-owned='true']),
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+}
+
+.mdx-preview .mdx-compile-error-bar .mdx-compile-error-action,
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note)
+  .mdx-compile-error-bar
+  .mdx-compile-error-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid var(--note-ink);
+  background: var(--note-paper);
+  box-shadow: none;
+  padding: 0 6px;
+  color: var(--note-ink);
+  line-height: 1;
 }
 
 .mdx-preview:is(.theme-editorial-note, .theme-interactive-note)

@@ -27,6 +27,7 @@ interface CachedImage {
 
 export class PreviewImageCache {
   private readonly entries = new Map<string, CachedImage>()
+  private readonly aspectRatios = new Map<string, number>()
   private readonly readImageFile: (relativePath: string) => Promise<string>
   private readonly createObjectUrl: (blob: Blob) => string
   private readonly revokeObjectUrl: (url: string) => void
@@ -71,6 +72,14 @@ export class PreviewImageCache {
 
     this.entries.set(relativePath, entry)
     return entry.promise
+  }
+
+  getAspectRatio(relativePath: string): number | null {
+    return this.aspectRatios.get(relativePath) ?? null
+  }
+
+  rememberAspectRatio(relativePath: string, width: number, height: number): void {
+    if (width > 0 && height > 0) this.aspectRatios.set(relativePath, width / height)
   }
 
   /**
@@ -128,6 +137,7 @@ export class PreviewImageCache {
     }
 
     this.entries.clear()
+    this.aspectRatios.clear()
   }
 }
 

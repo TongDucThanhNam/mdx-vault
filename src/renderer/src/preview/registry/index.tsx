@@ -25,6 +25,7 @@ import { traceBlockRegistryEntry } from './interactive-note/trace-block'
 import { widgetFrameRegistryEntry } from './interactive-note/widget-frame'
 import { ComponentValidationWarning } from './messages'
 import { quizBlockRegistryEntry } from './quiz-block'
+import { RegistryIslandBoundary } from './RegistryIslandBoundary'
 import type { ComponentRegistryEntry, MdxRegistryComponentMetadata } from './types'
 
 export interface RegistryInsertTemplate {
@@ -91,14 +92,17 @@ export function getRegistryLanguageMetadata(): MdxRegistryComponentMetadata[] {
   }))
 }
 
-export function createRegistryComponents(): MDXComponents {
+export function createRegistryComponents(
+  options: { source?: string; onRevealLine?: (line: number) => void } = {}
+): MDXComponents {
   return Object.fromEntries(
-    componentRegistry.map((entry) => [entry.name, createValidatedComponent(entry)])
+    componentRegistry.map((entry) => [entry.name, createValidatedComponent(entry, options)])
   ) as MDXComponents
 }
 
 function createValidatedComponent<TProps extends object>(
-  entry: ComponentRegistryEntry<TProps>
+  entry: ComponentRegistryEntry<TProps>,
+  options: { source?: string; onRevealLine?: (line: number) => void }
 ): ComponentType<Record<string, unknown>> {
   function ValidatedRegistryComponent(rawProps: Record<string, unknown>): React.JSX.Element {
     const mergedProps = {
@@ -113,7 +117,15 @@ function createValidatedComponent<TProps extends object>(
 
     const Component = entry.component as ComponentType<TProps>
 
-    return <Component {...result.data} />
+    return (
+      <RegistryIslandBoundary
+        name={entry.name}
+        source={options.source ?? ''}
+        onRevealLine={options.onRevealLine}
+      >
+        <Component {...result.data} />
+      </RegistryIslandBoundary>
+    )
   }
 
   ValidatedRegistryComponent.displayName = `Validated${entry.name}`

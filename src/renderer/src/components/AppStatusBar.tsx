@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useDeferredValue, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
+import type { ViewMode } from '@/components/ViewModeToggle'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { computeWordCount } from '@/lib/word-count'
@@ -23,6 +24,8 @@ interface AppStatusBarProps {
   rightPanelOpen: boolean
   aiPanelOpen: boolean
   hasVault: boolean
+  viewMode?: ViewMode | null
+  compileStatus?: 'pending' | 'error' | 'ready' | null
   cursorPosition?: { line: number; column: number } | null
   readingZoomFactor?: number
   onToggleLeftPanel: () => void
@@ -43,6 +46,8 @@ export function AppStatusBar({
   rightPanelOpen,
   aiPanelOpen,
   hasVault,
+  viewMode,
+  compileStatus,
   cursorPosition,
   readingZoomFactor,
   onToggleLeftPanel,
@@ -95,6 +100,20 @@ export function AppStatusBar({
               ? t('status.loading')
               : saveLabel}
         </span>
+        {viewMode ? (
+          <span className="border-l border-border px-2 font-mono text-xs uppercase">
+            {viewMode}
+          </span>
+        ) : null}
+        {compileStatus && viewMode === 'reading' ? (
+          <span className="border-l border-border px-2 font-mono text-xs" role="status">
+            {compileStatus === 'pending'
+              ? 'Updating'
+              : compileStatus === 'error'
+                ? 'Compile issue'
+                : 'Ready'}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex h-full items-center">

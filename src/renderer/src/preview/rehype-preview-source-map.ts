@@ -7,6 +7,9 @@ interface PreviewSourceMapOptions {
 
 const eligibleTextParents = new Set([
   'blockquote',
+  'details',
+  'div',
+  'dl',
   'del',
   'em',
   'h1',
@@ -16,6 +19,7 @@ const eligibleTextParents = new Set([
   'h5',
   'h6',
   'li',
+  'ol',
   'mark',
   'p',
   'strong',
@@ -44,17 +48,86 @@ export function rehypePreviewHeadingIdentity() {
   }
 }
 
+const sourceBlocks = new Set([
+  'blockquote',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'p',
+  'pre',
+  'table',
+  'ul',
+  'aside',
+  'img'
+])
+
+/** Add trusted offsets only after untrusted HTML has passed sanitization. */
+export function rehypePreviewBlockMap() {
+  return function annotateBlocks(tree: Root): Root {
+    annotateBlockChildren(tree)
+    return tree
+  }
+}
+
+function annotateBlockChildren(parent: Root | Element): void {
+  parent.children = parent.children.map((child) => {
+    if (child.type === 'element') {
+      const id = child.properties?.id
+      // GFM already prefixes generated footnote IDs. Sanitizer prefixes every
+      // allowed ID once more; remove only that duplicate while retaining the
+      // clobber-safe user-content prefix and the matching fragment target.
+      if (typeof id === 'string' && /^user-content-user-content-fn(?:ref)?-/.test(id)) {
+        child.properties.id = id.replace('user-content-user-content-', 'user-content-')
+      }
+      if (sourceBlocks.has(child.tagName) && child.position?.start.offset !== undefined) {
+        child.properties = {
+          ...child.properties,
+          dataPreviewBlockStart: String(child.position.start.offset),
+          dataPreviewBlockLine: String(child.position.start.line)
+        }
+      }
+      annotateBlockChildren(child)
+      return child
+    }
+
+    // safe-html restored this trusted MDX component after sanitization.
+    // A neutral wrapper carries its source position without forwarding props.
+    if (child.type === 'mdxJsxFlowElement' && child.position?.start.offset !== undefined) {
+      return {
+        type: 'element',
+        tagName: 'div',
+        properties: {
+          dataPreviewBlockStart: String(child.position.start.offset),
+          dataPreviewBlockLine: String(child.position.start.line)
+        },
+        children: [child],
+        position: child.position
+      }
+    }
+    return child
+  })
+}
+
 function annotateHeadingIdentities(tree: Root): void {
   const occurrences = new Map<string, number>()
   let position = 0
 
-  visitElements(tree, (element) => {
+  visitElements(tree, (element, parent) => {
     if (!/^h[1-6]$/.test(element.tagName)) return
 
     const identity = createUniqueHeadingId(readElementText(element), occurrences)
+    const isFootnoteLabel =
+      parent.type === 'element' &&
+      parent.tagName === 'section' &&
+      parent.properties.dataFootnotes !== undefined &&
+      element.tagName === 'h2'
     element.properties = {
       ...element.properties,
-      id: identity.id,
+      id: isFootnoteLabel ? 'footnote-label' : identity.id,
       dataMdxHeadingId: identity.id,
       dataMdxHeadingPosition: String(position)
     }
@@ -62,10 +135,13 @@ function annotateHeadingIdentities(tree: Root): void {
   })
 }
 
-function visitElements(parent: Root | Element, visit: (element: Element) => void): void {
+function visitElements(
+  parent: Root | Element,
+  visit: (element: Element, parent: Root | Element) => void
+): void {
   parent.children.forEach((child) => {
     if (child.type !== 'element') return
-    visit(child)
+    visit(child, parent)
     visitElements(child, visit)
   })
 }

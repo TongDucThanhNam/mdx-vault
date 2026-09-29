@@ -160,8 +160,18 @@ describe('workspace action registry', () => {
     expect(formatKeyBinding('Mod+}', 'darwin')).toBe('Cmd+}')
   })
 
-  test('removes the two conflicting legacy global defaults', () => {
-    expect(getDefaultBindings('view.live', 'win32')).toEqual([])
+  test('replaces the conflicting legacy defaults with distinct mode chords', () => {
+    expect(getDefaultBindings('view.source', 'win32')).toEqual(['Mod+Alt+1'])
+    expect(getDefaultBindings('view.live', 'win32')).toEqual(['Mod+Alt+2'])
+    expect(getDefaultBindings('view.reading', 'win32')).toEqual(['Mod+Alt+3'])
+    expect(getDefaultBindings('view.toggle-reading', 'win32')).toEqual(['Mod+Alt+V'])
+    expect(getDefaultBindings('reading.edit-at-position', 'win32')).toEqual(['Mod+Alt+E'])
+    expect(getDefaultBindings('reading.next-heading', 'win32')).toEqual(['Alt+ArrowDown'])
+    expect(getDefaultBindings('reading.previous-heading', 'win32')).toEqual(['Alt+ArrowUp'])
+    expect(getDefaultBindings('reading.page-down', 'win32')).toEqual(['PageDown'])
+    expect(getDefaultBindings('reading.page-up', 'win32')).toEqual(['PageUp'])
+    expect(getDefaultBindings('reading.half-page-down', 'win32')).toEqual(['Alt+PageDown'])
+    expect(getDefaultBindings('reading.half-page-up', 'win32')).toEqual(['Alt+PageUp'])
     expect(getDefaultBindings('note.export', 'win32')).toEqual([])
     expect(getDefaultBindings('explorer.toggle-focus', 'win32')).toEqual(['Mod+Shift+E'])
 

@@ -84,7 +84,7 @@ export function AlgorithmVisualizer({
     <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
             Algorithm visualizer
           </div>
           <div className="mt-1 font-display text-lg font-bold">
@@ -167,11 +167,11 @@ function BinarySearchView({
                   'border-[var(--editorial-red)] bg-[var(--editorial-red)] text-white'
               )}
             >
-              <div className="min-h-4 font-mono text-[10px] font-bold uppercase text-muted-foreground">
+              <div className="min-h-4 font-mono text-xs font-bold uppercase text-muted-foreground">
                 {labels.join(' ')}
               </div>
               <div className="font-mono text-base font-bold tabular-nums">{value}</div>
-              <div className="mt-1 font-mono text-[10px] text-muted-foreground">{index}</div>
+              <div className="mt-1 font-mono text-xs text-muted-foreground">{index}</div>
             </div>
           )
         })}
@@ -206,7 +206,7 @@ function BubbleSortView({
             >
               {value}
             </div>
-            <div className="font-mono text-[10px] text-muted-foreground">{index}</div>
+            <div className="font-mono text-xs text-muted-foreground">{index}</div>
           </div>
         )
       })}

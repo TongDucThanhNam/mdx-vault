@@ -37,6 +37,8 @@ interface CreateMdxComponentsOptions {
   onNavigate: (relativePath: string, subpath?: WikilinkSubpath | null) => void
   selectedPath: string | null
   imageCache: PreviewImageCache
+  source?: string
+  onRevealLine?: (line: number) => void
   onPreviewRequest?: (intent: WikilinkPreviewIntent) => void
   onPreviewDismiss?: (relatedTarget?: EventTarget | null) => void
 }
@@ -46,10 +48,12 @@ export function createMdxComponents({
   onNavigate,
   selectedPath,
   imageCache,
+  source,
+  onRevealLine,
   onPreviewRequest,
   onPreviewDismiss
 }: CreateMdxComponentsOptions): MDXComponents {
-  const registryComponents = createRegistryComponents()
+  const registryComponents = createRegistryComponents({ source, onRevealLine })
   const unknownComponents = new Map<string, ComponentType<Record<string, unknown>>>()
   const PreviewImage = createPreviewImageComponent(selectedPath, imageCache)
 
@@ -58,6 +62,13 @@ export function createMdxComponents({
     children,
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement>): ReactNode {
+    if (href?.startsWith('#')) {
+      return (
+        <a href={href} {...props}>
+          {children}
+        </a>
+      )
+    }
     const target = parseWikilinkUrl(href)
     const markdownTarget = target
       ? null
@@ -189,6 +200,16 @@ function createPreviewImageComponent(
       path: '',
       status: 'loading'
     })
+    const authoredRatio =
+      Number(props.width) > 0 && Number(props.height) > 0
+        ? Number(props.width) / Number(props.height)
+        : null
+    const [imageRatio] = useState(
+      () =>
+        authoredRatio ??
+        imageCache.getAspectRatio(resolution.kind === 'vault' ? resolution.relativePath : '') ??
+        16 / 9
+    )
 
     useEffect(() => {
       if (resolution.kind !== 'vault') {
@@ -236,28 +257,48 @@ function createPreviewImageComponent(
     const currentState = readCurrentImageState(resolution, loadState)
     if (currentState.status === 'ready' && currentState.objectUrl) {
       return (
-        <img
-          {...props}
-          src={currentState.objectUrl}
-          alt={alt}
-          title={title}
-          className={cn('block h-auto max-w-full', className)}
-        />
+        <span
+          className="relative block w-full max-h-[480px] overflow-hidden"
+          style={{ aspectRatio: imageRatio }}
+        >
+          <img
+            {...props}
+            src={currentState.objectUrl}
+            alt={alt}
+            title={title}
+            className={cn('block size-full object-contain', className)}
+            onLoad={(event) => {
+              const image = event.currentTarget
+              if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                imageCache.rememberAspectRatio(
+                  resolution.relativePath,
+                  image.naturalWidth,
+                  image.naturalHeight
+                )
+              }
+            }}
+          />
+        </span>
       )
     }
 
     if (currentState.status === 'error') {
-      return renderImageError({
-        alt,
-        path: resolution.relativePath,
-        message: currentState.message ?? 'Image could not be loaded'
-      })
+      return (
+        <span className="block w-full max-h-[480px]" style={{ aspectRatio: imageRatio }}>
+          {renderImageError({
+            alt,
+            path: resolution.relativePath,
+            message: currentState.message ?? 'Image could not be loaded'
+          })}
+        </span>
+      )
     }
 
     return (
       <span
         role="status"
-        className="inline-flex max-w-full items-center gap-2 border border-dashed border-[var(--line)] bg-[var(--paper-dark)] px-2 py-1 font-mono text-[10px] leading-tight text-muted-foreground"
+        className="flex w-full max-h-[480px] items-center justify-center gap-2 border border-dashed border-[var(--line)] bg-[var(--paper-dark)] px-2 py-1 font-mono text-xs leading-tight text-muted-foreground"
+        style={{ aspectRatio: imageRatio }}
       >
         <span className="size-1.5 shrink-0 bg-muted-foreground" aria-hidden="true" />
         <span className="truncate">Loading image · {alt || resolution.relativePath}</span>
@@ -292,7 +333,7 @@ function renderImageError({
       role="img"
       aria-label={`Image unavailable: ${alt || path}`}
       title={message}
-      className="inline-flex max-w-full items-center gap-1.5 border-2 border-dashed border-destructive bg-background px-2 py-1 font-mono text-[10px] leading-tight text-muted-foreground"
+      className="inline-flex max-w-full items-center gap-1.5 border-2 border-dashed border-destructive bg-background px-2 py-1 font-mono text-xs leading-tight text-muted-foreground"
     >
       <span className="shrink-0 font-bold text-destructive" aria-hidden="true">
         ×

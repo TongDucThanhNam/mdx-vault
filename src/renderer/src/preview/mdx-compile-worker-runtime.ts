@@ -10,7 +10,11 @@ import { remarkMarks } from '../../../shared/remark-mark'
 import { remarkWikilink } from '../../../shared/remark-wikilink'
 import type { MdxCompileWorkerDiagnostic, MdxCompileWorkerResult } from './mdx-compile-protocol'
 import { type PreviewWarning, remarkPreviewWarnings } from './preview-metadata'
-import { rehypePreviewHeadingIdentity, rehypePreviewSourceMap } from './rehype-preview-source-map'
+import {
+  rehypePreviewBlockMap,
+  rehypePreviewHeadingIdentity,
+  rehypePreviewSourceMap
+} from './rehype-preview-source-map'
 import { rehypeSafeHtml } from './safe-html'
 
 /** Compile and transform MDX as data. Generated code is executed only by the trusted renderer. */
@@ -31,6 +35,7 @@ export async function compileMdxFunctionBody(source: string): Promise<MdxCompile
     rehypePlugins: [
       [rehypePreviewSourceMap, { source }],
       rehypeSafeHtml,
+      rehypePreviewBlockMap,
       rehypePreviewHeadingIdentity,
       rehypeKatex,
       [rehypeHighlight, { plainText: ['mermaid'] }]

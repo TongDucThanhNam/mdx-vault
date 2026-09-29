@@ -115,6 +115,15 @@ Ranh giới trách nhiệm:
 
 Quy tắc: **index từ AST của source, không bao giờ index từ rendered HTML.**
 
+GOAL-32 Reading remains a single document surface. Its worker-backed compiler
+keeps one active request and coalesces newer requests to the latest source;
+renderer-local cache deduplication and trusted evaluation remain unchanged.
+The last successful React document stays mounted during a pending or failed
+compile, scoped to the active note. After safe HTML sanitization, the renderer
+adds source offsets to generated block elements and neutral wrappers around
+trusted MDX flow islands. These offsets drive Reading↔Source/Live position
+transfer; tab pixel scroll is replayed after Reading's first layout.
+
 ## SQLite schema (khởi điểm)
 
 ```sql

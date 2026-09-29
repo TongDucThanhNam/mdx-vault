@@ -153,17 +153,17 @@ export function WikilinkPreviewLayer({
           <FileText className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--editorial-red)]">
+          <div className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-[var(--editorial-red)]">
             Page preview
           </div>
           <h2 className="truncate font-display text-[17px] font-bold leading-tight">
             {preview.note.title}
           </h2>
-          <p className="truncate font-mono text-[10px] text-muted-foreground">
+          <p className="truncate font-mono text-xs text-muted-foreground">
             {preview.note.relativePath}
           </p>
           {preview.subpath ? (
-            <p className="truncate font-mono text-[10px] font-bold text-[var(--editorial-red)]">
+            <p className="truncate font-mono text-xs font-bold text-[var(--editorial-red)]">
               {formatWikilinkSubpath(preview.subpath)}
             </p>
           ) : null}
@@ -196,14 +196,14 @@ export function WikilinkPreviewLayer({
         {currentState.status === 'loading' ? (
           <div
             role="status"
-            className="flex min-h-36 items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+            className="flex min-h-36 items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground"
           >
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
             Loading note
           </div>
         ) : currentState.status === 'error' ? (
           <div role="alert" className="border-l-4 border-destructive pl-3">
-            <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+            <div className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
               Preview unavailable
             </div>
             <p className="mt-1 font-serif text-sm text-muted-foreground">{currentState.message}</p>
@@ -212,7 +212,7 @@ export function WikilinkPreviewLayer({
           <HoverPreviewContent source={currentState.source ?? ''} subpath={preview.subpath} />
         )}
       </div>
-      <footer className="shrink-0 border-t border-border bg-[var(--paper-dark)] px-4 py-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+      <footer className="shrink-0 border-t border-border bg-[var(--paper-dark)] px-4 py-2 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
         Static preview · Interactive content is paused
       </footer>
     </aside>,
@@ -236,7 +236,7 @@ function HoverPreviewContent({
   } catch (error) {
     return (
       <div role="alert" className="border-l-4 border-destructive pl-3">
-        <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-destructive">
+        <div className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
           Preview unavailable
         </div>
         <p className="mt-1 font-serif text-sm text-muted-foreground">{formatPreviewError(error)}</p>

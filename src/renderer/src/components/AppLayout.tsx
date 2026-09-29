@@ -117,6 +117,10 @@ export function AppLayout({
     requestId: number
   } | null>(null)
   const [supplementaryDockTab, setSupplementaryDockTab] = useState<SupplementaryDockTab>('context')
+  const [compileState, setCompileState] = useState<{
+    path: string
+    status: 'pending' | 'error' | 'ready'
+  } | null>(null)
   const previousRightPanelOpen = useRef(rightPanelOpen)
   const previousAiPanelOpen = useRef(aiPanelOpen)
 
@@ -253,6 +257,11 @@ export function AppLayout({
           noteActions={noteActions}
           editorInteractions={editorInteractions}
           onReadingActiveHeadingChange={livingOutline.handleReadingActiveHeadingChange}
+          onReadingCompileStateChange={(path, status) =>
+            setCompileState((current) =>
+              current?.path === path && current.status === status ? current : { path, status }
+            )
+          }
           readingZoom={readingZoom}
           vaultTreeFiles={vault?.treeFiles ?? []}
           starterProofProjectRoot={starterProofProjectRoot}
@@ -363,6 +372,14 @@ export function AppLayout({
           rightPanelOpen={rightPanelOpen}
           aiPanelOpen={aiPanelOpen}
           hasVault={vault !== null}
+          viewMode={noteSelected ? viewMode : null}
+          compileStatus={
+            selectedNotePath && viewMode === 'reading'
+              ? compileState?.path === selectedNotePath
+                ? compileState.status
+                : 'pending'
+              : null
+          }
           cursorPosition={
             ((noteSelected && viewMode !== 'reading') || textSelected) &&
             editorInteractions.editorSelection
