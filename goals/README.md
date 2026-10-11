@@ -57,6 +57,7 @@ Thư mục này chứa các goal file được viết theo format chuẩn để 
 | GOAL-37-compact-layout-tabs-find-states.md | Non-occluding compact docks, tab overflow, find/replace, graph and panel states | 33, 35 |
 | GOAL-38-dark-paper-craft-and-contrast.md | Night-edition inverse fills, AA contrast, narrow Reading type and export frontmatter parity | 33, 35, 36 |
 | GOAL-39-production-latency-round-2.md | Production startup/first-open A/B meets event-based medians; guarded prefetch and graph first-use tail closed | 34, 37 |
+| GOAL-40-live-readability-and-render-craft.md | Token-based Live readability, bounded headings, island prose isolation and balanced disclosures | 38, 39 |
 
 ## Trạng thái ký hiệu trong goal
 

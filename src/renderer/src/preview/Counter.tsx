@@ -11,7 +11,10 @@ export function Counter({ initial = 0 }: CounterProps): React.JSX.Element {
   const [count, setCount] = useState(initial)
 
   return (
-    <div className="my-4 flex w-full max-w-xs items-center justify-between border-2 border-foreground bg-background p-2 shadow-[3px_3px_0_0_var(--foreground)]">
+    <div
+      data-registry-island=""
+      className="my-4 flex w-full max-w-xs items-center justify-between border-2 border-foreground bg-background p-2 shadow-[3px_3px_0_0_var(--foreground)]"
+    >
       <Button
         type="button"
         size="icon-sm"

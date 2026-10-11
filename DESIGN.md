@@ -159,8 +159,13 @@ supplementary dock.
   print stay light. Editorial paper uses Lora body,
   Playfair Display headings, Courier Prime code/labels, newspaper rules and a
   bounded readable line length. Live is an editing surface: it shares Source's
-  font metrics and theme, with restrained heading emphasis and hidden syntax
-  away from the caret. It does not inherit Reading's large display headings.
+  font metrics, wrap column, caret, selection and token palette. Live decorations
+  use workbench tokens: foreground strong text at weight 600, quiet inline-code
+  chips, blue links, dashed muted unresolved wikilinks, and muted revealed syntax.
+  Quotes use thin rules; typed callouts add only translucent tints that leave
+  selection, find matches and the active line visible. Heading hierarchy comes
+  from weight and size, with syntax hidden away from the caret. Live does not
+  inherit Reading's large display headings or paper colors.
 - The note design system is layered as `--note-*` foundations, native prose plus
   public `note-*` authoring primitives, then trusted `in-*` component styles.
   Reading, hover preview and export consume the same authoritative stylesheet;

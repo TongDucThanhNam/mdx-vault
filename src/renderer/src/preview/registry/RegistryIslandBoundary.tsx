@@ -18,6 +18,7 @@ export function RegistryIslandBoundary({
       fallbackRender={({ error }) => (
         <div
           role="alert"
+          data-registry-island=""
           className="my-4 border-2 border-foreground bg-background p-3 font-mono text-xs shadow-[3px_3px_0_0_var(--foreground)]"
         >
           <strong className="block text-destructive">{name} runtime error</strong>

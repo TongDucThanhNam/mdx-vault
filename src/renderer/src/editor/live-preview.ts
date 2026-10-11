@@ -16,6 +16,8 @@ import {
   type WikilinkSubpath
 } from '../../../shared/wikilinks'
 
+import { activeLine, syntaxBlue, syntaxMuted, syntaxViolet } from './editor-theme'
+
 interface LivePreviewOptions {
   getNotes: () => WikilinkNoteCandidate[]
   getSourceRelativePath: () => string | undefined
@@ -52,138 +54,99 @@ const bulletWidget = new BulletWidget()
 
 export const refreshLivePreviewEffect = StateEffect.define<null>()
 
-const livePreviewTheme = EditorView.theme({
-  '&': {
-    backgroundColor: '#f9f9f7',
-    color: '#111111'
-  },
-  '.cm-scroller': {
-    fontFamily: 'var(--editor-font-family, var(--font-code))',
-    fontSize: 'var(--editor-font-size, 15px)',
-    lineHeight: 'var(--editor-line-height, 1.6)',
-    scrollbarColor: '#cccccc transparent'
-  },
-  '.cm-content': {
-    padding: '16px 0 64px',
-    caretColor: '#d32f2f'
-  },
-  '.cm-line': {
-    paddingInline: '20px'
-  },
-  '.cm-gutters': {
-    borderRight: '0',
-    backgroundColor: '#f9f9f7',
-    color: '#6b6b66',
-    fontFamily: 'var(--editor-font-family, var(--font-code))'
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#efefea'
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#efefea',
-    color: '#d32f2f'
-  },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-    backgroundColor: '#cccccc !important'
-  },
-  '.cm-cursor, .cm-dropCursor': {
-    borderLeftColor: '#d32f2f'
-  },
-  '.cm-live-preview-heading': {
-    color: '#111111',
+/** Decorations only. Source owns the editing plane and token palette. */
+export const livePreviewThemeSpec = {
+  '.cm-live-preview-heading, .cm-live-preview-heading span': {
+    color: 'var(--foreground)',
     fontFamily: 'inherit',
     lineHeight: 'inherit',
     letterSpacing: '0'
   },
-  '.cm-live-preview-heading-1': {
-    fontSize: '1.3em',
-    fontWeight: '700'
-  },
-  '.cm-live-preview-heading-2': {
-    fontSize: '1.15em',
-    fontWeight: '700'
-  },
-  '.cm-live-preview-heading-3': {
-    fontSize: '1.05em',
-    fontWeight: '700'
-  },
-  '.cm-live-preview-heading-4': {
+  '.cm-live-preview-heading-1': { fontSize: '1.3em', fontWeight: '700' },
+  '.cm-live-preview-heading-2': { fontSize: '1.15em', fontWeight: '700' },
+  '.cm-live-preview-heading-3': { fontSize: '1.05em', fontWeight: '700' },
+  '.cm-live-preview-heading-4, .cm-live-preview-heading-5, .cm-live-preview-heading-6': {
     fontSize: '1em',
     fontWeight: '700'
   },
-  '.cm-live-preview-heading-5': {
-    fontSize: '1em',
-    fontWeight: '700'
+  // ch is local to the heading's enlarged font. Undo that scale, keeping
+  // Source's 12px insets and its scroller-sized ruler/wrap column unchanged.
+  '&.cm-wrap-bounded .cm-live-preview-heading-1': {
+    maxWidth: 'calc(var(--editor-wrap-column, 88) * (1ch / 1.3) + 24px)'
   },
-  '.cm-live-preview-heading-6': {
-    fontSize: '1em',
-    fontWeight: '700'
+  '&.cm-wrap-bounded .cm-live-preview-heading-2': {
+    maxWidth: 'calc(var(--editor-wrap-column, 88) * (1ch / 1.15) + 24px)'
   },
-  '.cm-live-preview-strong': {
-    color: '#111111',
-    fontWeight: '700'
+  '&.cm-wrap-bounded .cm-live-preview-heading-3': {
+    maxWidth: 'calc(var(--editor-wrap-column, 88) * (1ch / 1.05) + 24px)'
   },
-  '.cm-live-preview-emphasis': {
-    fontStyle: 'italic'
-  },
-  '.cm-live-preview-strikethrough': {
-    textDecoration: 'line-through'
-  },
-  '.cm-live-preview-inline-code': {
-    backgroundColor: '#efefea',
-    color: '#111111',
+  '.cm-line .cm-live-preview-strong': { color: 'var(--foreground)', fontWeight: '600' },
+  '.cm-live-preview-emphasis': { fontStyle: 'italic' },
+  '.cm-live-preview-strikethrough': { textDecoration: 'line-through' },
+  '.cm-line .cm-live-preview-inline-code': {
+    backgroundColor: 'color-mix(in srgb, var(--foreground) 6%, transparent)',
+    color: 'var(--foreground)',
+    borderRadius: '2px',
     fontFamily: 'inherit'
   },
-  '.cm-live-preview-link': {
-    color: '#d32f2f',
-    fontWeight: '700',
+  '.cm-line .cm-live-preview-link, .cm-line .cm-live-preview-wikilink': {
+    color: syntaxBlue,
+    fontWeight: '500',
     textDecoration: 'underline',
-    textDecorationColor: '#d32f2f',
-    textDecorationThickness: '2px',
+    textDecorationColor: `color-mix(in srgb, ${syntaxBlue} 50%, transparent)`,
+    textDecorationThickness: '1px',
     textUnderlineOffset: '3px'
   },
-  '.cm-live-preview-wikilink': {
-    color: '#111111',
-    cursor: 'text',
-    fontWeight: '700',
-    textDecoration: 'underline',
-    textDecorationColor: '#d32f2f',
-    textDecorationThickness: '2px',
-    textUnderlineOffset: '3px'
-  },
-  '.cm-live-preview-wikilink-unresolved': {
-    color: '#111111',
-    textDecorationColor: '#cccccc',
+  '.cm-live-preview-wikilink': { cursor: 'text' },
+  '.cm-line .cm-live-preview-wikilink-unresolved': {
+    color: syntaxMuted,
+    textDecorationColor: syntaxMuted,
     textDecorationStyle: 'dashed'
   },
-  '.cm-live-preview-bullet': {
-    color: '#d32f2f',
-    fontWeight: '700'
+  '.cm-live-preview-bullet, .cm-line .cm-live-preview-quote-mark': {
+    color: syntaxMuted,
+    fontWeight: '600'
   },
   '.cm-live-preview-blockquote': {
-    borderLeft: '5px solid #d32f2f',
-    backgroundColor: '#efefea'
+    borderLeft: '2px solid color-mix(in srgb, var(--border) 35%, var(--muted-foreground))',
+    color: 'var(--foreground)'
   },
-  '.cm-live-preview-quote-mark': {
-    color: '#d32f2f',
-    fontWeight: '700'
+  // Translucent line tints leave the selection layer visible underneath.
+  '.cm-live-preview-blockquote:has(.cm-mdx-callout-note)': {
+    backgroundColor: 'color-mix(in srgb, var(--foreground) 3%, transparent)'
   },
-  '.cm-mdx-math-block, .cm-mdx-mermaid-block': {
-    backgroundColor: '#efefea'
+  '.cm-live-preview-blockquote:has(.cm-mdx-callout-info)': {
+    backgroundColor: 'color-mix(in srgb, var(--muted-foreground) 4%, transparent)'
   },
-  '.cm-mdx-math-delimiter, .cm-mdx-mermaid-fence, .cm-mdx-callout-marker': {
-    color: '#d32f2f'
+  '.cm-live-preview-blockquote:has(.cm-mdx-callout-tip)': {
+    backgroundColor: 'color-mix(in srgb, var(--instrument-blue) 4%, transparent)'
   },
-  '.tok-keyword, .tok-operator, .tok-tagName, .tok-brace': {
-    color: '#d32f2f'
+  '.cm-live-preview-blockquote:has(.cm-mdx-callout-warning)': {
+    backgroundColor: 'color-mix(in srgb, var(--signal) 4%, transparent)'
   },
-  '.tok-string, .tok-number, .tok-bool, .tok-typeName, .tok-propertyName, .tok-variableName': {
-    color: '#111111'
+  '.cm-live-preview-blockquote:has(.cm-mdx-callout-danger)': {
+    backgroundColor: 'color-mix(in srgb, var(--destructive) 4%, transparent)'
   },
-  '.tok-comment, .tok-punctuation': {
-    color: '#111111'
-  }
-})
+  '.cm-live-preview-blockquote.cm-activeLine': {
+    backgroundImage: `linear-gradient(${activeLine}, ${activeLine})`
+  },
+  '.cm-line .cm-mdx-callout-marker.cm-mdx-callout-note': { color: 'var(--foreground)' },
+  '.cm-line .cm-mdx-callout-marker.cm-mdx-callout-info': { color: syntaxMuted },
+  '.cm-line .cm-mdx-callout-marker.cm-mdx-callout-tip': { color: syntaxBlue },
+  '.cm-line .cm-mdx-callout-marker.cm-mdx-callout-warning': { color: syntaxViolet },
+  '.cm-line .cm-mdx-callout-marker.cm-mdx-callout-danger': { color: 'var(--destructive)' },
+  '.cm-line .cm-live-preview-syntax, .cm-live-preview-heading .cm-live-preview-syntax': {
+    color: syntaxMuted
+  },
+  // Highlighter spans can nest inside decoration marks. They must inherit the
+  // decoration's color instead of bringing Source's delimiter color back in.
+  '.cm-live-preview-quote-mark span, .cm-mdx-callout-marker span, .cm-live-preview-syntax span, .cm-live-preview-wikilink span, .cm-live-preview-link span':
+    {
+      color: 'inherit'
+    }
+}
+
+const livePreviewTheme = EditorView.theme(livePreviewThemeSpec)
 
 export function createLivePreviewExtension(options: LivePreviewOptions): Extension {
   const livePreviewPlugin = ViewPlugin.fromClass(
@@ -334,6 +297,20 @@ function buildDecorations(
             addReplacement
           )
           return true
+        }
+
+        if (
+          ['HeaderMark', 'EmphasisMark', 'CodeMark', 'LinkMark', 'URL', 'ListMark'].includes(
+            node.name
+          )
+        ) {
+          addClippedMark(
+            Decoration.mark({ class: 'cm-live-preview-syntax' }),
+            node.from,
+            node.to,
+            'revealed-syntax',
+            visibleRange
+          )
         }
 
         if (node.name === 'ListMark') {

@@ -21,7 +21,10 @@ export function QuizBlock({
   const selectedCorrect = selectedIndex === answerIndex
 
   return (
-    <section className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]">
+    <section
+      data-registry-island=""
+      className="my-5 border-2 border-foreground bg-background p-4 shadow-[3px_3px_0_0_var(--foreground)]"
+    >
       <div className="mb-3">
         <div className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           Check understanding

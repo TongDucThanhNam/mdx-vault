@@ -74,10 +74,10 @@ describe('Editorial note theme', () => {
   })
 
   test('keeps editable Live text on the shared editor metrics and retains note accents', () => {
-    expect(livePreviewSource).toContain('var(--editor-font-family, var(--font-code))')
-    expect(livePreviewSource).toContain('var(--editor-line-height, 1.6)')
+    expect(livePreviewSource).toContain("from './editor-theme'")
     expect(livePreviewSource).not.toContain("fontSize: '2.5rem'")
-    expect(livePreviewSource).toContain("backgroundColor: '#f9f9f7'")
-    expect(livePreviewSource).toContain("color: '#d32f2f'")
+    expect(livePreviewSource).toContain("color: 'var(--foreground)'")
+    expect(livePreviewSource).not.toMatch(/#[\da-f]{3,8}\b/i)
+    expect(livePreviewSource).not.toContain("'.cm-scroller'")
   })
 })

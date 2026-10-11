@@ -11,7 +11,10 @@ export function ComponentValidationWarning({
   issues
 }: ComponentValidationWarningProps): React.JSX.Element {
   return (
-    <div className="my-4 border-2 border-destructive bg-background p-3 text-sm">
+    <div
+      data-registry-island=""
+      className="my-4 border-2 border-destructive bg-background p-3 text-sm"
+    >
       <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-destructive">
         <AlertTriangle className="size-4" aria-hidden="true" />
         Invalid props for {componentName}
@@ -33,7 +36,10 @@ export function UnknownComponentPlaceholder({
   componentName: string
 }): React.JSX.Element {
   return (
-    <div className="my-4 border-2 border-dashed border-foreground bg-muted p-3 text-sm text-muted-foreground">
+    <div
+      data-registry-island=""
+      className="my-4 border-2 border-dashed border-foreground bg-muted p-3 text-sm text-muted-foreground"
+    >
       <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-foreground">
         <CircleHelp className="size-4" aria-hidden="true" />
         Unknown component: {componentName}

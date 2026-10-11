@@ -327,10 +327,22 @@
     margin-top: 0.9rem;
   }
 
-  .mdx-preview h1,
-  .mdx-preview h2,
-  .mdx-preview h3,
-  .mdx-preview h4 {
+  .mdx-preview
+    h1:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ),
+  .mdx-preview
+    h2:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ),
+  .mdx-preview
+    h3:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ),
+  .mdx-preview
+    h4:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     color: var(--foreground);
     font-family: var(--font-display);
     line-height: 1.2;
@@ -338,7 +350,10 @@
     text-wrap: balance;
   }
 
-  .mdx-preview h1 {
+  .mdx-preview
+    h1:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 0;
     margin-bottom: 0.4rem;
     font-size: clamp(2rem, 4vw, 2.65rem);
@@ -347,7 +362,10 @@
     border-bottom: 1px solid var(--line);
   }
 
-  .mdx-preview h2 {
+  .mdx-preview
+    h2:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 2.75rem;
     padding-top: 0;
     font-size: 1.6rem;
@@ -356,48 +374,80 @@
     scroll-margin-top: 56px;
   }
 
-  .mdx-preview h3 {
+  .mdx-preview
+    h3:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 1.75rem;
     font-size: 1.25rem;
     font-weight: 600;
   }
 
-  .mdx-preview h4 {
+  .mdx-preview
+    h4:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 1.5rem;
     font-size: 1.05rem;
     font-weight: 600;
   }
 
-  .mdx-preview p {
+  .mdx-preview
+    p:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 0.9rem;
     color: var(--prose);
   }
 
-  .mdx-preview strong {
+  .mdx-preview
+    strong:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     color: var(--foreground);
     font-weight: 700;
   }
 
-  .mdx-preview mark {
+  .mdx-preview
+    mark:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     background: color-mix(in srgb, var(--chart-5) 24%, transparent);
     color: var(--foreground);
     padding: 0 0.18em;
   }
 
-  .mdx-preview ul,
-  .mdx-preview ol {
+  .mdx-preview
+    ul:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ),
+  .mdx-preview
+    ol:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     padding-left: 1.5rem;
   }
 
-  .mdx-preview ul {
+  .mdx-preview
+    ul:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     list-style: none;
   }
 
-  .mdx-preview ul > li {
+  .mdx-preview
+    ul
+    > li:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     position: relative;
   }
 
-  .mdx-preview ul > li::before {
+  .mdx-preview
+    ul
+    > li:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    )::before {
     content: '';
     position: absolute;
     left: -1rem;
@@ -407,15 +457,25 @@
     background: var(--evidence);
   }
 
-  .mdx-preview ol {
+  .mdx-preview
+    ol:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     list-style: decimal;
   }
 
-  .mdx-preview li + li {
+  .mdx-preview
+    li
+    + li:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin-top: 0.35rem;
   }
 
-  .mdx-preview a {
+  .mdx-preview
+    a:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     color: var(--instrument-blue);
     text-decoration: underline;
     text-decoration-color: color-mix(in srgb, var(--instrument-blue) 35%, transparent);
@@ -425,11 +485,17 @@
     transition: text-decoration-color 0.15s ease;
   }
 
-  .mdx-preview a:hover {
+  .mdx-preview
+    a:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ):hover {
     text-decoration-color: var(--instrument-blue);
   }
 
-  .mdx-preview code {
+  .mdx-preview
+    code:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     font-family: var(--font-mono);
     background: var(--muted);
     color: var(--foreground);
@@ -440,7 +506,10 @@
     font-weight: 400;
   }
 
-  .mdx-preview pre {
+  .mdx-preview
+    pre:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     overflow: auto;
     background: var(--paper-dark);
     border: 1px solid var(--border);
@@ -452,7 +521,11 @@
     line-height: 1.7;
   }
 
-  .mdx-preview pre code {
+  .mdx-preview
+    pre
+    code:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     background: transparent;
     color: var(--foreground);
     border: 0;
@@ -461,7 +534,11 @@
     font-size: inherit;
   }
 
-  .mdx-preview pre code.hljs {
+  .mdx-preview
+    pre
+    code.hljs:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     display: block;
   }
 
@@ -626,7 +703,10 @@
     background: var(--callout-accent);
   }
 
-  .mdx-preview blockquote {
+  .mdx-preview
+    blockquote:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin: 1.25rem 0;
     padding: 0.2rem 0 0.2rem 1.1rem;
     border-left: 3px solid var(--signal);
@@ -634,13 +714,19 @@
     font-style: italic;
   }
 
-  .mdx-preview hr {
+  .mdx-preview
+    hr:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     margin: 2rem 0;
     border: none;
     border-top: 1px solid var(--line);
   }
 
-  .mdx-preview table {
+  .mdx-preview
+    table:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
@@ -648,15 +734,24 @@
     font-family: var(--font-sans);
   }
 
-  .mdx-preview th,
-  .mdx-preview td {
+  .mdx-preview
+    th:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ),
+  .mdx-preview
+    td:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     border: 1px solid var(--border);
     padding: 0.55rem 0.7rem;
     text-align: left;
     vertical-align: top;
   }
 
-  .mdx-preview th {
+  .mdx-preview
+    th:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     font-family: var(--font-mono);
     font-weight: 600;
     font-size: 0.75rem;
@@ -666,11 +761,18 @@
     border: 1px solid var(--border);
   }
 
-  .mdx-preview tr:nth-child(even) td {
+  .mdx-preview
+    tr:nth-child(even)
+    td:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     background: var(--paper-dark);
   }
 
-  .mdx-preview details {
+  .mdx-preview
+    details:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: none;
@@ -678,7 +780,10 @@
     background: var(--card);
   }
 
-  .mdx-preview summary {
+  .mdx-preview
+    summary:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     cursor: pointer;
     font-weight: 600;
     font-family: var(--font-mono);
@@ -690,7 +795,10 @@
     max-width: 100%;
   }
 
-  .mdx-preview img {
+  .mdx-preview
+    img:where(
+      :not([data-registry-island], [data-registry-island] *, [class^='in-'], [class^='in-'] *)
+    ) {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: none;

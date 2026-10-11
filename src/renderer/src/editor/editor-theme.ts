@@ -6,12 +6,12 @@ export const SOURCE_EDITOR_FONT_FAMILY = 'var(--editor-font-family, var(--font-c
 export const SOURCE_EDITOR_DEFAULT_FONT_SIZE = 'var(--editor-font-size, 15px)'
 export const SOURCE_EDITOR_LINE_HEIGHT = 'var(--editor-line-height, 1.6)'
 
-const syntaxSignal = 'color-mix(in srgb, var(--signal) 80%, var(--foreground))'
-const syntaxBlue = 'color-mix(in srgb, var(--instrument-blue) 76%, var(--foreground))'
+export const syntaxSignal = 'color-mix(in srgb, var(--signal) 80%, var(--foreground))'
+export const syntaxBlue = 'color-mix(in srgb, var(--instrument-blue) 76%, var(--foreground))'
 const syntaxEvidence = 'color-mix(in srgb, var(--evidence) 82%, var(--foreground))'
-const syntaxViolet = 'color-mix(in srgb, var(--chart-5) 78%, var(--foreground))'
-const syntaxMuted = 'color-mix(in srgb, var(--muted-foreground) 86%, var(--foreground))'
-const activeLine = 'color-mix(in srgb, var(--instrument-blue) 3.5%, transparent)'
+export const syntaxViolet = 'color-mix(in srgb, var(--chart-5) 78%, var(--foreground))'
+export const syntaxMuted = 'color-mix(in srgb, var(--muted-foreground) 86%, var(--foreground))'
+export const activeLine = 'color-mix(in srgb, var(--instrument-blue) 3.5%, transparent)'
 const quietRule = 'color-mix(in srgb, var(--border) 52%, transparent)'
 const scrollbarThumb = 'color-mix(in srgb, var(--muted-foreground) 28%, transparent)'
 
