@@ -22,12 +22,12 @@ interface AppMenuBarProps {
 }
 
 const triggerClassName =
-  'app-no-drag grid size-7 shrink-0 place-items-center rounded-[2px] text-muted-foreground outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-instrument-blue data-[state=open]:bg-foreground data-[state=open]:text-background motion-reduce:transition-none'
+  'app-no-drag grid size-7 shrink-0 place-items-center rounded-[2px] text-muted-foreground outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-instrument-blue data-[state=open]:bg-instrument-blue/10 data-[state=open]:text-foreground motion-reduce:transition-none'
 const itemClassName =
   'group relative flex h-8 cursor-default select-none items-center gap-2 rounded-sm px-2 font-sans text-xs outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-35 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground'
 const selectionItemClassName = cn(itemClassName, 'pl-7')
 const menuSurfaceClassName =
-  'app-no-drag z-[100] min-w-60 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-hard)]'
+  'app-no-drag z-[100] min-w-60 rounded-md border border-border bg-popover p-1 text-popover-foreground chrome-overlay shadow-chrome-overlay'
 
 export function AppMenuBar({
   mainMenuLabel = 'Main menu',
@@ -65,19 +65,19 @@ export function AppMenuBar({
       <MenuContent>
         <MenuSub label="File">
           <MenuItem
-            label="New Note…"
+            label="New note…"
             shortcut={shortcut('note.new')}
             disabled={getAction('note.new')?.disabled}
             onSelect={() => runAction('note.new')}
           />
           <MenuItem
-            label="New Daily Note"
+            label="New daily note"
             disabled={getAction('note.daily')?.disabled}
             onSelect={() => runAction('note.daily')}
           />
           <MenuSeparator />
           <MenuItem
-            label="Open Vault…"
+            label="Open vault…"
             disabled={isOpeningVault}
             onSelect={() => runAction('vault.open')}
           />
@@ -95,13 +95,13 @@ export function AppMenuBar({
             onSelect={() => runAction('note.export')}
           />
           <MenuItem
-            label="Reveal Note in Explorer"
+            label="Reveal note in Explorer"
             disabled={!selectedPath}
             onSelect={onRevealNote}
           />
           <MenuSeparator />
           <MenuItem
-            label="Empty Trash…"
+            label="Empty trash…"
             disabled={getAction('vault.empty-trash')?.disabled}
             onSelect={() => runAction('vault.empty-trash')}
           />
@@ -128,13 +128,13 @@ export function AppMenuBar({
           />
           <MenuSeparator />
           <MenuItem
-            label="Find in Note"
+            label="Find in note"
             shortcut="Ctrl+F"
             disabled={!editorAvailable}
             onSelect={() => void runEditorCommand('find')}
           />
           <MenuItem
-            label="Find and Replace in Note"
+            label="Find and replace in note"
             shortcut="Ctrl+H"
             disabled={!editorAvailable}
             onSelect={() => void runEditorCommand('replace')}
@@ -165,54 +165,54 @@ export function AppMenuBar({
           </DropdownMenuPrimitive.RadioGroup>
           <MenuSeparator />
           <MenuItem
-            label="Reading Full View"
+            label="Reading full view"
             shortcut={shortcut('view.toggle-reading-full-view')}
             disabled={getAction('view.toggle-reading-full-view')?.disabled}
             onSelect={() => runAction('view.toggle-reading-full-view')}
           />
           <MenuSeparator />
           <MenuCheckboxItem
-            label="Toggle Left Panel"
+            label="Toggle left panel"
             checked={leftPanelOpen}
             onCheckedChange={() => runAction('view.toggle-left-panel')}
           />
           <MenuCheckboxItem
-            label="Toggle Right Panel"
+            label="Toggle right panel"
             checked={rightPanelOpen}
             onCheckedChange={onToggleRightPanel}
           />
           <MenuCheckboxItem
-            label="Toggle AI Panel"
+            label="Toggle AI panel"
             shortcut={shortcut('ai.toggle')}
             checked={aiPanelOpen}
             disabled={getAction('ai.toggle')?.disabled}
             onCheckedChange={() => runAction('ai.toggle')}
           />
           <MenuSeparator />
-          <MenuItem label="Toggle Theme" onSelect={() => runAction('theme.toggle')} />
+          <MenuItem label="Toggle theme" onSelect={() => runAction('theme.toggle')} />
         </MenuSub>
 
         <MenuSub label="Go">
           <MenuItem
-            label="Open File…"
+            label="Open file…"
             shortcut={shortcut('file.open')}
             disabled={getAction('file.open')?.disabled}
             onSelect={() => runAction('file.open')}
           />
           <MenuItem
-            label="Search in Vault…"
+            label="Search in vault…"
             shortcut={shortcut('note.search')}
             disabled={getAction('note.search')?.disabled}
             onSelect={() => runAction('note.search')}
           />
           <MenuItem
-            label="Open Global Graph"
+            label="Open global graph"
             disabled={getAction('graph.open-global')?.disabled}
             onSelect={() => runAction('graph.open-global')}
           />
           <MenuSeparator />
           <MenuItem
-            label="Command Palette…"
+            label="Command palette…"
             shortcut={shortcut('command-palette.toggle')}
             onSelect={() => runAction('command-palette.toggle')}
           />
@@ -223,14 +223,14 @@ export function AppMenuBar({
             <>
               <MenuItem label="Minimize" onSelect={() => void window.windowApi.minimize()} />
               <MenuItem
-                label="Toggle Maximize"
+                label="Toggle maximize"
                 onSelect={() => void window.windowApi.toggleMaximize()}
               />
               <MenuSeparator />
             </>
           ) : null}
           <MenuItem
-            label="Close Active Item"
+            label="Close active item"
             shortcut={shortcut('workbench.close-item')}
             onSelect={() => runAction('workbench.close-item')}
           />
@@ -358,7 +358,7 @@ function MenuRadioItem({
 
 function MenuShortcut({ children }: { children: string }): React.JSX.Element {
   return (
-    <span className="ml-auto pl-8 font-mono text-xs text-muted-foreground group-data-[highlighted]:text-accent-foreground/70">
+    <span className="ml-auto pl-8 font-sans text-xs text-muted-foreground group-data-[highlighted]:text-accent-foreground">
       {children}
     </span>
   )

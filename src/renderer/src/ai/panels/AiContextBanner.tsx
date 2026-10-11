@@ -26,7 +26,7 @@ export function AiContextBanner({
   safeStorageAvailable
 }: AiContextBannerProps): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-1 border-b-2 border-foreground bg-muted/20 px-3 py-2 font-mono text-xs text-muted-foreground">
+    <div className="flex flex-col gap-1 border-b border-border bg-muted/20 px-3 py-2 font-sans text-xs text-muted-foreground">
       <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
         <FileText className="size-3.5 shrink-0" aria-hidden="true" />
         <span

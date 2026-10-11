@@ -98,7 +98,7 @@ function MessageBubble({
     <div className={cn('flex items-start gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
       <div
         className={cn(
-          'flex size-6 shrink-0 items-center justify-center border-2 border-foreground',
+          'flex size-6 shrink-0 items-center justify-center rounded-md border border-input',
           isUser ? 'bg-[var(--editorial-red)] text-white' : 'bg-background text-foreground'
         )}
       >
@@ -110,8 +110,8 @@ function MessageBubble({
       </div>
       <div
         className={cn(
-          'min-w-0 max-w-[80%] whitespace-pre-wrap border-2 border-foreground px-2.5 py-1.5',
-          isUser ? 'bg-foreground text-background' : 'bg-muted/30 text-foreground'
+          'min-w-0 max-w-[80%] whitespace-pre-wrap rounded-md border border-input px-2.5 py-1.5',
+          isUser ? 'bg-instrument-blue/10 text-foreground' : 'bg-muted/30 text-foreground'
         )}
       >
         {text || <span className="text-muted-foreground">…</span>}
@@ -128,8 +128,8 @@ function ToolCallChip({ trace }: { trace: ToolCallTrace }): React.JSX.Element {
       : `${trace.toolName}(${summariseArgs(trace.args)})`
 
   return (
-    <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-      <span className="flex size-5 items-center justify-center border-2 border-foreground bg-background">
+    <div className="flex items-center gap-1.5 font-sans text-xs text-muted-foreground">
+      <span className="flex size-5 items-center justify-center rounded-md border border-input bg-background">
         <Wrench className="size-3" aria-hidden="true" />
       </span>
       <span className="truncate">{summary}</span>
@@ -157,8 +157,8 @@ function summariseArgs(args: Record<string, unknown>): string {
 
 function ProposalCard({ proposal }: { proposal: PatchProposal }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-1 border-2 border-foreground bg-muted/30 px-2.5 py-2">
-      <div className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-foreground">
+    <div className="flex flex-col gap-1 rounded-md border border-input bg-muted/30 px-2.5 py-2">
+      <div className="flex items-center gap-1.5 font-sans text-xs font-semibold text-foreground">
         <ChevronRight className="size-3 text-[var(--editorial-red)]" aria-hidden="true" />
         Proposed changes ({proposal.patches.length})
       </div>
@@ -167,7 +167,7 @@ function ProposalCard({ proposal }: { proposal: PatchProposal }): React.JSX.Elem
       ) : null}
       <ul className="space-y-1 text-xs">
         {proposal.patches.map((op, index) => (
-          <li key={index} className="font-mono text-muted-foreground">
+          <li key={index} className="font-sans text-muted-foreground">
             <span className="text-foreground">[{index + 1}]</span> {describeOperation(op)}
           </li>
         ))}
@@ -194,7 +194,7 @@ function describeOperation(op: PatchOperation): string {
 
 function ErrorBanner({ message, code }: { message: string; code?: string }): React.JSX.Element {
   return (
-    <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
+    <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 px-2.5 py-2 font-sans text-xs text-destructive">
       <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
       <div className="min-w-0">
         <div className="font-bold">{code ?? 'error'}</div>

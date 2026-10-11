@@ -39,14 +39,14 @@ export function AiDiffReview({
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t-2 border-foreground bg-muted/20 px-3 py-2">
-      <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+    <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2">
+      <div className="flex items-center gap-2 font-sans text-xs text-muted-foreground">
         <FileCode2 className="size-3.5" aria-hidden="true" />
         <span className="truncate font-bold text-foreground">{model.fileLabel}</span>
         <span className="ml-auto">{changed ? 'Changes pending review' : 'No textual changes'}</span>
       </div>
 
-      <div className="max-h-64 overflow-auto border-2 border-foreground bg-background font-mono text-xs">
+      <div className="max-h-64 overflow-auto rounded-md border border-input bg-background font-mono text-xs">
         {hunks.length === 0 ? (
           <div className="px-3 py-2 text-muted-foreground">Empty file.</div>
         ) : (
@@ -54,7 +54,7 @@ export function AiDiffReview({
             <div
               key={index}
               className={cn(
-                'flex gap-2 border-l-2 px-2 py-0.5',
+                'flex gap-2 border-l px-2 py-0.5',
                 line.kind === 'add' &&
                   'border-l-[var(--success)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-foreground',
                 line.kind === 'remove' && 'border-l-destructive bg-destructive/12 text-destructive',

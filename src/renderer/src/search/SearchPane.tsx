@@ -1,8 +1,8 @@
 import { BookmarkPlus, CornerDownRight, FileSearch, Search, X } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import type { SearchResult } from '@/vault/types'
 import { containDialogTabKey } from '@/workbench/dialog-focus'
 
@@ -81,7 +81,8 @@ export function SearchPane({
     }
   }, [open, query])
 
-  if (!open) {
+  const present = useExitPresence(open ? true : null)
+  if (!present) {
     return null
   }
 
@@ -121,7 +122,9 @@ export function SearchPane({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
+      data-state={open ? 'open' : 'closed'}
+      inert={!open}
+      className="chrome-presence fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onOpenChange(false)
@@ -133,13 +136,13 @@ export function SearchPane({
         aria-modal="true"
         aria-label="Search notes"
         tabIndex={-1}
-        className="flex max-h-[76vh] w-full max-w-2xl flex-col overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        className="flex max-h-[76vh] w-full max-w-2xl flex-col overflow-hidden rounded-md border border-input bg-card chrome-overlay shadow-chrome-overlay"
         onKeyDown={(event) => {
           handleKeyDown(event)
           containDialogTabKey(event, event.currentTarget)
         }}
       >
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -147,7 +150,7 @@ export function SearchPane({
             autoComplete="off"
             spellCheck={false}
             value={query}
-            className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
+            className="h-full min-w-0 flex-1 bg-transparent font-sans text-sm outline-none placeholder:text-muted-foreground"
             placeholder="Search notes, tag:idea, path:notes, file:daily, /regex/…"
             aria-label="Search notes"
             onChange={(event) => setQuery(event.target.value)}
@@ -181,7 +184,7 @@ export function SearchPane({
           ) : error ? (
             <div
               role="alert"
-              className="border-2 border-destructive bg-destructive/10 p-3 font-mono text-[12px] uppercase tracking-wider text-destructive"
+              className="rounded-md border border-destructive bg-destructive/10 p-3 font-sans text-[12px] text-destructive"
             >
               {error}
             </div>
@@ -196,7 +199,7 @@ export function SearchPane({
                   key={`${result.note.relativePath}-${result.heading?.id ?? 'note'}-${result.snippet}`}
                   type="button"
                   data-page-preview-path={result.note.relativePath}
-                  className="w-full px-3 py-2.5 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
+                  className="w-full px-3 py-2.5 text-left transition-colors hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
                   title={result.note.relativePath}
                   disabled={isOpening}
                   onClick={() => void selectResult(result)}
@@ -206,7 +209,7 @@ export function SearchPane({
                     {result.note.relativePath}
                   </div>
                   {result.heading ? (
-                    <div className="mt-1 flex min-w-0 items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-instrument-blue">
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 font-sans text-xs font-semibold text-instrument-blue">
                       <CornerDownRight className="size-3 shrink-0" aria-hidden="true" />
                       <span className="shrink-0">H{result.heading.depth}</span>
                       <span className="truncate">{result.heading.text}</span>
@@ -217,7 +220,7 @@ export function SearchPane({
                       {result.matches.map((match) => (
                         <span
                           key={match}
-                          className="border border-current px-1 py-0.5 font-mono text-xs uppercase tracking-wider opacity-75"
+                          className="border border-current px-1 py-0.5 font-sans text-xs text-muted-foreground"
                         >
                           {match}
                         </span>
@@ -239,7 +242,7 @@ export function SearchPane({
 
 function EmptySearchState({ label }: { label: string }): React.JSX.Element {
   return (
-    <div className="flex h-40 flex-col items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+    <div className="flex h-40 flex-col items-center justify-center gap-2 font-sans text-xs text-muted-foreground">
       <FileSearch className="size-5" aria-hidden="true" />
       <div>{label}</div>
     </div>

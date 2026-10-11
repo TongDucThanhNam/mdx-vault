@@ -245,7 +245,10 @@ export function EquationSlider({
 
 function EquationError({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="mb-3 flex items-start gap-2 border-2 border-destructive bg-background px-3 py-2 font-mono text-[12px] uppercase tracking-wider text-destructive">
+    <div
+      data-note-prose=""
+      className="mb-3 flex items-start gap-2 border-2 border-destructive bg-background px-3 py-2 text-sm text-destructive"
+    >
       <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div>{message}</div>
     </div>

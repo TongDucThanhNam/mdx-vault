@@ -1,6 +1,7 @@
 import { FileCode2, FileQuestion, FileText, Image as ImageIcon, Plus, Search } from 'lucide-react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useExitPresence } from '@/hooks/useExitPresence'
 
 import { cn } from '@/lib/utils'
 import type { IndexedNoteSummary, VaultTreeFile } from '@/vault/types'
@@ -99,7 +100,8 @@ export function QuickSwitcher({
     optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, itemCount, open, query])
 
-  if (!open) {
+  const present = useExitPresence(open ? true : null)
+  if (!present) {
     return null
   }
 
@@ -257,7 +259,9 @@ export function QuickSwitcher({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
+      data-state={open ? 'open' : 'closed'}
+      inert={!open}
+      className="chrome-presence fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
       onMouseDown={handleBackdropMouseDown}
     >
       <div
@@ -266,7 +270,7 @@ export function QuickSwitcher({
         aria-label="Open file"
         aria-busy={isPending}
         tabIndex={-1}
-        className="w-full max-w-2xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        className="w-full max-w-2xl overflow-hidden rounded-md border border-input bg-card chrome-overlay shadow-chrome-overlay"
         onKeyDown={(event) => {
           if (event.key === 'Escape' && !event.defaultPrevented) {
             event.preventDefault()
@@ -276,7 +280,7 @@ export function QuickSwitcher({
           containDialogTabKey(event, event.currentTarget)
         }}
       >
-        <div className="flex h-12 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
+        <div className="flex h-12 items-center gap-2 border-b border-border px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -292,7 +296,7 @@ export function QuickSwitcher({
             aria-expanded="true"
             aria-activedescendant={activeOptionId}
             aria-describedby={describedBy || undefined}
-            className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
+            className="h-full min-w-0 flex-1 bg-transparent font-sans text-sm outline-none placeholder:text-muted-foreground"
             placeholder="Open file by name, path, alias, or extension…"
             onChange={(event) => {
               setQuery(event.target.value)
@@ -301,14 +305,14 @@ export function QuickSwitcher({
             }}
             onKeyDown={handleKeyDown}
           />
-          <span className="shrink-0 border border-foreground/45 px-1.5 py-0.5 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="shrink-0 border border-input px-1.5 py-0.5 font-sans text-xs text-muted-foreground">
             Esc
           </span>
         </div>
 
         <div className="max-h-[60vh] overflow-auto p-1.5">
           {finder.status === 'ready' && trimmedQuery && finder.results.length === 0 ? (
-            <div className="px-3 py-2 font-mono text-xs text-muted-foreground" role="status">
+            <div className="px-3 py-2 font-sans text-xs text-muted-foreground" role="status">
               No matching files. Create a new MDX note below, or refine your search.
             </div>
           ) : null}
@@ -343,8 +347,8 @@ export function QuickSwitcher({
                 aria-selected={activeIndex === finder.results.length}
                 aria-disabled={isPending}
                 className={cn(
-                  'group flex min-h-14 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
-                  activeIndex === finder.results.length && 'bg-foreground text-background',
+                  'group flex min-h-14 w-full items-center gap-3 border-t border-[var(--line)] px-3 py-2 text-left transition-colors hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none',
+                  activeIndex === finder.results.length && 'bg-instrument-blue/10 text-foreground',
                   isPending && 'cursor-wait'
                 )}
                 onMouseDown={(event) => event.preventDefault()}
@@ -361,7 +365,7 @@ export function QuickSwitcher({
                       ? 'Creating MDX note…'
                       : `Create “${trimmedQuery}”`}
                   </span>
-                  <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
+                  <span className="block truncate font-sans text-xs text-muted-foreground group-hover:text-current">
                     Explicit note creation · Markdown with native MDX
                   </span>
                 </span>
@@ -373,7 +377,7 @@ export function QuickSwitcher({
           {itemCount === 0 ? (
             <div
               id={statusId}
-              className="px-3 py-10 text-center font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground"
+              className="px-3 py-10 text-center font-sans text-xs text-muted-foreground"
               role="status"
             >
               {getEmptyMessage(finder.status, trimmedQuery)}
@@ -383,7 +387,7 @@ export function QuickSwitcher({
           {error ? (
             <div
               id={errorId}
-              className="mx-2 my-1 border-l-2 border-destructive px-3 py-2 font-mono text-xs text-destructive"
+              className="mx-2 my-1 border-l border-destructive px-3 py-2 font-sans text-xs text-destructive"
               role="alert"
             >
               {error}
@@ -391,7 +395,7 @@ export function QuickSwitcher({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--line)] px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-[var(--line)] px-3 py-2 font-sans text-xs text-muted-foreground">
           <span>{finder.status === 'ready' ? `${finder.results.length} files` : 'No vault'}</span>
           <span>↑↓ Navigate · Enter Open · Esc Cancel</span>
         </div>
@@ -431,9 +435,9 @@ function FileFinderOption({
       tabIndex={-1}
       aria-selected={selected}
       className={cn(
-        'group relative flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
+        'group relative flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none',
         selected &&
-          'bg-foreground text-background before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:bg-primary'
+          'bg-instrument-blue/10 text-foreground before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:bg-primary'
       )}
       title={result.relativePath}
       onMouseDown={(event) => event.preventDefault()}
@@ -443,11 +447,11 @@ function FileFinderOption({
       <FileKindIcon kind={result.kind} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{result.title}</span>
-        <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
+        <span className="block truncate font-sans text-xs text-muted-foreground group-hover:text-current">
           {result.relativePath}
         </span>
         {aliasLabel ? (
-          <span className="block truncate font-mono text-xs text-muted-foreground group-hover:text-current">
+          <span className="block truncate font-sans text-xs text-muted-foreground group-hover:text-current">
             Alias: {aliasLabel}
           </span>
         ) : null}
@@ -488,11 +492,11 @@ function OptionLedger({
   const extensionLabel = extension.replace(/^\./u, '') || 'file'
 
   return (
-    <span className="ml-2 flex shrink-0 flex-col items-end gap-1 font-mono uppercase">
-      <span className="border border-current/45 px-1.5 py-0.5 text-xs tracking-[0.12em]">
-        {extensionLabel}
+    <span className="ml-2 flex shrink-0 flex-col items-end gap-1 font-sans ">
+      <span className="border border-current/45 px-1.5 py-0.5 text-xs ">{extensionLabel}</span>
+      <span className="max-w-20 truncate text-xs tracking-[0.1em] text-muted-foreground">
+        {state}
       </span>
-      <span className="max-w-20 truncate text-xs tracking-[0.1em] opacity-70">{state}</span>
     </span>
   )
 }

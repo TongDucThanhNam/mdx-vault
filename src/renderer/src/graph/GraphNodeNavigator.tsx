@@ -59,10 +59,10 @@ export function GraphNodeNavigator({
     <aside
       aria-label="Graph node navigator"
       className={cn(
-        'grid min-h-0 border-foreground bg-chrome',
+        'grid h-full min-h-0 border-border bg-chrome',
         compact
-          ? 'max-h-64 grid-rows-[auto_minmax(5rem,1fr)_auto] border-t-2'
-          : 'grid-rows-[auto_minmax(8rem,1fr)_auto] border-l-2'
+          ? 'max-h-64 grid-rows-[auto_minmax(5rem,1fr)_auto] border-t'
+          : 'grid-rows-[auto_minmax(8rem,1fr)_auto] border-l'
       )}
     >
       <label className="relative m-2 block">
@@ -74,7 +74,7 @@ export function GraphNodeNavigator({
         <input
           value={query}
           placeholder="Find node…"
-          className="h-8 w-full border-2 border-foreground bg-background pr-2 pl-7 font-mono text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="h-8 w-full rounded-md border border-input bg-background pr-2 pl-7 font-sans text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
       </label>
@@ -85,7 +85,7 @@ export function GraphNodeNavigator({
         role="listbox"
         aria-label="Returned graph nodes"
         aria-activedescendant={selectedNodeId ? graphOptionId(selectedNodeId) : undefined}
-        className="min-h-0 overflow-y-auto border-y border-foreground/30"
+        className="min-h-0 overflow-y-auto border-y border-input"
         onKeyDown={(event) => {
           const currentIndex = visibleNodes.findIndex((node) => node.id === selectedNodeId)
           if (event.key === 'Enter' && currentIndex >= 0) {
@@ -110,7 +110,7 @@ export function GraphNodeNavigator({
         }}
       >
         {visibleNodes.length === 0 ? (
-          <p className="p-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <p className="p-3 font-sans text-xs text-muted-foreground">
             {nodes.length === 0 ? 'No nodes to navigate yet.' : 'No nodes match this search.'}
           </p>
         ) : (
@@ -119,7 +119,7 @@ export function GraphNodeNavigator({
               {node.orphan && !visibleNodes[index - 1]?.orphan ? (
                 <div
                   role="presentation"
-                  className="border-y border-foreground/20 bg-muted/20 px-3 py-1.5 font-mono text-xs font-bold tracking-wide text-muted-foreground"
+                  className="border-y border-input bg-muted/20 px-3 py-1.5 font-sans text-xs font-semibold text-muted-foreground"
                 >
                   Orphans ({orphanCount})
                 </div>
@@ -132,8 +132,9 @@ export function GraphNodeNavigator({
                 aria-label={`${node.title}, ${node.status}${node.orphan ? ', orphan' : ''}`}
                 title={node.title}
                 className={cn(
-                  'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-foreground/20 px-3 py-2 text-left outline-none last:border-b-0 hover:bg-background focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
-                  node.id === selectedNodeId && 'bg-foreground text-background'
+                  'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-l-2 border-transparent px-3 py-2 text-left outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                  node.id === selectedNodeId &&
+                    'border-l-instrument-blue bg-instrument-blue/10 text-foreground'
                 )}
                 onClick={() => onSelectNode(node.id)}
                 onFocus={() => onSelectNode(node.id)}
@@ -145,12 +146,14 @@ export function GraphNodeNavigator({
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold">{node.title}</span>
-                  <span className="block truncate font-mono text-xs uppercase tracking-wider opacity-70">
+                  <span className="block truncate font-sans text-xs text-muted-foreground">
                     {node.status}
                     {node.orphan ? ' · orphan' : ''}
                   </span>
                 </span>
-                <span className="font-mono text-xs tabular-nums opacity-70">{node.degree}</span>
+                <span className="font-sans text-xs tabular-nums text-muted-foreground">
+                  {node.degree}
+                </span>
               </button>
             </Fragment>
           ))
@@ -161,7 +164,7 @@ export function GraphNodeNavigator({
         {selectedNode ? (
           <GraphNodeDetails node={selectedNode} {...actions} />
         ) : (
-          <p className="font-mono text-xs leading-relaxed uppercase tracking-wider text-muted-foreground">
+          <p className="font-sans text-xs leading-relaxed text-muted-foreground">
             {nodes.length === 0
               ? 'Create a note to add nodes to this graph.'
               : 'Select a node to inspect its path, degree, groups, and available actions.'}
@@ -183,11 +186,11 @@ export function GraphNodeDetails({
     <div role="group" className="space-y-2" aria-label={`Selected node: ${node.title}`}>
       <div>
         <h3 className="truncate text-sm font-bold">{node.title}</h3>
-        <p className="break-all font-mono text-xs text-muted-foreground">
+        <p className="break-all font-sans text-xs text-muted-foreground">
           {node.relativePath ?? `${node.status} target`}
         </p>
       </div>
-      <dl className="grid grid-cols-3 gap-2 font-mono text-xs uppercase tracking-wider">
+      <dl className="grid grid-cols-3 gap-2 font-sans text-xs ">
         <div>
           <dt className="text-muted-foreground">In</dt>
           <dd className="font-bold">{node.incomingCount}</dd>
@@ -203,13 +206,11 @@ export function GraphNodeDetails({
       </dl>
 
       {node.groupIds.length > 0 ? (
-        <p className="font-mono text-xs uppercase tracking-wider">
-          Groups: {node.groupIds.join(', ')}
-        </p>
+        <p className="font-sans text-xs ">Groups: {node.groupIds.join(', ')}</p>
       ) : null}
       {node.status === 'ambiguous' ? (
         <div className="space-y-1">
-          <p className="font-mono text-xs font-bold uppercase tracking-wider">Choose a candidate</p>
+          <p className="font-sans text-xs font-semibold ">Choose a candidate</p>
           {node.candidatePaths.map((path) => (
             <Button
               key={path}
@@ -260,7 +261,7 @@ export function GraphNodeDetails({
           </Button>
         </div>
       ) : node.status === 'unresolved' ? (
-        <p className="font-mono text-xs leading-relaxed uppercase tracking-wider text-muted-foreground">
+        <p className="font-sans text-xs leading-relaxed text-muted-foreground">
           Display-only unresolved target. No file action is available.
         </p>
       ) : null}

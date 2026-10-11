@@ -80,7 +80,11 @@ export function ConfirmDialog({
             </AlertDialogAction>
           ) : null}
           <AlertDialogAction
-            className={cn(buttonVariants({ variant: destructive ? 'destructive' : 'default' }))}
+            className={cn(
+              buttonVariants({ variant: destructive ? 'destructive' : 'default' }),
+              destructive &&
+                'text-destructive-foreground hover:text-destructive-foreground focus-visible:ring-destructive'
+            )}
             disabled={isPending}
             onClick={(event) => {
               event.preventDefault()

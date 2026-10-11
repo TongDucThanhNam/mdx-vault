@@ -290,7 +290,7 @@ export function MainEditor({
                   />
                 </>
               ) : selectedPath ? (
-                <span className="px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground tabular-nums">
+                <span className="px-2 font-sans text-xs text-muted-foreground tabular-nums">
                   {imageSelected && selectedImageMetadata
                     ? `${selectedImageMetadata.width} × ${selectedImageMetadata.height} px`
                     : textSelected
@@ -305,7 +305,7 @@ export function MainEditor({
       {activeItemMissing && !readingFullView ? (
         <div
           role="status"
-          className="shrink-0 border-b border-destructive bg-destructive/10 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-destructive"
+          className="shrink-0 border-b border-destructive bg-destructive/10 px-3 py-1.5 font-sans text-xs font-semibold text-destructive"
         >
           File deleted outside mdx-vault · Session content is preserved · Autosave paused
         </div>
@@ -318,7 +318,7 @@ export function MainEditor({
                 mode="global"
                 vaultSessionId={editorTabs.state.sessionId}
                 hasVault={hasVault}
-                onOpenNote={(relativePath) => noteActions.navigateToNote(relativePath)}
+                onOpenNote={noteActions.navigateToNote}
                 onBookmarkNote={onBookmarkNote}
                 onCopyRelativePath={onCopyRelativePath}
                 onRevealInExplorer={onRevealInExplorer}
@@ -357,6 +357,7 @@ export function MainEditor({
             ) : (
               <>
                 <MdxEditor
+                  key={selectedPath}
                   value={editor.content}
                   onChange={editor.setContent}
                   displayMode={viewMode}
@@ -415,6 +416,7 @@ export function MainEditor({
                     onConsumeStarterProofConsent(interactiveProjectPath.projectRoot)
                   }
                   onChange={textEditor.setContent}
+                  onSelectionChange={editorInteractions.handleEditorSelectionChange}
                   onSave={textEditor.saveCurrentFile}
                   onOpenFile={editorTabs.openOrActivate}
                   getSavedContent={() => textEditor.savedContentRef.current}

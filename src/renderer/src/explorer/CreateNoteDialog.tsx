@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import type { NoteTemplate } from '@/vault/types'
 import { normalizeCreateNoteDirectory, validateCreateNotePath } from './create-note-path'
 
@@ -27,12 +28,12 @@ export function CreateNoteDialog({
   onOpenChange,
   onCreate
 }: CreateNoteDialogProps): React.JSX.Element {
+  const present = useExitPresence(open ? true : null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {/* The form only mounts when the dialog is open, so its local state
-            (name, error) naturally resets each time the dialog is reopened. */}
-        {open ? (
+        {/* Retain the form through exit, then reset it before the next opening. */}
+        {present ? (
           <CreateNoteForm
             directoryPath={directoryPath}
             onOpenChange={onOpenChange}
@@ -141,7 +142,7 @@ function CreateNoteForm({
         <DialogDescription>
           Create a new MDX note in{' '}
           {normalizedDirectory ? (
-            <span className="font-mono text-foreground">{normalizedDirectory}/</span>
+            <span className="font-sans text-foreground">{normalizedDirectory}/</span>
           ) : (
             'the vault root'
           )}
@@ -160,26 +161,24 @@ function CreateNoteForm({
             placeholder="Note title…"
             aria-label="Note title"
             disabled={isCreating}
-            className="flex h-9 w-full min-w-0 border-2 border-foreground bg-transparent px-3 py-1 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 font-sans text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) => {
               setName(event.target.value)
               setError(null)
             }}
             onKeyDown={handleKeyDown}
           />
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">.mdx</span>
+          <span className="shrink-0 font-sans text-xs text-muted-foreground">.mdx</span>
         </div>
         {templates.length > 0 ? (
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Template
-            </span>
+            <span className="font-sans text-xs font-semibold text-muted-foreground">Template</span>
             <select
               name="note-template"
               autoComplete="off"
               value={selectedTemplatePath}
               disabled={isCreating}
-              className="h-9 w-full border-2 border-foreground bg-background px-2 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-9 w-full rounded-md border border-input bg-background px-2 font-sans text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
               onChange={(event) => setSelectedTemplatePath(event.target.value)}
             >
               <option value="">Blank note</option>
@@ -192,15 +191,15 @@ function CreateNoteForm({
           </label>
         ) : null}
         {error ? (
-          <p className="font-mono text-xs text-destructive" role="alert">
+          <p className="font-sans text-xs text-destructive" role="alert">
             {error}
           </p>
         ) : templatesError ? (
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="font-sans text-xs text-muted-foreground">
             Templates unavailable: {templatesError}
           </p>
         ) : validation.ok ? (
-          <p className="truncate font-mono text-xs text-muted-foreground">
+          <p className="truncate font-sans text-xs text-muted-foreground">
             Will create: {validation.relativePath}
           </p>
         ) : null}

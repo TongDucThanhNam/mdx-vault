@@ -19,12 +19,22 @@ export interface PreviewHeadingRequest {
 }
 
 interface UseEditorInteractionsOptions {
+  documentIdentity: string
   editor: NoteEditorController
   setAiPanelOpen: Dispatch<SetStateAction<boolean>>
 }
 
-export function useEditorInteractions({ editor, setAiPanelOpen }: UseEditorInteractionsOptions) {
-  const [editorSelection, setEditorSelection] = useState<EditorSelectionSnapshot | null>(null)
+export function useEditorInteractions({
+  editor,
+  setAiPanelOpen,
+  documentIdentity
+}: UseEditorInteractionsOptions) {
+  const [ownedSelection, setOwnedSelection] = useState<{
+    identity: string
+    snapshot: EditorSelectionSnapshot
+  } | null>(null)
+  const editorSelection =
+    ownedSelection?.identity === documentIdentity ? ownedSelection.snapshot : null
   const [revealLineRequest, setRevealLineRequest] = useState<RevealLineRequest | null>(null)
   const [revealSourceRangeRequest, setRevealSourceRangeRequest] =
     useState<RevealSourceRangeRequest | null>(null)
@@ -68,12 +78,15 @@ export function useEditorInteractions({ editor, setAiPanelOpen }: UseEditorInter
     [editor.contentRef, revealEditorLine]
   )
 
-  const handleEditorSelectionChange = useCallback((snapshot: EditorSelectionSnapshot): void => {
-    setEditorSelection(snapshot)
-    if (!snapshot.hasSelection) {
-      setAiPaletteOpen(false)
-    }
-  }, [])
+  const handleEditorSelectionChange = useCallback(
+    (snapshot: EditorSelectionSnapshot): void => {
+      setOwnedSelection({ identity: documentIdentity, snapshot })
+      if (!snapshot.hasSelection) {
+        setAiPaletteOpen(false)
+      }
+    },
+    [documentIdentity]
+  )
 
   const openAiPalette = useCallback((): void => {
     if (!editorSelection?.hasSelection) {

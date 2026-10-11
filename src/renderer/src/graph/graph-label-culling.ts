@@ -1,3 +1,5 @@
+import { graphLabelFontSize } from './graph-readability'
+
 export interface GraphLabelCandidate {
   id: string
   title: string
@@ -50,8 +52,9 @@ export function selectVisibleGraphLabels(
   const visible = new Set<string>()
   for (const { candidate } of ranked) {
     const scale = Math.max(0.15, context.zoom)
-    const width = Math.min(160, Math.max(24, candidate.title.length * 7)) * scale
-    const height = 15 * scale
+    const fontScale = (graphLabelFontSize(scale) * scale) / 12
+    const width = Math.min(120, Math.max(24, candidate.title.length * 7)) * fontScale
+    const height = 15 * fontScale
     const top = candidate.y + candidate.radius * scale + 5 * scale
     const box = {
       left: candidate.x - width / 2 - 2,

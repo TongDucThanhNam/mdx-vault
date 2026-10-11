@@ -5,6 +5,7 @@ import { componentRegistry } from '@/preview/registry'
 import type { ComponentRegistryEntry } from '@/preview/registry/types'
 
 interface ComponentDefinitionPopoverProps {
+  closing?: boolean
   componentName: string
   position: { left: number; top: number }
   onClose: () => void
@@ -36,6 +37,7 @@ interface ZodDefinitionLike {
 const registryByName = new Map(componentRegistry.map((entry) => [entry.name, entry]))
 
 export function ComponentDefinitionPopover({
+  closing = false,
   componentName,
   position,
   onClose
@@ -44,6 +46,7 @@ export function ComponentDefinitionPopover({
   const entry = registryByName.get(componentName)
 
   useEffect(() => {
+    if (closing) return
     const handlePointerDown = (event: PointerEvent): void => {
       const popover = popoverRef.current
       if (event.target instanceof Element && event.target.closest('[aria-modal="true"]')) {
@@ -67,14 +70,16 @@ export function ComponentDefinitionPopover({
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onClose])
+  }, [closing, onClose])
 
   return (
     <div
       ref={popoverRef}
+      data-state={closing ? 'closed' : 'open'}
+      inert={closing}
       role="dialog"
       aria-label={`${componentName} component definition`}
-      className="absolute z-50 max-h-[min(28rem,calc(100%-1rem))] w-[min(22rem,calc(100%-1rem))] overflow-auto border-2 border-foreground bg-popover text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
+      className="absolute z-50 max-h-[min(28rem,calc(100%-1rem))] w-[min(22rem,calc(100%-1rem))] overflow-auto rounded-md border border-input bg-popover text-popover-foreground chrome-overlay shadow-chrome-overlay"
       style={position}
     >
       {entry ? (
@@ -100,7 +105,7 @@ function RegistryDefinition({
       <PopoverHeader eyebrow="Registry component" name={entry.name} onClose={onClose} />
       <div className="space-y-4 p-3">
         <div>
-          <span className="inline-block border border-foreground bg-muted px-1.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.14em]">
+          <span className="inline-block border border-input bg-muted px-1.5 py-0.5 font-sans text-xs font-semibold ">
             {entry.category}
           </span>
           <p className="mt-2 text-sm leading-relaxed">{entry.description}</p>
@@ -109,7 +114,7 @@ function RegistryDefinition({
         <section aria-labelledby="component-props-heading">
           <h3
             id="component-props-heading"
-            className="border-b-2 border-foreground pb-1 font-mono text-xs font-bold uppercase tracking-[0.16em]"
+            className="border-b border-border pb-1 font-sans text-xs font-semibold "
           >
             Props
           </h3>
@@ -117,12 +122,10 @@ function RegistryDefinition({
             <dl className="divide-y divide-[var(--line)] border-b border-[var(--line)]">
               {props.map((prop) => (
                 <div key={prop.name} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 py-1.5">
-                  <dt className="min-w-0 font-mono text-xs font-bold">{prop.name}</dt>
-                  <dd className="text-right font-mono text-xs text-muted-foreground">
+                  <dt className="min-w-0 font-sans text-xs font-semibold">{prop.name}</dt>
+                  <dd className="text-right font-sans text-xs text-muted-foreground">
                     <span className="text-editorial-blue">{prop.type}</span>
-                    <span className="ml-1.5 uppercase tracking-wider">
-                      {prop.optional ? 'optional' : 'required'}
-                    </span>
+                    <span className="ml-1.5 ">{prop.optional ? 'optional' : 'required'}</span>
                   </dd>
                 </div>
               ))}
@@ -134,13 +137,10 @@ function RegistryDefinition({
 
         {entry.insertSnippet ? (
           <section aria-labelledby="component-snippet-heading">
-            <h3
-              id="component-snippet-heading"
-              className="font-mono text-xs font-bold uppercase tracking-[0.16em]"
-            >
+            <h3 id="component-snippet-heading" className="font-sans text-xs font-semibold ">
               Insert snippet
             </h3>
-            <code className="mt-1.5 block overflow-x-auto border-2 border-foreground bg-foreground p-2 font-mono text-xs leading-relaxed whitespace-pre text-background">
+            <code className="mt-1.5 block overflow-x-auto rounded-md border border-input bg-instrument-blue/10 p-2 font-mono text-xs leading-relaxed whitespace-pre text-foreground">
               {entry.insertSnippet}
             </code>
           </section>
@@ -163,9 +163,7 @@ function MissingRegistryDefinition({
       <div className="flex gap-3 p-3">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden="true" />
         <div>
-          <p className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
-            Not in registry
-          </p>
+          <p className="font-sans text-xs font-semibold text-destructive">Not in registry</p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Preview will show a placeholder warning until this component is registered.
           </p>
@@ -187,21 +185,19 @@ function PopoverHeader({
   warning?: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex items-start gap-3 border-b-2 border-foreground bg-muted px-3 py-2">
+    <div className="flex items-start gap-3 border-b border-border bg-muted px-3 py-2">
       <Braces
         className={`mt-0.5 size-4 shrink-0 ${warning ? 'text-destructive' : 'text-editorial-blue'}`}
         aria-hidden="true"
       />
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          {eyebrow}
-        </p>
-        <h2 className="truncate font-mono text-sm font-bold">{name}</h2>
+        <p className="font-sans text-xs font-semibold text-muted-foreground">{eyebrow}</p>
+        <h2 className="truncate font-sans text-sm font-semibold">{name}</h2>
       </div>
       <button
         type="button"
         aria-label="Close component definition"
-        className="flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background hover:bg-foreground hover:text-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        className="flex size-7 shrink-0 items-center justify-center rounded-md border border-muted-foreground bg-background hover:bg-instrument-blue/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
         onClick={onClose}
       >
         <X className="size-3.5" aria-hidden="true" />

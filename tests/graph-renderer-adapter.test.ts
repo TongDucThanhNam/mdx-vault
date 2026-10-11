@@ -70,10 +70,11 @@ describe('GOAL-24 Cytoscape adapter', () => {
       }
     } as typeof MutationObserver
     const harness = createCoreHarness()
+    const snapshot = createSnapshot()
     const adapter = await createCytoscapeGraphAdapter(
       {
         container: { clientWidth: 800, clientHeight: 500 } as HTMLElement,
-        snapshot: createSnapshot(),
+        snapshot,
         settings: DEFAULT_GRAPH_VIEW_SETTINGS,
         groups: TEST_GROUPS,
         activeRelativePath: null,
@@ -86,6 +87,10 @@ describe('GOAL-24 Cytoscape adapter', () => {
     )
 
     expect(harness.calls).toContain('layout.run')
+    const initialLayoutCount = harness.calls.filter((call) => call === 'layout.run').length
+    // Parent rerenders may resend identical inputs; never randomize the graph again.
+    adapter.setSnapshot(snapshot, DEFAULT_GRAPH_VIEW_SETTINGS, TEST_GROUPS)
+    expect(harness.calls.filter((call) => call === 'layout.run')).toHaveLength(initialLayoutCount)
     resizeObservers[0]?.callback([], resizeObservers[0])
     expect(harness.calls).toContain('resize')
     theme.dark = true

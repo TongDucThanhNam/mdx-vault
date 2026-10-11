@@ -38,7 +38,7 @@ export function ViewModeToggle({
             disabled={disabled}
             onClick={() => onChange(mode)}
             className={cn(
-              'relative flex h-full items-center gap-1.5 border-b-2 px-2 font-sans text-xs font-medium transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+              'relative flex h-full items-center gap-1.5 border-b-2 px-2 font-sans text-xs font-medium transition-colors duration-150 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
               isActive
                 ? 'border-instrument-blue bg-instrument-blue/5 text-foreground'
                 : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground',

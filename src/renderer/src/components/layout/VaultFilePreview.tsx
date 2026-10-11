@@ -46,7 +46,7 @@ export function VaultImagePreview({
         <img
           src={objectUrl}
           alt={fileName}
-          className="block max-h-[calc(100vh-12rem)] max-w-full border-2 border-foreground bg-background object-contain shadow-[5px_5px_0_0_var(--foreground)]"
+          className="block max-h-[calc(100vh-12rem)] max-w-full rounded-md border border-input bg-background object-contain "
           onError={() => {
             setDecodeFailed(true)
           }}
@@ -57,7 +57,7 @@ export function VaultImagePreview({
             })
           }}
         />
-        <figcaption className="max-w-full truncate font-mono text-xs tracking-wide text-muted-foreground">
+        <figcaption className="max-w-full truncate font-sans text-xs text-muted-foreground">
           {relativePath}
         </figcaption>
       </figure>

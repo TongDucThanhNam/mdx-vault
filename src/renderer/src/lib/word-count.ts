@@ -17,7 +17,7 @@ export function computeWordCount(value: string): WordCount {
     return { words: 0, chars: 0, readingMinutes: 0 }
   }
 
-  const withoutFrontmatter = value.replace(/^---\n[\s\S]*?\n---\n?/, '')
+  const withoutFrontmatter = value.replace(/\r\n/g, '\n').replace(/^---\n[\s\S]*?\n---\n?/, '')
   const withoutCodeFences = withoutFrontmatter.replace(/```[\s\S]*?```/g, ' ')
   const stripped = withoutCodeFences
     .replace(/`[^`]*`/g, ' ')

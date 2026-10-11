@@ -1,5 +1,6 @@
 import { FileWarning } from 'lucide-react'
 import { useId, useLayoutEffect, useMemo, useRef } from 'react'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { deriveNoteTitle } from '@/lib/note-title'
 import { cn } from '@/lib/utils'
 import { containDialogTabKey } from '@/workbench/dialog-focus'
@@ -19,16 +20,17 @@ export interface MruTabSwitcherProps {
  * the transient state and its explicit commit/cancel affordances.
  */
 export function MruTabSwitcher({
-  state,
+  state: currentState,
   items,
   onCommit,
   onCancel,
   onHighlight
 }: MruTabSwitcherProps): React.JSX.Element | null {
+  const state = useExitPresence(currentState)
   const headingId = useId()
   const hintId = useId()
   const listboxRef = useRef<HTMLDivElement>(null)
-  const isOpen = state !== null
+  const isOpen = currentState !== null
   const candidates = useMemo(() => {
     if (!state) {
       return []
@@ -59,7 +61,9 @@ export function MruTabSwitcher({
 
   return (
     <div
-      className="fixed inset-0 z-[80]"
+      data-state={isOpen ? 'open' : 'closed'}
+      inert={!isOpen}
+      className="chrome-presence fixed inset-0 z-[80]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onCancel()
@@ -72,7 +76,7 @@ export function MruTabSwitcher({
         aria-labelledby={headingId}
         aria-describedby={hintId}
         tabIndex={-1}
-        className="absolute top-16 left-1/2 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 border-2 border-foreground bg-background shadow-[4px_4px_0_0_var(--foreground)]"
+        className="absolute top-16 left-1/2 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border border-input bg-background chrome-overlay shadow-chrome-overlay"
         onKeyDown={(event) => {
           if (!event.nativeEvent.isComposing && !event.repeat) {
             if (event.key === 'Enter') {
@@ -88,14 +92,11 @@ export function MruTabSwitcher({
           containDialogTabKey(event, event.currentTarget)
         }}
       >
-        <header className="flex items-baseline justify-between gap-4 border-b-2 border-foreground bg-masthead px-3 py-2">
-          <h2 id={headingId} className="font-mono text-xs font-bold uppercase tracking-[0.16em]">
+        <header className="flex items-baseline justify-between gap-4 border-b border-border bg-masthead px-3 py-2">
+          <h2 id={headingId} className="font-sans text-xs font-semibold ">
             Recent tabs
           </h2>
-          <p
-            id={hintId}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground"
-          >
+          <p id={hintId} className="font-sans text-xs text-muted-foreground">
             Enter to open · Esc to cancel
           </p>
         </header>
@@ -125,7 +126,7 @@ export function MruTabSwitcher({
                 className={cn(
                   'group relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-3 py-2 text-left outline-none transition-colors motion-reduce:transition-none',
                   isHighlighted
-                    ? 'bg-foreground text-background'
+                    ? 'bg-instrument-blue/10 text-foreground'
                     : 'text-foreground hover:bg-chrome focus-visible:bg-chrome'
                 )}
                 onPointerEnter={() => onHighlight?.(item.id)}
@@ -153,12 +154,12 @@ export function MruTabSwitcher({
                       aria-hidden="true"
                     />
                   )}
-                  <span className="truncate font-mono text-xs font-bold">{label}</span>
+                  <span className="truncate font-sans text-xs font-semibold">{label}</span>
                   {item.dirty ? (
                     <span
                       className={cn(
-                        'font-mono text-xs font-bold uppercase tracking-widest',
-                        isHighlighted ? 'text-background/70' : 'text-[var(--editorial-red)]'
+                        'font-sans text-xs font-semibold ',
+                        isHighlighted ? 'text-muted-foreground' : 'text-[var(--editorial-red)]'
                       )}
                       aria-hidden="true"
                     >
@@ -169,8 +170,8 @@ export function MruTabSwitcher({
 
                 <span
                   className={cn(
-                    'max-w-44 truncate text-right font-mono text-xs uppercase tracking-wider',
-                    isHighlighted ? 'text-background/65' : 'text-muted-foreground'
+                    'max-w-44 truncate text-right font-sans text-xs ',
+                    isHighlighted ? 'text-muted-foreground' : 'text-muted-foreground'
                   )}
                   aria-hidden="true"
                 >

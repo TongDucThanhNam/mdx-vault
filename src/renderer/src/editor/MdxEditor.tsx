@@ -13,6 +13,7 @@ import { EditorView, keymap } from '@codemirror/view'
 import { Strikethrough, Table } from '@lezer/markdown'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CommandAction } from '@/commands/actions'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { getScoredNotes } from '@/lib/fuzzy-match'
 import {
   getRegistryInsertTemplates,
@@ -34,6 +35,7 @@ import {
 } from './goto-definition'
 import { createLivePreviewExtension, refreshLivePreviewEffect } from './live-preview'
 import { markdownFormattingKeymap } from './markdown-formatting'
+import { MdxBufferSource, sourceOffsetToEditor, syncMdxSource } from './mdx-buffer-source'
 import { mdxBlockHighlightExtension, mdxHighlightExtension } from './mdx-highlight'
 import {
   mdxExpressionHighlightExtension,
@@ -146,6 +148,7 @@ export function MdxEditor({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
+  const [bufferSource] = useState(() => new MdxBufferSource(value))
   const initialDisplayModeRef = useRef(displayMode)
   const initialSourceEditorPreferencesRef = useRef(sourceEditorPreferences)
   const [displayModeCompartment] = useState(() => new Compartment())
@@ -167,6 +170,9 @@ export function MdxEditor({
     name: string
     position: { left: number; top: number }
   } | null>(null)
+  const insertPalettePresent = useExitPresence(insertPaletteOpen ? true : null)
+  const slashPalettePresent = useExitPresence(slashTriggerRange)
+  const definitionPresent = useExitPresence(componentDefinition)
   // Keep a ref of the latest notes so the wikilink completion source (created
   // once at editor mount) can read fresh data without recreating the extension
   // on every notes-array identity change.
@@ -447,13 +453,18 @@ export function MdxEditor({
             }
           }),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChangeRef.current(update.state.doc.toString())
+            if (
+              update.transactions.some(
+                (transaction) =>
+                  transaction.docChanged && transaction.annotation(syncMdxSource) === undefined
+              )
+            ) {
+              onChangeRef.current(bufferSource.edit(update.state))
             }
             if (update.selectionSet || update.docChanged) {
               const callback = onSelectionChangeRef.current
               if (callback) {
-                callback(buildEditorSelectionSnapshot(update.view))
+                callback(buildEditorSelectionSnapshot(update.view, bufferSource.source))
               }
             }
           }),
@@ -483,7 +494,7 @@ export function MdxEditor({
 
     viewRef.current = view
     const unregisterActiveView = registerActiveEditorView(view)
-    onSelectionChangeRef.current?.(buildEditorSelectionSnapshot(view))
+    onSelectionChangeRef.current?.(buildEditorSelectionSnapshot(view, bufferSource.source))
 
     return () => {
       unregisterActiveView()
@@ -491,6 +502,7 @@ export function MdxEditor({
       viewRef.current = null
     }
   }, [
+    bufferSource,
     displayModeCompartment,
     handleGotoDefinition,
     openInsertPalette,
@@ -561,18 +573,9 @@ export function MdxEditor({
       return
     }
 
-    const currentValue = view.state.doc.toString()
-
-    if (currentValue !== value) {
-      view.dispatch({
-        changes: {
-          from: 0,
-          to: view.state.doc.length,
-          insert: value
-        }
-      })
-    }
-  }, [value])
+    const transaction = bufferSource.sync(value, view.state)
+    if (transaction) view.dispatch(transaction)
+  }, [bufferSource, value])
 
   useEffect(() => {
     const view = viewRef.current
@@ -596,27 +599,32 @@ export function MdxEditor({
   useEffect(() => {
     const view = viewRef.current
     if (!view || !revealSourceRangeRequest) return
-    const from = Math.min(Math.max(0, revealSourceRangeRequest.from), view.state.doc.length)
-    const to = Math.min(Math.max(from, revealSourceRangeRequest.to), view.state.doc.length)
+    const from = sourceOffsetToEditor(bufferSource.source, revealSourceRangeRequest.from)
+    const to = Math.max(
+      from,
+      sourceOffsetToEditor(bufferSource.source, revealSourceRangeRequest.to)
+    )
     view.dispatch({
       selection: { anchor: from, head: to },
       effects: EditorView.scrollIntoView(from, { y: 'center' })
     })
     view.focus()
-  }, [revealSourceRangeRequest])
+  }, [bufferSource, revealSourceRangeRequest])
 
   return (
     <div className="relative h-full overflow-hidden">
       <div ref={containerRef} className="h-full overflow-hidden" />
-      {insertPaletteOpen ? (
+      {insertPalettePresent ? (
         <ComponentInsertPalette
+          closing={!insertPaletteOpen}
           templates={insertTemplates}
           onClose={closeInsertPalette}
           onSelect={insertTemplate}
         />
       ) : null}
-      {slashTriggerRange ? (
+      {slashPalettePresent ? (
         <SlashCommandPalette
+          closing={!slashTriggerRange}
           commandActions={commandActions}
           componentTemplates={insertTemplates}
           onClose={closeSlashPalette}
@@ -626,10 +634,11 @@ export function MdxEditor({
           }}
         />
       ) : null}
-      {componentDefinition ? (
+      {definitionPresent ? (
         <ComponentDefinitionPopover
-          componentName={componentDefinition.name}
-          position={componentDefinition.position}
+          closing={!componentDefinition}
+          componentName={definitionPresent.name}
+          position={definitionPresent.position}
           onClose={closeComponentDefinition}
         />
       ) : null}
@@ -756,6 +765,8 @@ function createInsertion(
   placement: 'block' | 'inline',
   range?: { from: number; to: number }
 ): string {
+  // Cursor anchors below use CodeMirror's single-character line coordinates.
+  snippet = snippet.replace(/\r\n?/g, '\n')
   if (placement === 'inline') {
     return snippet
   }

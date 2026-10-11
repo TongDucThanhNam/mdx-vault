@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils'
 import type { RegistryInsertTemplate } from '@/preview/registry'
 
 interface ComponentInsertPaletteProps {
+  closing?: boolean
   templates: RegistryInsertTemplate[]
   onClose: () => void
   onSelect: (template: RegistryInsertTemplate) => void
 }
 
 export function ComponentInsertPalette({
+  closing = false,
   templates,
   onClose,
   onSelect
@@ -44,13 +46,17 @@ export function ComponentInsertPalette({
   }, [])
 
   return (
-    <div className="absolute top-3 right-3 left-3 z-20 max-w-xl border-2 border-foreground bg-popover p-2 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]">
-      <div className="flex items-center gap-2 border-b-2 border-foreground px-2 pb-2">
+    <div
+      data-state={closing ? 'closed' : 'open'}
+      inert={closing}
+      className="absolute top-3 right-3 left-3 z-20 max-w-xl rounded-md border border-input bg-popover p-2 text-popover-foreground chrome-overlay shadow-chrome-overlay"
+    >
+      <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
         <Search className="size-4 text-muted-foreground" aria-hidden="true" />
         <input
           ref={inputRef}
           value={query}
-          className="h-8 min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
+          className="h-8 min-w-0 flex-1 bg-transparent font-sans text-sm outline-none placeholder:text-muted-foreground"
           placeholder="Insert interactive component"
           onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -93,21 +99,19 @@ export function ComponentInsertPalette({
               className={cn(
                 'flex w-full items-start gap-3 px-2 py-2 text-left text-sm outline-none',
                 index === activeIndex
-                  ? 'bg-foreground text-background'
-                  : 'hover:bg-foreground hover:text-background'
+                  ? 'bg-instrument-blue/10 text-foreground'
+                  : 'hover:bg-instrument-blue/10 hover:text-foreground'
               )}
               onMouseEnter={() => setSelectedIndex(index)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelect(template)}
             >
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-input bg-background">
                 <CircleHelp className="size-4" aria-hidden="true" />
               </span>
               <span className="min-w-0">
-                <span className="block font-mono text-[12px] font-bold uppercase tracking-wider">
-                  {template.name}
-                </span>
-                <span className="mt-0.5 block font-mono text-xs uppercase tracking-wider opacity-70">
+                <span className="block font-sans text-[12px] font-semibold ">{template.name}</span>
+                <span className="mt-0.5 block font-sans text-xs text-muted-foreground">
                   {template.description}
                 </span>
               </span>

@@ -533,14 +533,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: 'Courier Prime', monospace;
+  font-family: var(--note-font-body);
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .mdx-preview .in-flow-edge-label {
   font-size: 0.75rem;
-  letter-spacing: 1px;
+  letter-spacing: normal;
 }
 
 .mdx-preview .in-flow-arrow {
@@ -550,11 +550,11 @@
 
 .mdx-preview .in-visual-caption {
   margin-top: 0.5rem;
-  font-family: 'Courier Prime', monospace;
+  font-family: var(--note-font-body);
   font-size: 0.75rem;
-  letter-spacing: 0.5px;
+  letter-spacing: normal;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .mdx-preview .in-self-test,
@@ -1751,4 +1751,12 @@ button:not([data-page-preview-owned='true']),
     ) {
     color: var(--in-ink);
   }
+}
+
+/* Long interactive reading copy is prose, not a machine-state label. Shared by export. */
+.mdx-preview:is(.theme-editorial-note, .theme-interactive-note)
+:is([data-note-prose], button[data-note-prose]) {
+  font-family: var(--note-font-body);
+  text-transform: none;
+  letter-spacing: normal;
 }

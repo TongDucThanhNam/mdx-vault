@@ -42,6 +42,7 @@ export function PredictionGate({
 
           return (
             <button
+              data-note-prose=""
               className={chosen ? 'in-button in-gate-option-chosen' : 'in-button'}
               type="button"
               role="radio"

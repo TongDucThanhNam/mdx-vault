@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { RegistryInsertTemplate } from '@/preview/registry'
 
 interface SlashCommandPaletteProps {
+  closing?: boolean
   commandActions: CommandAction[]
   componentTemplates: RegistryInsertTemplate[]
   onClose: () => void
@@ -34,6 +35,7 @@ type SlashItem =
     }
 
 export function SlashCommandPalette({
+  closing = false,
   commandActions,
   componentTemplates,
   onClose,
@@ -74,13 +76,17 @@ export function SlashCommandPalette({
   }
 
   return (
-    <div className="absolute top-3 right-3 left-3 z-30 max-w-2xl border-2 border-foreground bg-popover p-2 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]">
-      <div className="flex items-center gap-2 border-b-2 border-foreground px-2 pb-2">
+    <div
+      data-state={closing ? 'closed' : 'open'}
+      inert={closing}
+      className="absolute top-3 right-3 left-3 z-30 max-w-2xl rounded-md border border-input bg-popover p-2 text-popover-foreground chrome-overlay shadow-chrome-overlay"
+    >
+      <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
         <Search className="size-4 text-muted-foreground" aria-hidden="true" />
         <input
           ref={inputRef}
           value={query}
-          className="h-8 min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
+          className="h-8 min-w-0 flex-1 bg-transparent font-sans text-sm outline-none placeholder:text-muted-foreground"
           placeholder="Slash command"
           onChange={(event) => {
             setQuery(event.currentTarget.value)
@@ -129,14 +135,14 @@ export function SlashCommandPalette({
                 item.disabled
                   ? 'cursor-not-allowed opacity-45'
                   : index === activeIndex
-                    ? 'bg-foreground text-background'
-                    : 'hover:bg-foreground hover:text-background'
+                    ? 'bg-instrument-blue/10 text-foreground'
+                    : 'hover:bg-instrument-blue/10 hover:text-foreground'
               )}
               onMouseEnter={() => setSelectedIndex(index)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => selectItem(item)}
             >
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background text-foreground">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-input bg-background text-foreground">
                 {item.kind === 'component' ? (
                   <Blocks className="size-4" aria-hidden="true" />
                 ) : (
@@ -145,14 +151,14 @@ export function SlashCommandPalette({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-mono text-[12px] font-bold uppercase tracking-wider">
+                  <span className="truncate font-sans text-[12px] font-semibold ">
                     {item.title}
                   </span>
-                  <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider opacity-70">
+                  <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground">
                     {item.category}
                   </span>
                 </span>
-                <span className="mt-0.5 block truncate font-mono text-xs uppercase tracking-wider opacity-70">
+                <span className="mt-0.5 block truncate font-sans text-xs text-muted-foreground">
                   {item.description}
                 </span>
               </span>

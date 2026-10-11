@@ -17,7 +17,7 @@ export function EmptyState({
         {icon}
       </div>
       <div className="max-w-56">
-        <p className="text-balance font-display text-lg leading-tight font-semibold text-foreground">
+        <p className="text-balance font-sans text-lg leading-tight font-semibold text-foreground">
           {title}
         </p>
         <p className="mt-2 text-pretty font-sans text-sm leading-relaxed text-muted-foreground">

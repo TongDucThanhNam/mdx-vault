@@ -1,4 +1,4 @@
-import { BookmarkPlus, ListTree } from 'lucide-react'
+import { BookmarkPlus } from 'lucide-react'
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import {
@@ -110,13 +110,9 @@ export const OutlinePanel = memo(function OutlinePanel({
   }, [activeHeadingId])
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-border px-4">
-        <div className="flex items-center gap-2 font-sans text-xs font-semibold text-muted-foreground">
-          <ListTree className="size-3.5" aria-hidden="true" />
-          {t('outline.title')}
-        </div>
-        <div className="font-mono text-xs tabular-nums text-muted-foreground">
+    <div role="region" aria-label="Outline" className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-7 shrink-0 items-center justify-end border-b border-border px-4">
+        <div className="font-sans text-xs tabular-nums text-muted-foreground">
           <span className="sr-only">{t('outline.count', { count: headings.length })}</span>
           <span aria-hidden="true">{headings.length}</span>
         </div>
@@ -182,7 +178,7 @@ export const OutlinePanel = memo(function OutlinePanel({
                   aria-current={heading.id === activeHeadingId ? 'location' : undefined}
                   onClick={() => onSelectHeading(heading)}
                 >
-                  <span className="font-mono text-xs font-medium tabular-nums">
+                  <span className="font-sans text-xs font-medium tabular-nums">
                     H{heading.depth}
                   </span>
                   <span className="truncate text-sm font-medium">{heading.text}</span>

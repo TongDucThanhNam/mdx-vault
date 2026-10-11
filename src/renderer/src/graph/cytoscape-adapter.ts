@@ -8,6 +8,7 @@ import type {
   GraphVisualToken
 } from '../../../shared/graph'
 import { selectVisibleGraphLabels } from './graph-label-culling'
+import { graphLabelFontSize, packGraphComponents } from './graph-readability'
 import { loadCytoscape } from './load-cytoscape'
 
 export interface GraphContextRequest {
@@ -151,6 +152,10 @@ export async function createCytoscapeGraphAdapter(
       }
     )
     cy.batch(() => {
+      const fontSize = graphLabelFontSize(cy.zoom())
+      cy.nodes()
+        .style('font-size', fontSize)
+        .style('text-max-width', `${fontSize * 10}px`)
       cy.nodes('[status != "orphan-cluster"]').forEach((node) => {
         node.toggleClass('labels-hidden', !visible.has(node.id()))
       })
@@ -220,27 +225,48 @@ export async function createCytoscapeGraphAdapter(
   })
   cy.on('layoutstop', () => {
     const orphanGroup = cy.getElementById('graph:orphans')
-    if (orphanGroup.empty()) return
-    const connected = cy.nodes().filter((node) => !node.isParent() && !node.data('parent'))
-    if (connected.empty()) return
-    const orphanBounds = orphanGroup.boundingBox({ includeLabels: false, includeOverlays: false })
-    const connectedBounds = connected.boundingBox({ includeLabels: false, includeOverlays: false })
-    const shift = connectedBounds.y2 + 64 - orphanBounds.y1
-    if (shift > 0) {
-      cy.batch(() => {
-        orphanGroup.children().forEach((node) => {
+    const components = cy
+      .elements()
+      .filter((element) => element.isEdge() || (!element.isParent() && !element.data('parent')))
+      .components()
+      .map((component) => ({
+        nodes: component.nodes(),
+        bounds: component.boundingBox({ includeLabels: false, includeOverlays: false })
+      }))
+      .sort((a, b) => b.bounds.h - a.bounds.h)
+    const packed = packGraphComponents(
+      components.map(({ bounds }) => ({ width: bounds.w, height: bounds.h })),
+      options.container.clientWidth / Math.max(1, options.container.clientHeight)
+    )
+    const orphans = orphanGroup.children()
+    const spacing = 44
+    const columns = Math.max(1, Math.floor(Math.max(packed.width, 220) / spacing))
+    cy.batch(() => {
+      components.forEach(({ nodes, bounds }, index) => {
+        const target = packed.positions[index]
+        nodes.forEach((node) => {
           const position = node.position()
-          node.position({ x: position.x, y: position.y + shift })
+          node.position({
+            x: position.x + target.x - bounds.x1,
+            y: position.y + target.y - bounds.y1
+          })
         })
       })
-      cy.fit(undefined, 32)
-    }
+      orphans.forEach((node, index) => {
+        node.position({
+          x: (index % columns) * spacing,
+          y: packed.height + 48 + Math.floor(index / columns) * spacing
+        })
+      })
+    })
+    cy.fit(undefined, 20)
   })
   cy.on('zoom pan layoutstop position', scheduleLabelVisibility)
 
   const resizeObserver = new ResizeObserver(() => {
     if (destroyed) return
     cy.resize()
+    cy.fit(undefined, 20)
     scheduleLabelVisibility()
   })
   const themeObserver =
@@ -260,6 +286,7 @@ export async function createCytoscapeGraphAdapter(
   return {
     setSnapshot: (nextSnapshot, nextSettings, nextGroups = groups) => {
       if (destroyed) return
+      if (snapshot === nextSnapshot && settings === nextSettings && groups === nextGroups) return
       snapshot = nextSnapshot
       settings = nextSettings
       groups = nextGroups
@@ -301,7 +328,7 @@ export async function createCytoscapeGraphAdapter(
       }
     },
     fit: () => {
-      if (!destroyed) cy.fit(undefined, 32)
+      if (!destroyed) cy.fit(undefined, 20)
     },
     resetLayout: runLayout,
     zoomBy: (factor) => {
@@ -407,9 +434,9 @@ export function createCoseLayoutOptions(
     animationDuration: reducedMotion ? 0 : 180,
     randomize: true,
     fit: true,
-    padding: 32,
+    padding: 20,
     refresh: snapshot.nodes.length > 1_000 ? 50 : 20,
-    componentSpacing: 48,
+    componentSpacing: 28,
     nodeRepulsion: settings.repelForce,
     idealEdgeLength: settings.linkDistance,
     edgeElasticity: Math.max(1, 257 - settings.linkForce),
@@ -437,7 +464,7 @@ function createGraphStyles(settings: GraphViewSettings): cytoscape.StylesheetJso
         'border-color': ink,
         label: 'data(label)',
         color: ink,
-        'font-family': 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        'font-family': 'Atkinson Hyperlegible Next, sans-serif',
         'font-size': 12,
         'text-wrap': 'ellipsis',
         'text-max-width': '120px',
@@ -455,7 +482,7 @@ function createGraphStyles(settings: GraphViewSettings): cytoscape.StylesheetJso
         'border-color': dark ? '#94a3b8' : '#64748b',
         'border-width': 1,
         'border-style': 'dashed',
-        padding: '28px',
+        padding: '12px',
         'text-valign': 'top',
         'text-halign': 'center',
         'text-margin-y': -8,
@@ -527,7 +554,7 @@ function createGraphStyles(settings: GraphViewSettings): cytoscape.StylesheetJso
 }
 
 function calculateNodeSize(node: GraphNode, settings: GraphViewSettings): number {
-  return Math.min(64, settings.nodeSize + Math.sqrt(node.degree) * 2.5)
+  return Math.min(64, settings.nodeSize + 4 + Math.sqrt(node.degree) * 2.5)
 }
 
 function defaultNodeColor(node: GraphNode, dark: boolean): string {

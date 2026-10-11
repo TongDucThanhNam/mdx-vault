@@ -115,12 +115,12 @@ export function AppStatusBar({
               : saveLabel}
         </span>
         {viewMode ? (
-          <span className="border-l border-border px-2 font-mono text-xs uppercase">
+          <span className="border-l border-border px-2 font-sans text-xs capitalize">
             {viewMode}
           </span>
         ) : null}
         {compileStatus && viewMode === 'reading' ? (
-          <span className="border-l border-border px-2 font-mono text-xs" role="status">
+          <span className="border-l border-border px-2 font-sans text-xs" role="status">
             {compileStatus === 'pending'
               ? 'Updating'
               : compileStatus === 'error'

@@ -156,7 +156,10 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
           })}
         </div>
       ) : src && datasetResolution.status === 'ready' ? (
-        <div className="flex h-64 items-center justify-center border-2 border-foreground bg-card font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+        <div
+          data-note-prose=""
+          className="flex h-64 items-center justify-center border-2 border-foreground bg-card text-sm text-muted-foreground"
+        >
           Loading {datasetResolution.path}
         </div>
       ) : (
@@ -168,7 +171,10 @@ export function DataChart({ type, data, src, x, y, title }: DataChartProps): Rea
 
 function DataChartError({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="flex min-h-40 items-center justify-center border-2 border-destructive bg-background px-4 py-6 text-center font-mono text-[12px] uppercase tracking-wider text-destructive">
+    <div
+      data-note-prose=""
+      className="flex min-h-40 items-center justify-center border-2 border-destructive bg-background px-4 py-6 text-center text-sm text-destructive"
+    >
       <div>
         <AlertTriangle className="mx-auto mb-2 size-5" aria-hidden="true" />
         <div className="font-medium">Chart unavailable</div>

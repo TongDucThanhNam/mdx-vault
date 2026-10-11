@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import type { InteractiveCreateForm } from '@/interactive/interactive-authoring-controller'
 import { cn } from '@/lib/utils'
 import {
@@ -32,10 +33,11 @@ export function CreateInteractiveDialog({
   onOpenChange,
   onCreate
 }: CreateInteractiveDialogProps): React.JSX.Element {
+  const present = useExitPresence(open ? true : null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
-        {open ? (
+        {present ? (
           <CreateInteractiveForm
             isCreating={isCreating}
             onOpenChange={onOpenChange}
@@ -120,7 +122,7 @@ function CreateInteractiveForm({
 
       <div className="mt-5 grid gap-4">
         <label className="grid gap-1.5" htmlFor="interactive-display-name">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="font-sans text-xs font-semibold text-muted-foreground">
             Display name
           </span>
           <input
@@ -131,7 +133,7 @@ function CreateInteractiveForm({
             disabled={isCreating}
             value={displayName}
             aria-describedby="interactive-destination"
-            className="h-9 w-full border-2 border-foreground bg-background px-3 font-mono text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 font-sans text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Reading timer"
             onChange={(event) => {
               const nextName = event.target.value
@@ -145,9 +147,7 @@ function CreateInteractiveForm({
         </label>
 
         <label className="grid gap-1.5" htmlFor="interactive-slug">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Folder slug
-          </span>
+          <span className="font-sans text-xs font-semibold text-muted-foreground">Folder slug</span>
           <input
             id="interactive-slug"
             name="interactive-slug"
@@ -155,7 +155,7 @@ function CreateInteractiveForm({
             spellCheck={false}
             disabled={isCreating}
             value={slug}
-            className="h-9 w-full border-2 border-foreground bg-background px-3 font-mono text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 font-sans text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="reading-timer"
             onChange={(event) => {
               setSlugWasEdited(true)
@@ -166,9 +166,7 @@ function CreateInteractiveForm({
         </label>
 
         <fieldset className="grid gap-2">
-          <legend className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Starter
-          </legend>
+          <legend className="font-sans text-xs font-semibold text-muted-foreground">Starter</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             <StarterOption
               value="blank"
@@ -193,24 +191,22 @@ function CreateInteractiveForm({
           id="interactive-destination"
           className="border-l-4 border-editorial-blue bg-muted px-3 py-2"
         >
-          <p className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Destination
-          </p>
-          <p className="mt-1 truncate font-mono text-xs text-foreground">
+          <p className="font-sans text-xs font-semibold text-muted-foreground">Destination</p>
+          <p className="mt-1 truncate font-sans text-xs text-foreground">
             interactives/{slug || '…'}/
           </p>
         </div>
 
-        <div className="flex gap-2 border-2 border-foreground bg-background p-3">
+        <div className="flex gap-2 rounded-md border border-input bg-background p-3">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-          <p className="font-mono text-xs leading-relaxed text-muted-foreground">
+          <p className="font-sans text-xs leading-relaxed text-muted-foreground">
             The starter requests zero capabilities. Its source opens for review; execution still
             requires explicit Run consent in the sandbox.
           </p>
         </div>
 
         {error ? (
-          <p className="font-mono text-xs text-destructive" role="alert">
+          <p className="font-sans text-xs text-destructive" role="alert">
             {error}
           </p>
         ) : null}
@@ -251,10 +247,10 @@ function StarterOption({
   return (
     <label
       className={cn(
-        'grid min-h-24 cursor-pointer content-start gap-1 border-2 p-3 transition-[color,background-color,border-color] motion-reduce:transition-none',
+        'grid min-h-24 cursor-pointer content-start gap-1 rounded-md border p-3 transition-[color,background-color,border-color] motion-reduce:transition-none',
         selected
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-border bg-background hover:border-foreground',
+          ? 'border-input bg-instrument-blue/10 text-foreground'
+          : 'border-border bg-background hover:border-input',
         disabled && 'cursor-not-allowed opacity-50'
       )}
     >
@@ -267,11 +263,11 @@ function StarterOption({
         disabled={disabled}
         onChange={() => onSelect(value)}
       />
-      <span className="font-display text-sm font-black">{title}</span>
+      <span className="font-sans text-sm font-semibold">{title}</span>
       <span
         className={cn(
-          'font-mono text-xs leading-relaxed',
-          selected ? 'text-background/75' : 'text-muted-foreground'
+          'font-sans text-xs leading-relaxed',
+          selected ? 'text-muted-foreground' : 'text-muted-foreground'
         )}
       >
         {description}

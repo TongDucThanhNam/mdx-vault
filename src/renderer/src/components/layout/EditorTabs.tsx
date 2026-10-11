@@ -2,6 +2,7 @@ import { ChevronDown, FileWarning, Waypoints, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { displayFileName } from '@/explorer/file-label'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { cn } from '@/lib/utils'
 import { focusActiveDocument } from '@/workbench/document-focus'
 import {
@@ -62,6 +63,7 @@ export function EditorTabs({
   const [overflow, setOverflow] = useState({ left: false, right: false })
   const [visibleRange, setVisibleRange] = useState({ first: 0, last: items.length - 1 })
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuPresent = useExitPresence(menuOpen ? true : null)
   const [menuIndex, setMenuIndex] = useState(0)
   const pendingFocusAfterCloseRef = useRef<PendingFocusAfterClose | null>(null)
   const previousActiveIdRef = useRef(activeId)
@@ -357,7 +359,7 @@ export function EditorTabs({
             aria-label="Show all open tabs"
             aria-expanded={menuOpen}
             aria-controls="tab-overflow-list"
-            className="absolute inset-y-0 right-0 flex w-8 items-center justify-center border-l border-border bg-chrome text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            className="absolute inset-y-0 right-0 flex w-8 items-center justify-center border-l border-input bg-chrome text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
             onClick={() => {
               const next = !menuOpen
               setMenuOpen(next)
@@ -375,13 +377,15 @@ export function EditorTabs({
           >
             <ChevronDown className="size-4" aria-hidden="true" />
           </button>
-          {menuOpen ? (
+          {menuPresent ? (
             <div
               id="tab-overflow-list"
               ref={menuRef}
               role="listbox"
               aria-label="All open tabs"
-              className="absolute top-full right-0 z-40 max-h-80 w-72 overflow-y-auto border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-hard-sm)]"
+              data-state={menuOpen ? 'open' : 'closed'}
+              inert={!menuOpen}
+              className="absolute top-full right-0 z-40 max-h-80 w-72 overflow-y-auto border border-border bg-popover p-1 text-popover-foreground rounded-lg chrome-overlay shadow-chrome-overlay"
               onKeyDown={(event) => {
                 let next = menuIndex
                 if (event.key === 'ArrowDown') next = Math.min(items.length - 1, menuIndex + 1)
@@ -420,7 +424,7 @@ export function EditorTabs({
                     {presentations.get(item.id)?.label ?? item.id}
                   </span>
                   {index < visibleRange.first || index > visibleRange.last ? (
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">Hidden</span>
+                    <span className="shrink-0 font-sans text-xs text-muted-foreground">Hidden</span>
                   ) : null}
                 </button>
               ))}
@@ -484,7 +488,7 @@ function EditorTab({
       <div
         role="presentation"
         className={cn(
-          'group relative flex max-w-56 min-w-0 shrink-0 items-stretch border-r border-[var(--line)] transition-colors motion-reduce:transition-none',
+          'group relative flex max-w-56 min-w-0 shrink-0 items-stretch border-r border-[var(--line)] transition-colors duration-150 ease-out motion-reduce:transition-none',
           isActive
             ? 'bg-card text-foreground'
             : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
@@ -588,7 +592,7 @@ function EditorTab({
           aria-label={`Close ${accessibleLabel}`}
           title={`Close ${label}`}
           className={cn(
-            'my-auto mr-1.5 ml-0.5 flex size-4 shrink-0 cursor-pointer items-center justify-center outline-none transition-opacity hover:bg-foreground hover:text-background focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/60 motion-reduce:transition-none',
+            'my-auto mr-1.5 ml-0.5 flex size-4 shrink-0 cursor-pointer items-center justify-center outline-none transition-opacity hover:bg-instrument-blue/10 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/60 motion-reduce:transition-none',
             !isActive && 'opacity-0 group-hover:opacity-100'
           )}
           onClick={(event) => {
@@ -652,7 +656,7 @@ function EditorTabContextMenu({
         data-slot="tab-context-menu-content"
         collisionPadding={8}
         loop
-        className="z-[100] min-w-56 border-2 border-foreground bg-popover p-1 font-mono text-xs text-popover-foreground shadow-[var(--shadow-hard)]"
+        className="z-[100] min-w-56 rounded-md border border-input bg-popover p-1 font-sans text-xs text-popover-foreground chrome-overlay shadow-chrome-overlay"
         onKeyDown={(event) => event.stopPropagation()}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
@@ -669,41 +673,41 @@ function EditorTabContextMenu({
           onSelect={() => close(closeTargets.current)}
         />
         <TabContextMenuItem
-          label="Close Others"
+          label="Close others"
           disabled={closeTargets.others.length === 0}
           onSelect={() => close(closeTargets.others)}
         />
         <TabContextMenuItem
-          label="Close to the Left"
+          label="Close to the left"
           disabled={closeTargets.left.length === 0}
           onSelect={() => close(closeTargets.left)}
         />
         <TabContextMenuItem
-          label="Close to the Right"
+          label="Close to the right"
           disabled={closeTargets.right.length === 0}
           onSelect={() => close(closeTargets.right)}
         />
         <TabContextMenuItem
-          label="Close Saved"
+          label="Close saved"
           disabled={closeTargets.saved.length === 0}
           onSelect={() => close(closeTargets.saved)}
         />
-        <TabContextMenuItem label="Close All" onSelect={() => close(closeTargets.all)} />
+        <TabContextMenuItem label="Close all" onSelect={() => close(closeTargets.all)} />
 
         {item.kind !== 'graph' ? (
           <>
-            <ContextMenuPrimitive.Separator className="my-1 h-px bg-foreground" />
+            <ContextMenuPrimitive.Separator className="my-1 h-px bg-instrument-blue/10" />
 
             <TabContextMenuItem
-              label="Copy Path"
+              label="Copy path"
               onSelect={() => runTabFileAction(item, onCopyPath)}
             />
             <TabContextMenuItem
-              label="Copy Relative Path"
+              label="Copy relative path"
               onSelect={() => runTabFileAction(item, onCopyRelativePath)}
             />
 
-            <ContextMenuPrimitive.Separator className="my-1 h-px bg-foreground" />
+            <ContextMenuPrimitive.Separator className="my-1 h-px bg-instrument-blue/10" />
 
             <TabContextMenuItem
               label="Reveal in File Explorer"
@@ -732,11 +736,11 @@ function TabContextMenuItem({
     <ContextMenuPrimitive.Item
       disabled={disabled}
       onSelect={onSelect}
-      className="group relative flex h-7 cursor-default select-none items-center px-2 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-35 data-[highlighted]:bg-foreground data-[highlighted]:text-background"
+      className="group relative flex h-7 cursor-default select-none items-center px-2 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-35 data-[highlighted]:bg-instrument-blue/10 data-[highlighted]:text-foreground"
     >
       <span>{label}</span>
       {shortcut ? (
-        <span className="ml-auto pl-8 text-xs tracking-wide text-muted-foreground group-data-[highlighted]:text-background/70">
+        <span className="ml-auto pl-8 text-xs tracking-wide text-muted-foreground group-data-[highlighted]:text-muted-foreground">
           {shortcut}
         </span>
       ) : null}

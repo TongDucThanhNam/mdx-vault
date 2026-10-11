@@ -468,17 +468,17 @@ function DraftFilesList({
   busy: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-2 border-t-2 border-foreground bg-muted/20 px-3 py-2">
-      <div className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
+    <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2">
+      <div className="font-sans text-xs font-semibold text-foreground">
         New interactive component ({files.length} files)
       </div>
       <div className="max-h-64 space-y-2 overflow-auto">
         {files.map((file) => (
-          <details key={file.relativePath} className="border border-foreground/30 bg-background">
-            <summary className="cursor-pointer px-2 py-1 font-mono text-xs">
+          <details key={file.relativePath} className="border border-input bg-background">
+            <summary className="cursor-pointer px-2 py-1 font-sans text-xs">
               + {file.relativePath}
             </summary>
-            <pre className="overflow-auto border-t border-foreground/30 p-2 font-mono text-xs text-foreground">
+            <pre className="overflow-auto border-t border-border p-2 font-mono text-xs text-foreground">
               {file.content}
             </pre>
           </details>

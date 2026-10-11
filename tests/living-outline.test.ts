@@ -73,7 +73,7 @@ describe('GOAL-29 living outline state', () => {
     expect(html).toContain('<ol')
     expect(html).toContain('aria-current="location"')
     expect(html).toContain('aria-label="Heading level 2: setup"')
-    expect(html).toContain('On this note')
+    expect(html).toContain('aria-label="Outline"')
     expect(html).not.toContain('border-l-')
   })
 })

@@ -12,6 +12,8 @@ export function ResponsiveSupplementaryDock({
   mode,
   contextOpen,
   aiOpen,
+  contextClosing = false,
+  aiClosing = false,
   contextPanel,
   aiPanel
 }: {
@@ -21,6 +23,8 @@ export function ResponsiveSupplementaryDock({
   mode: WorkspaceLayoutMode
   contextOpen: boolean
   aiOpen: boolean
+  contextClosing?: boolean
+  aiClosing?: boolean
   contextPanel: React.ReactNode
   aiPanel: React.ReactNode
 }): React.JSX.Element {
@@ -34,9 +38,11 @@ export function ResponsiveSupplementaryDock({
           tabIndex={-1}
           aria-label={t('dock.context')}
           data-panel-width="rightPanelWidth"
+          data-dock-open={contextOpen && !contextClosing}
+          inert={contextClosing}
           className="min-h-0 min-w-0 overflow-hidden border-l border-border bg-chrome outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {contextPanel}
+          <div className="chrome-dock-content h-full">{contextPanel}</div>
         </div>
       </Activity>
       {aiOpen ? (
@@ -55,9 +61,11 @@ export function ResponsiveSupplementaryDock({
           tabIndex={-1}
           aria-label={t('dock.ai')}
           data-panel-width="aiPanelWidth"
+          data-dock-open={aiOpen && !aiClosing}
+          inert={aiClosing}
           className="min-h-0 min-w-0 overflow-hidden border-l border-border bg-chrome outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {aiPanel}
+          <div className="chrome-dock-content h-full">{aiPanel}</div>
         </div>
       </Activity>
     </div>

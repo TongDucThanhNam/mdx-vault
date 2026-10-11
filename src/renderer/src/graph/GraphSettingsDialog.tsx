@@ -81,7 +81,7 @@ export function GraphSettingsDialog({
         </DialogHeader>
 
         {recovery ? (
-          <div className="border-2 border-editorial-gold bg-background p-3 font-mono text-xs">
+          <div className="rounded-md border border-editorial-gold bg-background p-3 font-sans text-xs">
             The existing <strong>{recovery.relativePath}</strong> is{' '}
             {recovery.kind === 'corrupt' ? 'corrupt' : 'from an unsupported version'} and was
             preserved. Defaults are active; settings cannot be persisted until the file is
@@ -95,10 +95,8 @@ export function GraphSettingsDialog({
         ) : null}
 
         <div className="grid gap-5 md:grid-cols-2">
-          <fieldset className="space-y-3 border-2 border-foreground p-3">
-            <legend className="px-1 font-mono text-xs font-bold uppercase tracking-wider">
-              Topology
-            </legend>
+          <fieldset className="space-y-3 rounded-md border border-input p-3">
+            <legend className="px-1 font-sans text-xs font-semibold ">Topology</legend>
             <CheckSetting
               label="Existing files only"
               checked={settings.existingOnly}
@@ -115,11 +113,11 @@ export function GraphSettingsDialog({
               onChange={onShowTemplatesChange}
             />
             {mode === 'local' && 'depth' in settings ? (
-              <label className="grid gap-1 font-mono text-xs">
+              <label className="grid gap-1 font-sans text-xs">
                 <span className="font-bold">Depth</span>
                 <select
                   value={settings.depth}
-                  className="h-9 border-2 border-foreground bg-background px-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="h-9 rounded-md border border-input bg-background px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onChange={(event) =>
                     onSettingsChange({
                       depth: Number(event.currentTarget.value) as LocalGraphViewSettings['depth']
@@ -136,10 +134,8 @@ export function GraphSettingsDialog({
             ) : null}
           </fieldset>
 
-          <fieldset className="space-y-3 border-2 border-foreground p-3">
-            <legend className="px-1 font-mono text-xs font-bold uppercase tracking-wider">
-              Display
-            </legend>
+          <fieldset className="space-y-3 rounded-md border border-input p-3">
+            <legend className="px-1 font-sans text-xs font-semibold ">Display</legend>
             <CheckSetting
               label="Directed arrows"
               checked={settings.arrows}
@@ -171,10 +167,8 @@ export function GraphSettingsDialog({
             />
           </fieldset>
 
-          <fieldset className="space-y-3 border-2 border-foreground p-3 md:col-span-2">
-            <legend className="px-1 font-mono text-xs font-bold uppercase tracking-wider">
-              Layout forces
-            </legend>
+          <fieldset className="space-y-3 rounded-md border border-input p-3 md:col-span-2">
+            <legend className="px-1 font-sans text-xs font-semibold ">Layout forces</legend>
             <div className="grid gap-3 md:grid-cols-2">
               <RangeSetting
                 label="Center"
@@ -215,10 +209,10 @@ export function GraphSettingsDialog({
         <section aria-labelledby="graph-groups-title" className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h3 id="graph-groups-title" className="font-display text-lg font-black">
+              <h3 id="graph-groups-title" className="font-sans text-lg font-semibold">
                 Query groups
               </h3>
-              <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              <p className="font-sans text-xs text-muted-foreground">
                 First match owns shape/color; every match remains in details.
               </p>
             </div>
@@ -235,7 +229,7 @@ export function GraphSettingsDialog({
           </div>
 
           {groups.length === 0 ? (
-            <p className="border border-dashed border-foreground/50 p-3 font-mono text-xs text-muted-foreground">
+            <p className="border border-dashed border-input p-3 font-sans text-xs text-muted-foreground">
               No groups. Nodes use status and orphan encodings.
             </p>
           ) : (
@@ -243,14 +237,14 @@ export function GraphSettingsDialog({
               {groups.map((group, index) => (
                 <div
                   key={group.id}
-                  className="grid gap-2 border-2 border-foreground p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_7rem_auto]"
+                  className="grid gap-2 rounded-md border border-input p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_7rem_auto]"
                 >
-                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-sans text-xs font-semibold ">
                     Label
                     <input
                       value={group.label}
                       maxLength={80}
-                      className="h-9 min-w-0 border-2 border-foreground bg-background px-2 font-sans text-sm normal-case tracking-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="h-9 min-w-0 rounded-md border border-input bg-background px-2 font-sans text-sm normal-case tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onChange={(event) =>
                         onGroupsChange(
                           replaceGroup(groups, index, {
@@ -261,13 +255,13 @@ export function GraphSettingsDialog({
                       }
                     />
                   </label>
-                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-sans text-xs font-semibold ">
                     Search query
                     <input
                       value={group.query}
                       maxLength={300}
                       placeholder="tag:project"
-                      className="h-9 min-w-0 border-2 border-foreground bg-background px-2 font-mono text-xs normal-case tracking-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="h-9 min-w-0 rounded-md border border-input bg-background px-2 font-sans text-xs normal-case tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onChange={(event) =>
                         onGroupsChange(
                           replaceGroup(groups, index, {
@@ -278,11 +272,11 @@ export function GraphSettingsDialog({
                       }
                     />
                   </label>
-                  <label className="grid gap-1 font-mono text-xs font-bold uppercase tracking-wider">
+                  <label className="grid gap-1 font-sans text-xs font-semibold ">
                     Token
                     <select
                       value={group.visualToken}
-                      className="h-9 border-2 border-foreground bg-background px-2 text-xs normal-case tracking-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="h-9 rounded-md border border-input bg-background px-2 text-xs normal-case tracking-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onChange={(event) =>
                         onGroupsChange(
                           replaceGroup(groups, index, {
@@ -339,7 +333,7 @@ export function GraphSettingsDialog({
         </section>
 
         <DialogFooter className="items-center justify-between sm:justify-between">
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <span className="font-sans text-xs text-muted-foreground">
             {isSaving ? 'Saving…' : recovery ? 'Defaults active' : 'Vault settings'}
           </span>
           <Button type="button" variant="outline" onClick={onReset}>
@@ -361,7 +355,7 @@ function CheckSetting({
   onChange: (checked: boolean) => void
 }): React.JSX.Element {
   return (
-    <label className="flex items-center justify-between gap-3 font-mono text-xs">
+    <label className="flex items-center justify-between gap-3 font-sans text-xs">
       <span>{label}</span>
       <input
         type="checkbox"
@@ -389,7 +383,7 @@ function RangeSetting({
   onChange: (value: number) => void
 }): React.JSX.Element {
   return (
-    <label className="grid gap-1 font-mono text-xs">
+    <label className="grid gap-1 font-sans text-xs">
       <span className="flex justify-between gap-3">
         <span className="font-bold">{label}</span>
         <output>{value}</output>

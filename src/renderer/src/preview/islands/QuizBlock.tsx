@@ -54,6 +54,7 @@ export function QuizBlock({
                       ? 'selected'
                       : undefined
               }
+              data-note-prose=""
               className="flex w-full items-start gap-3 border-2 border-foreground bg-card px-3 py-2.5 text-left text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
               onClick={() => setSelectedIndex(index)}
             >
@@ -77,7 +78,7 @@ export function QuizBlock({
               : 'border-destructive bg-destructive text-destructive-foreground'
           )}
         >
-          <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
+          <div data-note-prose="" className="flex items-center gap-2 text-sm font-bold">
             {selectedCorrect ? (
               <CheckCircle2 className="size-4" aria-hidden="true" />
             ) : (
@@ -86,11 +87,13 @@ export function QuizBlock({
             {selectedCorrect ? 'Correct' : `Not quite. Correct answer: ${options[answerIndex]}`}
           </div>
           {explanation ? (
-            <div className="mt-1 text-sm italic text-foreground/80">{explanation}</div>
+            <div data-note-prose="" className="mt-1 text-sm italic text-current">
+              {explanation}
+            </div>
           ) : null}
         </div>
       ) : (
-        <div className="mt-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        <div data-note-prose="" className="mt-3 text-sm text-muted-foreground">
           Pick an answer to get immediate feedback.
         </div>
       )}

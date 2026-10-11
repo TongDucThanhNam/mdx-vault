@@ -8,9 +8,11 @@ import type {
 import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react'
 import { BookmarkPlus, Copy, ExternalLink, FilePlus, Files, Pencil, Trash2 } from 'lucide-react'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { cn } from '@/lib/utils'
 import { isNotePath } from '@/vault/file-kind'
 import type { VaultTreeFile } from '@/vault/types'
@@ -191,6 +193,11 @@ export function FileTree({
   const modelRef = useRef<FileTreeModel | null>(null)
   const syncingSelectionRef = useRef(false)
   const clickActivatedPathRef = useRef<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    item: ContextMenuItem
+    context: ContextMenuOpenContext
+  } | null>(null)
+  const presentMenu = useExitPresence(contextMenu)
 
   const sort = useCallback<FileTreeSortComparator>((left, right) => {
     return compareTreeEntries(left, right, sortContextRef.current)
@@ -229,7 +236,9 @@ export function FileTree({
     composition: {
       contextMenu: {
         enabled: true,
-        triggerMode: 'right-click'
+        triggerMode: 'right-click',
+        onOpen: (item, context) => setContextMenu({ item, context }),
+        onClose: () => setContextMenu(null)
       }
     },
     unsafeCSS: TREE_UNSAFE_CSS,
@@ -354,36 +363,60 @@ export function FileTree({
   }
 
   return (
-    <PierreFileTree
-      model={model}
-      className="block min-h-0 bg-sidebar"
-      style={TREE_STYLE}
-      aria-label="Vault files"
-      onClickCapture={captureClickedFile}
-      onClick={activateClickedFile}
-      renderContextMenu={(item, context) => (
-        <TreeContextMenu item={item} context={context} model={model} callbacks={callbacksRef} />
-      )}
-    />
+    <>
+      <PierreFileTree
+        model={model}
+        className="block min-h-0 bg-sidebar"
+        style={TREE_STYLE}
+        aria-label="Vault files"
+        onClickCapture={captureClickedFile}
+        onClick={activateClickedFile}
+        renderContextMenu={() => null}
+      />
+      {presentMenu
+        ? createPortal(
+            <TreeContextMenu
+              item={presentMenu.item}
+              context={presentMenu.context}
+              closing={!contextMenu}
+              model={model}
+              callbacks={callbacksRef}
+            />,
+            document.body
+          )
+        : null}
+    </>
   )
 }
 
 function TreeContextMenu({
   item,
   context,
+  closing,
   model,
   callbacks
 }: {
   item: ContextMenuItem
   context: ContextMenuOpenContext
+  closing: boolean
   model: FileTreeModel
   callbacks: React.RefObject<TreeCallbacks>
 }): React.JSX.Element | null {
   const menuRef = useRef<HTMLDivElement | null>(null)
 
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!menu) return
+    menu.style.transform = ''
+    const bounds = menu.getBoundingClientRect()
+    const x = Math.max(8 - bounds.left, Math.min(0, window.innerWidth - 8 - bounds.right))
+    const y = Math.max(8 - bounds.top, Math.min(0, window.innerHeight - 8 - bounds.bottom))
+    menu.style.transform = `translate(${x}px, ${y}px)`
+  }, [context])
+
   useEffect(() => {
-    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-  }, [])
+    if (!closing) menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+  }, [closing, context])
 
   const runAction = (action: () => void): void => {
     context.close()
@@ -405,7 +438,10 @@ function TreeContextMenu({
       role="menu"
       aria-label={`Actions for ${item.name}`}
       data-file-tree-context-menu-root="true"
-      className="absolute left-0 top-0 z-50 min-w-[190px] border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
+      data-state={closing ? 'closed' : 'open'}
+      inert={closing}
+      style={{ left: context.anchorRect.left, top: context.anchorRect.bottom }}
+      className="fixed z-50 max-h-[calc(100vh-1rem)] min-w-[190px] overflow-auto rounded-md border border-input bg-popover p-1 text-popover-foreground chrome-overlay shadow-chrome-overlay"
       onKeyDown={handleMenuKeyDown(context)}
     >
       {isDirectory ? (
@@ -418,7 +454,7 @@ function TreeContextMenu({
               queueMicrotask(() => callbacks.current.onCreateNoteInFolder(item.path))
             }}
           />
-          <hr className="my-1 border-0 border-t border-foreground" />
+          <hr className="my-1 border-0 border-t border-border" />
         </>
       ) : null}
       {isNote ? (
@@ -461,7 +497,7 @@ function TreeContextMenu({
       />
       {isNote ? (
         <>
-          <hr className="my-1 border-0 border-t border-foreground" />
+          <hr className="my-1 border-0 border-t border-border" />
           <TreeContextMenuItem
             destructive
             icon={<Trash2 className="size-3.5" aria-hidden="true" />}
@@ -491,7 +527,7 @@ function TreeContextMenuItem({
       role="menuitem"
       onClick={onSelect}
       className={cn(
-        'flex w-full cursor-default select-none items-center gap-2 px-2 py-1.5 text-left text-[13px] outline-none transition-colors focus-visible:bg-foreground focus-visible:text-background motion-reduce:transition-none',
+        'flex w-full cursor-default select-none items-center gap-2 px-2 py-1.5 text-left text-[13px] outline-none transition-colors focus-visible:bg-instrument-blue/10 focus-visible:text-foreground motion-reduce:transition-none',
         destructive &&
           'text-destructive focus-visible:bg-destructive focus-visible:text-destructive-foreground'
       )}

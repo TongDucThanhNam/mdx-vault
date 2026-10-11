@@ -1,4 +1,4 @@
-import { ArrowDownUp, Link2, Search } from 'lucide-react'
+import { ArrowDownUp, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { BacklinkResult } from '@/vault/types'
@@ -26,46 +26,42 @@ export function BacklinksPanel({
   const unlinkedBacklinks = visibleBacklinks.filter((backlink) => backlink.kind === 'unlinked')
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-4">
-        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-          <Link2 className="size-3.5" aria-hidden="true" />
-          Backlinks
-        </div>
-        <div className="font-mono text-xs tabular-nums text-muted-foreground">
+    <div role="region" aria-label="Backlinks" className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-7 shrink-0 items-center justify-end border-b border-border px-4">
+        <div className="font-sans text-xs tabular-nums text-muted-foreground">
           {linkedBacklinks.length}/{unlinkedBacklinks.length}
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-2 py-2">
         {!selectedPath ? (
-          <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="px-2 py-6 text-center font-sans text-xs text-muted-foreground">
             Select a note.
           </div>
         ) : backlinks.length === 0 ? (
-          <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="px-2 py-6 text-center font-sans text-xs text-muted-foreground">
             No backlinks.
           </div>
         ) : (
           <div className="space-y-2">
             <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-2">
-              <label className="flex h-8 min-w-0 items-center gap-2 border-2 border-foreground bg-background px-2">
+              <label className="flex h-8 min-w-0 items-center gap-2 rounded-md border border-input bg-background px-2">
                 <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <input
                   value={filter}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[12px] outline-none placeholder:text-muted-foreground"
+                  className="min-w-0 flex-1 bg-transparent font-sans text-[12px] outline-none placeholder:text-muted-foreground"
                   placeholder="Filter"
                   onChange={(event) => setFilter(event.currentTarget.value)}
                 />
               </label>
-              <label className="flex h-8 items-center gap-1 border-2 border-foreground bg-background px-1">
+              <label className="flex h-8 items-center gap-1 rounded-md border border-input bg-background px-1">
                 <ArrowDownUp
                   className="size-3.5 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
                 <select
                   value={sortMode}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-xs outline-none"
+                  className="min-w-0 flex-1 bg-transparent font-sans text-xs outline-none"
                   aria-label="Sort backlinks"
                   onChange={(event) => setSortMode(event.currentTarget.value as BacklinkSortMode)}
                 >
@@ -104,14 +100,12 @@ function BacklinkSection({
 }): React.JSX.Element {
   return (
     <section>
-      <div className="flex items-center justify-between border-b border-[var(--line)] px-1 py-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-1 py-1 font-sans text-xs font-semibold text-muted-foreground">
         <span>{label}</span>
         <span>{backlinks.length}</span>
       </div>
       {backlinks.length === 0 ? (
-        <div className="px-2 py-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-          No matches.
-        </div>
+        <div className="px-2 py-3 font-sans text-xs text-muted-foreground">No matches.</div>
       ) : (
         <div className="space-y-1 pt-1">
           {backlinks.map((backlink, index) => (
@@ -119,15 +113,17 @@ function BacklinkSection({
               key={`${backlink.kind}-${backlink.source.relativePath}-${backlink.target}-${index}`}
               type="button"
               data-page-preview-path={backlink.source.relativePath}
-              className="w-full border-l-2 border-l-transparent px-2 py-2 text-left transition-colors hover:border-l-[var(--editorial-red)] hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="w-full border-l border-l-transparent px-2 py-2 text-left transition-colors hover:border-l-[var(--editorial-red)] hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               title={backlink.source.relativePath}
               onClick={() => onSelectNote(backlink.source.relativePath)}
             >
-              <div className="truncate font-display text-sm font-bold">{backlink.source.title}</div>
-              <div className="mt-0.5 truncate font-mono text-xs opacity-70">
+              <div className="truncate font-sans text-sm font-semibold">
+                {backlink.source.title}
+              </div>
+              <div className="mt-0.5 truncate font-sans text-xs text-muted-foreground">
                 {backlink.source.relativePath}
               </div>
-              <div className="mt-1 line-clamp-2 text-xs opacity-80">
+              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                 {backlink.snippet || backlink.display}
               </div>
             </button>

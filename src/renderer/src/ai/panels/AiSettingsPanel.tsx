@@ -139,7 +139,7 @@ export function AiSettingsForm({
   return (
     <div className="grid gap-4">
       {!settings.safeStorageAvailable ? (
-        <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
+        <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 px-3 py-2 font-sans text-xs text-destructive">
           <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
             <div className="font-bold">safeStorage unavailable</div>
@@ -152,15 +152,15 @@ export function AiSettingsForm({
       ) : null}
 
       <div className="grid gap-3">
-        <label className="grid gap-1.5 font-mono text-xs font-bold uppercase tracking-wider">
+        <label className="grid gap-1.5 font-sans text-xs font-semibold ">
           Model
           <select
             value={model}
             onChange={(event) => setModel(event.target.value as AiOpenAiModel)}
             disabled={busy}
             className={cn(
-              'h-9 border-2 border-foreground bg-background px-2 font-sans text-sm font-normal normal-case tracking-normal outline-none',
-              'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40',
+              'h-9 rounded-md border border-input bg-background px-2 font-sans text-sm font-normal normal-case tracking-normal outline-none',
+              'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring',
               'disabled:cursor-not-allowed disabled:opacity-60'
             )}
           >
@@ -172,7 +172,7 @@ export function AiSettingsForm({
           </select>
         </label>
 
-        <label className="grid gap-1.5 font-mono text-xs font-bold uppercase tracking-wider">
+        <label className="grid gap-1.5 font-sans text-xs font-semibold ">
           <span className="inline-flex items-center gap-1.5">
             <KeyRound className="size-3" aria-hidden="true" />
             OpenAI API key
@@ -187,8 +187,8 @@ export function AiSettingsForm({
               autoComplete="off"
               spellCheck={false}
               className={cn(
-                'h-9 w-full border-2 border-foreground bg-background px-2 pr-10 font-sans text-sm font-normal normal-case tracking-normal outline-none',
-                'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40',
+                'h-9 w-full rounded-md border border-input bg-background px-2 pr-10 font-sans text-sm font-normal normal-case tracking-normal outline-none',
+                'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring',
                 'disabled:cursor-not-allowed disabled:opacity-60'
               )}
             />
@@ -196,7 +196,7 @@ export function AiSettingsForm({
               type="button"
               onClick={() => setShowKey((value) => !value)}
               disabled={!apiKeyDraft}
-              className="absolute top-1/2 right-1.5 -translate-y-1/2 border border-transparent p-1 text-muted-foreground outline-none hover:border-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-0"
+              className="absolute top-1/2 right-1.5 -translate-y-1/2 border border-transparent p-1 text-muted-foreground outline-none hover:border-input hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-0"
               aria-label={showKey ? 'Hide API key' : 'Show API key'}
               title={showKey ? 'Hide API key' : 'Show API key'}
             >
@@ -215,7 +215,7 @@ export function AiSettingsForm({
         </label>
 
         {error ? (
-          <div className="border-2 border-destructive bg-destructive/10 px-2.5 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
+          <div className="rounded-md border border-destructive bg-destructive/10 px-2.5 py-2 font-sans text-xs text-destructive">
             {error}
           </div>
         ) : null}

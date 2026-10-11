@@ -8,8 +8,8 @@
  */
 
 import { Sparkles } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { cn } from '@/lib/utils'
 
 import { findSelectedAction, SELECTED_ACTIONS } from '../selected-actions'
@@ -46,6 +46,10 @@ export function AiSelectionActionPalette({
   onPickAction
 }: AiSelectionActionPaletteProps): React.JSX.Element | null {
   const ref = useRef<HTMLDivElement | null>(null)
+  const present = useExitPresence(open ? position : null)
+  useEffect(() => {
+    if (open) ref.current?.focus({ preventScroll: true })
+  }, [open])
   const [activeIndexRaw, setActiveIndex] = useState(0)
 
   const visibleActions = useMemo<SelectionActionPaletteAction[]>(() => {
@@ -80,6 +84,7 @@ export function AiSelectionActionPalette({
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
         event.preventDefault()
+        event.stopPropagation()
         onClose()
         return
       }
@@ -102,26 +107,28 @@ export function AiSelectionActionPalette({
     [activeIndex, onClose, pick, visibleActions]
   )
 
-  if (!open || !position) {
+  if (!present) {
     return null
   }
 
   return (
     <div
       ref={ref}
+      data-state={open ? 'open' : 'closed'}
+      inert={!open}
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       className={cn(
-        'absolute z-30 w-72 border-2 border-foreground bg-popover p-1 text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)] outline-none',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/40'
+        'absolute z-30 w-72 rounded-md border border-input bg-popover p-1 text-popover-foreground chrome-overlay shadow-chrome-overlay outline-none',
+        'focus-visible:ring-2 focus-visible:ring-ring'
       )}
-      style={{ top: position.top, left: position.left }}
+      style={{ top: present.top, left: present.left }}
     >
-      <div className="flex items-center gap-1.5 px-2 py-1.5 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-2 py-1.5 font-sans text-xs font-semibold text-muted-foreground">
         <Sparkles className="size-3.5" aria-hidden="true" />
         Ask the assistant
         {hasSelection ? (
-          <span className="ml-auto truncate font-mono text-xs text-[var(--editorial-red)]">
+          <span className="ml-auto truncate font-sans text-xs text-[var(--editorial-red)]">
             {truncate(selectedText, 32)}
           </span>
         ) : null}
@@ -129,7 +136,7 @@ export function AiSelectionActionPalette({
 
       <div className="max-h-72 overflow-auto">
         {visibleActions.length === 0 ? (
-          <div className="px-3 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="px-3 py-6 text-center font-sans text-xs text-muted-foreground">
             Select some prose to enable template actions.
           </div>
         ) : (
@@ -140,21 +147,19 @@ export function AiSelectionActionPalette({
               className={cn(
                 'flex w-full items-start gap-3 px-2 py-2 text-left text-sm outline-none',
                 index === activeIndex
-                  ? 'bg-foreground text-background'
-                  : 'hover:bg-foreground hover:text-background'
+                  ? 'bg-instrument-blue/10 text-foreground'
+                  : 'hover:bg-instrument-blue/10 hover:text-foreground'
               )}
               onMouseEnter={() => setActiveIndex(index)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => pick(action.id)}
             >
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-input bg-background">
                 <Sparkles className="size-3.5" aria-hidden="true" />
               </span>
               <span className="min-w-0">
-                <span className="block font-mono text-[12px] font-bold uppercase tracking-wider">
-                  {action.label}
-                </span>
-                <span className="mt-0.5 block font-mono text-xs uppercase tracking-wider opacity-70">
+                <span className="block font-sans text-[12px] font-semibold ">{action.label}</span>
+                <span className="mt-0.5 block font-sans text-xs text-muted-foreground">
                   {action.description}
                 </span>
               </span>

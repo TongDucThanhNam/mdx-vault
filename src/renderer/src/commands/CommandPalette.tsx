@@ -2,6 +2,7 @@ import { Command as CommandIcon, CornerDownLeft, Pin, Search } from 'lucide-reac
 import type { KeyboardEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGraphSurface } from '@/graph/load-graph-surface'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { isSubsequence } from '@/lib/fuzzy-match'
 import { cn } from '@/lib/utils'
 import { containDialogTabKey } from '@/workbench/dialog-focus'
@@ -82,7 +83,8 @@ export function CommandPalette({
     optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, open])
 
-  if (!open) {
+  const present = useExitPresence(open ? true : null)
+  if (!present) {
     return null
   }
 
@@ -172,7 +174,9 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
+      data-state={open ? 'open' : 'closed'}
+      inert={!open}
+      className="chrome-presence fixed inset-0 z-50 flex items-start justify-center overscroll-contain bg-background/75 px-4 pt-[12vh]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           closePalette()
@@ -185,13 +189,13 @@ export function CommandPalette({
         aria-label="Command palette"
         aria-busy={runningActionId !== null}
         tabIndex={-1}
-        className="w-full max-w-xl overflow-hidden border-2 border-foreground bg-card shadow-[4px_4px_0_0_var(--foreground)]"
+        className="w-full max-w-xl overflow-hidden rounded-md border border-input bg-card chrome-overlay shadow-chrome-overlay"
         onKeyDown={(event) => {
           handleKeyDown(event)
           containDialogTabKey(event, event.currentTarget)
         }}
       >
-        <div className="flex h-11 items-center gap-2 border-b-2 border-foreground px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/50">
+        <div className="flex h-11 items-center gap-2 border-b border-border px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -199,7 +203,7 @@ export function CommandPalette({
             autoComplete="off"
             spellCheck={false}
             value={query}
-            className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
+            className="h-full min-w-0 flex-1 bg-transparent font-sans text-sm outline-none placeholder:text-muted-foreground"
             placeholder="Run command…"
             aria-label="Run command"
             role="combobox"
@@ -221,7 +225,7 @@ export function CommandPalette({
           className="max-h-[56vh] overflow-auto p-1.5"
         >
           {results.length === 0 ? (
-            <div className="px-3 py-8 text-center font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+            <div className="px-3 py-8 text-center font-sans text-[12px] text-muted-foreground">
               No commands found.
             </div>
           ) : (
@@ -235,10 +239,8 @@ export function CommandPalette({
                     'flex min-h-14 w-full items-center transition-colors motion-reduce:transition-none',
                     action.disabled
                       ? 'cursor-not-allowed opacity-45'
-                      : 'hover:bg-foreground hover:text-background',
-                    isActive &&
-                      !action.disabled &&
-                      'bg-foreground text-background shadow-[inset_3px_0_0_0_var(--primary)]'
+                      : 'hover:bg-instrument-blue/10 hover:text-foreground',
+                    isActive && !action.disabled && 'bg-instrument-blue/10 text-foreground '
                   )}
                   onMouseEnter={() => {
                     if (!action.disabled) {
@@ -256,7 +258,7 @@ export function CommandPalette({
                     aria-selected={isActive}
                     aria-disabled={Boolean(action.disabled)}
                     disabled={action.disabled}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => void runAction(action)}
                   >
                     <CommandIcon
@@ -266,20 +268,20 @@ export function CommandPalette({
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate text-sm font-medium">{action.title}</span>
-                        <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground">
                           {action.category}
                         </span>
                         {pinned ? (
-                          <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground">
                             Pinned
                           </span>
                         ) : recent ? (
-                          <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground">
                             Recent
                           </span>
                         ) : null}
                       </span>
-                      <span className="block truncate font-mono text-xs text-muted-foreground">
+                      <span className="block truncate font-sans text-xs text-muted-foreground">
                         {action.description}
                       </span>
                     </span>
@@ -288,7 +290,7 @@ export function CommandPalette({
                         {action.hotkeys.map((hotkey) => (
                           <span
                             key={hotkey}
-                            className="border border-current px-1 py-0.5 font-mono text-xs leading-none"
+                            className="border border-current px-1 py-0.5 font-sans text-xs leading-none"
                           >
                             {hotkey}
                           </span>
@@ -296,9 +298,7 @@ export function CommandPalette({
                       </span>
                     ) : null}
                     {runningActionId === action.id ? (
-                      <span className="shrink-0 font-mono text-xs uppercase tracking-wider">
-                        Running
-                      </span>
+                      <span className="shrink-0 font-sans text-xs ">Running</span>
                     ) : isActive && !action.disabled ? (
                       <CornerDownLeft className="size-3.5 shrink-0" aria-hidden="true" />
                     ) : null}
@@ -309,7 +309,7 @@ export function CommandPalette({
                     title={pinned ? 'Unpin command' : 'Pin command'}
                     aria-label={pinned ? 'Unpin command' : 'Pin command'}
                     className={cn(
-                      'mr-2 flex size-8 shrink-0 items-center justify-center border border-current outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none',
+                      'mr-2 flex size-8 shrink-0 items-center justify-center border border-current outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none',
                       pinned ? 'opacity-100' : 'opacity-45'
                     )}
                     onClick={() => togglePin(action.id)}

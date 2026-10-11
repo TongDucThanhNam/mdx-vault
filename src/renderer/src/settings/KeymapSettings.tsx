@@ -211,16 +211,14 @@ export function KeymapSettings({
       title="Keymap"
       description={`${APP_SETTINGS_CATALOG.keymapOverrides.description} Displayed chords are the exact platform bindings the workbench resolves.`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground pb-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-3">
         <div>
-          <div className="font-mono text-xs font-bold uppercase tracking-[0.14em]">
-            Command ledger
-          </div>
+          <div className="font-sans text-xs font-semibold ">Command ledger</div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {visibleActions.length} of {WORKSPACE_ACTION_DEFINITIONS.length} actions
           </p>
         </div>
-        <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        <div className="font-sans text-xs text-muted-foreground">
           {platform === 'darwin' ? 'macOS' : platform === 'win32' ? 'Windows' : 'Linux'} key labels
         </div>
       </div>
@@ -257,8 +255,8 @@ export function KeymapSettings({
             ))}
           </ul>
         ) : (
-          <div className="border-2 border-foreground bg-card p-5">
-            <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
+          <div className="rounded-md border border-input bg-card p-5">
+            <div className="flex items-center gap-2 font-sans text-xs font-semibold ">
               <Keyboard className="size-4 text-muted-foreground" aria-hidden="true" />
               No matching commands
             </div>
@@ -268,7 +266,7 @@ export function KeymapSettings({
           </div>
         )
       ) : (
-        <div className="border-2 border-foreground bg-card p-4 font-mono text-xs text-muted-foreground">
+        <div className="rounded-md border border-input bg-card p-4 font-sans text-xs text-muted-foreground">
           Loading the confirmed keymap…
         </div>
       )}
@@ -279,9 +277,7 @@ export function KeymapSettings({
           onKeyDownCapture={handleRecorderKeyDown}
         >
           <AlertDialogHeader>
-            <div className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-editorial-red">
-              Key recorder
-            </div>
+            <div className="font-sans text-xs font-semibold text-editorial-red">Key recorder</div>
             <AlertDialogTitle>
               {recorder?.conflicts.length ? 'Replace this binding?' : 'Press one chord'}
             </AlertDialogTitle>
@@ -300,7 +296,7 @@ export function KeymapSettings({
 
           {recorder?.conflicts.length ? (
             <div className="border-l-4 border-destructive bg-destructive/10 px-4 py-3">
-              <div className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
+              <div className="font-sans text-xs font-semibold text-destructive">
                 {displayBinding(recorder.candidate, platform)} is already assigned
               </div>
               <p className="mt-2 text-sm leading-relaxed">
@@ -311,14 +307,12 @@ export function KeymapSettings({
             </div>
           ) : (
             <div
-              className="border-2 border-foreground bg-foreground px-4 py-6 text-center text-background shadow-[3px_3px_0_0_var(--editorial-red)]"
+              className="rounded-md border border-input bg-instrument-blue/10 px-4 py-6 text-center text-foreground "
               aria-live="polite"
             >
-              <Keyboard className="mx-auto size-5 text-background/70" aria-hidden="true" />
-              <div className="mt-3 font-mono text-sm font-bold uppercase tracking-[0.12em]">
-                Listening…
-              </div>
-              <div className="mt-1 font-mono text-xs uppercase tracking-wider text-background/70">
+              <Keyboard className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
+              <div className="mt-3 font-sans text-sm font-semibold ">Listening…</div>
+              <div className="mt-1 font-sans text-xs text-foreground">
                 Modifiers alone are not bindings
               </div>
             </div>
@@ -327,7 +321,7 @@ export function KeymapSettings({
           {recorder?.message ? (
             <p
               className={cn(
-                'border-l-2 px-3 py-2 font-mono text-xs leading-relaxed',
+                'border-l px-3 py-2 font-sans text-xs leading-relaxed',
                 recorder.conflicts.length
                   ? 'border-destructive text-destructive'
                   : 'border-editorial-red text-foreground'
@@ -380,17 +374,17 @@ function KeymapRow({
 
   return (
     <li className="group grid gap-3 bg-background py-4 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,auto)] sm:items-start sm:gap-5">
-      <div className="min-w-0 border-l-2 border-transparent pl-3 group-focus-within:border-editorial-red group-hover:border-foreground">
+      <div className="min-w-0 border-l border-transparent pl-3 group-focus-within:border-editorial-red group-hover:border-input">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <h3 className="font-mono text-xs font-bold uppercase tracking-wider">{action.title}</h3>
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <h3 className="font-sans text-xs font-semibold ">{action.title}</h3>
+          <span className="font-sans text-xs text-muted-foreground">
             {action.category} · {action.context}
           </span>
         </div>
         <p className="mt-1 max-w-prose text-xs leading-relaxed text-muted-foreground">
           {action.description}
         </p>
-        <code className="mt-1 block truncate font-mono text-xs text-muted-foreground/80">
+        <code className="mt-1 block truncate font-mono text-xs text-muted-foreground">
           {action.id}
         </code>
       </div>
@@ -401,14 +395,14 @@ function KeymapRow({
             bindings.map((binding) => (
               <span
                 key={binding}
-                className="inline-flex h-7 items-stretch border-2 border-foreground bg-card shadow-[2px_2px_0_0_var(--foreground)]"
+                className="inline-flex h-7 items-stretch rounded-md border border-input bg-card "
               >
-                <kbd className="inline-flex items-center px-2 font-mono text-xs font-bold whitespace-nowrap">
+                <kbd className="inline-flex items-center px-2 font-mono text-xs font-semibold whitespace-nowrap">
                   {displayBinding(binding, platform)}
                 </kbd>
                 <button
                   type="button"
-                  className="inline-flex w-7 items-center justify-center border-l-2 border-foreground text-muted-foreground outline-none hover:bg-destructive hover:text-destructive-foreground focus-visible:bg-foreground focus-visible:text-background disabled:pointer-events-none disabled:opacity-40"
+                  className="inline-flex w-7 items-center justify-center border-l border-input text-muted-foreground outline-none hover:bg-destructive hover:text-destructive-foreground focus-visible:bg-instrument-blue/10 focus-visible:text-foreground disabled:pointer-events-none disabled:opacity-40"
                   aria-label={`Remove ${displayBinding(binding, platform)} from ${action.title}`}
                   disabled={disabled}
                   onClick={() => onRemove(binding)}
@@ -418,7 +412,7 @@ function KeymapRow({
               </span>
             ))
           ) : (
-            <span className="inline-flex h-7 items-center border-2 border-dashed border-line px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            <span className="inline-flex h-7 items-center rounded-md border border-dashed border-line px-2 font-sans text-xs text-muted-foreground">
               Unbound
             </span>
           )}

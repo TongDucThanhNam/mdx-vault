@@ -267,9 +267,9 @@ export function SettingsDialog({
         className="h-[min(680px,calc(100vh-2rem))] w-[min(980px,calc(100vw-2rem))] max-w-none grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden bg-background p-0 sm:max-w-[980px] sm:grid-cols-[220px_minmax(0,1fr)] sm:grid-rows-1"
         aria-describedby="settings-description"
       >
-        <aside className="min-h-0 border-b-2 border-foreground bg-chrome p-3 sm:border-r-2 sm:border-b-0 sm:p-4">
+        <aside className="min-h-0 border-b border-border bg-chrome p-3 sm:border-r sm:border-b-0 sm:p-4">
           <div className="mb-3 pr-8 sm:mb-5 sm:pr-0">
-            <DialogTitle className="font-display text-2xl font-black">Settings</DialogTitle>
+            <DialogTitle className="font-sans text-2xl font-semibold">Settings</DialogTitle>
             <DialogDescription id="settings-description" className="mt-1 text-xs">
               Confirmed preferences apply immediately
             </DialogDescription>
@@ -291,13 +291,13 @@ export function SettingsDialog({
               value={query}
               autoFocus
               placeholder="Search settings…"
-              className="h-9 w-full border-2 border-foreground bg-background pr-8 pl-8 font-mono text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="h-9 w-full rounded-md border border-input bg-background pr-8 pl-8 font-sans text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
             {query ? (
               <button
                 type="button"
-                className="absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground outline-none hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground outline-none hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Clear settings search"
                 onClick={() => setQuery('')}
               >
@@ -318,15 +318,15 @@ export function SettingsDialog({
                   key={item.id}
                   type="button"
                   className={cn(
-                    'flex min-w-32 items-center gap-2 border-l-2 px-2.5 py-2 text-left font-mono text-xs font-bold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none sm:mb-1 sm:w-full',
+                    'flex min-w-32 items-center gap-2 border-l px-2.5 py-2 text-left font-sans text-xs font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:mb-1 sm:w-full',
                     active
-                      ? 'border-editorial-red bg-foreground text-background'
-                      : 'border-transparent text-muted-foreground hover:border-foreground hover:bg-background hover:text-foreground'
+                      ? 'border-editorial-red bg-instrument-blue/10 text-foreground'
+                      : 'border-transparent text-muted-foreground hover:border-input hover:bg-background hover:text-foreground'
                   )}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setSection(item.id)}
                 >
-                  <Icon className="size-3.5 shrink-0 opacity-75" aria-hidden="true" />
+                  <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   {item.label}
                 </button>
               )
@@ -334,16 +334,13 @@ export function SettingsDialog({
           </nav>
 
           {matchingSections.length === 0 ? (
-            <p className="border-l-2 border-editorial-red px-2 py-1 font-mono text-xs leading-relaxed text-muted-foreground">
+            <p className="border-l border-editorial-red px-2 py-1 font-sans text-xs leading-relaxed text-muted-foreground">
               No settings match “{query}”.
             </p>
           ) : null}
 
           {settings.isLoading || settings.isPending ? (
-            <div
-              className="mt-3 font-mono text-xs uppercase tracking-wider text-muted-foreground"
-              aria-live="polite"
-            >
+            <div className="mt-3 font-sans text-xs text-muted-foreground" aria-live="polite">
               {settings.isPending ? 'Saving confirmed snapshot…' : 'Loading confirmed snapshot…'}
             </div>
           ) : null}
@@ -352,13 +349,13 @@ export function SettingsDialog({
         <div className="min-h-0 overflow-y-auto overscroll-contain">
           {settings.error ? (
             <div
-              className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b-2 border-destructive bg-background px-5 py-3 font-mono text-xs leading-relaxed text-destructive"
+              className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-destructive bg-background px-5 py-3 font-sans text-xs leading-relaxed text-destructive"
               role="alert"
             >
               <span>{settings.error}</span>
               <button
                 type="button"
-                className="shrink-0 p-1 outline-none hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="shrink-0 p-1 outline-none hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Dismiss settings error"
                 onClick={settings.dismissError}
               >
@@ -519,12 +516,12 @@ function GeneralSection({
         />
         <div className="mt-3 rounded-sm border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-4">
-            <label htmlFor="settings-ui-scale" className="font-mono text-xs font-medium">
+            <label htmlFor="settings-ui-scale" className="font-sans text-xs font-medium">
               {APP_SETTINGS_CATALOG.uiScale.label}
             </label>
             <output
               htmlFor="settings-ui-scale"
-              className="rounded-sm bg-foreground px-2 py-1 font-mono text-xs font-semibold tabular-nums text-background"
+              className="rounded-sm bg-instrument-blue/10 px-2 py-1 font-sans text-xs font-semibold tabular-nums text-foreground"
             >
               {uiScale}%
             </output>
@@ -541,7 +538,7 @@ function GeneralSection({
             className="mt-4 w-full accent-[var(--instrument-blue)]"
             onChange={(event) => void onUiScaleChange(event.currentTarget.valueAsNumber)}
           />
-          <div className="mt-1 flex justify-between font-mono text-xs text-muted-foreground">
+          <div className="mt-1 flex justify-between font-sans text-xs text-muted-foreground">
             <span>{APP_SETTINGS_CATALOG.uiScale.range.min}%</span>
             <span>{APP_SETTINGS_CATALOG.uiScale.range.max}%</span>
           </div>
@@ -576,10 +573,8 @@ function GeneralSection({
       </SettingGroup>
 
       <SettingGroup title="Vault" description="Notes remain files in this local folder.">
-        <div className="border-2 border-foreground bg-card p-3">
-          <div className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Current path
-          </div>
+        <div className="rounded-md border border-input bg-card p-3">
+          <div className="font-sans text-xs font-semibold text-muted-foreground">Current path</div>
           <code className="mt-1.5 block break-all font-mono text-xs text-foreground">
             {vaultPath ?? 'No vault open'}
           </code>
@@ -705,7 +700,7 @@ function EditorSection({
             onChange={(editorLigatures) => void onChange({ editorLigatures })}
           />
           <div
-            className="border-l-2 border-instrument-blue bg-background px-4 py-3 text-foreground"
+            className="border-l border-instrument-blue bg-background px-4 py-3 text-foreground"
             style={{
               fontFamily: 'var(--editor-font-family)',
               fontSize: `${settings.editorFontSize}px`,
@@ -826,12 +821,12 @@ function RangeSetting({
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor={id} className="font-mono text-xs font-semibold uppercase tracking-wider">
+        <label htmlFor={id} className="font-sans text-xs font-semibold ">
           {label}
         </label>
         <output
           htmlFor={id}
-          className="rounded-sm bg-foreground px-2 py-1 font-mono text-xs font-semibold text-background tabular-nums"
+          className="rounded-sm bg-instrument-blue/10 px-2 py-1 font-sans text-xs font-semibold text-foreground tabular-nums"
         >
           {value}
           {suffix}
@@ -849,7 +844,7 @@ function RangeSetting({
         className="mt-3 w-full accent-instrument-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         onChange={(event) => onChange(event.currentTarget.valueAsNumber)}
       />
-      <div className="mt-1 flex justify-between font-mono text-xs text-muted-foreground tabular-nums">
+      <div className="mt-1 flex justify-between font-sans text-xs text-muted-foreground tabular-nums">
         <span>{min}</span>
         <span>{max}</span>
       </div>
@@ -876,12 +871,12 @@ function ToggleSetting({
     <label
       htmlFor={id}
       className={cn(
-        'flex cursor-pointer items-start justify-between gap-4 border-2 border-foreground bg-card p-4',
+        'flex cursor-pointer items-start justify-between gap-4 rounded-md border border-input bg-card p-4',
         disabled && 'cursor-not-allowed opacity-55'
       )}
     >
       <span>
-        <span className="block font-mono text-xs font-bold uppercase tracking-wider">{label}</span>
+        <span className="block font-sans text-xs font-semibold ">{label}</span>
         {description ? (
           <span className="mt-1 block max-w-xl text-xs leading-relaxed text-muted-foreground">
             {description}
@@ -1007,7 +1002,7 @@ function WorkbenchSection({
           </SettingGroup>
         </>
       ) : (
-        <div className="border-2 border-foreground bg-card p-4 font-mono text-xs text-muted-foreground">
+        <div className="rounded-md border border-input bg-card p-4 font-sans text-xs text-muted-foreground">
           Loading confirmed workbench behavior…
         </div>
       )}
@@ -1051,18 +1046,18 @@ function AiSection({
       title="AI"
       description="Assistant provider, model, and protected credentials."
     >
-      <div className="border-l-2 border-editorial-red bg-muted px-3 py-2 font-mono text-xs leading-relaxed text-muted-foreground">
+      <div className="border-l border-editorial-red bg-muted px-3 py-2 font-sans text-xs leading-relaxed text-muted-foreground">
         API keys are encrypted by Electron safeStorage and never returned to this screen after
         saving.
       </div>
       {error ? (
-        <div className="border-2 border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-destructive">
+        <div className="rounded-md border border-destructive bg-destructive/10 px-3 py-2 font-sans text-xs text-destructive">
           {error}
         </div>
       ) : settings ? (
         <AiSettingsForm settings={settings} onSaved={onSaved} />
       ) : (
-        <div className="border-2 border-foreground bg-card p-4 font-mono text-xs text-muted-foreground">
+        <div className="rounded-md border border-input bg-card p-4 font-sans text-xs text-muted-foreground">
           Loading secure AI settings…
         </div>
       )}
@@ -1077,14 +1072,14 @@ function AboutSection(): React.JSX.Element {
       title="About"
       description="A writing environment where Markdown stays foundational and React stays optional."
     >
-      <div className="border-2 border-foreground bg-card shadow-[3px_3px_0_0_var(--foreground)]">
-        <div className="border-b-2 border-foreground bg-foreground px-4 py-3 text-background">
-          <div className="font-display text-2xl font-black">mdx-vault</div>
-          <div className="mt-1 font-mono text-xs uppercase tracking-[0.15em] text-background/75">
+      <div className="rounded-md border border-input bg-card ">
+        <div className="border-b border-border bg-instrument-blue/10 px-4 py-3 text-foreground">
+          <div className="font-sans text-2xl font-semibold">mdx-vault</div>
+          <div className="mt-1 font-sans text-xs text-foreground">
             Version {packageJson.version}
           </div>
         </div>
-        <p className="max-w-prose p-4 font-serif text-sm leading-relaxed">
+        <p className="max-w-prose p-4 font-sans text-sm leading-relaxed">
           Notes live on your filesystem as plain MDX. Interactive islands appear only where the
           document needs behavior.
         </p>
@@ -1096,9 +1091,9 @@ function AboutSection(): React.JSX.Element {
 function NoSearchResults({ query }: { query: string }): React.JSX.Element {
   return (
     <section className="p-7">
-      <div className="border-2 border-foreground bg-card p-5 shadow-[3px_3px_0_0_var(--foreground)]">
+      <div className="rounded-md border border-input bg-card p-5 ">
         <Search className="size-5 text-muted-foreground" aria-hidden="true" />
-        <h2 className="mt-3 font-display text-2xl font-black">No matching settings</h2>
+        <h2 className="mt-3 font-sans text-2xl font-semibold">No matching settings</h2>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Nothing matches “{query}”. Try a control name, action, category, or binding.
         </p>
@@ -1131,10 +1126,10 @@ function ChoiceGroup({
           <label
             key={option.value}
             className={cn(
-              'relative min-h-20 cursor-pointer border-2 p-3 text-left outline-none transition-colors focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none',
+              'relative min-h-20 cursor-pointer rounded-md border p-3 text-left outline-none transition-colors focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none',
               selected
-                ? 'border-foreground bg-foreground text-background shadow-[2px_2px_0_0_var(--editorial-red)]'
-                : 'border-foreground bg-card text-foreground hover:bg-muted',
+                ? 'border-input bg-instrument-blue/10 text-foreground '
+                : 'border-input bg-card text-foreground hover:bg-muted',
               disabled && 'cursor-not-allowed opacity-40'
             )}
           >
@@ -1146,13 +1141,11 @@ function ChoiceGroup({
               className="sr-only"
               onChange={() => onChange(option.value)}
             />
-            <span className="block font-mono text-xs font-bold uppercase tracking-wider">
-              {option.label}
-            </span>
+            <span className="block font-sans text-xs font-semibold ">{option.label}</span>
             <span
               className={cn(
                 'mt-1 block text-xs leading-snug',
-                selected ? 'text-background/70' : 'text-muted-foreground'
+                selected ? 'text-muted-foreground' : 'text-muted-foreground'
               )}
             >
               {option.description}

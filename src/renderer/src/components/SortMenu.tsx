@@ -3,6 +3,7 @@ import type { FocusEvent, KeyboardEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { FileTreeSortMode } from '@/explorer/FileTree'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { cn } from '@/lib/utils'
 
 const SORT_OPTIONS: Array<{ mode: FileTreeSortMode; label: string }> = [
@@ -19,6 +20,7 @@ interface SortMenuProps {
 
 export function SortMenu({ sortMode, onChange, disabled }: SortMenuProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
+  const present = useExitPresence(open ? true : null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
@@ -82,12 +84,14 @@ export function SortMenu({ sortMode, onChange, disabled }: SortMenuProps): React
       >
         <ArrowDownUp className="size-3.5" aria-hidden="true" />
       </Button>
-      {open ? (
+      {present ? (
         <div
           ref={menuRef}
           role="menu"
+          data-state={open ? 'open' : 'closed'}
+          inert={!open}
           aria-label="Sort files"
-          className="absolute top-full right-0 z-40 mt-1 min-w-[190px] border-2 border-foreground bg-popover p-1 text-[13px] text-popover-foreground shadow-[4px_4px_0_0_var(--foreground)]"
+          className="absolute top-full right-0 z-40 mt-1 min-w-[190px] rounded-md border border-input bg-popover p-1 text-[13px] text-popover-foreground chrome-overlay shadow-chrome-overlay"
           onKeyDown={handleMenuKeyDown}
         >
           {SORT_OPTIONS.map((option) => (
@@ -101,8 +105,8 @@ export function SortMenu({ sortMode, onChange, disabled }: SortMenuProps): React
                 setOpen(false)
               }}
               className={cn(
-                'flex w-full items-center justify-between px-2 py-1.5 text-left outline-none transition-colors hover:bg-foreground hover:text-background focus-visible:bg-foreground focus-visible:text-background motion-reduce:transition-none',
-                sortMode === option.mode && 'bg-foreground text-background font-bold'
+                'flex w-full items-center justify-between px-2 py-1.5 text-left outline-none transition-colors hover:bg-instrument-blue/10 hover:text-foreground focus-visible:bg-instrument-blue/10 focus-visible:text-foreground motion-reduce:transition-none',
+                sortMode === option.mode && 'bg-instrument-blue/10 text-foreground font-semibold'
               )}
             >
               <span>{option.label}</span>
@@ -111,7 +115,7 @@ export function SortMenu({ sortMode, onChange, disabled }: SortMenuProps): React
               ) : null}
             </button>
           ))}
-          <p className="px-2 pt-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <p className="px-2 pt-1 font-sans text-xs text-muted-foreground">
             *Created time is not yet tracked; falls back to Name.
           </p>
         </div>

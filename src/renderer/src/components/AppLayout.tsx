@@ -26,6 +26,7 @@ import {
 import type { ViewMode } from '@/components/ViewModeToggle'
 import { resolveLocalGraphContext } from '@/graph/local-graph-state'
 import type { EditorInteractionsController } from '@/hooks/useEditorInteractions'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import type { KnowledgeUtilitiesController } from '@/hooks/useKnowledgeUtilities'
 import { useLivingOutline } from '@/hooks/useLivingOutline'
 import type { NoteActionsController } from '@/hooks/useNoteActions'
@@ -130,17 +131,21 @@ export function AppLayout({
   const gridRef = useRef<HTMLElement>(null)
   const viewportWidth = useWorkspaceViewportWidth()
   const layoutMode = resolveWorkspaceLayoutMode(viewportWidth)
+  // Keep existing tracks through the opacity exit; never interpolate document width.
+  const leftPresent = useExitPresence(leftPanelOpen ? true : null) !== null
+  const rightPresent = useExitPresence(rightPanelOpen ? true : null) !== null
+  const aiPresent = useExitPresence(aiPanelOpen ? true : null) !== null
   const dockPolicy = resolveDockPolicy({
     widths: panelWidths,
     mode: layoutMode,
     viewportWidth,
     remPx: (16 * uiScale) / 100,
-    leftPanelOpen,
-    rightPanelOpen,
-    aiPanelOpen
+    leftPanelOpen: leftPresent,
+    rightPanelOpen: rightPresent,
+    aiPanelOpen: aiPresent
   })
   const fittedPanelWidths = dockPolicy.widths
-  const effectiveLeftOpen = leftPanelOpen && !dockPolicy.collapsedLeft
+  const effectiveLeftOpen = leftPresent && !dockPolicy.collapsedLeft
   const [explorerRevealRequest, setExplorerRevealRequest] = useState<{
     path: string
     requestId: number
@@ -230,8 +235,8 @@ export function AppLayout({
   const gridTemplateColumns = workspaceGridTemplate({
     mode: layoutMode,
     leftPanelOpen: effectiveLeftOpen,
-    rightPanelOpen,
-    aiPanelOpen,
+    rightPanelOpen: rightPresent,
+    aiPanelOpen: aiPresent,
     readingFullView,
     widths: fittedPanelWidths
   })
@@ -305,23 +310,27 @@ export function AppLayout({
             role="region"
             aria-label="Vault explorer dock"
             data-workspace-dock="left"
+            data-dock-open={leftPanelOpen}
+            inert={!leftPanelOpen}
             tabIndex={-1}
             data-panel-width="leftPanelWidth"
             className="min-h-0 min-w-0 overflow-hidden border-r border-border bg-chrome"
           >
-            <LeftPanel
-              density={density}
-              showFileExtensions={showFileExtensions}
-              vault={vault}
-              selectedPath={selectedVaultPath}
-              noteIndex={noteIndex}
-              vaultSession={vaultSession}
-              commandActions={commandActions}
-              revealRequest={explorerRevealRequest}
-              onCreateNoteInFolder={onCreateNoteInFolder}
-              onRequestDelete={onRequestDelete}
-              onAddBookmark={onAddBookmark}
-            />
+            <div className="chrome-dock-content h-full">
+              <LeftPanel
+                density={density}
+                showFileExtensions={showFileExtensions}
+                vault={vault}
+                selectedPath={selectedVaultPath}
+                noteIndex={noteIndex}
+                vaultSession={vaultSession}
+                commandActions={commandActions}
+                revealRequest={explorerRevealRequest}
+                onCreateNoteInFolder={onCreateNoteInFolder}
+                onRequestDelete={onRequestDelete}
+                onAddBookmark={onAddBookmark}
+              />
+            </div>
           </div>
         </Activity>
         {effectiveLeftOpen && !readingFullView ? (
@@ -368,7 +377,7 @@ export function AppLayout({
           }
           onError={onError}
         />
-        {rightPanelOpen && !readingFullView ? (
+        {rightPresent && !readingFullView ? (
           <PanelSeparator
             panel="rightPanelWidth"
             width={fittedPanelWidths.rightPanelWidth}
@@ -382,8 +391,10 @@ export function AppLayout({
           panelWidths={fittedPanelWidths}
           onPanelWidthChange={onPanelWidthChange}
           mode={layoutMode}
-          contextOpen={rightPanelOpen && !readingFullView}
-          aiOpen={aiPanelOpen && !readingFullView}
+          contextOpen={rightPresent && !readingFullView}
+          aiOpen={aiPresent && !readingFullView}
+          contextClosing={!rightPanelOpen}
+          aiClosing={!aiPanelOpen}
           contextPanel={
             <RightPanel
               hasVault={vault !== null}

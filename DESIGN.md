@@ -74,7 +74,8 @@ Reading/export remain unchanged.
 | Interface | Atkinson Hyperlegible Next | 12–16px, 400–600, sentence case |
 | Note display | Playfair Display | 700/900 headings and editorial titles |
 | Note reading | Lora | 16–17px body with an open reading rhythm |
-| Note UI and code | Courier Prime | Uppercase labels, controls, data and code |
+| Note labels and code | Courier Prime | Short kickers, machine labels, data and code |
+| Note interactive prose | Lora | Sentence-case options, feedback, captions and error/loading prose |
 | Source and Live editor | JetBrains Mono | 15px / 1.6 default; Vietnamese subset included |
 | App data chrome | IBM Plex Mono | 12–14px, tabular figures where useful |
 
@@ -88,6 +89,11 @@ paragraphs.
 - Focus, selection and critical state use 2px strokes.
 - Controls use 2–4px radii. Shape communicates grouping without turning every
   surface into a card.
+- Chrome surfaces use 4–6px radii. Dialogs, palettes, menus, editor overlays,
+  graph tools, assistant panels and toasts share Atkinson and sentence case.
+  Selection uses a subtle Instrument Blue tint, with a focus/selection stroke,
+  never an inverted black card. Monospace is reserved for actual code, paths,
+  data and key chips. Uppercase tracking is only for short machine states.
 - Shadow belongs only to overlays, drag previews and modal ownership. Inline
   widgets sit on the document plane.
 - Comfortable density is the default. Compact density reduces padding/control
@@ -123,6 +129,9 @@ supplementary dock.
 - The resting app bar exposes one application-menu trigger and the active vault
   selector. File/Edit/View/Go/Window live in nested keyboard-accessible menu
   groups; they do not remain as five persistent titlebar labels.
+- The vault selector is a ghost/tinted button with folder, name and chevron,
+  not an underlined input. The Context selector is the dock's only title;
+  individual labelled panels use a slim count/action toolbar without a second title.
 - Outline owns structural navigation; the document track never reserves an
   Evidence Rail or minimap gutter. Its semantic heading list remains primary;
   an Alloy hierarchy connector and Instrument Blue active segment visualize
@@ -150,6 +159,12 @@ supplementary dock.
   next action; they do not use mood copy.
 - Controls have visible `:focus-visible` treatment using Instrument Blue.
 - Motion is limited to state transitions that help preserve orientation.
+- Chrome enters/exits in 150ms ease-out (allowed range 120–200ms), with a small
+  opacity/translation change and immediate focus. Closing overlays become inert.
+  Dock content fades before its existing grid track closes; grid widths never
+  animate. Tabs/view controls use color feedback. Reduced motion removes the
+  animation. Document content never fades, translates or waits for a transition
+  on note open or view switch.
 
 ## Surface contracts
 
@@ -209,6 +224,13 @@ supplementary dock.
   use the red paper accent, a ruled notes section, explicit back-links and
   ink-only print styling.
 - Source, Live Preview and Reading remain views of the same file/buffer.
+- A buffer retains its loaded EOL. CodeMirror keeps single-character internal
+  line coordinates; source-boundary selection/reveal ranges convert explicitly.
+  Untouched input, including mixed EOL, is byte-identical. On a real mixed-EOL
+  edit, the dominant separator is used (CRLF wins ties). Sync is not a user edit.
+- Long interactive reading text follows paper body type in sentence case:
+  quiz/prediction options and feedback, flow captions/edge labels, and chart or
+  equation errors/loading messages. This rule is shared by Reading and export.
 - Outline reflects the active unsaved buffer. Source/Live follow the caret;
   Reading follows the heading nearest the top of its nested viewport. Active
   items use `aria-current="location"` and auto-scroll with a reduced-motion-safe
@@ -233,6 +255,10 @@ supplementary dock.
 - Instrument Blue marks active navigation; Evidence Teal marks resolved
   relations; Signal and destructive semantics remain text/shape backed.
 - Reduced motion disables layout animation without changing topology.
+- The global navigator collapses below 760px of graph-container width; the
+  document/dock policy stays independent. Shown labels remain at least 11px on
+  screen across zoom. Disconnected components are packed, with a compact labelled
+  orphan grid below them. Unrelated parent updates never rerun the layout.
 
 ### Dialogs and settings
 

@@ -10,7 +10,7 @@ import {
 } from '../src/shared/keybindings'
 
 describe('in-app menu action routing', () => {
-  test('keeps Close Active Item available on macOS and dispatches the canonical action', () => {
+  test('keeps Close active item available on macOS and dispatches the canonical action', () => {
     const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
     const dispatched: string[] = []
     const commandActions: CommandActionRegistry = {
@@ -43,7 +43,7 @@ describe('in-app menu action routing', () => {
         onRevealNote: () => undefined,
         onToggleRightPanel: () => undefined
       })
-      const closeItem = findMenuItem(menu, 'Close Active Item')
+      const closeItem = findMenuItem(menu, 'Close active item')
 
       expect(closeItem).not.toBeNull()
       closeItem?.props.onSelect()
@@ -67,10 +67,10 @@ describe('in-app menu action routing', () => {
 
     try {
       const customMenu = createMenu(createFileOpenRegistry({ 'file.open': ['Alt+O'] }))
-      expect(findMenuItem(customMenu, 'Open File…')?.props.shortcut).toBe('Alt+O')
+      expect(findMenuItem(customMenu, 'Open file…')?.props.shortcut).toBe('Alt+O')
 
       const unboundMenu = createMenu(createFileOpenRegistry({ 'file.open': [] }))
-      expect(findMenuItem(unboundMenu, 'Open File…')?.props.shortcut).toBeUndefined()
+      expect(findMenuItem(unboundMenu, 'Open file…')?.props.shortcut).toBeUndefined()
     } finally {
       if (originalWindow) {
         Object.defineProperty(globalThis, 'window', originalWindow)
@@ -85,7 +85,7 @@ describe('in-app menu action routing', () => {
     const dispatched: string[] = []
     const graphAction: CommandAction = {
       id: 'graph.open-global',
-      title: 'Open Global Graph',
+      title: 'Open global graph',
       description: 'Open the graph.',
       category: 'Navigation',
       hotkeys: [],
@@ -107,7 +107,7 @@ describe('in-app menu action routing', () => {
     })
 
     try {
-      const graphItem = findMenuItem(createMenu(commandActions), 'Open Global Graph')
+      const graphItem = findMenuItem(createMenu(commandActions), 'Open global graph')
       expect(graphItem?.props.disabled).toBe(false)
       graphItem?.props.onSelect()
       expect(dispatched).toEqual(['graph.open-global'])
@@ -127,7 +127,7 @@ function createFileOpenRegistry(overrides: KeymapOverrides): CommandActionRegist
     .filter((binding): binding is string => binding !== null)
   const action: CommandAction = {
     id: 'file.open',
-    title: 'Open File…',
+    title: 'Open file…',
     description: 'Open a file from the vault.',
     category: 'Files',
     hotkeys,

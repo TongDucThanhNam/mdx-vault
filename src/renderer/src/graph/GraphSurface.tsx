@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { cn } from '@/lib/utils'
 import type { GraphScope } from '../../../shared/graph'
 import {
@@ -25,6 +26,7 @@ import {
 } from './GraphNodeNavigator'
 import { GraphSettingsDialog } from './GraphSettingsDialog'
 import { subscribeGraphSurfaceCommands } from './graph-commands'
+import { shouldCollapseGraphNavigator } from './graph-readability'
 import {
   formatGraphSummary,
   type GraphSurfaceStateId,
@@ -83,8 +85,12 @@ export function GraphSurface({
     [graph.snapshot, showTemplates]
   )
   const [contextRequest, setContextRequest] = useState<GraphContextRequest | null>(null)
+  const contextPresent = useExitPresence(contextRequest)
   const [rendererError, setRendererError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [navigatorCollapsed, setNavigatorCollapsed] = useState(true)
+  const [navigatorOpen, setNavigatorOpen] = useState(false)
+  const navigatorPresent = useExitPresence(navigatorOpen ? true : null)
   const canvasRef = useRef<HTMLButtonElement>(null)
   const settingsButtonRef = useRef<HTMLButtonElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
@@ -95,18 +101,32 @@ export function GraphSurface({
   const reducedMotion = usePrefersReducedMotion()
   const surfaceKey = `${vaultSessionId}:${mode}:${rootRelativePath ?? 'global'}`
   const selectedNode = visibleSnapshot?.nodes.find((node) => node.id === selectedNodeId) ?? null
+  const openNoteRef = useRef(nodeActions.onOpenNote)
+  const snapshotRef = useRef(visibleSnapshot)
+  useEffect(() => {
+    openNoteRef.current = nodeActions.onOpenNote
+    snapshotRef.current = visibleSnapshot
+  }, [nodeActions.onOpenNote, visibleSnapshot])
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container || compact) return
+    const update = (width: number) => setNavigatorCollapsed(shouldCollapseGraphNavigator(width))
+    update(container.clientWidth)
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) update(entry.contentRect.width)
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [compact])
   settingsRef.current = config.settings
   selectedNodeIdRef.current = selectedNodeId
 
-  const openNodeById = useCallback(
-    (nodeId: string): void => {
-      const node = visibleSnapshot?.nodes.find((candidate) => candidate.id === nodeId)
-      if (node?.status === 'resolved' && node.relativePath) {
-        void nodeActions.onOpenNote(node.relativePath)
-      }
-    },
-    [visibleSnapshot, nodeActions.onOpenNote]
-  )
+  const openNodeById = useCallback((nodeId: string): void => {
+    const node = snapshotRef.current?.nodes.find((candidate) => candidate.id === nodeId)
+    if (node?.status === 'resolved' && node.relativePath) {
+      void openNoteRef.current(node.relativePath)
+    }
+  }, [])
 
   useEffect(() => {
     adapterGenerationRef.current += 1
@@ -286,20 +306,21 @@ export function GraphSurface({
       ref={containerRef}
       aria-label={mode === 'global' ? 'Global Graph view' : 'Local Graph view'}
       data-graph-surface={mode}
+      data-navigator-collapsed={!compact && navigatorCollapsed}
       data-document-surface={mode === 'global' ? 'active' : undefined}
       className={cn(
         'relative grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background',
         className
       )}
     >
-      <header className="flex min-h-11 flex-wrap items-center gap-2 border-b-2 border-foreground bg-chrome px-2 py-1.5">
+      <header className="flex min-h-11 flex-wrap items-center gap-2 border-b border-border bg-chrome px-2 py-1.5">
         <div className="flex min-w-0 items-center gap-2">
           <Waypoints className="size-4 shrink-0 text-editorial-red" aria-hidden="true" />
           <div className="min-w-0">
-            <h2 className="truncate font-display text-sm font-black">
+            <h2 className="truncate font-sans text-sm font-semibold">
               {mode === 'global' ? 'Global Graph' : 'Local Graph'}
             </h2>
-            <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            <p className="font-sans text-xs text-muted-foreground">
               {formatGraphSummary(visibleSnapshot)}
             </p>
           </div>
@@ -317,17 +338,17 @@ export function GraphSurface({
             value={config.settings.query}
             maxLength={300}
             placeholder="Search files…"
-            className="h-8 w-full border-2 border-foreground bg-background pr-2 pl-7 font-mono text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="h-8 w-full rounded-md border border-input bg-background pr-2 pl-7 font-sans text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onChange={(event) => config.updateSettings({ query: event.currentTarget.value })}
           />
         </label>
 
         {mode === 'local' && 'depth' in config.settings ? (
-          <label className="flex items-center gap-1 font-mono text-xs font-bold uppercase">
+          <label className="flex items-center gap-1 font-sans text-xs font-semibold ">
             Depth
             <select
               value={config.settings.depth}
-              className="h-8 border-2 border-foreground bg-background px-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="h-8 rounded-md border border-input bg-background px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) =>
                 config.updateSettings({
                   depth: Number(event.currentTarget.value) as 1 | 2 | 3 | 4
@@ -344,6 +365,18 @@ export function GraphSurface({
         ) : null}
 
         <div className="flex items-center gap-1">
+          {!compact && navigatorCollapsed ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-expanded={navigatorOpen}
+              aria-controls={`${mode}-graph-navigator`}
+              onClick={() => setNavigatorOpen((open) => !open)}
+            >
+              {navigatorOpen ? 'Hide nodes' : 'Browse nodes'}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -382,9 +415,9 @@ export function GraphSurface({
       </header>
 
       {config.recovery ? (
-        <div className="absolute top-12 right-2 left-2 z-20 flex items-start gap-2 border-2 border-foreground bg-background p-2 shadow-[2px_2px_0_0_var(--foreground)]">
+        <div className="absolute top-12 right-2 left-2 z-20 flex items-start gap-2 rounded-md border border-input bg-background p-2 ">
           <SlidersHorizontal className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          <p className="font-mono text-xs leading-relaxed uppercase tracking-wider">
+          <p className="font-sans text-xs leading-relaxed ">
             Defaults active. {config.recovery.relativePath} was preserved for recovery.
           </p>
         </div>
@@ -392,10 +425,12 @@ export function GraphSurface({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0',
+          'relative grid min-h-0 min-w-0',
           compact
             ? 'grid-rows-[minmax(12rem,1fr)_auto]'
-            : 'grid-cols-[minmax(0,1fr)_minmax(13rem,17rem)]'
+            : navigatorCollapsed
+              ? 'grid-cols-1'
+              : 'grid-cols-[minmax(0,1fr)_minmax(13rem,17rem)]'
         )}
       >
         <div className="relative min-h-0 min-w-0 overflow-hidden bg-background">
@@ -404,13 +439,13 @@ export function GraphSurface({
             type="button"
             aria-label={`${mode === 'global' ? 'Global' : 'Local'} graph canvas${selectedNode ? `, selected ${selectedNode.title}` : ''}`}
             aria-describedby={`${mode}-graph-instructions`}
-            className="relative block h-full w-full cursor-default border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/70"
+            className="relative block h-full w-full cursor-default border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
             onKeyDown={handleCanvasKeyDown}
           />
           {hoveredNode ? (
             <div
               role="tooltip"
-              className="pointer-events-none absolute z-20 max-w-64 border border-border bg-popover px-2 py-1 font-sans text-xs text-popover-foreground shadow-[var(--shadow-hard-sm)]"
+              className="pointer-events-none absolute z-20 max-w-64 border border-border bg-popover px-2 py-1 font-sans text-xs text-popover-foreground rounded-lg chrome-overlay shadow-chrome-overlay"
               style={{
                 left: Math.min(
                   hoveredNode.x + 10,
@@ -442,26 +477,28 @@ export function GraphSurface({
           {visibleSnapshot?.truncated ? (
             <div
               role="status"
-              className="absolute right-2 bottom-2 left-2 z-10 border-2 border-foreground bg-background p-2 font-mono text-xs leading-relaxed uppercase tracking-wider shadow-[2px_2px_0_0_var(--foreground)]"
+              className="absolute right-2 bottom-2 left-2 z-10 rounded-md border border-input bg-background p-2 font-sans text-xs leading-relaxed "
             >
               {visibleSnapshot.truncationReason}
             </div>
           ) : null}
 
-          {contextRequest && selectedNode ? (
+          {contextPresent && selectedNode ? (
             <div
               ref={contextMenuRef}
               role="dialog"
               aria-label={`Node actions for ${selectedNode.title}`}
+              data-state={contextRequest ? 'open' : 'closed'}
+              inert={!contextRequest}
               tabIndex={-1}
-              className="absolute z-30 w-64 max-w-[calc(100%-1rem)] border-2 border-foreground bg-background p-3 shadow-[3px_3px_0_0_var(--foreground)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="absolute z-30 w-64 max-w-[calc(100%-1rem)] rounded-md border border-input bg-background p-3 chrome-overlay shadow-chrome-overlay outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={{
                 left: Math.min(
-                  contextRequest.x,
+                  contextPresent.x,
                   Math.max(8, (canvasRef.current?.clientWidth ?? 280) - 272)
                 ),
                 top: Math.min(
-                  contextRequest.y,
+                  contextPresent.y,
                   Math.max(8, (canvasRef.current?.clientHeight ?? 240) - 220)
                 )
               }}
@@ -487,16 +524,35 @@ export function GraphSurface({
           ) : null}
         </div>
 
-        <GraphNodeNavigator
-          nodes={visibleSnapshot?.nodes ?? []}
-          selectedNodeId={selectedNodeId}
-          compact={compact}
-          onSelectNode={(nodeId) => {
-            setSelectedNodeId(nodeId)
-            adapterRef.current?.focusNode(nodeId)
+        <div
+          id={`${mode}-graph-navigator`}
+          hidden={!compact && navigatorCollapsed && !navigatorPresent}
+          data-state={navigatorOpen ? 'open' : 'closed'}
+          inert={!compact && navigatorCollapsed && !navigatorOpen}
+          className={cn(
+            'min-h-0',
+            !compact &&
+              navigatorCollapsed &&
+              'absolute inset-y-0 right-0 z-20 w-[min(17rem,90%)] rounded-lg border border-input bg-background chrome-overlay shadow-chrome-overlay'
+          )}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && navigatorCollapsed) {
+              setNavigatorOpen(false)
+              canvasRef.current?.focus()
+            }
           }}
-          {...nodeActions}
-        />
+        >
+          <GraphNodeNavigator
+            nodes={visibleSnapshot?.nodes ?? []}
+            selectedNodeId={selectedNodeId}
+            compact={compact}
+            onSelectNode={(nodeId) => {
+              setSelectedNodeId(nodeId)
+              adapterRef.current?.focusNode(nodeId)
+            }}
+            {...nodeActions}
+          />
+        </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
@@ -588,9 +644,9 @@ export function GraphSurfaceState({
 
   return (
     <div className="absolute inset-0 z-10 grid place-items-center bg-background/94 p-6">
-      <div className="max-w-sm border-2 border-foreground bg-background p-5 text-center shadow-[4px_4px_0_0_var(--foreground)]">
+      <div className="max-w-sm rounded-md border border-input bg-background p-5 text-center chrome-overlay shadow-chrome-overlay">
         <Waypoints className="mx-auto mb-3 size-6 text-editorial-red" aria-hidden="true" />
-        <h3 className="font-display text-lg font-black">{message.title}</h3>
+        <h3 className="font-sans text-lg font-semibold">{message.title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{message.detail}</p>
         {state === 'loading' ? (
           <RefreshCw

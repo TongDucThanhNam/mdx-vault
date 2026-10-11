@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Button } from '@/components/ui/button'
+import { useExitPresence } from '@/hooks/useExitPresence'
 import { KNOWLEDGE_PREVIEW_CACHE_SIZE } from '../../../shared/knowledge'
 import { formatWikilinkSubpath, type WikilinkSubpath } from '../../../shared/wikilinks'
 import { SafeHoverPreviewDocument } from './hover-preview-document'
@@ -23,7 +24,7 @@ interface CachedPreviewSource {
 }
 
 export function WikilinkPreviewLayer({
-  preview,
+  preview: activePreview,
   onNavigate,
   onRetain,
   onDismiss,
@@ -35,6 +36,7 @@ export function WikilinkPreviewLayer({
   onDismiss: () => void
   onScheduleDismiss: (relatedTarget?: EventTarget | null) => void
 }): React.JSX.Element | null {
+  const preview = useExitPresence(activePreview)
   const readingPaper = useReadingPaper()
   const sourceCacheRef = useRef(new Map<string, CachedPreviewSource>())
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -138,35 +140,37 @@ export function WikilinkPreviewLayer({
   return createPortal(
     <aside
       data-wikilink-preview-layer="true"
+      data-state={activePreview ? 'open' : 'closed'}
+      inert={!activePreview}
       data-reading-paper={readingPaper}
       role="dialog"
       aria-label={`Page preview: ${preview.note.title}`}
-      className="fixed z-[80] flex max-h-[min(480px,calc(100vh-24px))] flex-col overflow-hidden border-2 border-foreground bg-popover text-popover-foreground shadow-[var(--shadow-hard)]"
+      className="fixed z-[80] flex max-h-[min(480px,calc(100vh-24px))] flex-col overflow-hidden rounded-md border border-input bg-popover text-popover-foreground chrome-overlay shadow-chrome-overlay"
       style={{ left: position.left, top: position.top, width: position.width }}
       onPointerEnter={onRetain}
       onPointerLeave={(event) => onScheduleDismiss(event.relatedTarget)}
       onFocusCapture={onRetain}
       onBlurCapture={(event) => onScheduleDismiss(event.relatedTarget)}
     >
-      <header className="flex shrink-0 items-start gap-3 border-b-2 border-foreground bg-[var(--paper-dark)] px-4 py-3">
+      <header className="flex shrink-0 items-start gap-3 border-b border-border bg-[var(--paper-dark)] px-4 py-3">
         <span
-          className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center border-2 border-foreground bg-background shadow-[2px_2px_0_var(--foreground)]"
+          className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-input bg-background "
           aria-hidden="true"
         >
           <FileText className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-[var(--editorial-red)]">
+          <div className="font-sans text-xs font-semibold text-[var(--editorial-red)]">
             Page preview
           </div>
-          <h2 className="truncate font-display text-[17px] font-bold leading-tight">
+          <h2 className="truncate font-sans text-[17px] font-semibold leading-tight">
             {preview.note.title}
           </h2>
-          <p className="truncate font-mono text-xs text-muted-foreground">
+          <p className="truncate font-sans text-xs text-muted-foreground">
             {preview.note.relativePath}
           </p>
           {preview.subpath ? (
-            <p className="truncate font-mono text-xs font-bold text-[var(--editorial-red)]">
+            <p className="truncate font-sans text-xs font-semibold text-[var(--editorial-red)]">
               {formatWikilinkSubpath(preview.subpath)}
             </p>
           ) : null}
@@ -199,23 +203,23 @@ export function WikilinkPreviewLayer({
         {currentState.status === 'loading' ? (
           <div
             role="status"
-            className="flex min-h-36 items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground"
+            className="flex min-h-36 items-center justify-center gap-2 font-sans text-xs text-muted-foreground"
           >
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
             Loading note
           </div>
         ) : currentState.status === 'error' ? (
           <div role="alert" className="border-l-4 border-destructive pl-3">
-            <div className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
+            <div className="font-sans text-xs font-semibold text-destructive">
               Preview unavailable
             </div>
-            <p className="mt-1 font-serif text-sm text-muted-foreground">{currentState.message}</p>
+            <p className="mt-1 font-sans text-sm text-muted-foreground">{currentState.message}</p>
           </div>
         ) : (
           <HoverPreviewContent source={currentState.source ?? ''} subpath={preview.subpath} />
         )}
       </div>
-      <footer className="shrink-0 border-t border-border bg-[var(--paper-dark)] px-4 py-2 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
+      <footer className="shrink-0 border-t border-border bg-[var(--paper-dark)] px-4 py-2 font-sans text-xs text-muted-foreground">
         Static preview · Interactive content is paused
       </footer>
     </aside>,

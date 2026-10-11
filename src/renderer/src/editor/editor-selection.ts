@@ -1,4 +1,5 @@
 import type { EditorView } from '@codemirror/view'
+import { editorOffsetToSource } from './mdx-buffer-source'
 
 export interface EditorSelectionSnapshot {
   /** UTF-16 document offset where the primary selection starts. */
@@ -26,7 +27,8 @@ export interface EditorSelectionSnapshot {
 }
 
 export function buildEditorSelectionSnapshot(
-  view: Pick<EditorView, 'state'>
+  view: Pick<EditorView, 'state'>,
+  source?: string
 ): EditorSelectionSnapshot {
   const selection = view.state.selection.main
   const startLineInfo = view.state.doc.lineAt(selection.from)
@@ -34,9 +36,9 @@ export function buildEditorSelectionSnapshot(
   const headLineInfo = view.state.doc.lineAt(selection.head)
 
   return {
-    from: selection.from,
-    to: selection.to,
-    head: selection.head,
+    from: source === undefined ? selection.from : editorOffsetToSource(source, selection.from),
+    to: source === undefined ? selection.to : editorOffsetToSource(source, selection.to),
+    head: source === undefined ? selection.head : editorOffsetToSource(source, selection.head),
     headLine: headLineInfo.number,
     headColumn: Math.max(0, selection.head - headLineInfo.from),
     hasSelection: !selection.empty,
@@ -44,6 +46,12 @@ export function buildEditorSelectionSnapshot(
     startColumn: Math.max(0, selection.from - startLineInfo.from),
     endLine: endLineInfo.number,
     endColumn: Math.max(0, selection.to - endLineInfo.from),
-    text: view.state.sliceDoc(selection.from, selection.to)
+    text:
+      source === undefined
+        ? view.state.sliceDoc(selection.from, selection.to)
+        : source.slice(
+            editorOffsetToSource(source, selection.from),
+            editorOffsetToSource(source, selection.to)
+          )
   }
 }

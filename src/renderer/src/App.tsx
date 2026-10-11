@@ -5,7 +5,7 @@ import { isReadingZoomActionEnabled } from '@/commands/reading-zoom-actions'
 import { AppLayout } from '@/components/AppLayout'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { MruTabSwitcher } from '@/components/layout/MruTabSwitcher'
-import { ToastView } from '@/components/ToastView'
+import { ToastRegion } from '@/components/ToastView'
 import type { ViewMode } from '@/components/ViewModeToggle'
 import { SourceEditorPreferencesProvider } from '@/editor/editor-preferences'
 import { CreateNoteDialog } from '@/explorer/CreateNoteDialog'
@@ -170,7 +170,11 @@ function App({
     onError: setError,
     showToast
   })
-  const editorInteractions = useEditorInteractions({ editor, setAiPanelOpen })
+  const editorInteractions = useEditorInteractions({
+    editor,
+    setAiPanelOpen,
+    documentIdentity: `${editorTabs.state.sessionId}:${editorTabs.activeId ?? ''}`
+  })
   const navigateWithSubpath = useCallback(
     async (relativePath: string, subpath?: WikilinkSubpath | null): Promise<boolean> => {
       const opened = await noteActions.navigateToNote(relativePath)
@@ -643,9 +647,7 @@ function App({
                 isPending={vaultSession.vaultOpsPending}
                 onConfirm={vaultSession.handleEmptyTrash}
               />
-              {toast ? (
-                <ToastView key={toast.key} message={toast.message} variant={toast.variant} />
-              ) : null}
+              <ToastRegion toast={toast} />
             </div>
           </SourceEditorPreferencesProvider>
         </PagePreviewSettingsProvider>

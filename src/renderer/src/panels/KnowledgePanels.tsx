@@ -114,14 +114,12 @@ function OutgoingLinkRow({
   onSelectNote: (relativePath: string) => void
 }): React.JSX.Element {
   return (
-    <div className="border-l-2 border-foreground/20 px-2 py-2">
+    <div className="border-l border-border px-2 py-2">
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 truncate font-mono text-xs font-bold">{link.display}</span>
-        <span className="shrink-0 font-mono text-xs uppercase text-muted-foreground">
-          {link.kind}
-        </span>
+        <span className="min-w-0 truncate font-sans text-xs font-semibold">{link.display}</span>
+        <span className="shrink-0 font-sans text-xs text-muted-foreground">{link.kind}</span>
       </div>
-      <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+      <div className="mt-0.5 truncate font-sans text-xs text-muted-foreground">
         {link.target}
         {link.subpath}
       </div>
@@ -134,7 +132,7 @@ function OutgoingLinkRow({
               key={note.relativePath}
               type="button"
               data-page-preview-path={note.relativePath}
-              className="flex w-full items-center gap-2 px-1 py-1 text-left text-xs hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="flex w-full items-center gap-2 px-1 py-1 text-left text-xs hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               title={note.relativePath}
               onClick={() => onSelectNote(note.relativePath)}
             >
@@ -159,13 +157,13 @@ function MentionRow({
 }): React.JSX.Element {
   const [target, setTarget] = useState(mention.candidates[0]?.relativePath ?? '')
   return (
-    <div className="border-l-2 border-editorial-red px-2 py-2">
-      <div className="font-serif text-sm">“{mention.text}”</div>
+    <div className="border-l border-editorial-red px-2 py-2">
+      <div className="font-sans text-sm">“{mention.text}”</div>
       <div className="mt-2 flex gap-1">
         <select
           aria-label={`Destination for ${mention.text}`}
           value={target}
-          className="h-8 min-w-0 flex-1 border-2 border-foreground bg-background px-1 font-mono text-xs"
+          className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-1 font-sans text-xs"
           onChange={(event) => setTarget(event.currentTarget.value)}
         >
           {mention.candidates.map((candidate) => (
@@ -241,7 +239,7 @@ export function PropertiesPanel({
         </Button>
       }
     >
-      <div className="mb-3 grid grid-cols-2 border-2 border-foreground" role="tablist">
+      <div className="mb-3 grid grid-cols-2 rounded-md border border-input" role="tablist">
         {(['file', 'all'] as const).map((id) => (
           <button
             key={id}
@@ -249,8 +247,8 @@ export function PropertiesPanel({
             role="tab"
             aria-selected={scope === id}
             className={cn(
-              'h-8 font-mono text-xs font-bold uppercase tracking-wider',
-              scope === id ? 'bg-foreground text-background' : 'bg-background'
+              'h-8 font-sans text-xs font-semibold ',
+              scope === id ? 'bg-instrument-blue/10 text-foreground' : 'bg-background'
             )}
             onClick={() => setScope(id)}
           >
@@ -275,7 +273,10 @@ export function PropertiesPanel({
       ) : null}
       {scope === 'file' ? (
         snapshot?.propertyParseError ? (
-          <div role="alert" className="border-2 border-destructive p-3 text-xs text-destructive">
+          <div
+            role="alert"
+            className="rounded-md border border-destructive p-3 text-xs text-destructive"
+          >
             {snapshot.propertyParseError}
           </div>
         ) : snapshot?.properties.length ? (
@@ -301,7 +302,7 @@ export function PropertiesPanel({
             <button
               key={property.normalizedName}
               type="button"
-              className="flex w-full items-center justify-between gap-2 border-l-2 border-transparent px-2 py-2 text-left hover:border-editorial-red hover:bg-foreground hover:text-background"
+              className="flex w-full items-center justify-between gap-2 border-l border-transparent px-2 py-2 text-left hover:border-editorial-red hover:bg-instrument-blue/10 hover:text-foreground"
               onClick={() => {
                 const nextName = window.prompt(`Rename “${property.name}” to:`)
                 if (!nextName?.trim()) return
@@ -311,7 +312,7 @@ export function PropertiesPanel({
               }}
             >
               <span className="truncate text-sm font-medium">{property.name}</span>
-              <span className="font-mono text-xs opacity-70">
+              <span className="font-sans text-xs text-muted-foreground">
                 {property.type} · {property.useCount}
               </span>
             </button>
@@ -358,9 +359,9 @@ function PropertyRow({
 
   if (!property.editable) {
     return (
-      <div className="border-2 border-foreground/30 p-3">
+      <div className="rounded-md border border-input p-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-xs font-bold">{property.name}</span>
+          <span className="font-sans text-xs font-semibold">{property.name}</span>
           <Button type="button" size="sm" variant="outline" onClick={onReveal}>
             Source
           </Button>
@@ -376,16 +377,16 @@ function PropertyRow({
   }
 
   return (
-    <div className="border-2 border-foreground bg-background p-3">
+    <div className="rounded-md border border-input bg-background p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <label
           htmlFor={`property-${property.normalizedName}`}
-          className="font-mono text-xs font-bold"
+          className="font-sans text-xs font-semibold"
         >
           {property.name}
         </label>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-xs uppercase text-muted-foreground">{property.type}</span>
+          <span className="font-sans text-xs text-muted-foreground">{property.type}</span>
           <Button
             type="button"
             size="icon-xs"
@@ -426,7 +427,7 @@ function PropertyRow({
           }
           value={value}
           disabled={busy}
-          className="h-9 w-full border-2 border-foreground bg-background px-2 font-mono text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="h-9 w-full rounded-md border border-input bg-background px-2 font-sans text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onChange={(event) => setValue(event.currentTarget.value)}
           onBlur={commit}
           onKeyDown={(event) => {
@@ -441,7 +442,7 @@ function PropertyRow({
               key={note.relativePath}
               type="button"
               data-page-preview-path={note.relativePath}
-              className="border border-foreground px-1.5 py-1 font-mono text-xs hover:bg-foreground hover:text-background focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="border border-input px-1.5 py-1 font-sans text-xs hover:bg-instrument-blue/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               onClick={() => onSelectNote(note.relativePath)}
             >
               ↗ {note.title}
@@ -468,26 +469,26 @@ function AddPropertyForm({
   const [value, setValue] = useState('')
   return (
     <form
-      className="mb-3 border-2 border-editorial-red bg-background p-3"
+      className="mb-3 rounded-md border border-editorial-red bg-background p-3"
       onSubmit={(event) => {
         event.preventDefault()
         if (name.trim()) void onAdd({ kind: 'add', name, value })
       }}
     >
-      <div className="font-mono text-xs font-bold uppercase tracking-wider">New property</div>
+      <div className="font-sans text-xs font-semibold ">New property</div>
       <input
         ref={inputRef}
         value={name}
         placeholder="Property name"
         aria-label="Property name"
-        className="mt-2 h-9 w-full border-2 border-foreground px-2 font-mono text-xs"
+        className="mt-2 h-9 w-full rounded-md border border-input px-2 font-sans text-xs"
         onChange={(event) => setName(event.currentTarget.value)}
       />
       <input
         value={value}
         placeholder="Value"
         aria-label="Property value"
-        className="mt-2 h-9 w-full border-2 border-foreground px-2 font-mono text-xs"
+        className="mt-2 h-9 w-full rounded-md border border-input px-2 font-sans text-xs"
         onChange={(event) => setValue(event.currentTarget.value)}
       />
       <div className="mt-2 flex justify-end gap-2">
@@ -517,9 +518,9 @@ function RenamePlanCard({
     <div
       role="dialog"
       aria-label="Property rename preview"
-      className="sticky bottom-2 mt-3 border-2 border-foreground bg-popover p-3 shadow-[3px_3px_0_var(--foreground)]"
+      className="sticky bottom-2 mt-3 rounded-md border border-input bg-popover p-3 "
     >
-      <div className="font-display text-base font-bold">Rename preview</div>
+      <div className="font-sans text-base font-semibold">Rename preview</div>
       <p className="mt-1 text-xs">
         {plan.oldName} → {plan.newName} in {plan.affectedFiles.length} file
         {plan.affectedFiles.length === 1 ? '' : 's'}.
@@ -649,7 +650,7 @@ function BookmarkTree({
   onOpenSearch: (query: string) => void
 }): React.JSX.Element {
   return (
-    <div className={cn('space-y-1', parentId && 'ml-3 border-l border-foreground/30 pl-2')}>
+    <div className={cn('space-y-1', parentId && 'ml-3 border-l border-border pl-2')}>
       {nodes.map((node, index) => (
         <div
           key={node.id}
@@ -671,7 +672,7 @@ function BookmarkTree({
             }
           }}
         >
-          <div className="group flex min-h-9 items-center gap-1 border-l-2 border-transparent px-1 hover:border-editorial-red hover:bg-background">
+          <div className="group flex min-h-9 items-center gap-1 border-l border-transparent px-1 hover:border-editorial-red hover:bg-background">
             <button
               type="button"
               data-page-preview-path={
@@ -822,11 +823,11 @@ function FootnoteRow({
   }
 
   return (
-    <div className="border-2 border-foreground/30 bg-background p-3">
+    <div className="rounded-md border border-input bg-background p-3">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
-          className="font-mono text-xs font-bold hover:text-editorial-red"
+          className="font-sans text-xs font-semibold hover:text-editorial-red"
           disabled={!entry.definitionRange}
           onClick={() => entry.definitionRange && onRevealRange(entry.definitionRange)}
         >
@@ -834,7 +835,7 @@ function FootnoteRow({
         </button>
         <span
           className={cn(
-            'font-mono text-xs uppercase',
+            'font-sans text-xs ',
             entry.status === 'defined' ? 'text-muted-foreground' : 'text-destructive'
           )}
         >
@@ -883,7 +884,6 @@ function FootnoteRow({
 }
 
 function PanelFrame({
-  icon: Icon,
   title,
   count,
   action,
@@ -896,15 +896,11 @@ function PanelFrame({
   children: React.ReactNode
 }): React.JSX.Element {
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b-2 border-foreground px-3">
-        <div className="flex min-w-0 items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-          <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{title}</span>
-        </div>
+    <div role="region" aria-label={title} className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-7 shrink-0 items-center justify-end border-b border-border px-3">
         <div className="flex items-center gap-2">
           {action}
-          <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
+          <span className="font-sans text-xs tabular-nums text-muted-foreground">{count}</span>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-2">{children}</div>
@@ -923,7 +919,7 @@ function PanelSection({
 }): React.JSX.Element {
   return (
     <section>
-      <div className="mb-1 flex items-center justify-between border-b border-foreground/30 px-1 py-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-1 flex items-center justify-between border-b border-border px-1 py-1 font-sans text-xs font-semibold text-muted-foreground">
         <span>{title}</span>
         <span>{count}</span>
       </div>
@@ -944,7 +940,7 @@ function FreshnessNotice({
   if (!selectedPath) return <EmptyLine>Select a note.</EmptyLine>
   if (isDirty) {
     return (
-      <div className="mb-2 border-l-2 border-editorial-red px-2 py-1 text-xs text-muted-foreground">
+      <div className="mb-2 border-l border-editorial-red px-2 py-1 text-xs text-muted-foreground">
         Save the note to refresh knowledge utilities and enable source edits.
       </div>
     )
@@ -955,9 +951,7 @@ function FreshnessNotice({
 
 function EmptyLine({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="px-2 py-6 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
-      {children}
-    </div>
+    <div className="px-2 py-6 text-center font-sans text-xs text-muted-foreground">{children}</div>
   )
 }
 

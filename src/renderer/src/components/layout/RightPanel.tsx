@@ -236,7 +236,7 @@ function ActiveNavigationPanel({
       return (
         <Suspense
           fallback={
-            <div className="grid h-full place-items-center p-4 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            <div className="grid h-full place-items-center p-4 font-sans text-xs text-muted-foreground">
               Loading local graph…
             </div>
           }

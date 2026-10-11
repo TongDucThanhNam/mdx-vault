@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type { EditorSelectionSnapshot } from '@/editor/editor-selection'
 import { TextFileEditor } from '@/editor/TextFileEditor'
 import { useInteractiveProject } from '@/hooks/useInteractiveProject'
 import { useInteractiveProof } from '@/hooks/useInteractiveProof'
@@ -32,6 +33,7 @@ interface InteractiveProofWorkbenchProps {
   starterConsented: boolean
   onConsumeStarterConsent: () => void
   onChange: (value: string) => void
+  onSelectionChange?: (snapshot: EditorSelectionSnapshot) => void
   onSave: () => Promise<boolean>
   onOpenFile: (relativePath: string) => Promise<boolean>
   getSavedContent: () => string
@@ -47,6 +49,7 @@ export function InteractiveProofWorkbench({
   starterConsented,
   onConsumeStarterConsent,
   onChange,
+  onSelectionChange,
   onSave,
   onOpenFile,
   getSavedContent,
@@ -99,16 +102,16 @@ export function InteractiveProofWorkbench({
       data-language-warm-completion-ms={project.metrics.warmCompletionMs ?? undefined}
       className="flex h-full min-h-0 flex-col bg-background"
     >
-      <header className="shrink-0 border-b-2 border-foreground bg-chrome">
+      <header className="shrink-0 border-b border-border bg-chrome">
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-1.5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Blocks className="size-4 shrink-0" aria-hidden="true" />
-              <h2 className="truncate font-display text-sm font-black">
+              <h2 className="truncate font-sans text-sm font-semibold">
                 Interactive Proof · {project.projectName}
               </h2>
             </div>
-            <p className="truncate font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            <p className="truncate font-sans text-xs text-muted-foreground">
               {project.projectRoot}
             </p>
           </div>
@@ -165,7 +168,7 @@ export function InteractiveProofWorkbench({
                   : `${file.label} is missing; reveal the interactive project folder`
               }
               className={cn(
-                'h-7 shrink-0 border-b-2 px-2 font-mono text-xs font-bold uppercase tracking-wide outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+                'h-7 shrink-0 border-b px-2 font-sans text-xs font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
                 file.relativePath === activeRelativePath
                   ? 'border-editorial-blue text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -196,9 +199,9 @@ export function InteractiveProofWorkbench({
               aria-selected={narrowMode === mode}
               aria-controls={`interactive-${mode}-panel`}
               className={cn(
-                'h-8 border-r border-border font-mono text-xs font-bold uppercase tracking-wider outline-none last:border-r-0 focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50',
+                'h-8 border-r border-border font-sans text-xs font-semibold outline-none last:border-r-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 narrowMode === mode
-                  ? 'bg-foreground text-background'
+                  ? 'bg-instrument-blue/10 text-foreground'
                   : 'bg-background text-muted-foreground'
               )}
               onClick={() => setNarrowMode(mode)}
@@ -215,14 +218,14 @@ export function InteractiveProofWorkbench({
           role="tabpanel"
           aria-label="Source"
           className={cn(
-            'h-full min-h-0 flex-col lg:flex lg:border-r-2 lg:border-foreground',
+            'h-full min-h-0 flex-col lg:flex lg:border-r lg:border-input',
             narrowMode === 'source' ? 'flex' : 'hidden'
           )}
         >
           <PaneLabel label="Source" />
           {project.intelligenceStatus === 'unavailable' ? (
             <div className="flex items-center justify-between gap-2 border-b border-destructive bg-destructive/10 px-3 py-1.5">
-              <p className="font-mono text-xs text-destructive">
+              <p className="font-sans text-xs text-destructive">
                 Type intelligence unavailable
                 {project.intelligenceMessage ? ` · ${project.intelligenceMessage}` : ''}
               </p>
@@ -237,6 +240,7 @@ export function InteractiveProofWorkbench({
               relativePath={activeRelativePath}
               value={value}
               onChange={onChange}
+              onSelectionChange={onSelectionChange}
               intelligence={project.intelligence}
               diagnostics={diagnostics}
               revealRequest={project.revealRequest}
@@ -255,13 +259,13 @@ export function InteractiveProofWorkbench({
             role="tabpanel"
             aria-label="Isolated proof"
             className={cn(
-              'min-h-0 overflow-auto border-b-2 border-foreground',
+              'min-h-0 overflow-auto border-b border-border',
               narrowMode === 'proof' ? 'block' : 'hidden lg:block'
             )}
           >
             <PaneLabel label="Proof" />
             {proof.hasLastGoodWithNewerIssues ? (
-              <div className="border-b border-destructive bg-destructive/10 px-3 py-2 font-mono text-xs text-destructive">
+              <div className="border-b border-destructive bg-destructive/10 px-3 py-2 font-sans text-xs text-destructive">
                 Source has newer issues. Showing the last known good proof.
               </div>
             ) : null}
@@ -280,10 +284,10 @@ export function InteractiveProofWorkbench({
                     className="mx-auto mb-2 size-5 text-editorial-blue"
                     aria-hidden="true"
                   />
-                  <p className="font-display text-base font-black">
+                  <p className="font-sans text-base font-semibold">
                     {INTERACTIVE_PROOF_STATE_LABELS[proof.state]}
                   </p>
-                  <p className="mt-1 max-w-sm font-mono text-xs leading-relaxed text-muted-foreground">
+                  <p className="mt-1 max-w-sm font-sans text-xs leading-relaxed text-muted-foreground">
                     Run starts a memory-only, zero-capability session. Network, filesystem, vault
                     data, navigation, and same-origin access remain unavailable.
                   </p>
@@ -292,7 +296,7 @@ export function InteractiveProofWorkbench({
             )}
             <div className="border-t border-border p-3">
               <label htmlFor="interactive-preview-props">
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="font-sans text-xs font-semibold text-muted-foreground">
                   Preview props · session only
                 </span>
               </label>
@@ -301,7 +305,7 @@ export function InteractiveProofWorkbench({
                 id="interactive-preview-props"
                 value={proof.propsText}
                 spellCheck={false}
-                className="mt-1.5 min-h-24 w-full resize-y border-2 border-foreground bg-background p-2 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="mt-1.5 min-h-24 w-full resize-y rounded-md border border-input bg-background p-2 font-sans text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
                 onChange={(event) => proof.setPropsText(event.target.value)}
               />
             </div>
@@ -318,7 +322,7 @@ export function InteractiveProofWorkbench({
           >
             <PaneLabel label={`Problems · ${problemCount}`} />
             {diagnostics.length === 0 ? (
-              <div className="flex items-center gap-2 px-3 py-4 font-mono text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 px-3 py-4 font-sans text-xs text-muted-foreground">
                 <CheckCircle2 className="size-4 text-editorial-blue" aria-hidden="true" />
                 No project problems
               </div>
@@ -328,7 +332,7 @@ export function InteractiveProofWorkbench({
                   <li key={diagnosticKey(diagnostic, index)}>
                     <button
                       type="button"
-                      className="flex w-full gap-2 border-l-4 border-destructive px-3 py-2 text-left outline-none hover:bg-destructive/5 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+                      className="flex w-full gap-2 border-l-4 border-destructive px-3 py-2 text-left outline-none hover:bg-destructive/5 focus-visible:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                       onClick={() => void openProblem(diagnostic)}
                     >
                       <AlertCircle
@@ -336,10 +340,10 @@ export function InteractiveProofWorkbench({
                         aria-hidden="true"
                       />
                       <span className="min-w-0">
-                        <span className="block font-mono text-xs font-bold text-destructive">
+                        <span className="block font-sans text-xs font-semibold text-destructive">
                           {diagnostic.code} · {formatDiagnosticLocation(diagnostic)}
                         </span>
-                        <span className="mt-0.5 block font-mono text-xs leading-relaxed text-foreground">
+                        <span className="mt-0.5 block font-sans text-xs leading-relaxed text-foreground">
                           {diagnostic.message}
                         </span>
                       </span>
@@ -357,7 +361,7 @@ export function InteractiveProofWorkbench({
 
 function PaneLabel({ label }: { label: string }): React.JSX.Element {
   return (
-    <div className="flex h-7 shrink-0 items-center border-b border-border bg-muted px-3 font-mono text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="flex h-7 shrink-0 items-center border-b border-border bg-muted px-3 font-sans text-xs font-semibold text-muted-foreground">
       {label}
     </div>
   )
@@ -374,7 +378,7 @@ function ProofStateMark({
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center gap-1 border px-2 font-mono text-xs font-bold uppercase tracking-wider',
+        'inline-flex h-6 items-center gap-1 border px-2 font-sans text-xs font-semibold ',
         issue
           ? 'border-destructive text-destructive'
           : state === 'ready'
