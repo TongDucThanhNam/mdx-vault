@@ -192,10 +192,32 @@ Commands/raw evidence:
   Graph immediate-use maxima: shell 82.8ms, populated 443.1ms, reopen 223.5ms;
   passing medians do not imply every sample is within budget.
 
-The misses are not excused as machine noise or relabelled as passes. This run
-does not isolate their cause with a controlled HEAD A/B. Follow-up must profile
-and repair renderer latency with these clocks, without relaxing the budget or
-delaying document visibility. If main-process changes are needed, replan first.
+The misses are not excused as machine noise or relabelled as passes. Follow-up
+must profile and repair renderer latency with these clocks, without relaxing the
+budget or delaying document visibility. If main-process changes are needed,
+replan first.
+
+### Post-commit A/B (orchestrator)
+
+To check whether GOAL-41 caused the misses, `perf-event.py` (n=10 per arm) was
+run interleaved on the same machine: base = `fd31b37` built in a temporary git
+worktree, head = `b3a65e8`, order base→head→base→head. A CDP probe confirmed
+each arm loaded its own `out/renderer/index.html`. Medians, ms:
+
+| Metric | base r1 | base r2 | head r1 | head r2 | Budget |
+| --- | --- | --- | --- | --- | --- |
+| Cold visible frame | 1919.5 | 1739.2 | 1942.7 | 1803.3 | ≤1500 |
+| First small | 69.3 | 58.0 | 75.8 | 62.2 | ≤60 |
+| First DNS | 265.6 | 227.4 | 251.5 | 228.9 | ≤250 |
+| Warm small | 81.1 | 47.4 | 38.6 | 38.5 | ≤60 |
+| Warm DNS | 110.2 | 83.5 | 62.2 | 60.6 | ≤100 |
+| No-op floor | 4.5 | 4.0 | 4.3 | 4.3 | — |
+
+Both arms show the same pattern: cold start misses in every round, and first-open
+results land near the budget, varying by round. Head shows no regression
+against base and is faster on warm opens. So GOAL-41 did not cause these
+misses. The budgets remain unmet on this machine, and the gate stays FAIL.
+Harness: `.tmp/ab-run.sh`, `.tmp/ab-perf.py`; logs `.tmp/ab-{base,head}-r{1,2}.log`.
 
 ## Gates and exports
 
