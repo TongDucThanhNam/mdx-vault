@@ -18,7 +18,10 @@
       "!!resources",
       "!!docs/research/interactive-note-skill",
       "!!interactive-notes-out",
-      "!!videos"
+      "!!videos",
+      "!!.tmp",
+      "!!**/.agent-dispatch",
+      "!!**/.zcode-dispatch"
     ]
   },
   "formatter": {

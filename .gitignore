@@ -11,6 +11,12 @@ example-vault/.app/
 .codex/
 mcps.json
 
-# Generated local verification artifacts
+# Generated local verification and agent dispatch artifacts
+.tmp/
+.agent-dispatch/
+.zcode-dispatch/
+**/.agent-dispatch/
+**/.zcode-dispatch/
 videos/
 scripts/__pycache__/
+

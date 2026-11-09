@@ -25,19 +25,8 @@
       "focusInDocument": true
     },
     "find_panel_source": {
-      "buttons": [
-        "next",
-        "previous",
-        "all",
-        "replace",
-        "replace all",
-        "\u00d7"
-      ],
-      "checkboxes": [
-        "case",
-        "re",
-        "word"
-      ],
+      "buttons": ["next", "previous", "all", "replace", "replace all", "\u00d7"],
+      "checkboxes": ["case", "re", "word"],
       "findField": true,
       "replaceField": true
     },
@@ -57,33 +46,25 @@
     },
     "tab_switch_preserves_text": true,
     "search_case_insensitive_default": {
-      "resultPaths": [
-        "notes/Alpha.mdx"
-      ],
+      "resultPaths": ["notes/Alpha.mdx"],
       "count": 1,
       "alert": null,
       "empty": false
     },
     "search_regex": {
-      "resultPaths": [
-        "notes/Alpha.mdx"
-      ],
+      "resultPaths": ["notes/Alpha.mdx"],
       "count": 1,
       "alert": null,
       "empty": false
     },
     "search_path_filter": {
-      "resultPaths": [
-        "notes/Alpha.mdx"
-      ],
+      "resultPaths": ["notes/Alpha.mdx"],
       "count": 1,
       "alert": null,
       "empty": false
     },
     "search_file_filter": {
-      "resultPaths": [
-        "notes/Second.mdx"
-      ],
+      "resultPaths": ["notes/Second.mdx"],
       "count": 1,
       "alert": null,
       "empty": false
