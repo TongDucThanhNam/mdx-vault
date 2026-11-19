@@ -6,6 +6,7 @@ out
 
 # app-managed cache trong vault (index SQLite, component cache)
 example-vault/.app/
+example-vault/exports/
 
 # Codex session data
 .codex/
